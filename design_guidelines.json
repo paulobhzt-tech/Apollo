@@ -1,0 +1,240 @@
+{
+  "project_name": "ChefControl PDV & Gestão Gastronômica",
+  "archetype": "ARCHETYPE 2 & 5: TACTICAL GASTRONOMIC DARK (Modern Culinary Command Center)",
+  "language": "pt-BR",
+  "theme": "dark",
+  "typography": {
+    "font_family_heading": "Outfit, sans-serif",
+    "font_family_body": "Plus Jakarta Sans, sans-serif",
+    "font_family_mono": "IBM Plex Mono, monospace",
+    "import_statements": [
+      "@import \"@fontsource-variable/outfit\";",
+      "@import \"@fontsource-variable/plus-jakarta-sans\";",
+      "@import \"@fontsource/ibm-plex-mono\";"
+    ],
+    "scale_px": {
+      "display": 56,
+      "h1": 40,
+      "h2": 30,
+      "h3": 22,
+      "body": 16,
+      "caption": 14
+    },
+    "rules": {
+      "headings": "font-heading font-semibold tracking-tight text-white",
+      "body": "font-sans font-normal leading-relaxed text-zinc-300",
+      "labels": "text-xs font-medium uppercase tracking-[0.15em] text-zinc-400",
+      "numbers_currency": "font-mono font-medium tracking-tight"
+    }
+  },
+  "colors": {
+    "primary_brand": "#F97316",
+    "primary_brand_hover": "#EA580C",
+    "accent": "#F97316",
+    "on_accent": "#FFFFFF",
+    "surfaces": [
+      {
+        "name": "page",
+        "kind": "solid",
+        "bg": "#090A0F",
+        "on_bg": "#F4F4F5",
+        "on_bg_muted": "#A1A1AA"
+      },
+      {
+        "name": "sidebar_and_header",
+        "kind": "solid",
+        "bg": "#10121A",
+        "on_bg": "#F4F4F5",
+        "on_bg_muted": "#94A3B8"
+      },
+      {
+        "name": "card_panel",
+        "kind": "solid",
+        "bg": "#141722",
+        "on_bg": "#FAFAFA",
+        "on_bg_muted": "#A1A1AA",
+        "roles": {
+          "link": "#38BDF8",
+          "error": "#F87171",
+          "success": "#34D399",
+          "warning": "#FBBF24",
+          "accent_highlight": "#FB923C"
+        }
+      },
+      {
+        "name": "modal_dialog",
+        "kind": "solid",
+        "bg": "#181C2B",
+        "on_bg": "#FFFFFF",
+        "on_bg_muted": "#94A3B8"
+      },
+      {
+        "name": "pos_cart_panel",
+        "kind": "solid",
+        "bg": "#121520",
+        "on_bg": "#FFFFFF",
+        "on_bg_muted": "#94A3B8"
+      },
+      {
+        "name": "kds_ticket_active",
+        "kind": "solid",
+        "bg": "#1A1E2E",
+        "on_bg": "#F8FAFC",
+        "on_bg_muted": "#94A3B8"
+      },
+      {
+        "name": "kds_ticket_urgent",
+        "kind": "solid",
+        "bg": "#2A1418",
+        "on_bg": "#FECDD3",
+        "on_bg_muted": "#FDA4AF"
+      },
+      {
+        "name": "public_cardapio_page",
+        "kind": "solid",
+        "bg": "#0B0C10",
+        "on_bg": "#FFFFFF",
+        "on_bg_muted": "#9CA3AF"
+      }
+    ]
+  },
+  "entry_surfaces": {
+    "/login": "tactical split pin auth — restaurant profile badge and station selector left, PIN numeric keypad and quick login panel right",
+    "/": "command center dashboard — real-time sales ticker top, live metrics & DRE summary center, active tables and marketplace feed right",
+    "/cardapio/:mesaId": "mobile-first immersive digital menu — table greeting banner header, categorical dish slider, fast cart drawer bottom"
+  },
+  "layouts_and_modules": {
+    "pin_auth": {
+      "profiles": [
+        {"role": "admin", "name": "Gerente Geral (Admin)", "default_pin": "1234"},
+        {"role": "caixa", "name": "Operador de Caixa", "default_pin": "0000"},
+        {"role": "garcom", "name": "Garçom / Salão", "default_pin": "1111"},
+        {"role": "cozinha", "name": "Chefe de Cozinha / KDS", "default_pin": "2222"}
+      ],
+      "quick_switcher": "Permite alternar de operador/perfil rapidamente sem perder o estado da venda ou comanda"
+    },
+    "pdv_frente_de_caixa": {
+      "grid": "3 colunas em desktop (Categorias e Busca no topo, Catálogo de Produtos 7 colunas, Carrinho/Fechamento 5 colunas)",
+      "features": [
+        "Leitor de código de barras ou busca instantânea por nome/código",
+        "Múltiplas formas de pagamento: Dinheiro com cálculo de troco, Cartão Crédito/Débito, PIX Dinâmico com QR Code, Voucher/Vale-Refeição e Fiado/Conta Cliente",
+        "Divisão de conta por pessoa ou valor",
+        "Emissão mockada de NFC-e com DANFE visualizável e impressão térmica 80mm simulada",
+        "Modo de contingência Offline com fila de sincronização automática e badge indicador"
+      ]
+    },
+    "mesas_e_comandas": {
+      "map": "Mapa de mesas interativo com status coloridos (Livre: esmeralda, Ocupada: âmbar, Conta Solicitada: azul ciano, Reservada: roxo)",
+      "features": [
+        "Abertura de mesa/comanda rápida com número de pessoas e nome do cliente",
+        "Adição e cancelamento de itens com justificativa",
+        "Transferência de itens entre mesas",
+        "Impressão de pré-conta e fechamento com desconto/taxa de serviço (10%)",
+        "Gerador de QR Code individual por mesa para o Cardápio Digital móvel"
+      ]
+    },
+    "kds_cozinha": {
+      "grid": "Kanban horizontal de pedidos (Novos Pedidos, Em Preparo, Pronto / Despachar)",
+      "features": [
+        "Timer com alerta de tempo decorrido (<15m verde, 15-25m amarelo, >25m vermelho pulsante)",
+        "Destaque de observações (Ex: Sem cebola, Ponto da carne, Alergênicos)",
+        "Separação por praça (Cozinha Quente, Forno Pizzaria, Bar/Bebidas)",
+        "Sinal sonoro web audio synth para novo pedido"
+      ]
+    },
+    "integracao_delivery": {
+      "marketplaces": [
+        {"name": "iFood", "color": "#EA1D2C", "badge": "Conectado (Mock Live Feed)"},
+        {"name": "99Food", "color": "#F97316", "badge": "Conectado"},
+        {"name": "Keeta", "color": "#FFCC00", "badge": "Conectado"},
+        {"name": "Site Próprio (Sem Comissões)", "color": "#10B981", "badge": "Ativo - 0% Taxa"}
+      ],
+      "features": [
+        "Central unificada de pedidos delivery",
+        "Aceite automático ou manual de pedidos",
+        "Despacho para motoboy com rastreio de status",
+        "Simulação de chegada de novo pedido iFood com notificação sonner toast"
+      ]
+    },
+    "cardapio_digital_publico": {
+      "route": "/cardapio/:mesaId",
+      "concept": "Visual mobile-first requintado para clientes escanearem na mesa",
+      "features": [
+        "Fotos atraentes dos pratos",
+        "Personalização e adicionais (Ex: borda recheada, molhos extras)",
+        "Envio direto do pedido para a comanda da mesa e KDS da cozinha",
+        "Chamar garçom ou solicitar a conta com 1 toque"
+      ]
+    },
+    "gestao_operacional_e_estoque": {
+      "features": [
+        "Cadastro de Insumos com unidade de medida (kg, g, L, un) e estoque mínimo",
+        "Ficha Técnica / Engenharia de Cardápio com cálculo de CMV (Custo de Mercadoria Vendida) e margem de lucro sugerida",
+        "Baixa automática de insumos ao vender pratos no PDV ou Delivery",
+        "Alerta de reposição de estoque crítico"
+      ]
+    },
+    "financeiro_dre_e_caixa": {
+      "features": [
+        "Abertura e Fechamento de Caixa (Turnos, Sangrias, Suprimentos, Conferência cega)",
+        "DRE Simplificado (Receita Bruta, Deduções/Taxas, CMV Real, Custos Operacionais, Lucro Líquido)",
+        "Gráficos Recharts de faturamento por hora, meios de pagamento e produtos mais vendidos",
+        "Gestão de Funcionários com controle de comissão por garçom"
+      ]
+    }
+  },
+  "image_urls": {
+    "food_items": [
+      {
+        "category": "pizzas",
+        "url": "https://images.unsplash.com/photo-1651980979183-79425af50103?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHw0fHxyZXN0YXVyYW50JTIwZm9vZCUyMHBpenphJTIwYnVyZ2VyfGVufDB8fHx8MTc5MzgwMDM2OXww&ixlib=rb-4.1.0&q=85",
+        "description": "Pizza Artesanal Napolitana / Margherita"
+      },
+      {
+        "category": "burgers",
+        "url": "https://images.unsplash.com/photo-1606131731446-5568d87113aa?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHwzfHxyZXN0YXVyYW50JTIwZm9vZCUyMHBpenphJTIwYnVyZ2VyfGVufDB8fHx8MTc5MzgwMDM2OXww&ixlib=rb-4.1.0&q=85",
+        "description": "Burger Artesanal Cheddar & Bacon com Batatas"
+      },
+      {
+        "category": "dishes",
+        "url": "https://images.unsplash.com/photo-1502998070258-dc1338445ac2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMHBpenphJTIwYnVyZ2VyfGVufDB8fHx8MTc5MzgwMDM2OXww&ixlib=rb-4.1.0&q=85",
+        "description": "Porções & Pratos Especiais"
+      }
+    ],
+    "beverages": [
+      {
+        "category": "drinks",
+        "url": "https://images.unsplash.com/photo-1556855810-ac404aa91e85?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2MzR8MHwxfHNlYXJjaHwzfHxjb2NrdGFpbCUyMGJhciUyMGJldmVyYWdlfGVufDB8fHx8MTc5MjExMzQ4MXww&ixlib=rb-4.1.0&q=85",
+        "description": "Cocktails Tropicais e Caipirinhas"
+      },
+      {
+        "category": "bar_special",
+        "url": "https://images.unsplash.com/photo-1597075687490-8f673c6c17f6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2MzR8MHwxfHNlYXJjaHwyfHxjb2NrdGFpbCUyMGJhciUyMGJldmVyYWdlfGVufDB8fHx8MTc5MjExMzQ4MXww&ixlib=rb-4.1.0&q=85",
+        "description": "Drinks Clássicos e Vinhos"
+      }
+    ]
+  },
+  "motion_and_interactions": {
+    "library": "motion",
+    "guidelines": [
+      "Transições sutis de entrada com motion.div (fade + slide-up de 10px)",
+      "Cards de mesa e pedidos com hover sutil (hover:-translate-y-0.5 transition-transform duration-200)",
+      "Badge offline com animação de pulso suave quando ativo",
+      "Feed de novos pedidos do iFood com animação destacada e toast sonner sonoro",
+      "Botões numéricos do teclado de PIN com feedback tátil scale-95 no clique"
+    ]
+  },
+  "accessibility": {
+    "data_testid_convention": "Todos os botões, abas, inputs, itens de lista e cards de mesa devem possuir data-testid único (ex: data-testid='pin-digit-1', data-testid='pos-add-item-burger', data-testid='table-card-5', data-testid='payment-pix-btn')",
+    "contrast_standards": "Relação de contraste mínima de 4.5:1 para todo texto informativo",
+    "keyboard_navigation": "Atalhos rápidos para o PDV (F2: Pagamento, F4: Cancelar, ESC: Fechar Modal)"
+  },
+  "instructions_to_main_agent": [
+    "Construa uma aplicação de altíssimo nível, moderna, com tema escuro elegante (#090A0F) e acentos âmbar/laranja (#F97316) típicos de gastronomia de elite.",
+    "Implemente todas as telas principais com navegação fluida em rotas ou abas: 1. Login por PIN/Perfil, 2. Dashboard Geral, 3. PDV Frente de Caixa (com cálculo de troco, divisão, cupom fiscal NFC-e mockado e botão de modo offline), 4. Mapa de Mesas/Comandas, 5. KDS da Cozinha, 6. Integração Delivery (iFood, 99Food, Keeta, Site Próprio com simulação de novos pedidos), 7. Cardápio Digital Público (/cardapio/:mesaId com QR Code funcional e envio de pedido direto), 8. Estoque & Insumos & Ficha Técnica com CMV, 9. Controle de Caixa (Abertura/Fechamento/Sangria), 10. Relatórios Financeiros com DRE e Recharts, 11. Cadastro de Funcionários com comissão, 12. Histórico de Notas Fiscais NFC-e com DANFE visualizável.",
+    "Utilize os componentes shadcn base-nova existentes em @/components/ui.",
+    "Popule dados de exemplo ricos em português brasileiro (R$, produtos como Pizza Margherita, Smash Burger, Chopp Artesanal, Caipirinha de Limão, insumos como Queijo Muçarela, Farinha 00, Carne Bovina, etc.).",
+    "Permita testar facilmente todas as personas (Admin, Caixa, Garçom, Cozinha) com alternância rápida de PIN ou botões de perfil para teste imediato.",
+    "Sempre inclua data-testid em botões de ação e campos principais."
+  ]
+}

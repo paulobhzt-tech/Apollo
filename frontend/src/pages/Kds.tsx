@@ -1,0 +1,126 @@
+import { useEffect, useRef, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Volume2, VolumeX } from "lucide-react";
+import AppShell, { PageHeader } from "@/components/AppShell";
+import { Button } from "@/components/ui/button";
+import { apiGet, apiPatch } from "@/lib/api";
+import { errMsg, fmtTime, minutesSince, SOURCE_COLOR } from "@/lib/format";
+import { queryClient } from "@/lib/queryClient";
+import type { KitchenTicket, Station } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+const COLS: { key: KitchenTicket["status"]; label: string; next?: KitchenTicket["status"]; action?: string }[] = [
+  { key: "novo", label: "Novos pedidos", next: "preparo", action: "Iniciar preparo" },
+  { key: "preparo", label: "Em preparo", next: "pronto", action: "Marcar pronto" },
+  { key: "pronto", label: "Pronto / Despachar", next: "entregue", action: "Entregue" },
+];
+const STATIONS: { key: Station | "all"; label: string }[] = [
+  { key: "all", label: "Todas as praças" }, { key: "cozinha", label: "Cozinha quente" }, { key: "forno", label: "Forno pizzaria" }, { key: "bar", label: "Bar / Bebidas" },
+];
+
+function beep() {
+  try {
+    const ctx = new AudioContext();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 880; g.gain.value = 0.08;
+    o.start(); o.stop(ctx.currentTime + 0.25);
+  } catch { /* audio not allowed */ }
+}
+
+export default function Kds() {
+  const [station, setStation] = useState<Station | "all">("all");
+  const [sound, setSound] = useState(true);
+  const [, tick] = useState(0);
+  const tickets = useQuery({ queryKey: ["kds"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets"), refetchInterval: 5000 });
+  const seen = useRef<Set<string> | null>(null);
+
+  useEffect(() => { const t = setInterval(() => tick((x) => x + 1), 30000); return () => clearInterval(t); }, []);
+  useEffect(() => {
+    if (!tickets.data) return;
+    const ids = new Set(tickets.data.filter((t) => t.status === "novo").map((t) => t.id));
+    if (seen.current) {
+      const fresh = [...ids].filter((id) => !seen.current!.has(id));
+      if (fresh.length) { toast.info(`${fresh.length} novo(s) pedido(s) na cozinha`); if (sound) beep(); }
+    }
+    seen.current = ids;
+  }, [tickets.data, sound]);
+
+  const move = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => apiPatch<KitchenTicket>(`/kds/tickets/${id}`, { status }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["kds"] }),
+    onError: (e) => toast.error(errMsg(e)),
+  });
+
+  const list = (tickets.isError ? [] : tickets.data ?? [])
+    .map((t) => ({ ...t, items: t.items.filter((i) => station === "all" || i.station === station) }))
+    .filter((t) => t.items.length);
+
+  return (
+    <AppShell roles={["cozinha", "garcom", "caixa"]}>
+      <PageHeader title="Monitor de Preparo (KDS)" subtitle="Atualiza automaticamente · <15min verde · 15-25 amarelo · >25 vermelho" actions={
+        <>
+          <div className="flex gap-1 rounded-xl border border-white/8 p-1">
+            {STATIONS.map((s) => (
+              <button key={s.key} type="button" onClick={() => setStation(s.key)} data-testid={`kds-station-${s.key}`}
+                className={cn("rounded-lg px-3 py-1.5 text-xs transition-colors duration-150", station === s.key ? "bg-primary text-white" : "text-zinc-400 hover:text-white")}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <Button variant="outline" size="icon" onClick={() => setSound(!sound)} data-testid="kds-sound-toggle">{sound ? <Volume2 /> : <VolumeX />}</Button>
+        </>
+      } />
+      <div className="grid gap-4 lg:grid-cols-3">
+        {COLS.map((c) => {
+          const col = list.filter((t) => t.status === c.key);
+          return (
+            <section key={c.key} className="rounded-2xl border border-white/5 bg-shell p-3" data-testid={`kds-column-${c.key}`}>
+              <h3 className="mb-3 flex items-center justify-between px-1 text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-400">
+                {c.label} <span className="rounded-full bg-white/10 px-2 py-0.5 font-mono text-white">{col.length}</span>
+              </h3>
+              <div className="space-y-3">
+                {col.map((t) => {
+                  const m = minutesSince(t.created_at);
+                  const urgent = m > 25 && c.key !== "pronto";
+                  return (
+                    <article key={t.id} data-testid={`kds-ticket-${t.order_number}`}
+                      className={cn("rounded-xl border p-3 animate-rise", urgent ? "animate-urgent border-red-400 bg-[#2A1418]" : "border-white/8 bg-[#1A1E2E]")}>
+                      <div className="flex items-center justify-between">
+                        <p className="font-heading text-lg font-semibold text-white">{t.label}</p>
+                        <span className={cn("rounded-md px-2 py-0.5 font-mono text-xs", m < 15 ? "bg-emerald-400/15 text-emerald-300" : m <= 25 ? "bg-amber-400/15 text-amber-300" : "bg-red-400/20 text-red-300")}>
+                          {m}min
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500">
+                        <span className="mr-1 inline-block size-2 rounded-full" style={{ background: SOURCE_COLOR[t.source] }} />
+                        #{t.order_number} · {fmtTime(t.created_at)}
+                      </p>
+                      <ul className="mt-2 space-y-1">
+                        {t.items.map((i, idx) => (
+                          <li key={idx} className="text-sm">
+                            <span className="font-mono text-primary">{i.qty}x</span> <span className="text-zinc-100">{i.name}</span>
+                            {i.notes && <p className="ml-6 rounded bg-amber-400/10 px-1.5 text-xs font-medium text-amber-300">⚠ {i.notes}</p>}
+                          </li>
+                        ))}
+                      </ul>
+                      {c.next && (
+                        <Button size="sm" className="mt-3 w-full" variant={c.key === "pronto" ? "outline" : "default"} disabled={move.isPending}
+                          onClick={() => move.mutate({ id: t.id, status: c.next! })} data-testid={`kds-advance-${t.order_number}`}>
+                          {c.action}
+                        </Button>
+                      )}
+                    </article>
+                  );
+                })}
+                {col.length === 0 && <p className="py-8 text-center text-xs text-zinc-600">Vazio</p>}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </AppShell>
+  );
+}
