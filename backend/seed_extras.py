@@ -16,7 +16,7 @@ IMG = "https://images.unsplash.com/photo-1502998070258-dc1338445ac2?crop=entropy
 async def main() -> None:
     cat = await db.categories.find_one({"name": "Espetos"})
     if not cat:
-        cat = Category(name="Espetos", station="cozinha", sort=-1).model_dump()
+        cat = Category(name="Espetos", station="churrasqueira", sort=-1).model_dump()
         await db.categories.insert_one(dict(cat))
     for name, price, code, desc, opts in [
         ("Espeto de Picanha", 18.9, "ES01", "Picanha na brasa com sal grosso", [PONTO, ACOMP]),

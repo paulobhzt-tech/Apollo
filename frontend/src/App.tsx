@@ -17,6 +17,7 @@ import PedirDelivery from "@/pages/PedirDelivery";
 import Vendas from "@/pages/Vendas";
 import Fiado from "@/pages/Fiado";
 import Config from "@/pages/Config";
+import Impressao from "@/pages/Impressao";
 import { homeFor, useMe } from "@/lib/auth";
 
 function Home() {
@@ -40,6 +41,7 @@ export default function App() {
       <Route path="/vendas" element={<Vendas />} />
       <Route path="/fiado" element={<Fiado />} />
       <Route path="/config" element={<Config />} />
+      <Route path="/impressao" element={<Impressao />} />
       <Route path="/notas" element={<Notas />} />
       <Route path="/produtos" element={<Produtos />} />
       <Route path="/estoque" element={<Estoque />} />

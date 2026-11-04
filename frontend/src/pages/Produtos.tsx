@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ImagePlus, Pencil, Plus, Trash2 } from "lucide-react";
+import { ImagePlus, Pencil, Plus, Printer as PrinterIcon, Trash2 } from "lucide-react";
 import { fileToDataUrl } from "@/lib/image";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
@@ -17,10 +17,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api";
 import { brl, errMsg } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
-import type { Category, CategoryIn, Ingredient, OptionGroup, Product, ProductIn, RecipeItem, Station } from "@/lib/types";
+import type { Category, CategoryIn, Environment, EnvironmentIn, Ingredient, OptionGroup, Product, ProductIn, RecipeItem, Station } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { envName, useEnvironments } from "@/lib/environments";
 
-const STATION_LABEL: Record<Station, string> = { cozinha: "Cozinha quente", forno: "Forno pizzaria", bar: "Bar / Bebidas" };
 const inv = () => { void queryClient.invalidateQueries({ queryKey: ["products"] }); void queryClient.invalidateQueries({ queryKey: ["categories"] }); };
 
 export default function Produtos() {
@@ -28,6 +28,7 @@ export default function Produtos() {
   const categories = useQuery({ queryKey: ["categories"], queryFn: () => apiGet<Category[]>("/categories") });
   const ingredients = useQuery({ queryKey: ["ingredients"], queryFn: () => apiGet<Ingredient[]>("/ingredients") });
   const [editing, setEditing] = useState<Product | "new" | null>(null);
+  const envs = useEnvironments();
   const cats = categories.data ?? [];
   const catName = (id: string) => cats.find((c) => c.id === id)?.name ?? "—";
   const del = useMutation({
@@ -38,18 +39,19 @@ export default function Produtos() {
 
   return (
     <AppShell roles={[]}>
-      <PageHeader title="Produtos & Combos" subtitle="Cadastro com foto, categorias, combos, opções e ficha técnica com CMV"
+      <PageHeader title="Cadastro de Produtos" subtitle="Cadastrar e editar produtos com foto, categorias, ambientes de produção, combos e ficha técnica"
         actions={<Button onClick={() => setEditing("new")} data-testid="new-product-button"><Plus className="size-4" /> Novo produto</Button>} />
       <Tabs defaultValue="produtos">
         <TabsList>
           <TabsTrigger value="produtos" data-testid="tab-produtos">Produtos</TabsTrigger>
           <TabsTrigger value="categorias" data-testid="tab-categorias">Categorias</TabsTrigger>
+          <TabsTrigger value="ambientes" data-testid="tab-ambientes">Ambientes</TabsTrigger>
         </TabsList>
         <TabsContent value="produtos" className="mt-4">
           <div className="rounded-2xl border border-white/5 bg-panel">
             <Table>
               <TableHeader>
-                <TableRow><TableHead>Produto</TableHead><TableHead>Categoria</TableHead><TableHead className="text-right">Preço</TableHead><TableHead className="text-right">Custo</TableHead><TableHead className="text-right">Margem</TableHead><TableHead /></TableRow>
+                <TableRow><TableHead>Produto</TableHead><TableHead>Categoria</TableHead><TableHead>Ambiente</TableHead><TableHead className="text-right">Preço</TableHead><TableHead className="text-right">Custo</TableHead><TableHead className="text-right">Margem</TableHead><TableHead /></TableRow>
               </TableHeader>
               <TableBody>
                 {(products.data ?? []).map((p) => (
@@ -64,6 +66,10 @@ export default function Produtos() {
                       </div>
                     </TableCell>
                     <TableCell className="text-zinc-300">{catName(p.category_id)}</TableCell>
+                    <TableCell className="text-zinc-300" data-testid={`product-env-${p.code || p.id}`}>
+                      {envName(envs.data, p.station || cats.find((c) => c.id === p.category_id)?.station || "cozinha")}
+                      {p.print_ticket === false ? <Badge variant="outline" className="ml-1">não imprime</Badge> : <PrinterIcon className="ml-1 inline size-3 text-zinc-500" />}
+                    </TableCell>
                     <TableCell className="text-right font-mono">{brl(p.price)}</TableCell>
                     <TableCell className="text-right font-mono text-zinc-400">{brl(p.cost)}{p.cost_price > 0 && <span className="ml-1 text-[10px] text-zinc-500">manual</span>}</TableCell>
                     <TableCell className={cn("text-right font-mono", p.margin_pct >= 65 ? "text-emerald-300" : p.margin_pct >= 45 ? "text-amber-300" : "text-red-300")}>{p.margin_pct}%</TableCell>
@@ -78,6 +84,7 @@ export default function Produtos() {
           </div>
         </TabsContent>
         <TabsContent value="categorias" className="mt-4"><Categorias cats={cats} /></TabsContent>
+        <TabsContent value="ambientes" className="mt-4"><Ambientes /></TabsContent>
       </Tabs>
       <ProductDialog editing={editing} onClose={() => setEditing(null)} cats={cats} ings={ingredients.data ?? []} />
     </AppShell>
@@ -87,6 +94,7 @@ export default function Produtos() {
 function Categorias({ cats }: { cats: Category[] }) {
   const [name, setName] = useState("");
   const [station, setStation] = useState<Station>("cozinha");
+  const envs = useEnvironments();
   const create = useMutation({
     mutationFn: (b: CategoryIn) => apiPost<Category>("/categories", b),
     onSuccess: () => { toast.success("Categoria criada"); setName(""); inv(); },
@@ -98,7 +106,7 @@ function Categorias({ cats }: { cats: Category[] }) {
       <div className="grid gap-2 sm:grid-cols-2">
         {cats.map((c) => (
           <div key={c.id} className="flex items-center justify-between rounded-xl border border-white/5 bg-panel px-4 py-3" data-testid={`category-row-${c.id}`}>
-            <div><p className="font-medium text-white">{c.name}</p><p className="text-xs text-zinc-500">{STATION_LABEL[c.station]}</p></div>
+            <div><p className="font-medium text-white">{c.name}</p><p className="text-xs text-zinc-500">{envName(envs.data, c.station)}</p></div>
             <Button size="icon-sm" variant="ghost" onClick={() => del.mutate(c.id)} data-testid={`delete-category-${c.id}`}><Trash2 /></Button>
           </div>
         ))}
@@ -107,8 +115,8 @@ function Categorias({ cats }: { cats: Category[] }) {
         <p className="text-sm font-medium text-white">Nova categoria</p>
         <Input placeholder="Nome" value={name} onChange={(e) => setName(e.target.value)} data-testid="category-name-input" />
         <Select value={station} onValueChange={(v: string) => setStation(v as Station)}>
-          <SelectTrigger className="w-full" data-testid="category-station-select"><SelectValue>{(v) => STATION_LABEL[v as Station]}</SelectValue></SelectTrigger>
-          <SelectContent>{(Object.keys(STATION_LABEL) as Station[]).map((s) => <SelectItem key={s} value={s}>{STATION_LABEL[s]}</SelectItem>)}</SelectContent>
+          <SelectTrigger className="w-full" data-testid="category-station-select"><SelectValue>{(v) => envName(envs.data, v as string)}</SelectValue></SelectTrigger>
+          <SelectContent>{(envs.data ?? []).map((e) => <SelectItem key={e.key} value={e.key}>{e.name}</SelectItem>)}</SelectContent>
         </Select>
         <Button className="w-full" disabled={!name.trim()} onClick={() => create.mutate({ name, station, sort: cats.length })} data-testid="category-save-button">Salvar</Button>
       </div>
@@ -116,7 +124,7 @@ function Categorias({ cats }: { cats: Category[] }) {
   );
 }
 
-const EMPTY: ProductIn = { name: "", description: "", category_id: "", price: 0, code: "", image: "", active: true, recipe: [], cost_price: 0, options: [] };
+const EMPTY: ProductIn = { name: "", description: "", category_id: "", price: 0, code: "", image: "", active: true, recipe: [], cost_price: 0, options: [], station: "", print_ticket: true };
 
 function ProductDialog({ editing, onClose, cats, ings }: { editing: Product | "new" | null; onClose: () => void; cats: Category[]; ings: Ingredient[] }) {
   return (
@@ -132,7 +140,10 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
   const [f, setF] = useState<ProductIn>(editing === "new" ? { ...EMPTY, category_id: cats[0]?.id ?? "" } : {
     name: editing.name, description: editing.description, category_id: editing.category_id, price: editing.price,
     code: editing.code, image: editing.image, active: editing.active, recipe: editing.recipe, cost_price: editing.cost_price ?? 0, options: editing.options ?? [],
+    station: editing.station ?? "", print_ticket: editing.print_ticket ?? true,
   });
+  const envs = useEnvironments();
+  const catStation = cats.find((c) => c.id === f.category_id)?.station ?? "cozinha";
   const [priceStr, setPriceStr] = useState(editing === "new" ? "" : String(editing.price));
   const [costStr, setCostStr] = useState(editing === "new" || !editing.cost_price ? "" : String(editing.cost_price));
   const [ingId, setIngId] = useState("");
@@ -195,6 +206,20 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
             </div>
           </div>
         </div>
+        <div>
+          <Label className="text-xs text-zinc-400">Ambiente de produção (onde é preparado e impresso)</Label>
+          <Select value={f.station || "__cat"} onValueChange={(v: string) => setF({ ...f, station: v === "__cat" ? "" : v })}>
+            <SelectTrigger className="mt-1 w-full" data-testid="product-station-select"><SelectValue>{(v) => (v === "__cat" ? `Da categoria (${envName(envs.data, catStation)})` : envName(envs.data, v as string))}</SelectValue></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__cat">Da categoria ({envName(envs.data, catStation)})</SelectItem>
+              {(envs.data ?? []).map((e) => <SelectItem key={e.key} value={e.key}>{e.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <label className="flex items-center gap-2 self-end rounded-xl border border-white/5 bg-panel px-3 py-2.5 text-sm text-zinc-300">
+          <Checkbox checked={f.print_ticket} onCheckedChange={(v) => setF({ ...f, print_ticket: !!v })} data-testid="product-print-checkbox" />
+          <PrinterIcon className="size-4 text-primary" /> Imprimir ticket no ambiente
+        </label>
         <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={f.active} onCheckedChange={(v) => setF({ ...f, active: !!v })} data-testid="product-active-checkbox" /> Disponível para venda</label>
       </div>
 
@@ -261,6 +286,43 @@ function OptionsEditor({ value, onChange }: { value: OptionGroup[]; onChange: (v
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function Ambientes() {
+  const envs = useEnvironments();
+  const [f, setF] = useState<EnvironmentIn>({ name: "", auto_print: true, sort: 0 });
+  const invE = () => void queryClient.invalidateQueries({ queryKey: ["environments"] });
+  const create = useMutation({
+    mutationFn: () => apiPost<Environment>("/environments", { ...f, sort: envs.data?.length ?? 0 }),
+    onSuccess: () => { toast.success("Ambiente criado"); setF({ name: "", auto_print: true, sort: 0 }); invE(); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
+  const upd = useMutation({ mutationFn: (e: Environment) => apiPut<Environment>(`/environments/${e.id}`, { name: e.name, auto_print: e.auto_print, sort: e.sort }), onSuccess: invE, onError: (e) => toast.error(errMsg(e)) });
+  const del = useMutation({ mutationFn: (id: string) => apiDelete(`/environments/${id}`), onSuccess: () => { toast.success("Ambiente removido"); invE(); }, onError: (e) => toast.error(errMsg(e)) });
+  return (
+    <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-2 sm:grid-cols-2">
+        {(envs.data ?? []).map((e) => (
+          <div key={e.id} className="rounded-xl border border-white/5 bg-panel px-4 py-3" data-testid={`env-row-${e.key}`}>
+            <div className="flex items-center justify-between">
+              <p className="font-medium text-white">{e.name}</p>
+              <Button size="icon-sm" variant="ghost" onClick={() => window.confirm(`Excluir ${e.name}?`) && del.mutate(e.id)} data-testid={`env-delete-${e.key}`}><Trash2 /></Button>
+            </div>
+            <label className="mt-1 flex items-center gap-2 text-xs text-zinc-400">
+              <Checkbox checked={e.auto_print} onCheckedChange={(v) => upd.mutate({ ...e, auto_print: !!v })} data-testid={`env-auto-${e.key}`} /> Imprimir automaticamente ao chegar pedido
+            </label>
+          </div>
+        ))}
+      </div>
+      <div className="space-y-3 rounded-2xl border border-white/5 bg-panel p-4">
+        <p className="text-sm font-medium text-white">Novo ambiente</p>
+        <p className="text-xs text-zinc-500">Ex.: Churrasqueira, Bar, Cozinha, Sobremesas. Vincule uma impressora em Configurações → Impressoras.</p>
+        <Input placeholder="Nome do ambiente" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} data-testid="env-name-input" />
+        <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={f.auto_print} onCheckedChange={(v) => setF({ ...f, auto_print: !!v })} data-testid="env-auto-new" /> Impressão automática</label>
+        <Button className="w-full" disabled={f.name.trim().length < 2 || create.isPending} onClick={() => create.mutate()} data-testid="env-save-button">Salvar ambiente</Button>
+      </div>
     </div>
   );
 }

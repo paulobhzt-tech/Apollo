@@ -13,12 +13,13 @@ load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
 from lib.db import client, db, ensure_indexes  # noqa: E402
-from routers import auth, catalog, config, fiado, operations, public, reports, tables  # noqa: E402
+from routers import auth, catalog, config, fiado, operations, production, public, reports, tables  # noqa: E402
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.index_task = asyncio.create_task(ensure_indexes())
+    await production.ensure_environments()
     yield
     app.state.index_task.cancel()
     with suppress(asyncio.CancelledError):
@@ -35,7 +36,7 @@ async def root():
     return {"message": "Espeteria Churras Buguer PDV API"}
 
 
-for r in (auth, catalog, tables, operations, reports, public, fiado, config):
+for r in (auth, catalog, tables, operations, reports, public, fiado, config, production):
     api_router.include_router(r.router)
 
 app.add_middleware(

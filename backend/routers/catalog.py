@@ -21,6 +21,11 @@ async def products_with_cost(q: dict) -> list[dict]:
     return [with_cost(p, ings) for p in await db.products.find(q, {"_id": 0}).sort("name", 1).to_list(2000)]
 
 
+async def _check_station(key: str) -> None:
+    if key and not await db.environments.find_one({"key": key}):
+        raise HTTPException(400, "Ambiente de produção inválido")
+
+
 # ---------- categories ----------
 @router.get("/categories", response_model=list[Category])
 async def list_categories(_: dict = Depends(current_user)):
@@ -29,6 +34,7 @@ async def list_categories(_: dict = Depends(current_user)):
 
 @router.post("/categories", response_model=Category)
 async def create_category(body: CategoryIn, _: dict = Depends(require())):
+    await _check_station(body.station)
     c = Category(**body.model_dump()).model_dump()
     await db.categories.insert_one(dict(c))
     return c
@@ -36,6 +42,7 @@ async def create_category(body: CategoryIn, _: dict = Depends(require())):
 
 @router.put("/categories/{id}", response_model=Category)
 async def update_category(id: str, body: CategoryIn, _: dict = Depends(require())):
+    await _check_station(body.station)
     res = await db.categories.find_one_and_update({"id": id}, {"$set": body.model_dump()}, projection={"_id": 0}, return_document=True)
     if not res:
         raise HTTPException(404, "Categoria não encontrada")
@@ -59,6 +66,7 @@ async def list_products(_: dict = Depends(current_user)):
 async def _validate_product(body: ProductIn) -> None:
     if not await db.categories.find_one({"id": body.category_id}):
         raise HTTPException(400, "Categoria inválida")
+    await _check_station(body.station)
     names = {p["name"].strip().lower(): p["id"] for p in await db.products.find({}, {"_id": 0, "id": 1, "name": 1}).to_list(5000)}
     for g in body.options:  # a choice named exactly like a product becomes a combo link
         for c in g.choices:

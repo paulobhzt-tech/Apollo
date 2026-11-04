@@ -15,7 +15,7 @@ def _now() -> datetime:
 
 
 Role = Literal["admin", "caixa", "garcom", "cozinha"]
-Station = Literal["cozinha", "forno", "bar"]
+Station = str  # key of an Environment (ambiente de produção), e.g. "cozinha", "churrasqueira"
 Unit = Literal["kg", "g", "L", "ml", "un"]
 PayMethod = Literal["dinheiro", "credito", "debito", "pix", "voucher", "fiado", "online"]
 Source = Literal["pdv", "mesa", "cardapio", "ifood", "99food", "keeta", "site"]
@@ -71,6 +71,21 @@ class Category(BaseModel):
     sort: int = 0
 
 
+class Environment(BaseModel):
+    """Ambiente de produção (cozinha, churrasqueira, bar…). Tickets are split and printed per environment."""
+    id: str = Field(default_factory=_id)
+    key: str
+    name: str
+    auto_print: bool = True
+    sort: int = 0
+
+
+class EnvironmentIn(BaseModel):
+    name: str = Field(min_length=2)
+    auto_print: bool = True
+    sort: int = 0
+
+
 class CategoryIn(BaseModel):
     name: str = Field(min_length=1)
     station: Station = "cozinha"
@@ -112,6 +127,8 @@ class Product(BaseModel):
     recipe: list[RecipeItem] = []
     cost_price: float = 0  # manual cost; when > 0 it overrides the recipe cost
     options: list[OptionGroup] = []
+    station: str = ""  # empty = environment of the category
+    print_ticket: bool = True
     cost: float = 0
     margin_pct: float = 0
 
@@ -127,6 +144,8 @@ class ProductIn(BaseModel):
     recipe: list[RecipeItem] = []
     cost_price: float = Field(default=0, ge=0)
     options: list[OptionGroup] = []
+    station: str = ""
+    print_ticket: bool = True
 
 
 # ---------- stock ----------
@@ -185,6 +204,7 @@ class OrderItem(BaseModel):
     station: Station = "cozinha"
     options: list[str] = []
     option_products: list[str] = []
+    print_ticket: bool = True
     cancelled: bool = False
     cancel_reason: str = ""
 
@@ -286,6 +306,7 @@ class KitchenItem(BaseModel):
     notes: str = ""
     station: Station = "cozinha"
     options: list[str] = []
+    print_ticket: bool = True
 
 
 class KitchenTicket(BaseModel):
@@ -296,8 +317,13 @@ class KitchenTicket(BaseModel):
     source: Source
     items: list[KitchenItem]
     status: Literal["novo", "preparo", "pronto", "entregue"] = "novo"
+    printed: list[str] = []  # environment keys already printed
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)
+
+
+class TicketPrintedIn(BaseModel):
+    station: str = Field(min_length=1)
 
 
 class TicketStatusIn(BaseModel):
@@ -601,7 +627,7 @@ class CardFees(BaseModel):
 class Printer(BaseModel):
     id: str = Field(default_factory=_id)
     name: str
-    purpose: Literal["caixa", "cozinha", "bar", "forno"] = "caixa"
+    purpose: str = "caixa"  # "caixa" or an environment key
     paper: Literal["58mm", "80mm", "A4"] = "80mm"
     ip: str = ""
     copies: int = 1
@@ -610,7 +636,7 @@ class Printer(BaseModel):
 
 class PrinterIn(BaseModel):
     name: str = Field(min_length=2)
-    purpose: Literal["caixa", "cozinha", "bar", "forno"] = "caixa"
+    purpose: str = "caixa"  # "caixa" or an environment key
     paper: Literal["58mm", "80mm", "A4"] = "80mm"
     ip: str = ""
     copies: int = Field(default=1, ge=1, le=5)
@@ -629,6 +655,16 @@ class OptionRank(BaseModel):
     name: str
     qty: int
     products: list[str]
+
+
+class RestoreIn(BaseModel):
+    data: dict[str, list[dict]]
+
+
+class RestoreOut(BaseModel):
+    ok: bool = True
+    counts: dict[str, int] = {}
+    message: str = ""
 
 
 class OkOut(BaseModel):

@@ -82,7 +82,7 @@ async def build_items(items_in: list[OrderItemIn]) -> list[OrderItem]:
         out.append(OrderItem(
             product_id=p["id"], name=p["name"], qty=it.qty, unit_price=round(p["price"] + extra, 2), options=labels, option_products=linked,
             unit_cost=round(product_cost(p, ings) + sum(product_cost(linked_map[x], ings) for x in linked if x in linked_map), 2), notes=it.notes,
-            station=cats.get(p["category_id"], {}).get("station", "cozinha"),
+            station=p.get("station") or cats.get(p["category_id"], {}).get("station", "cozinha"), print_ticket=p.get("print_ticket", True),
         ))
     return out
 
@@ -124,7 +124,7 @@ def ticket_label(order: dict) -> str:
 async def create_ticket(order: dict, items: list[OrderItem]) -> None:
     t = KitchenTicket(
         order_id=order["id"], order_number=order["number"], label=ticket_label(order), source=order["source"],
-        items=[KitchenItem(name=i.name, qty=i.qty, notes=i.notes, station=i.station, options=i.options) for i in items],
+        items=[KitchenItem(name=i.name, qty=i.qty, notes=i.notes, station=i.station, options=i.options, print_ticket=i.print_ticket) for i in items],
     )
     await db.kitchen_tickets.insert_one(t.model_dump())
 

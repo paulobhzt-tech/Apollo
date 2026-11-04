@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CloudUpload, Download, Pencil, Plus, Printer as PrinterIcon, Trash2 } from "lucide-react";
+import { CloudUpload, Download, Pencil, Plus, Printer as PrinterIcon, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -14,11 +14,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api";
 import { errMsg } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
-import type { GeneralSettings, Printer, PrinterIn, PrinterPurpose } from "@/lib/types";
+import type { GeneralSettings, Printer, PrinterIn, PrinterPurpose, RestoreIn, RestoreOut } from "@/lib/types";
+import { envName, useEnvironments } from "@/lib/environments";
 import { CardFeesPanel } from "./Financeiro";
 import { Panel } from "./Dashboard";
 
-const PURPOSE: Record<PrinterPurpose, string> = { caixa: "Caixa / cupom", cozinha: "Cozinha", bar: "Bar", forno: "Forno / pizzaria" };
 const invP = () => void queryClient.invalidateQueries({ queryKey: ["printers"] });
 
 export default function Config() {
@@ -41,14 +41,21 @@ export default function Config() {
   );
 }
 
+function usePurposes() {
+  const envs = useEnvironments();
+  const label = (k: PrinterPurpose) => (k === "caixa" ? "Caixa / cupom" : envName(envs.data, k));
+  return { keys: ["caixa", ...(envs.data ?? []).map((e) => e.key)], label };
+}
+
 function Printers() {
+  const { label } = usePurposes();
   const q = useQuery({ queryKey: ["printers"], queryFn: () => apiGet<Printer[]>("/printers") });
   const [editing, setEditing] = useState<Printer | "new" | null>(null);
   const del = useMutation({ mutationFn: (id: string) => apiDelete(`/printers/${id}`), onSuccess: invP, onError: (e) => toast.error(errMsg(e)) });
   return (
     <>
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm text-zinc-400">A impressão abre pelo navegador já no tamanho do papel cadastrado (58/80mm).</p>
+        <p className="text-sm text-zinc-400">Cada impressora atende um ambiente. Os tickets saem automaticamente pela Central de Impressão.</p>
         <Button onClick={() => setEditing("new")} data-testid="printer-new-button"><Plus className="size-4" /> Nova impressora</Button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -58,7 +65,7 @@ function Printers() {
               <span className="grid size-10 place-items-center rounded-xl bg-primary/15 text-primary"><PrinterIcon className="size-5" /></span>
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-white">{p.name}</p>
-                <p className="text-xs text-zinc-500">{PURPOSE[p.purpose]} · {p.paper}{p.ip && ` · ${p.ip}`} · {p.copies} via(s)</p>
+                <p className="text-xs text-zinc-500">{label(p.purpose)} · {p.paper}{p.ip && ` · ${p.ip}`} · {p.copies} via(s)</p>
               </div>
               {!p.active && <Badge variant="outline">Inativa</Badge>}
             </div>
@@ -80,6 +87,7 @@ function Printers() {
 }
 
 function PrinterForm({ editing, onClose }: { editing: Printer | "new"; onClose: () => void }) {
+  const P = usePurposes();
   const [f, setF] = useState<PrinterIn>(editing === "new" ? { name: "", purpose: "cozinha", paper: "80mm", ip: "", copies: 1, active: true } : { ...editing });
   const save = useMutation({
     mutationFn: () => (editing === "new" ? apiPost<Printer>("/printers", f) : apiPut<Printer>(`/printers/${editing.id}`, f)),
@@ -91,10 +99,10 @@ function PrinterForm({ editing, onClose }: { editing: Printer | "new"; onClose: 
       <DialogHeader><DialogTitle className="font-heading text-white">{editing === "new" ? "Nova impressora" : "Editar impressora"}</DialogTitle></DialogHeader>
       <Input placeholder="Nome (ex: Térmica Cozinha)" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} data-testid="printer-name-input" />
       <div className="grid grid-cols-2 gap-3">
-        <div><Label className="text-xs text-zinc-400">Imprime</Label>
+        <div><Label className="text-xs text-zinc-400">Imprime (ambiente)</Label>
           <Select value={f.purpose} onValueChange={(v: string) => setF({ ...f, purpose: v as PrinterPurpose })}>
-            <SelectTrigger className="mt-1 w-full" data-testid="printer-purpose-select"><SelectValue>{(v) => PURPOSE[v as PrinterPurpose]}</SelectValue></SelectTrigger>
-            <SelectContent>{(Object.keys(PURPOSE) as PrinterPurpose[]).map((k) => <SelectItem key={k} value={k}>{PURPOSE[k]}</SelectItem>)}</SelectContent>
+            <SelectTrigger className="mt-1 w-full" data-testid="printer-purpose-select"><SelectValue>{(v) => P.label(v as string)}</SelectValue></SelectTrigger>
+            <SelectContent>{P.keys.map((k) => <SelectItem key={k} value={k}>{P.label(k)}</SelectItem>)}</SelectContent>
           </Select></div>
         <div><Label className="text-xs text-zinc-400">Papel</Label>
           <Select value={f.paper} onValueChange={(v: string) => setF({ ...f, paper: v as PrinterIn["paper"] })}>
@@ -157,6 +165,7 @@ function Backup() {
     } finally { setBusy(false); }
   };
   return (
+    <div className="grid gap-4 lg:grid-cols-2">
     <Panel title="Backup completo">
       <p className="text-sm text-zinc-400">Gera um arquivo com produtos (incluindo imagens), estoque, vendas, caixa, fiado, funcionários (sem PINs) e configurações.</p>
       <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-zinc-300">
@@ -167,6 +176,45 @@ function Backup() {
         <Button onClick={download} disabled={busy} data-testid="backup-download-button"><Download className="size-4" /> {busy ? "Gerando…" : "Baixar backup"}</Button>
         <a href="https://drive.google.com/drive/my-drive" target="_blank" rel="noreferrer"><Button variant="outline" data-testid="backup-open-drive"><CloudUpload className="size-4" /> Abrir Google Drive</Button></a>
       </div>
+    </Panel>
+    <Restore />
+    </div>
+  );
+}
+
+function Restore() {
+  const [file, setFile] = useState<{ name: string; body: RestoreIn; summary: string } | null>(null);
+  const [result, setResult] = useState("");
+  const run = useMutation({
+    mutationFn: (b: RestoreIn) => apiPost<RestoreOut>("/backup/restore", b),
+    onSuccess: (r) => { setResult(r.message); setFile(null); toast.success(r.message); void queryClient.invalidateQueries(); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
+  const pick = async (f: File) => {
+    try {
+      const json = JSON.parse(await f.text()) as { app?: string; created_at?: string; data?: Record<string, unknown[]> };
+      if (!json.data || typeof json.data !== "object") throw new Error("Arquivo não é um backup do sistema");
+      const n = (k: string) => (Array.isArray(json.data?.[k]) ? json.data[k].length : 0);
+      setFile({ name: f.name, body: { data: json.data }, summary: `${n("products")} produtos · ${n("orders")} vendas · ${n("employees")} funcionários · ${n("fiado_customers")} clientes fiado${json.created_at ? ` · gerado em ${json.created_at}` : ""}` });
+      setResult("");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Arquivo inválido"); }
+  };
+  return (
+    <Panel title="Restaurar backup (novo computador)">
+      <p className="text-sm text-zinc-400">Baixe o arquivo do Google Drive e envie aqui. <b className="text-amber-300">Os dados atuais serão substituídos</b> pelos do backup. Funcionários mantêm os PINs deste sistema; quem não existir aqui volta inativo até você cadastrar um PIN.</p>
+      <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 px-4 py-5 text-sm text-zinc-300 transition-colors duration-150 hover:border-primary/50">
+        <Upload className="size-4" /> {file ? file.name : "Escolher arquivo de backup (.json)"}
+        <input type="file" accept="application/json,.json" className="hidden" data-testid="restore-file-input" onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); e.target.value = ""; }} />
+      </label>
+      {file && (
+        <div className="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3" data-testid="restore-preview">
+          <p className="text-sm text-amber-200">{file.summary}</p>
+          <Button className="mt-3" variant="destructive" disabled={run.isPending} onClick={() => window.confirm("Substituir os dados atuais pelos do backup?") && run.mutate(file.body)} data-testid="restore-confirm-button">
+            {run.isPending ? "Restaurando…" : "Restaurar agora"}
+          </Button>
+        </div>
+      )}
+      {result && <p className="mt-3 text-sm text-emerald-300" data-testid="restore-result">{result}</p>}
     </Panel>
   );
 }

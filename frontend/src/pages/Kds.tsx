@@ -8,15 +8,13 @@ import { errMsg, fmtTime, minutesSince, SOURCE_COLOR } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
 import type { KitchenTicket, Station } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useEnvironments } from "@/lib/environments";
 import { toast } from "sonner";
 
 const COLS: { key: KitchenTicket["status"]; label: string; next?: KitchenTicket["status"]; action?: string }[] = [
   { key: "novo", label: "Novos pedidos", next: "preparo", action: "Iniciar preparo" },
   { key: "preparo", label: "Em preparo", next: "pronto", action: "Marcar pronto" },
   { key: "pronto", label: "Pronto / Despachar", next: "entregue", action: "Entregue" },
-];
-const STATIONS: { key: Station | "all"; label: string }[] = [
-  { key: "all", label: "Todas as praças" }, { key: "cozinha", label: "Cozinha quente" }, { key: "forno", label: "Forno pizzaria" }, { key: "bar", label: "Bar / Bebidas" },
 ];
 
 function beep() {
@@ -36,6 +34,8 @@ export default function Kds() {
   const [, tick] = useState(0);
   const tickets = useQuery({ queryKey: ["kds"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets"), refetchInterval: 5000 });
   const seen = useRef<Set<string> | null>(null);
+  const envs = useEnvironments();
+  const STATIONS: { key: Station | "all"; label: string }[] = [{ key: "all", label: "Todos os ambientes" }, ...(envs.data ?? []).map((e) => ({ key: e.key, label: e.name }))];
 
   useEffect(() => { const t = setInterval(() => tick((x) => x + 1), 30000); return () => clearInterval(t); }, []);
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function Kds() {
     <AppShell roles={["cozinha", "garcom", "caixa"]}>
       <PageHeader title="Monitor de Preparo (KDS)" subtitle="Atualiza automaticamente · <15min verde · 15-25 amarelo · >25 vermelho" actions={
         <>
-          <div className="flex gap-1 rounded-xl border border-white/8 p-1">
+          <div className="flex flex-wrap gap-1 rounded-xl border border-white/8 p-1">
             {STATIONS.map((s) => (
               <button key={s.key} type="button" onClick={() => setStation(s.key)} data-testid={`kds-station-${s.key}`}
                 className={cn("rounded-lg px-3 py-1.5 text-xs transition-colors duration-150", station === s.key ? "bg-primary text-white" : "text-zinc-400 hover:text-white")}>

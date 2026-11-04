@@ -1,6 +1,8 @@
 // Hand-written mirrors of backend/models/schemas.py — keep in sync.
 export type Role = "admin" | "caixa" | "garcom" | "cozinha";
-export type Station = "cozinha" | "forno" | "bar";
+export type Station = string; // environment key (ambiente de produção)
+export interface Environment { id: string; key: string; name: string; auto_print: boolean; sort: number }
+export type EnvironmentIn = Omit<Environment, "id" | "key">;
 export type Unit = "kg" | "g" | "L" | "ml" | "un";
 export type PayMethod = "dinheiro" | "credito" | "debito" | "pix" | "voucher" | "fiado" | "online";
 export type Source = "pdv" | "mesa" | "cardapio" | "ifood" | "99food" | "keeta" | "site";
@@ -45,6 +47,8 @@ export interface Product {
   recipe: RecipeItem[];
   cost_price: number;
   options: OptionGroup[];
+  station: string; // "" = environment of the category
+  print_ticket: boolean;
   cost: number;
   margin_pct: number;
 }
@@ -83,6 +87,7 @@ export interface OrderItem {
   station: Station;
   options: string[];
   option_products: string[];
+  print_ticket: boolean;
   cancelled: boolean;
   cancel_reason: string;
 }
@@ -143,7 +148,7 @@ export interface QuickSaleIn extends PayIn {
 }
 export interface SaleResult { order: Order; invoice: Invoice | null }
 
-export interface KitchenItem { name: string; qty: number; notes: string; station: Station; options: string[] }
+export interface KitchenItem { name: string; qty: number; notes: string; station: Station; options: string[]; print_ticket: boolean }
 export interface KitchenTicket {
   id: string;
   order_id: string;
@@ -152,6 +157,7 @@ export interface KitchenTicket {
   source: Source;
   items: KitchenItem[];
   status: "novo" | "preparo" | "pronto" | "entregue";
+  printed: string[];
   created_at: string;
   updated_at: string;
 }
@@ -279,9 +285,11 @@ export interface CustomerMove {
   method: string; brand: string | null; note: string; by_name: string; cash_session_id: string | null; at: string;
 }
 export interface CardFees { fees: Record<string, number> }
-export type PrinterPurpose = "caixa" | "cozinha" | "bar" | "forno";
+export type PrinterPurpose = string; // "caixa" or an environment key
 export interface Printer { id: string; name: string; purpose: PrinterPurpose; paper: "58mm" | "80mm" | "A4"; ip: string; copies: number; active: boolean }
 export type PrinterIn = Omit<Printer, "id">;
 export interface GeneralSettings { pix_key: string; pix_holder: string; phone: string; address: string }
 export interface OptionRank { group: string; name: string; qty: number; products: string[] }
+export interface RestoreIn { data: Record<string, unknown[]> }
+export interface RestoreOut { ok: boolean; counts: Record<string, number>; message: string }
 export interface OkOut { ok: boolean; message: string }
