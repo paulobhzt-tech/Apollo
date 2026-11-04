@@ -297,6 +297,7 @@ class SaleResult(BaseModel):
 class CancelIn(BaseModel):
     reason: str = Field(min_length=3)
     manager_pin: Optional[str] = None
+    qty: Optional[float] = Field(default=None, gt=0)  # table items: remove only part of the quantity
 
 
 # ---------- kitchen ----------

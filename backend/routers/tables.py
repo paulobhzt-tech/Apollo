@@ -156,10 +156,16 @@ async def cancel_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
         raise HTTPException(404, "Item não encontrado")
     auth = await cancel_authorizer(user, body.manager_pin)
     reason = body.reason if auth == user["name"] else f"{body.reason} (autorizado por {auth})"
-    await db.orders.update_one({"id": order["id"], "items.id": item_id},
-                               {"$set": {"items.$.cancelled": True, "items.$.cancel_reason": reason}})
     from models.schemas import OrderItem
-    await move_stock([OrderItem(**item)], user["name"], f"Cancelamento: {body.reason}", sign=1)
+    qty = body.qty if body.qty and body.qty < item["qty"] else item["qty"]
+    if qty < item["qty"]:  # partial: keep the rest, record the removed units as a cancelled line
+        removed = OrderItem(**{**item, "id": OrderItem.model_fields["id"].default_factory(), "qty": qty, "cancelled": True, "cancel_reason": reason})
+        await db.orders.update_one({"id": order["id"], "items.id": item_id}, {"$set": {"items.$.qty": item["qty"] - qty}})
+        await db.orders.update_one({"id": order["id"]}, {"$push": {"items": removed.model_dump()}})
+    else:
+        await db.orders.update_one({"id": order["id"], "items.id": item_id},
+                                   {"$set": {"items.$.cancelled": True, "items.$.cancel_reason": reason}})
+    await move_stock([OrderItem(**{**item, "qty": qty})], user["name"], f"Cancelamento: {body.reason}", sign=1)
     return await refresh_totals(order["id"])
 
 

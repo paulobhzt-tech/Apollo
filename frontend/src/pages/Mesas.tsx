@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowRightLeft, Bell, Clock, Minus, Pencil, Plus, QrCode, Receipt, Send, Trash2, Users, X } from "lucide-react";
+import { ArrowRightLeft, Bell, Clock, Minus, Pencil, Plus, QrCode, Receipt, Send, Trash2, Users } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
@@ -22,6 +22,8 @@ import type { Category, ChosenOption, Invoice, Order, PayIn, Product, SaleResult
 import { cn } from "@/lib/utils";
 import { groupItems } from "@/lib/group";
 import PreBillDialog from "@/components/PreBillDialog";
+import RemoveItemDialog, { type RemoveRequest } from "@/components/RemoveItemDialog";
+import { type GroupedItem } from "@/lib/group";
 import { getReceiptPref, printSimpleReceipt } from "@/lib/receipt";
 
 type Kind = Table["kind"];
@@ -233,6 +235,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   const [transferTo, setTransferTo] = useState("");
   const [preBill, setPreBill] = useState(false);
   const [grouped, setGrouped] = useState(true);
+  const [removing, setRemoving] = useState<GroupedItem | null>(null);
 
   const onErr = (e: unknown) => toast.error(errMsg(e));
   const openT = useMutation({
@@ -245,10 +248,13 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
     onSuccess: () => { toast.success("Itens enviados para a cozinha"); setPending([]); setAdding(false); invalidateTables(); },
     onError: onErr,
   });
-  const cancelItem = useMutation({
-    mutationFn: ({ id, reason, manager_pin }: { id: string; reason: string; manager_pin?: string }) => apiPost<Order>(`/tables/${table!.id}/items/${id}/cancel`, { reason, manager_pin }),
-    onSuccess: () => { toast.success("Item cancelado"); invalidateTables(); },
-    onError: onErr,
+
+  const removeItems = useMutation({
+    mutationFn: async (r: RemoveRequest) => {
+      for (const l of r.lines) await apiPost<Order>(`/tables/${table!.id}/items/${l.id}/cancel`, { reason: r.reason, manager_pin: r.manager_pin, qty: l.qty });
+    },
+    onSuccess: (_d, r) => { toast.success(`${r.lines.reduce((s, l) => s + l.qty, 0)} un. apagada(s)`); setRemoving(null); invalidateTables(); },
+    onError: (e) => { onErr(e); invalidateTables(); },
   });
   const status = useMutation({
     mutationFn: (s: string) => apiPatch<Table>(`/tables/${table!.id}/status`, { status: s }),
@@ -355,6 +361,8 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                           </div>
                           <span className="font-mono text-xs text-zinc-500">{brl(g.unit_price)}</span>
                           <span className="font-mono text-zinc-200">{brl(g.total)}</span>
+                          <button type="button" onClick={() => setRemoving(g)} aria-label={`Apagar ${g.name}`} data-testid={`grouped-remove-${g.lines[0]?.id}`}
+                            className="rounded-lg p-1 text-zinc-500 transition-colors duration-150 hover:bg-red-500/10 hover:text-red-400"><Trash2 className="size-4" /></button>
                         </div>
                       ))}
                       {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
@@ -371,12 +379,8 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                         </div>
                         <span className="font-mono text-zinc-200">{brl(i.qty * i.unit_price)}</span>
                         {!i.cancelled && (
-                          <button type="button" data-testid={`cancel-item-${i.id}`} onClick={() => {
-                            const reason = window.prompt("Motivo do cancelamento:");
-                            if (!reason || reason.trim().length < 3) return;
-                            const manager_pin = canCancel(me) ? undefined : window.prompt("Sem permissão. PIN do gerente para autorizar:") ?? "";
-                            cancelItem.mutate({ id: i.id, reason, manager_pin });
-                          }}><X className="size-4 text-zinc-500 hover:text-red-400" /></button>
+                          <button type="button" data-testid={`cancel-item-${i.id}`} aria-label={`Apagar ${i.name}`}
+                            onClick={() => setRemoving(groupItems([i])[0] ?? null)}><Trash2 className="size-4 text-zinc-500 hover:text-red-400" /></button>
                         )}
                       </div>
                     ))}
@@ -449,6 +453,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
           )}
         </SheetContent>
       </Sheet>
+      <RemoveItemDialog group={removing} needsPin={!canCancel(me)} pending={removeItems.isPending} onClose={() => setRemoving(null)} onConfirm={(r) => removeItems.mutate(r)} />
       {table && preBill && (
         <PreBillDialog table={table} order={o} open={preBill} onClose={() => setPreBill(false)}
           onPrinted={() => { if (table.status !== "conta") status.mutate("conta"); setPreBill(false); }} />
