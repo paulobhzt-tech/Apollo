@@ -106,6 +106,12 @@ export default function Mesas() {
           </button>
         ))}
       </div>
+      {canCreate && list.length > 0 && (
+        <button type="button" onClick={() => setCreating(true)} data-testid="add-more-tile"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 py-5 text-sm text-zinc-400 transition-colors duration-150 hover:border-primary/50 hover:text-white">
+          <Plus className="size-4" /> Adicionar mais {kind === "mesa" ? "mesas" : "comandas"}
+        </button>
+      )}
       <TableSheet table={sel} onClose={() => setSelId(null)} onQr={setQrTable} tables={all} canDelete={canCreate} />
       <QrDialog table={qrTable} onClose={() => setQrTable(null)} />
       <NewTableDialog open={creating} kind={kind} existing={all.filter((t) => t.kind === kind)} onClose={() => setCreating(false)} />

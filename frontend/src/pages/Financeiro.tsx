@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api";
 import { brl, errMsg } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
-import type { CardFees, Dre, Expense, ExpenseCat } from "@/lib/types";
+import type { CardFees, Dre, Expense, ExpenseCat, OptionRank } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CHART_COLORS, Empty, Panel, tooltipStyle } from "./Dashboard";
 
@@ -91,6 +91,7 @@ export default function Financeiro() {
             </Panel>
           </div>
         </div>
+        <OptionRanking start={start} end={end} />
         <Panel title="Ranking de produtos">
           <ul className="divide-y divide-white/5 text-sm">
             {(d?.top_products ?? []).map((p, i) => (
@@ -107,7 +108,6 @@ export default function Financeiro() {
           </ul>
         </Panel>
       </div>
-      <CardFeesPanel />
       <Despesas />
     </AppShell>
   );
@@ -167,7 +167,7 @@ function Despesas() {
 
 const FEE_KEYS = ["credito", "debito"].flatMap((m) => ["visa", "mastercard", "elo"].map((b) => `${m}:${b}`));
 
-function CardFeesPanel() {
+export function CardFeesPanel() {
   const q = useQuery({ queryKey: ["card-fees"], queryFn: () => apiGet<CardFees>("/settings/card-fees") });
   return q.data ? <CardFeesForm key={JSON.stringify(q.data.fees)} fees={q.data.fees} /> : null;
 }
@@ -189,6 +189,34 @@ function CardFeesForm({ fees }: { fees: Record<string, number> }) {
           </div>
         ))}
       </div>
+    </Panel>
+  );
+}
+
+function OptionRanking({ start, end }: { start: string; end: string }) {
+  const q = useQuery({ queryKey: ["option-rank", start, end], queryFn: () => apiGet<OptionRank[]>(`/reports/options?start=${start}&end=${end}`) });
+  const groups = [...new Set((q.data ?? []).map((r) => r.group))];
+  return (
+    <Panel title="Ranking de opções (ponto, acompanhamentos, combos)" className="xl:col-span-2">
+      {groups.length === 0 ? <Empty text="Nenhuma opção vendida no período." /> : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" data-testid="option-ranking">
+          {groups.map((g) => {
+            const rows = (q.data ?? []).filter((r) => r.group === g);
+            const top = Math.max(...rows.map((r) => r.qty));
+            return (
+              <div key={g}>
+                <p className="mb-2 text-sm font-medium text-white">{g}</p>
+                {rows.map((r) => (
+                  <div key={r.name} className="mb-1.5" data-testid={`option-rank-${g}-${r.name}`}>
+                    <div className="flex justify-between text-xs"><span className="text-zinc-300">{r.name}</span><span className="font-mono text-white">{r.qty}x</span></div>
+                    <div className="mt-0.5 h-1.5 rounded-full bg-white/5"><div className="h-full rounded-full bg-primary" style={{ width: `${(r.qty / top) * 100}%` }} /></div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </Panel>
   );
 }

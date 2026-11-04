@@ -55,13 +55,15 @@ async def build_items(items_in: list[OrderItemIn]) -> list[OrderItem]:
     prods = {p["id"]: p for p in await db.products.find({"id": {"$in": ids}, "active": True}, {"_id": 0}).to_list(500)}
     cats = {c["id"]: c for c in await db.categories.find({}, {"_id": 0}).to_list(500)}
     ings = await ingredient_map()
+    link_ids = list({c["product_id"] for p in prods.values() for g in p.get("options", []) for c in g["choices"] if c.get("product_id")})
+    linked_map = {p["id"]: p for p in await db.products.find({"id": {"$in": link_ids}}, {"_id": 0}).to_list(500)} if link_ids else {}
     out: list[OrderItem] = []
     for it in items_in:
         p = prods.get(it.product_id)
         if not p:
             raise HTTPException(400, "Produto indisponível ou inexistente")
         groups = {g["name"]: g for g in p.get("options", [])}
-        labels, extra = [], 0.0
+        labels, extra, linked = [], 0.0, []
         for ch in it.options:
             g = groups.get(ch.group)
             c = next((c for c in g["choices"] if c["name"] == ch.name), None) if g else None
@@ -69,6 +71,8 @@ async def build_items(items_in: list[OrderItemIn]) -> list[OrderItem]:
                 raise HTTPException(400, f"Opção inválida: {ch.group} / {ch.name}")
             labels.append(f"{ch.group}: {ch.name}")
             extra += c["price"]
+            if c.get("product_id"):
+                linked.append(c["product_id"])
         for g in groups.values():
             n = sum(1 for ch in it.options if ch.group == g["name"])
             if g.get("required") and not n:
@@ -76,8 +80,8 @@ async def build_items(items_in: list[OrderItemIn]) -> list[OrderItem]:
             if not g.get("multi") and n > 1:
                 raise HTTPException(400, f"Escolha apenas uma opção em {g['name']}")
         out.append(OrderItem(
-            product_id=p["id"], name=p["name"], qty=it.qty, unit_price=round(p["price"] + extra, 2), options=labels,
-            unit_cost=product_cost(p, ings), notes=it.notes,
+            product_id=p["id"], name=p["name"], qty=it.qty, unit_price=round(p["price"] + extra, 2), options=labels, option_products=linked,
+            unit_cost=round(product_cost(p, ings) + sum(product_cost(linked_map[x], ings) for x in linked if x in linked_map), 2), notes=it.notes,
             station=cats.get(p["category_id"], {}).get("station", "cozinha"),
         ))
     return out
@@ -85,12 +89,13 @@ async def build_items(items_in: list[OrderItemIn]) -> list[OrderItem]:
 
 async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int = -1) -> None:
     """sign=-1 consumes ingredients (sale), +1 returns them (cancel)."""
-    ids = list({i.product_id for i in items})
+    ids = list({i.product_id for i in items} | {x for i in items for x in i.option_products})
     prods = {p["id"]: p for p in await db.products.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "recipe": 1}).to_list(500)}
     agg: dict[str, float] = {}
     for it in items:
-        for r in prods.get(it.product_id, {}).get("recipe", []):
-            agg[r["ingredient_id"]] = agg.get(r["ingredient_id"], 0) + r["qty"] * it.qty
+        for pid in [it.product_id, *it.option_products]:  # combo choices consume their own recipe
+            for r in prods.get(pid, {}).get("recipe", []):
+                agg[r["ingredient_id"]] = agg.get(r["ingredient_id"], 0) + r["qty"] * it.qty
     if not agg:
         return
     ings = await ingredient_map()

@@ -38,7 +38,28 @@ async def main() -> None:
         await db.settings.insert_one({"_id": "card_fees", "fees": {
             "credito:visa": 3.19, "credito:mastercard": 3.19, "credito:elo": 3.49,
             "debito:visa": 1.39, "debito:mastercard": 1.39, "debito:elo": 1.69}})
+    await combos()
     print("extras OK")
+
+
+async def combos() -> None:
+    cat = await db.categories.find_one({"name": "Combos"})
+    if not cat:
+        cat = Category(name="Combos", station="cozinha", sort=-2).model_dump()
+        await db.categories.insert_one(dict(cat))
+    if await db.products.find_one({"code": "CB01"}):
+        return
+    esp = {p["name"]: p["id"] for p in await db.products.find({"code": {"$in": ["ES01", "ES02", "ES03", "ES04", "ES05"]}}, {"_id": 0}).to_list(10)}
+    drinks = {p["name"]: p["id"] for p in await db.products.find({"code": {"$in": ["BB01", "BB02", "BB03"]}}, {"_id": 0}).to_list(10)}
+    choice = lambda n, pid, price=0: {"name": n, "price": price, "product_id": pid}  # noqa: E731
+    esp_choices = [choice(n, pid, 3 if "Picanha" in n else 0) for n, pid in esp.items()]
+    groups = [{"name": f"Espeto {i}", "required": True, "multi": False, "choices": esp_choices} for i in (1, 2, 3)]
+    groups.append({"name": "Bebida", "required": True, "multi": False,
+                   "choices": [choice(n, pid, 6 if "Chopp" in n else 0) for n, pid in drinks.items()]})
+    p = Product(name="Combo Churras (3 espetos + farofa + bebida)", category_id=cat["id"], price=39.9, code="CB01", image=IMG,
+                description="Escolha 3 espetos, acompanha farofa da casa e 1 bebida", options=groups).model_dump()
+    p.pop("cost"), p.pop("margin_pct")
+    await db.products.insert_one(p)
 
 
 if __name__ == "__main__":

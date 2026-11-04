@@ -85,6 +85,7 @@ class RecipeItem(BaseModel):
 class OptionChoice(BaseModel):
     name: str = Field(min_length=1)
     price: float = Field(default=0, ge=0)
+    product_id: Optional[str] = None  # combo choice linked to a real product (stock + cost)
 
 
 class OptionGroup(BaseModel):
@@ -183,6 +184,7 @@ class OrderItem(BaseModel):
     notes: str = ""
     station: Station = "cozinha"
     options: list[str] = []
+    option_products: list[str] = []
     cancelled: bool = False
     cancel_reason: str = ""
 
@@ -594,6 +596,39 @@ class ReceiveIn(BaseModel):
 
 class CardFees(BaseModel):
     fees: dict[str, float] = {}
+
+
+class Printer(BaseModel):
+    id: str = Field(default_factory=_id)
+    name: str
+    purpose: Literal["caixa", "cozinha", "bar", "forno"] = "caixa"
+    paper: Literal["58mm", "80mm", "A4"] = "80mm"
+    ip: str = ""
+    copies: int = 1
+    active: bool = True
+
+
+class PrinterIn(BaseModel):
+    name: str = Field(min_length=2)
+    purpose: Literal["caixa", "cozinha", "bar", "forno"] = "caixa"
+    paper: Literal["58mm", "80mm", "A4"] = "80mm"
+    ip: str = ""
+    copies: int = Field(default=1, ge=1, le=5)
+    active: bool = True
+
+
+class GeneralSettings(BaseModel):
+    pix_key: str = ""
+    pix_holder: str = ""
+    phone: str = ""
+    address: str = ""
+
+
+class OptionRank(BaseModel):
+    group: str
+    name: str
+    qty: int
+    products: list[str]
 
 
 class OkOut(BaseModel):

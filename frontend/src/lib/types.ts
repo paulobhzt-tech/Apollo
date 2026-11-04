@@ -29,7 +29,7 @@ export interface Profile { id: string; name: string; role: Role }
 
 export interface Category { id: string; name: string; station: Station; sort: number }
 export type CategoryIn = Omit<Category, "id">;
-export interface OptionChoice { name: string; price: number }
+export interface OptionChoice { name: string; price: number; product_id?: string | null }
 export interface OptionGroup { name: string; required: boolean; multi: boolean; choices: OptionChoice[] }
 export interface ChosenOption { group: string; name: string }
 export interface RecipeItem { ingredient_id: string; qty: number }
@@ -82,6 +82,7 @@ export interface OrderItem {
   notes: string;
   station: Station;
   options: string[];
+  option_products: string[];
   cancelled: boolean;
   cancel_reason: string;
 }
@@ -278,4 +279,9 @@ export interface CustomerMove {
   method: string; brand: string | null; note: string; by_name: string; cash_session_id: string | null; at: string;
 }
 export interface CardFees { fees: Record<string, number> }
+export type PrinterPurpose = "caixa" | "cozinha" | "bar" | "forno";
+export interface Printer { id: string; name: string; purpose: PrinterPurpose; paper: "58mm" | "80mm" | "A4"; ip: string; copies: number; active: boolean }
+export type PrinterIn = Omit<Printer, "id">;
+export interface GeneralSettings { pix_key: string; pix_holder: string; phone: string; address: string }
+export interface OptionRank { group: string; name: string; qty: number; products: string[] }
 export interface OkOut { ok: boolean; message: string }

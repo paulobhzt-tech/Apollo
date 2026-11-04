@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { HandCoins, History, Plus, Search } from "lucide-react";
+import { HandCoins, History, MessageCircle, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import AppShell, { PageHeader, Stat } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { apiGet, apiPost } from "@/lib/api";
 import { BRAND_LABEL, brl, errMsg, fmtDateTime, payLabel } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
-import type { CardBrand, CustomerMove, FiadoCustomer, FiadoCustomerIn } from "@/lib/types";
+import type { CardBrand, CustomerMove, FiadoCustomer, FiadoCustomerIn, GeneralSettings } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const inv = () => ["customers", "customer-moves", "cash"].forEach((k) => void queryClient.invalidateQueries({ queryKey: [k] }));
@@ -24,6 +24,7 @@ const MOVE: Record<CustomerMove["type"], { label: string; cls: string; sign: str
 
 export default function Fiado() {
   const q = useQuery({ queryKey: ["customers"], queryFn: () => apiGet<FiadoCustomer[]>("/customers") });
+  const settings = useQuery({ queryKey: ["settings-general"], queryFn: () => apiGet<GeneralSettings>("/settings/general") });
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
   const [receiving, setReceiving] = useState<FiadoCustomer | null>(null);
@@ -62,6 +63,10 @@ export default function Fiado() {
             <div className="mt-3 flex gap-2">
               <Button size="sm" className="flex-1" disabled={c.balance <= 0.009} onClick={() => setReceiving(c)} data-testid={`fiado-receive-${c.id}`}><HandCoins className="size-3.5" /> Receber</Button>
               <Button size="sm" variant="outline" onClick={() => setHistory(c)} data-testid={`fiado-history-${c.id}`}><History className="size-3.5" /> Histórico</Button>
+              <Button size="sm" variant="outline" className="border-emerald-500/30 text-emerald-300" disabled={c.balance <= 0.009 || !c.phone}
+                onClick={() => window.open(waLink(c, settings.data), "_blank")} data-testid={`fiado-whatsapp-${c.id}`} title={c.phone ? "Cobrar no WhatsApp" : "Cliente sem telefone"}>
+                <MessageCircle className="size-3.5" />
+              </Button>
             </div>
           </article>
         ))}
@@ -152,4 +157,12 @@ function HistoryList({ c }: { c: FiadoCustomer }) {
       </ul>
     </>
   );
+}
+
+function waLink(c: FiadoCustomer, st?: GeneralSettings) {
+  let phone = c.phone.replace(/\D/g, "");
+  if (phone.length === 10 || phone.length === 11) phone = `55${phone}`;
+  const pix = st?.pix_key ? `\n\nPague via PIX 👉 *${st.pix_key}*${st.pix_holder ? ` (${st.pix_holder})` : ""}` : "";
+  const msg = `Olá, ${c.name.split(" ")[0]}! Aqui é da *Espeteria Churras Buguer* 🔥\nSeu saldo em aberto na conta fiado é de *${brl(c.balance)}*.${pix}\n\nQualquer dúvida é só chamar. Obrigado!`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
 }

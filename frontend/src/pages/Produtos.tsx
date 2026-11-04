@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ImagePlus, Pencil, Plus, Trash2 } from "lucide-react";
+import { fileToDataUrl } from "@/lib/image";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ export default function Produtos() {
 
   return (
     <AppShell roles={[]}>
-      <PageHeader title="Cardápio & Fichas Técnicas" subtitle="Produtos, categorias por praça e engenharia de cardápio com CMV"
+      <PageHeader title="Produtos & Combos" subtitle="Cadastro com foto, categorias, combos, opções e ficha técnica com CMV"
         actions={<Button onClick={() => setEditing("new")} data-testid="new-product-button"><Plus className="size-4" /> Novo produto</Button>} />
       <Tabs defaultValue="produtos">
         <TabsList>
@@ -180,7 +181,20 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
           <p className={cn("font-mono text-lg", price - cost >= 0 ? "text-emerald-300" : "text-red-300")} data-testid="product-profit">{brl(price - cost)} <span className="text-xs text-zinc-400">({margin.toFixed(1)}%)</span></p>
         </div>
         <div><Label className="text-xs text-zinc-400">Código / PLU</Label><Input value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} className="mt-1 font-mono" data-testid="product-code-input" /></div>
-        <div><Label className="text-xs text-zinc-400">URL da imagem</Label><Input value={f.image} onChange={(e) => setF({ ...f, image: e.target.value })} className="mt-1" data-testid="product-image-input" /></div>
+        <div className="sm:col-span-2">
+          <Label className="text-xs text-zinc-400">Imagem do produto</Label>
+          <div className="mt-1 flex items-center gap-3">
+            <div className="size-20 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-muted">{f.image && <img src={f.image} alt="" className="size-full object-cover" data-testid="product-image-preview" />}</div>
+            <div className="flex-1 space-y-2">
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-white/15 px-3 py-2 text-sm text-zinc-300 transition-colors duration-150 hover:border-primary/50">
+                <ImagePlus className="size-4" /> Enviar foto do computador/celular
+                <input type="file" accept="image/*" className="hidden" data-testid="product-image-upload"
+                  onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; try { setF({ ...f, image: await fileToDataUrl(file) }); } catch (err) { toast.error((err as Error).message); } }} />
+              </label>
+              <Input value={f.image.startsWith("data:") ? "" : f.image} placeholder={f.image.startsWith("data:") ? "Foto enviada ✓ (ou cole uma URL)" : "…ou cole a URL da imagem"} onChange={(e) => setF({ ...f, image: e.target.value })} data-testid="product-image-input" />
+            </div>
+          </div>
+        </div>
         <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={f.active} onCheckedChange={(v) => setF({ ...f, active: !!v })} data-testid="product-active-checkbox" /> Disponível para venda</label>
       </div>
 

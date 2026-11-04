@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from lib.auth import require
 from lib.db import db
 from lib.orders import TAX_RATE, TZ, card_fee_table, current_cash, day_bounds, local_today, method_totals
-from models.schemas import CardFees, Dashboard, Dre, Expense, ExpenseIn, OkOut
+from models.schemas import CardFees, Dashboard, Dre, Expense, ExpenseIn, OkOut, OptionRank
 
 router = APIRouter()
 PAY_LABEL = {"dinheiro": "Dinheiro", "credito": "Crédito", "debito": "Débito", "pix": "PIX", "voucher": "Voucher",
@@ -133,6 +133,26 @@ async def dre(start: Optional[str] = None, end: Optional[str] = None, _: dict = 
         "daily": [{"name": k, "value": v} for k, v in sorted(daily.items(), key=lambda x: (x[0][3:], x[0][:2]))],
         "top_products": top_products(orders, 10), "commission_list": commission_list,
     }
+
+
+@router.get("/reports/options", response_model=list[OptionRank])
+async def option_ranking(start: Optional[str] = None, end: Optional[str] = None, _: dict = Depends(require())):
+    end = end or local_today()
+    start = start or end[:8] + "01"
+    s, _e = day_bounds(start)
+    _s, e = day_bounds(end)
+    agg: dict[tuple[str, str], dict] = {}
+    for o in await paid_between(s, e):
+        for i in o["items"]:
+            if i.get("cancelled"):
+                continue
+            for label in i.get("options", []):
+                g, _, n = label.partition(": ")
+                a = agg.setdefault((g, n), {"group": g, "name": n, "qty": 0, "products": set()})
+                a["qty"] += i["qty"]
+                a["products"].add(i["name"])
+    out = [{**a, "products": sorted(a["products"])} for a in agg.values()]
+    return sorted(out, key=lambda x: (x["group"], -x["qty"]))
 
 
 @router.get("/settings/card-fees", response_model=CardFees)

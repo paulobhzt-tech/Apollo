@@ -59,6 +59,10 @@ async def list_products(_: dict = Depends(current_user)):
 async def _validate_product(body: ProductIn) -> None:
     if not await db.categories.find_one({"id": body.category_id}):
         raise HTTPException(400, "Categoria inválida")
+    names = {p["name"].strip().lower(): p["id"] for p in await db.products.find({}, {"_id": 0, "id": 1, "name": 1}).to_list(5000)}
+    for g in body.options:  # a choice named exactly like a product becomes a combo link
+        for c in g.choices:
+            c.product_id = names.get(c.name.strip().lower())
     ids = {r.ingredient_id for r in body.recipe}
     if ids and await db.ingredients.count_documents({"id": {"$in": list(ids)}}) != len(ids):
         raise HTTPException(400, "Insumo inválido na ficha técnica")

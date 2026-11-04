@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, useLocation } from "react-router-dom";
 import {
   Armchair, Bike, Boxes, ChefHat, LayoutDashboard, LineChart, LogOut, Menu, QrCode, Receipt, ShoppingCart,
-  Users, UtensilsCrossed, Wallet, WifiOff, Wifi, Flame, History, HandCoins,
+  Users, UtensilsCrossed, Wallet, WifiOff, Wifi, Flame, History, HandCoins, Settings,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -16,17 +16,19 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const ICONS: Record<string, typeof Menu> = {
-  LayoutDashboard, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins,
+  LayoutDashboard, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings,
 };
 
 function NavList({ role, onNavigate }: { role: Role; onNavigate?: () => void }) {
   return (
     <nav className="flex flex-col gap-1">
-      {NAV.filter((n) => n.roles.includes(role)).map((n) => {
+      {NAV.filter((n) => n.roles.includes(role)).map((n, idx, arr) => {
         const Icon = ICONS[n.icon];
+        const header = idx === 0 || arr[idx - 1].group !== n.group;
         return (
+          <div key={n.to}>
+          {header && <p className="mb-1 mt-4 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 first:mt-0" data-testid={`nav-group-${n.group}`}>{n.group}</p>}
           <NavLink
-            key={n.to}
             to={n.to}
             end={n.to === "/"}
             onClick={onNavigate}
@@ -41,6 +43,7 @@ function NavList({ role, onNavigate }: { role: Role; onNavigate?: () => void }) 
             <Icon className="size-4 shrink-0" />
             {n.label}
           </NavLink>
+          </div>
         );
       })}
     </nav>
