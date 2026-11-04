@@ -40,6 +40,12 @@ def recipe_cost(recipe: list[dict], ings: dict[str, dict]) -> float:
     return round(sum(ings[r["ingredient_id"]]["cost_per_unit"] * r["qty"] for r in recipe if r["ingredient_id"] in ings), 2)
 
 
+def product_cost(p: dict, ings: dict[str, dict]) -> float:
+    """Manual cost price wins when set; otherwise the recipe (ficha técnica) cost."""
+    manual = p.get("cost_price") or 0
+    return round(manual, 2) if manual > 0 else recipe_cost(p.get("recipe", []), ings)
+
+
 async def ingredient_map() -> dict[str, dict]:
     return {i["id"]: i for i in await db.ingredients.find({}, {"_id": 0}).to_list(5000)}
 
@@ -56,7 +62,7 @@ async def build_items(items_in: list[OrderItemIn]) -> list[OrderItem]:
             raise HTTPException(400, "Produto indisponível ou inexistente")
         out.append(OrderItem(
             product_id=p["id"], name=p["name"], qty=it.qty, unit_price=p["price"],
-            unit_cost=recipe_cost(p.get("recipe", []), ings), notes=it.notes,
+            unit_cost=product_cost(p, ings), notes=it.notes,
             station=cats.get(p["category_id"], {}).get("station", "cozinha"),
         ))
     return out
@@ -86,6 +92,8 @@ async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int 
 
 
 def ticket_label(order: dict) -> str:
+    if order.get("table_label"):
+        return order["table_label"]
     if order.get("table_number"):
         return f"Mesa {order['table_number']}"
     if order["source"] == "pdv":

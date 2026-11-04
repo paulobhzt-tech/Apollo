@@ -58,3 +58,7 @@ export const uid = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+export const kindLabel = (kind: "mesa" | "comanda") => (kind === "comanda" ? "Comanda" : "Mesa");
+export const tableLabel = (t: { kind: "mesa" | "comanda"; number: number; name: string }) =>
+  `${kindLabel(t.kind)} ${t.number}${t.name ? ` · ${t.name}` : ""}`;

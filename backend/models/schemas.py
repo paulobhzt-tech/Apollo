@@ -89,6 +89,7 @@ class Product(BaseModel):
     image: str = ""
     active: bool = True
     recipe: list[RecipeItem] = []
+    cost_price: float = 0  # manual cost; when > 0 it overrides the recipe cost
     cost: float = 0
     margin_pct: float = 0
 
@@ -102,6 +103,7 @@ class ProductIn(BaseModel):
     image: str = ""
     active: bool = True
     recipe: list[RecipeItem] = []
+    cost_price: float = Field(default=0, ge=0)
 
 
 # ---------- stock ----------
@@ -180,6 +182,7 @@ class Order(BaseModel):
     source: Source
     table_id: Optional[str] = None
     table_number: Optional[int] = None
+    table_label: str = ""
     customer: Customer = Customer()
     items: list[OrderItem] = []
     status: Literal["aberto", "pago", "cancelado"] = "aberto"
@@ -253,9 +256,19 @@ class TicketStatusIn(BaseModel):
 
 
 # ---------- tables ----------
+TableKind = Literal["mesa", "comanda"]
+
+
+def table_label(t: dict) -> str:
+    base = f"{'Comanda' if t.get('kind') == 'comanda' else 'Mesa'} {t['number']}"
+    return f"{base} · {t['name']}" if t.get("name") else base
+
+
 class Table(BaseModel):
     id: str = Field(default_factory=_id)
     number: int
+    kind: TableKind = "mesa"
+    name: str = ""
     seats: int = 4
     status: Literal["livre", "ocupada", "conta", "reservada"] = "livre"
     customer_name: str = ""
@@ -270,6 +283,13 @@ class Table(BaseModel):
 
 class TableIn(BaseModel):
     number: int = Field(ge=1)
+    kind: TableKind = "mesa"
+    name: str = Field(default="", max_length=40)
+    seats: int = Field(default=4, ge=1)
+
+
+class TableUpdate(BaseModel):
+    name: str = Field(default="", max_length=40)
     seats: int = Field(default=4, ge=1)
 
 
@@ -472,6 +492,7 @@ class PublicMenu(BaseModel):
 class PublicTable(BaseModel):
     id: str
     number: int
+    label: str = ""
     status: str
     total: float
 

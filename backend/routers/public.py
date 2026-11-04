@@ -8,7 +8,7 @@ from lib.orders import build_items, create_ticket, move_stock, refresh_totals
 from routers.catalog import products_with_cost
 from routers.operations import create_delivery_order
 from routers.tables import get_or_open_order, get_table
-from models.schemas import CallIn, OkOut, PublicDeliveryIn, PublicMenu, PublicOrderIn, PublicOrderStatus, PublicTable
+from models.schemas import CallIn, OkOut, PublicDeliveryIn, PublicMenu, PublicOrderIn, PublicOrderStatus, PublicTable, table_label
 
 router = APIRouter(prefix="/public")
 RESTAURANT = os.environ.get("RESTAURANT_NAME", "Brasa & Forno")
@@ -19,14 +19,14 @@ async def menu():
     cats = await db.categories.find({}, {"_id": 0}).sort([("sort", 1), ("name", 1)]).to_list(500)
     prods = await products_with_cost({"active": True})
     for p in prods:  # never expose cost data publicly
-        p["cost"], p["margin_pct"], p["recipe"] = 0, 0, []
+        p["cost"], p["margin_pct"], p["recipe"], p["cost_price"] = 0, 0, [], 0
     return {"restaurant": RESTAURANT, "categories": cats, "products": prods}
 
 
 @router.get("/tables/{id}", response_model=PublicTable)
 async def public_table(id: str):
     t = await get_table(id)
-    return {"id": t["id"], "number": t["number"], "status": t["status"], "total": t.get("total", 0)}
+    return {"id": t["id"], "number": t["number"], "label": table_label(t), "status": t["status"], "total": t.get("total", 0)}
 
 
 @router.post("/tables/{id}/order", response_model=PublicTable)
@@ -38,9 +38,9 @@ async def public_table_order(id: str, body: PublicOrderIn):
     order = await get_or_open_order(t, None, source="cardapio")
     await db.orders.update_one({"id": order["id"]}, {"$push": {"items": {"$each": [i.model_dump() for i in items]}}})
     await create_ticket(order, items)
-    await move_stock(items, "Cardápio QR", f"Mesa {t['number']} · QR")
+    await move_stock(items, "Cardápio QR", f"{table_label(t)} · QR")
     o = await refresh_totals(order["id"])
-    return {"id": t["id"], "number": t["number"], "status": "ocupada", "total": o["total"]}
+    return {"id": t["id"], "number": t["number"], "label": table_label(t), "status": "ocupada", "total": o["total"]}
 
 
 @router.post("/tables/{id}/call", response_model=OkOut)

@@ -80,7 +80,7 @@ async def main() -> None:
         ("Filé à Parmegiana", "Pratos", 72.9, "PR01", "dish", "Filé mignon empanado, arroz e fritas",
          R(("Filé Mignon", 0.25), ("Queijo Muçarela", 0.08), ("Molho de Tomate", 0.1), ("Arroz", 0.15), ("Batata Congelada", 0.2))),
         ("Chopp Artesanal 500ml", "Bebidas", 16.9, "BB01", "bar", "Pilsen artesanal gelado na pressão", R(("Chopp Pilsen", 0.5))),
-        ("Refrigerante Lata", "Bebidas", 7.0, "BB02", "drink", "Coca-Cola, Guaraná ou Sprite", R(("Refrigerante Lata", 1))),
+        ("Refrigerante Lata", "Bebidas", 7.0, "BB02", "drink", "Coca-Cola, Guaraná ou Sprite", R(("Refrigerante Lata", 1))),  # noqa
         ("Água Mineral", "Bebidas", 5.0, "BB03", "drink", "500ml com ou sem gás", R(("Água Mineral", 1))),
         ("Caipirinha de Limão", "Drinks", 22.9, "DR01", "drink", "Cachaça artesanal, limão taiti e açúcar",
          R(("Cachaça", 0.06), ("Limão", 2), ("Açúcar", 0.03))),
@@ -101,10 +101,13 @@ async def main() -> None:
         prods.append(p)
 
     tables = []
+    names = {1: "Varanda", 2: "Varanda", 10: "Salão VIP", 11: "Salão VIP"}
     for n in range(1, 13):
-        t = Table(number=n, seats=2 if n <= 3 else (6 if n >= 10 else 4)).model_dump()
+        t = Table(number=n, name=names.get(n, ""), seats=2 if n <= 3 else (6 if n >= 10 else 4)).model_dump()
         tables.append(t)
         await db.tables.insert_one(dict(t))
+    for n in range(101, 109):
+        await db.tables.insert_one(Table(number=n, kind="comanda", seats=1, name="Bar" if n <= 104 else "").model_dump())
     await db.tables.update_one({"number": 12}, {"$set": {"status": "reservada", "customer_name": "Reserva Família Silva"}})
 
     # ---- history: 20 days of paid orders, one closed cash session per day ----
@@ -159,7 +162,7 @@ async def main() -> None:
     its = [OrderItem(product_id=prods[0]["id"], name=prods[0]["name"], qty=1, unit_price=prods[0]["price"], unit_cost=prods[0]["_cost"], station="forno"),
            OrderItem(product_id=prods[8]["id"], name=prods[8]["name"], qty=2, unit_price=prods[8]["price"], unit_cost=prods[8]["_cost"], station="bar", notes="Bem gelado")]
     sub = round(sum(i.qty * i.unit_price for i in its), 2)
-    o5 = Order(number=seq, channel="mesa", source="mesa", table_id=t5["id"], table_number=5, items=its, subtotal=sub, total=sub,
+    o5 = Order(number=seq, channel="mesa", source="mesa", table_id=t5["id"], table_number=5, table_label="Mesa 5", items=its, subtotal=sub, total=sub,
                waiter_id=waiters[0]["id"], waiter_name=waiters[0]["name"], created_at=now - timedelta(minutes=18)).model_dump()
     await db.orders.insert_one(dict(o5))
     await db.tables.update_one({"id": t5["id"]}, {"$set": {"status": "ocupada", "people": 3, "customer_name": "Carlos",

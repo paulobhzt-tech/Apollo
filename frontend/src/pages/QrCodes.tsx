@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiDelete, apiGet, apiPost } from "@/lib/api";
 import { useMe } from "@/lib/auth";
-import { errMsg } from "@/lib/format";
+import { errMsg, tableLabel } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
 import type { Table } from "@/lib/types";
 
@@ -45,7 +45,7 @@ export default function QrCodes() {
           <div key={t.id} className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 text-black" data-testid={`qr-card-${t.number}`}>
             <p className="font-heading text-sm font-semibold">Brasa & Forno</p>
             <QRCodeSVG value={`${origin}/cardapio/${t.id}`} size={130} />
-            <p className="font-heading text-xl font-bold">Mesa {t.number}</p>
+            <p className="font-heading text-xl font-bold">{tableLabel(t)}</p>
             <div className="flex gap-1">
               <a href={`/cardapio/${t.id}`} target="_blank" rel="noreferrer" className="text-xs text-orange-600 underline" data-testid={`qr-open-${t.number}`}>abrir</a>
               {me?.role === "admin" && <button type="button" onClick={() => del.mutate(t.id)} data-testid={`delete-table-${t.number}`}><Trash2 className="size-3.5 text-zinc-400" /></button>}

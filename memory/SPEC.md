@@ -15,8 +15,9 @@ Public (no login): /cardapio/:tableId (QR table menu → order goes to table com
 ## Key flows / rules
 - PDV `POST /api/pdv/sale` = create+pay atomically, idempotent by `client_ref`. Requires open cash session. Multi-payment, change only in cash, discount, split display.
 - Offline: header toggle "Online/Offline" forces contingency; PDV sales queue in localStorage and replay to /pdv/sale when back online.
+- Tables & comandas: `tables` collection has `kind` ("mesa" | "comanda") + optional `name`; unique on (kind, number). Admin/caixa create (batch from Mesas screen "Nova mesa/comanda"), staff rename via `PUT /api/tables/{id}`, delete only when free. Label = "Mesa 3 · Varanda" / "Comanda 105 · Pedro" (stored on order as `table_label`, shown in KDS/QR menu). Same flow for both kinds:
 - Tables: open → add items (`/tables/{id}/items` creates kitchen ticket + stock deduction) → pré-conta → pay (`/tables/{id}/pay`, 10% service optional) → table freed. Cancel item w/ reason returns stock. Transfer to free table.
-- Stock: each product has recipe (ficha técnica); sales deduct ingredients (type "venda"); CMV = recipe cost.
+- Stock: each product has recipe (ficha técnica); sales deduct ingredients (type "venda"); CMV = manual `cost_price` when > 0, otherwise recipe cost.
 - KDS tickets: novo → preparo → pronto → entregue. Stations cozinha/forno/bar via category.
 - Delivery: iFood/99Food/Keeta are MOCKED (`POST /api/delivery/simulate`). Status pendente→aceito(ticket+stock)→saiu→entregue(paid). Fees: iFood 23%, 99Food 15%, Keeta 12%, site 0%.
 - NFC-e/NF-e: MOCKED emission (fake access key/protocol), DANFE dialog with QR.

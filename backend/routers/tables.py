@@ -5,7 +5,7 @@ from lib.db import db
 from lib.orders import (build_items, create_ticket, finalize_payment, free_table, move_stock, new_order, now,
                         refresh_totals)
 from models.schemas import (AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, PayIn, SaleResult, Table, TableIn,
-                            TableStatusIn, TransferIn)
+                            TableStatusIn, TableUpdate, TransferIn, table_label)
 
 router = APIRouter()
 STAFF = ("caixa", "garcom")
@@ -25,6 +25,7 @@ async def get_or_open_order(table: dict, waiter: dict | None = None, source: str
         if o:
             return o
     order = await new_order(channel="mesa", source=source, table_id=table["id"], table_number=table["number"],
+                            table_label=table_label(table),
                             waiter_id=waiter["id"] if waiter else None, waiter_name=waiter["name"] if waiter else "")
     await db.tables.update_one({"id": table["id"]}, {"$set": {
         "status": "ocupada", "order_id": order["id"], "opened_at": now(), "people": table.get("people") or 1,
@@ -34,20 +35,29 @@ async def get_or_open_order(table: dict, waiter: dict | None = None, source: str
 
 @router.get("/tables", response_model=list[Table])
 async def list_tables(_: dict = Depends(current_user)):
-    return await db.tables.find({}, {"_id": 0}).sort("number", 1).to_list(500)
+    return await db.tables.find({}, {"_id": 0}).sort([("kind", -1), ("number", 1)]).to_list(1000)
 
 
 @router.post("/tables", response_model=Table)
-async def create_table(body: TableIn, _: dict = Depends(require())):
-    if await db.tables.find_one({"number": body.number}):
-        raise HTTPException(400, f"Mesa {body.number} já existe")
+async def create_table(body: TableIn, _: dict = Depends(require("caixa"))):
+    if await db.tables.find_one({"number": body.number, "kind": body.kind}):
+        raise HTTPException(400, f"{'Comanda' if body.kind == 'comanda' else 'Mesa'} {body.number} já existe")
     t = Table(**body.model_dump()).model_dump()
     await db.tables.insert_one(dict(t))
     return t
 
 
+@router.put("/tables/{id}", response_model=Table)
+async def update_table(id: str, body: TableUpdate, _: dict = Depends(require(*STAFF))):
+    t = await get_table(id)
+    await db.tables.update_one({"id": id}, {"$set": body.model_dump()})
+    if t.get("order_id"):
+        await db.orders.update_one({"id": t["order_id"]}, {"$set": {"table_label": table_label({**t, **body.model_dump()})}})
+    return await get_table(id)
+
+
 @router.delete("/tables/{id}", response_model=OkOut)
-async def delete_table(id: str, _: dict = Depends(require())):
+async def delete_table(id: str, _: dict = Depends(require("caixa"))):
     t = await get_table(id)
     if t["status"] in ("ocupada", "conta"):
         raise HTTPException(400, "Mesa ocupada não pode ser removida")
@@ -101,7 +111,7 @@ async def add_items(id: str, body: AddItemsIn, user: dict = Depends(require(*STA
     order = await get_or_open_order(t, user)
     await db.orders.update_one({"id": order["id"]}, {"$push": {"items": {"$each": [i.model_dump() for i in items]}}})
     await create_ticket(order, items)
-    await move_stock(items, user["name"], f"Mesa {t['number']} · Pedido #{order['number']}")
+    await move_stock(items, user["name"], f"{table_label(t)} · Pedido #{order['number']}")
     return await refresh_totals(order["id"])
 
 
@@ -129,7 +139,7 @@ async def transfer(id: str, body: TransferIn, _: dict = Depends(require(*STAFF))
         raise HTTPException(400, "Mesa de origem sem comanda")
     if dst.get("order_id") or dst["status"] in ("ocupada", "conta"):
         raise HTTPException(400, "Mesa de destino precisa estar livre")
-    await db.orders.update_one({"id": src["order_id"]}, {"$set": {"table_id": dst["id"], "table_number": dst["number"]}})
+    await db.orders.update_one({"id": src["order_id"]}, {"$set": {"table_id": dst["id"], "table_number": dst["number"], "table_label": table_label(dst)}})
     keep = {k: src[k] for k in ("status", "customer_name", "people", "waiter_id", "waiter_name", "order_id", "opened_at", "total")}
     await db.tables.update_one({"id": dst["id"]}, {"$set": keep})
     await free_table(src["id"])

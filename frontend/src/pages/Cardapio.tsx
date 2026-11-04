@@ -32,7 +32,7 @@ export default function Cardapio() {
       header={
         <>
           <p className="mt-1 text-zinc-300" data-testid="public-table-label">
-            {t ? `Você está na Mesa ${t.number}` : table.isError ? "Mesa não encontrada" : "Carregando mesa…"}
+            {t ? `Você está na ${t.label || `Mesa ${t.number}`}` : table.isError ? "Mesa não encontrada" : "Carregando mesa…"}
             {t && t.total > 0 && <span className="ml-2 font-mono text-sm text-zinc-400">· consumo {brl(t.total)}</span>}
           </p>
           {t && (

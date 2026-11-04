@@ -38,6 +38,7 @@ export interface Product {
   image: string;
   active: boolean;
   recipe: RecipeItem[];
+  cost_price: number;
   cost: number;
   margin_pct: number;
 }
@@ -86,6 +87,7 @@ export interface Order {
   source: Source;
   table_id: string | null;
   table_number: number | null;
+  table_label: string;
   customer: Customer;
   items: OrderItem[];
   status: "aberto" | "pago" | "cancelado";
@@ -140,6 +142,8 @@ export interface KitchenTicket {
 export interface Table {
   id: string;
   number: number;
+  kind: "mesa" | "comanda";
+  name: string;
   seats: number;
   status: "livre" | "ocupada" | "conta" | "reservada";
   customer_name: string;
@@ -240,7 +244,8 @@ export interface PublicDeliveryIn {
   payment_method: "dinheiro" | "credito" | "debito" | "pix";
   change_for: number;
 }
-export interface PublicTable { id: string; number: number; status: string; total: number }
+export interface PublicTable { id: string; number: number; label: string; status: string; total: number }
+export interface TableIn { number: number; kind: "mesa" | "comanda"; name: string; seats: number }
 export interface PublicOrderStatus {
   id: string;
   number: number;

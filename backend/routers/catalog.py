@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from lib.auth import current_user, require
 from lib.db import db
-from lib.orders import ingredient_map, now, recipe_cost
+from lib.orders import ingredient_map, now, product_cost
 from models.schemas import (Category, CategoryIn, Ingredient, IngredientIn, OkOut, Product, ProductIn,
                             StockMove, StockMoveIn)
 
@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 def with_cost(p: dict, ings: dict) -> dict:
-    cost = recipe_cost(p.get("recipe", []), ings)
+    cost = product_cost(p, ings)
     p["cost"] = cost
     p["margin_pct"] = round((p["price"] - cost) / p["price"] * 100, 1) if p["price"] else 0
     return p

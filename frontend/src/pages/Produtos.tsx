@@ -48,7 +48,7 @@ export default function Produtos() {
           <div className="rounded-2xl border border-white/5 bg-panel">
             <Table>
               <TableHeader>
-                <TableRow><TableHead>Produto</TableHead><TableHead>Categoria</TableHead><TableHead className="text-right">Preço</TableHead><TableHead className="text-right">CMV</TableHead><TableHead className="text-right">Margem</TableHead><TableHead /></TableRow>
+                <TableRow><TableHead>Produto</TableHead><TableHead>Categoria</TableHead><TableHead className="text-right">Preço</TableHead><TableHead className="text-right">Custo</TableHead><TableHead className="text-right">Margem</TableHead><TableHead /></TableRow>
               </TableHeader>
               <TableBody>
                 {(products.data ?? []).map((p) => (
@@ -64,7 +64,7 @@ export default function Produtos() {
                     </TableCell>
                     <TableCell className="text-zinc-300">{catName(p.category_id)}</TableCell>
                     <TableCell className="text-right font-mono">{brl(p.price)}</TableCell>
-                    <TableCell className="text-right font-mono text-zinc-400">{brl(p.cost)}</TableCell>
+                    <TableCell className="text-right font-mono text-zinc-400">{brl(p.cost)}{p.cost_price > 0 && <span className="ml-1 text-[10px] text-zinc-500">manual</span>}</TableCell>
                     <TableCell className={cn("text-right font-mono", p.margin_pct >= 65 ? "text-emerald-300" : p.margin_pct >= 45 ? "text-amber-300" : "text-red-300")}>{p.margin_pct}%</TableCell>
                     <TableCell className="text-right">
                       <Button size="icon-sm" variant="ghost" onClick={() => setEditing(p)} data-testid={`edit-product-${p.code || p.id}`}><Pencil /></Button>
@@ -115,7 +115,7 @@ function Categorias({ cats }: { cats: Category[] }) {
   );
 }
 
-const EMPTY: ProductIn = { name: "", description: "", category_id: "", price: 0, code: "", image: "", active: true, recipe: [] };
+const EMPTY: ProductIn = { name: "", description: "", category_id: "", price: 0, code: "", image: "", active: true, recipe: [], cost_price: 0 };
 
 function ProductDialog({ editing, onClose, cats, ings }: { editing: Product | "new" | null; onClose: () => void; cats: Category[]; ings: Ingredient[] }) {
   return (
@@ -130,13 +130,16 @@ function ProductDialog({ editing, onClose, cats, ings }: { editing: Product | "n
 function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new"; onClose: () => void; cats: Category[]; ings: Ingredient[] }) {
   const [f, setF] = useState<ProductIn>(editing === "new" ? { ...EMPTY, category_id: cats[0]?.id ?? "" } : {
     name: editing.name, description: editing.description, category_id: editing.category_id, price: editing.price,
-    code: editing.code, image: editing.image, active: editing.active, recipe: editing.recipe,
+    code: editing.code, image: editing.image, active: editing.active, recipe: editing.recipe, cost_price: editing.cost_price ?? 0,
   });
   const [priceStr, setPriceStr] = useState(editing === "new" ? "" : String(editing.price));
+  const [costStr, setCostStr] = useState(editing === "new" || !editing.cost_price ? "" : String(editing.cost_price));
   const [ingId, setIngId] = useState("");
   const [qty, setQty] = useState("");
   const ingMap = Object.fromEntries(ings.map((i) => [i.id, i]));
-  const cost = f.recipe.reduce((s, r) => s + (ingMap[r.ingredient_id]?.cost_per_unit ?? 0) * r.qty, 0);
+  const recipeCost = f.recipe.reduce((s, r) => s + (ingMap[r.ingredient_id]?.cost_per_unit ?? 0) * r.qty, 0);
+  const manualCost = Number(costStr.replace(",", ".")) || 0;
+  const cost = manualCost > 0 ? manualCost : recipeCost;
   const price = Number(priceStr.replace(",", ".")) || 0;
   const margin = price ? ((price - cost) / price) * 100 : 0;
 
@@ -167,6 +170,15 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
           </Select>
         </div>
         <div><Label className="text-xs text-zinc-400">Preço de venda (R$)</Label><Input value={priceStr} inputMode="decimal" onChange={(e) => setPriceStr(e.target.value)} className="mt-1 font-mono" data-testid="product-price-input" /></div>
+        <div>
+          <Label className="text-xs text-zinc-400">Preço de custo (R$)</Label>
+          <Input value={costStr} inputMode="decimal" placeholder={recipeCost > 0 ? `Ficha técnica: ${brl(recipeCost)}` : "0,00"} onChange={(e) => setCostStr(e.target.value)} className="mt-1 font-mono" data-testid="product-cost-input" />
+          <p className="mt-1 text-[11px] text-zinc-500">{manualCost > 0 ? "Custo manual (substitui a ficha técnica)" : "Vazio = usa o custo da ficha técnica"}</p>
+        </div>
+        <div className="flex flex-col justify-center rounded-xl border border-white/5 bg-panel px-3 py-2">
+          <p className="text-[11px] text-zinc-500">Lucro por unidade</p>
+          <p className={cn("font-mono text-lg", price - cost >= 0 ? "text-emerald-300" : "text-red-300")} data-testid="product-profit">{brl(price - cost)} <span className="text-xs text-zinc-400">({margin.toFixed(1)}%)</span></p>
+        </div>
         <div><Label className="text-xs text-zinc-400">Código / PLU</Label><Input value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} className="mt-1 font-mono" data-testid="product-code-input" /></div>
         <div><Label className="text-xs text-zinc-400">URL da imagem</Label><Input value={f.image} onChange={(e) => setF({ ...f, image: e.target.value })} className="mt-1" data-testid="product-image-input" /></div>
         <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={f.active} onCheckedChange={(v) => setF({ ...f, active: !!v })} data-testid="product-active-checkbox" /> Disponível para venda</label>
@@ -196,12 +208,12 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
           })}
         </ul>
         <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/5 pt-3 text-center">
-          <div><p className="text-[10px] uppercase text-zinc-500">CMV</p><p className="font-mono text-white" data-testid="recipe-cost">{brl(cost)}</p></div>
+          <div><p className="text-[10px] uppercase text-zinc-500">{manualCost > 0 ? "Custo (manual)" : "CMV ficha"}</p><p className="font-mono text-white" data-testid="recipe-cost">{brl(cost)}</p></div>
           <div><p className="text-[10px] uppercase text-zinc-500">Margem</p><p className={cn("font-mono", margin >= 65 ? "text-emerald-300" : "text-amber-300")} data-testid="recipe-margin">{margin.toFixed(1)}%</p></div>
           <div><p className="text-[10px] uppercase text-zinc-500">Preço sugerido (CMV 30%)</p><p className="font-mono text-primary">{brl(cost / 0.3)}</p></div>
         </div>
       </div>
-      <Button className="mt-2" disabled={!f.name.trim() || !f.category_id || save.isPending} onClick={() => save.mutate({ ...f, price })} data-testid="product-save-button">Salvar produto</Button>
+      <Button className="mt-2" disabled={!f.name.trim() || !f.category_id || save.isPending} onClick={() => save.mutate({ ...f, price, cost_price: manualCost })} data-testid="product-save-button">Salvar produto</Button>
     </>
   );
 }

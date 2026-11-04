@@ -31,7 +31,7 @@ INDEXES: dict[str, list[IndexModel]] = {
     "products": [_id_idx(), IndexModel([("category_id", ASCENDING)], name="category")],
     "ingredients": [_id_idx()],
     "stock_moves": [IndexModel([("created_at", DESCENDING)], name="created_desc")],
-    "tables": [_id_idx(), IndexModel([("number", ASCENDING)], name="number", unique=True)],
+    "tables": [_id_idx(), IndexModel([("kind", ASCENDING), ("number", ASCENDING)], name="kind_number", unique=True)],
     "orders": [_id_idx(), IndexModel([("status", ASCENDING), ("created_at", DESCENDING)], name="status_created"),
                IndexModel([("paid_at", DESCENDING)], name="paid_at"),
                IndexModel([("channel", ASCENDING), ("created_at", DESCENDING)], name="channel_created"),
