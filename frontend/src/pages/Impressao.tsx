@@ -98,7 +98,7 @@ export default function Impressao() {
           </Panel>
           <Panel title="Impressão sem janela (recomendado)">
             <p className="text-xs leading-relaxed text-zinc-400">
-              {isDesktop() ? "Aplicativo PDV 3.0: os tickets saem direto na impressora do Windows escolhida em Configurações → Impressoras, sem janela." : <>Instale o aplicativo <b>PDV 3.0</b> para Windows para imprimir direto, ou defina a impressora térmica como padrão e abra o Chrome com a opção <code className="rounded bg-white/10 px-1 font-mono text-zinc-200">--kiosk-printing</code> no atalho.</>}
+              {isDesktop() ? "Aplicativo Apollo PDV: os tickets saem direto na impressora do Windows escolhida em Configurações → Impressoras, sem janela." : <>Instale o aplicativo <b>Apollo PDV</b> para Windows para imprimir direto, ou defina a impressora térmica como padrão e abra o Chrome com a opção <code className="rounded bg-white/10 px-1 font-mono text-zinc-200">--kiosk-printing</code> no atalho.</>}
               Assim os tickets saem direto, sem a janela de confirmação. Para imprimir em várias impressoras, use um computador/tablet por ambiente ou um perfil do Chrome para cada impressora.
             </p>
           </Panel>

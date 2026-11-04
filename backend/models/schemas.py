@@ -17,7 +17,7 @@ def _now() -> datetime:
 Role = Literal["admin", "caixa", "garcom", "cozinha"]
 Station = str  # key of an Environment (ambiente de produção), e.g. "cozinha", "churrasqueira"
 Unit = Literal["kg", "g", "L", "ml", "un"]
-PayMethod = Literal["dinheiro", "credito", "debito", "pix", "voucher", "fiado", "online"]
+PayMethod = str  # builtin (dinheiro, credito, debito, pix, fiado, voucher, online) or a custom payment method key
 Source = Literal["pdv", "mesa", "cardapio", "ifood", "99food", "keeta", "site"]
 
 
@@ -534,6 +534,8 @@ class Dre(BaseModel):
     daily: list[NamedValue]
     top_products: list[TopProduct]
     commission_list: list[Commission]
+    other_revenue: float = 0  # contas a receber recebidas no período
+    bills_paid: float = 0  # contas a pagar pagas no período (já incluídas em expenses)
 
 
 # ---------- delivery / public ----------
@@ -752,6 +754,96 @@ class SelfTestResult(BaseModel):
     warnings: int
     failures: int
     checks: list[SelfTestCheck]
+
+
+# ---------- financeiro: categorias, contas a pagar/receber, formas de pagamento ----------
+BillKind = Literal["pagar", "receber"]
+
+
+class AccountCategory(BaseModel):
+    id: str = Field(default_factory=_id)
+    name: str
+    kind: BillKind
+
+
+class AccountCategoryIn(BaseModel):
+    name: str = Field(min_length=2)
+    kind: BillKind
+
+
+class Bill(BaseModel):
+    id: str = Field(default_factory=_id)
+    kind: BillKind
+    description: str
+    category_id: str = ""
+    category_name: str = ""
+    party: str = ""  # fornecedor ou cliente
+    amount: float
+    due_date: str
+    status: Literal["aberto", "pago", "cancelado"] = "aberto"
+    paid_date: Optional[str] = None
+    paid_amount: float = 0
+    payment_method: str = ""
+    notes: str = ""
+    created_by: str = ""
+    created_at: datetime = Field(default_factory=_now)
+
+
+class BillIn(BaseModel):
+    kind: BillKind
+    description: str = Field(min_length=2)
+    category_id: str = ""
+    party: str = ""
+    amount: float = Field(gt=0)
+    due_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    notes: str = ""
+    repeat_months: int = Field(default=1, ge=1, le=24)  # cria as próximas parcelas mensais
+
+
+class BillPayIn(BaseModel):
+    paid_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    paid_amount: float = Field(gt=0)
+    payment_method: str = Field(min_length=2)
+
+
+class BillSummary(BaseModel):
+    pagar_aberto: float
+    pagar_vencido: float
+    pagar_hoje: float
+    receber_aberto: float
+    receber_vencido: float
+    fiado_aberto: float
+
+
+class PaymentMethodCfg(BaseModel):
+    id: str = Field(default_factory=_id)
+    key: str
+    name: str
+    kind: Literal["dinheiro", "cartao", "pix", "fiado", "outro"] = "outro"
+    fee_pct: float = 0  # taxa (cartões usam a tabela por bandeira)
+    active: bool = True
+    builtin: bool = False
+    sort: int = 0
+
+
+class PaymentMethodIn(BaseModel):
+    name: str = Field(min_length=2)
+    fee_pct: float = Field(default=0, ge=0, le=30)
+    active: bool = True
+    sort: int = 0
+
+
+class ServerBackupInfo(BaseModel):
+    id: str
+    at: datetime
+    trigger: str
+    size_kb: int
+    by_name: str = ""
+
+
+class LocalBackupSettings(BaseModel):
+    auto: bool = True
+    keep: int = Field(default=14, ge=3, le=60)
 
 
 class OkOut(BaseModel):

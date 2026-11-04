@@ -13,13 +13,14 @@ load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
 from lib.db import client, db, ensure_indexes  # noqa: E402
-from routers import auth, catalog, config, drive, fiado, operations, production, public, reports, system, tables  # noqa: E402
+from routers import auth, catalog, config, drive, fiado, finance, operations, production, public, reports, serverbackup, system, tables  # noqa: E402
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.index_task = asyncio.create_task(ensure_indexes())
     await production.ensure_environments()
+    await finance.ensure_finance_defaults()
     yield
     app.state.index_task.cancel()
     with suppress(asyncio.CancelledError):
@@ -36,7 +37,7 @@ async def root():
     return {"message": "Espeteria Churras Buguer PDV API"}
 
 
-for r in (auth, catalog, tables, operations, reports, public, fiado, config, production, drive, system):
+for r in (auth, catalog, tables, operations, reports, public, fiado, config, production, drive, system, finance, serverbackup):
     api_router.include_router(r.router)
 
 app.add_middleware(
@@ -53,3 +54,16 @@ _ = db
 
 # Include the router in the main app — must stay last
 app.include_router(api_router)
+
+# Local store server (Windows, IP fixo): optionally serve the built screens from the same address.
+# Unset in the cloud/preview, where the frontend is served separately.
+_web = os.environ.get("SERVE_FRONTEND_DIR")
+if _web and os.path.isdir(_web):
+    from fastapi.responses import FileResponse
+
+    @app.get("/{path:path}", include_in_schema=False)
+    async def _spa(path: str):
+        f = os.path.realpath(os.path.join(_web, path))
+        if f.startswith(os.path.realpath(_web)) and os.path.isfile(f):
+            return FileResponse(f)
+        return FileResponse(os.path.join(_web, "index.html"))

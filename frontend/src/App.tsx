@@ -19,6 +19,8 @@ import Fiado from "@/pages/Fiado";
 import Config from "@/pages/Config";
 import Impressao from "@/pages/Impressao";
 import Pessoas from "@/pages/Pessoas";
+import Contas from "@/pages/Contas";
+import FinCadastros from "@/pages/FinCadastros";
 import { homeFor, useMe } from "@/lib/auth";
 
 function Home() {
@@ -44,6 +46,10 @@ export default function App() {
       <Route path="/config" element={<Config />} />
       <Route path="/impressao" element={<Impressao />} />
       <Route path="/clientes" element={<Pessoas />} />
+      <Route path="/contas-pagar" element={<Contas />} />
+      <Route path="/contas-receber" element={<Contas />} />
+      <Route path="/categorias-contas" element={<FinCadastros />} />
+      <Route path="/formas-pagamento" element={<FinCadastros />} />
       <Route path="/fornecedores" element={<Pessoas />} />
       <Route path="/notas" element={<Notas />} />
       <Route path="/produtos" element={<Produtos />} />

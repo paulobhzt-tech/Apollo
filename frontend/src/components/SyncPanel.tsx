@@ -57,9 +57,9 @@ export default function SyncPanel() {
       </Panel>
       <Panel title="Aplicativo Windows" className="lg:col-span-2">
         {d ? (
-          <p className="text-sm text-zinc-300" data-testid="desktop-info"><Monitor className="mr-1 inline size-4 text-primary" /> PDV 3.0 versão {d.version} · computador <b>{d.deviceId}</b> · servidor {cfg.data?.serverUrl} · modo {cfg.data?.mode === "offline" ? "offline (cópia local)" : "online"}</p>
+          <p className="text-sm text-zinc-300" data-testid="desktop-info"><Monitor className="mr-1 inline size-4 text-primary" /> Apollo PDV versão {d.version} · computador <b>{d.deviceId}</b> · servidor {cfg.data?.serverUrl} · modo {cfg.data?.mode === "offline" ? "offline (cópia local)" : "online"}</p>
         ) : (
-          <p className="text-sm text-zinc-400" data-testid="desktop-info">Você está usando pelo navegador. Instale o <b>PDV-3.0-Setup.exe</b> no computador do caixa para imprimir sem janela e abrir o sistema mesmo sem internet.</p>
+          <p className="text-sm text-zinc-400" data-testid="desktop-info">Você está usando pelo navegador. Instale o <b>Apollo-PDV-Setup.exe</b> no computador do caixa para imprimir sem janela e abrir o sistema mesmo sem internet.</p>
         )}
       </Panel>
     </div>

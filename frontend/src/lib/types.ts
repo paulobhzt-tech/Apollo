@@ -4,7 +4,7 @@ export type Station = string; // environment key (ambiente de produção)
 export interface Environment { id: string; key: string; name: string; auto_print: boolean; sort: number }
 export type EnvironmentIn = Omit<Environment, "id" | "key">;
 export type Unit = "kg" | "g" | "L" | "ml" | "un";
-export type PayMethod = "dinheiro" | "credito" | "debito" | "pix" | "voucher" | "fiado" | "online";
+export type PayMethod = string; // builtin key or a custom payment method key
 export type Source = "pdv" | "mesa" | "cardapio" | "ifood" | "99food" | "keeta" | "site";
 export type DeliveryStatus = "pendente" | "aceito" | "preparo" | "saiu" | "entregue" | "recusado";
 
@@ -259,6 +259,8 @@ export interface Dre {
   daily: NamedValue[];
   top_products: TopProduct[];
   commission_list: Commission[];
+  other_revenue: number;
+  bills_paid: number;
 }
 
 export interface PublicMenu { restaurant: string; categories: Category[]; products: Product[] }
@@ -303,3 +305,14 @@ export interface AuthUrlOut { authorization_url: string }
 export type SelfTestStatus = "ok" | "aviso" | "falha";
 export interface SelfTestCheck { key: string; label: string; status: SelfTestStatus; detail: string; fix: string }
 export interface SelfTestResult { at: string; by_name: string; ok: number; warnings: number; failures: number; checks: SelfTestCheck[] }
+export type BillKind = "pagar" | "receber";
+export interface AccountCategory { id: string; name: string; kind: BillKind }
+export type AccountCategoryIn = Omit<AccountCategory, "id">;
+export interface Bill { id: string; kind: BillKind; description: string; category_id: string; category_name: string; party: string; amount: number; due_date: string; status: "aberto" | "pago" | "cancelado"; paid_date: string | null; paid_amount: number; payment_method: string; notes: string; created_by: string; created_at: string }
+export interface BillIn { kind: BillKind; description: string; category_id: string; party: string; amount: number; due_date: string; notes: string; repeat_months: number }
+export interface BillPayIn { paid_date: string; paid_amount: number; payment_method: string }
+export interface BillSummary { pagar_aberto: number; pagar_vencido: number; pagar_hoje: number; receber_aberto: number; receber_vencido: number; fiado_aberto: number }
+export interface PaymentMethodCfg { id: string; key: string; name: string; kind: "dinheiro" | "cartao" | "pix" | "fiado" | "outro"; fee_pct: number; active: boolean; builtin: boolean; sort: number }
+export interface PaymentMethodIn { name: string; fee_pct: number; active: boolean; sort: number }
+export interface ServerBackupInfo { id: string; at: string; trigger: string; size_kb: number; by_name: string }
+export interface LocalBackupSettings { auto: boolean; keep: number }

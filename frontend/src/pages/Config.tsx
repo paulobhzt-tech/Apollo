@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import SelfTest from "@/components/SelfTest";
 import SyncPanel from "@/components/SyncPanel";
+import { ServerBackups, SystemPanel } from "@/components/SystemPanels";
 import DevicePrinterField from "@/components/DevicePrinterField";
 import DriveBackup from "@/components/DriveBackup";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -39,6 +40,7 @@ export default function Config() {
           <TabsTrigger value="backup" data-testid="config-tab-backup">Backup</TabsTrigger>
           <TabsTrigger value="autoteste" data-testid="config-tab-selftest">Auto teste</TabsTrigger>
           <TabsTrigger value="sync" data-testid="config-tab-sync">Sincronização</TabsTrigger>
+          <TabsTrigger value="sistema" data-testid="config-tab-system">Sistema</TabsTrigger>
         </TabsList>
         <TabsContent value="impressoras" className="mt-4"><Printers /></TabsContent>
         <TabsContent value="empresa" className="mt-4"><Company /></TabsContent>
@@ -46,6 +48,7 @@ export default function Config() {
         <TabsContent value="backup" className="mt-4"><Backup flash={params.get("drive")} /></TabsContent>
         <TabsContent value="autoteste" className="mt-4"><SelfTest /></TabsContent>
         <TabsContent value="sync" className="mt-4"><SyncPanel /></TabsContent>
+        <TabsContent value="sistema" className="mt-4"><SystemPanel /></TabsContent>
       </Tabs>
     </AppShell>
   );
@@ -147,7 +150,7 @@ function CompanyForm({ init }: { init: GeneralSettings }) {
   return (
     <Panel title="Dados da empresa (aparecem no cupom, pré-conta e nota) e PIX">
       <div className="grid gap-3 sm:grid-cols-2">
-        {field("trade_name", "Nome fantasia", "Espeteria Churras Buguer")}
+        {field("trade_name", "Nome no cupom (nome fantasia)", "Ex.: Espeteria Churras Buguer")}
         {field("company_name", "Razão social", "Espeteria Churras Buguer LTDA")}
         {field("cnpj", "CNPJ", "00.000.000/0001-00")}
         {field("ie", "Inscrição estadual", "Isento ou número")}
@@ -183,6 +186,7 @@ function Backup({ flash }: { flash: string | null }) {
   };
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+    <ServerBackups />
     <DriveBackup flash={flash} />
     <Panel title="Backup manual (baixar arquivo)">
       <p className="text-sm text-zinc-400">Gera um arquivo com produtos (incluindo imagens), estoque, vendas, caixa, fiado, funcionários (sem PINs) e configurações.</p>

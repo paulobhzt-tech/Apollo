@@ -95,7 +95,7 @@ async def dre(start: Optional[str] = None, end: Optional[str] = None, _: dict = 
     taxes = round((gross - discounts) * TAX_RATE, 2)
     fees = await card_fee_table()
     card_fees = round(sum(v * fees.get(k, 0) / 100 for k, v in method_totals(orders, with_brand=True).items()
-                          if k.startswith(("credito:", "debito:"))), 2)
+                          if k.startswith(("credito:", "debito:")) or (":" not in k and k in fees)), 2)
     net_rev = round(gross - discounts - mfees - card_fees - taxes, 2)
     cmv = round(sum(o.get("cmv", 0) for o in orders), 2)
     gross_profit = round(net_rev - cmv, 2)
@@ -115,8 +115,19 @@ async def dre(start: Optional[str] = None, end: Optional[str] = None, _: dict = 
     exp_cat: dict[str, float] = {}
     for x in exps:
         exp_cat[x["category"]] = exp_cat.get(x["category"], 0) + x["amount"]
+    paid_bills = await db.bills.find({"status": "pago", "paid_date": {"$gte": start, "$lte": end}}, {"_id": 0}).to_list(10000)
+    bills_paid = 0.0
+    other_revenue = 0.0
+    for b in paid_bills:
+        if b["kind"] == "pagar":
+            cat = b.get("category_name") or "Contas a pagar"
+            exp_cat[cat] = exp_cat.get(cat, 0) + b["paid_amount"]
+            bills_paid += b["paid_amount"]
+        else:
+            other_revenue += b["paid_amount"]
     expenses = round(sum(exp_cat.values()), 2)
-    net = round(gross_profit - commissions - expenses, 2)
+    other_revenue = round(other_revenue, 2)
+    net = round(gross_profit + other_revenue - commissions - expenses, 2)
     daily: dict[str, float] = {}
     for o in orders:
         k = o["paid_at"].astimezone(TZ).strftime("%d/%m")
@@ -129,9 +140,10 @@ async def dre(start: Optional[str] = None, end: Optional[str] = None, _: dict = 
         "taxes": taxes, "net_revenue": net_rev, "cmv": cmv, "gross_profit": gross_profit, "commissions": commissions,
         "expenses": expenses, "expenses_by_category": nv(exp_cat), "net_profit": net,
         "margin_pct": round(net / gross * 100, 1) if gross else 0, "orders": len(orders),
-        "by_payment": nv(payment_totals(orders), PAY_LABEL), "by_source": nv(by_source, SRC_LABEL),
+        "by_payment": nv(payment_totals(orders), {**PAY_LABEL, **{m["key"]: m["name"] for m in await db.payment_methods.find({}, {"_id": 0, "key": 1, "name": 1}).to_list(200)}}), "by_source": nv(by_source, SRC_LABEL),
         "daily": [{"name": k, "value": v} for k, v in sorted(daily.items(), key=lambda x: (x[0][3:], x[0][:2]))],
         "top_products": top_products(orders, 10), "commission_list": commission_list,
+        "other_revenue": other_revenue, "bills_paid": round(bills_paid, 2),
     }
 
 

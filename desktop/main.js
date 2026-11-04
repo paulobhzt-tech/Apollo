@@ -1,4 +1,4 @@
-// PDV 3.0 — Windows desktop shell (Electron).
+// Apollo PDV — Windows desktop shell (Electron).
 // Online: opens the published system (always the latest version, same data as browsers and phones).
 // Offline: opens the copy of the screens bundled in the installer (pdv://app) so counter sales keep being
 // recorded; they are stored encrypted on disk and synced automatically when the connection returns.
@@ -20,12 +20,18 @@ function loadConfig() {
   try {
     const cfg = { ...def, ...JSON.parse(fs.readFileSync(f, "utf8")) };
     cfg.serverUrl = String(cfg.serverUrl).replace(/\/+$/, "");
+    cfg.servers = Array.isArray(cfg.servers) && cfg.servers.length ? cfg.servers : [{ name: "Servidor na nuvem", url: cfg.serverUrl }];
+    if (!cfg.servers.some((s) => s.url === cfg.serverUrl)) cfg.servers.push({ name: "Servidor", url: cfg.serverUrl });
     return cfg;
   } catch {
     return def;
   }
 }
 let cfg;
+function saveConfig() {
+  fs.writeFileSync(path.join(userDir(), "config.json"), JSON.stringify(cfg, null, 2));
+}
+const cleanUrl = (u) => String(u).trim().replace(/\/+$/, "");
 
 // ---------- encrypted key/value store (offline queue, cached menu, last operator) ----------
 const kvFile = () => path.join(userDir(), "pdv-dados.bin");
@@ -107,7 +113,7 @@ function isInternal(url) {
 function createWindow() {
   win = new BrowserWindow({
     width: 1366, height: 820, minWidth: 1024, minHeight: 640, backgroundColor: "#0b0b0f", show: false,
-    title: "PDV 3.0 - Espeteria Churras Buguer", icon: path.join(__dirname, "build", "icon.png"),
+    title: "Apollo PDV", icon: path.join(__dirname, "build", "icon.png"),
     fullscreen: !!cfg.fullscreen,
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false },
   });
@@ -140,7 +146,36 @@ function createWindow() {
 ipcMain.on("pdv:info", (e) => { e.returnValue = { version: app.getVersion(), deviceId: deviceId() }; });
 ipcMain.on("pdv:kv-get", (e, key) => { const v = kvLoad()[key]; e.returnValue = v === undefined ? null : v; });
 ipcMain.on("pdv:kv-set", (e, key, value) => { kvLoad()[key] = value; kvSave(); e.returnValue = true; });
-ipcMain.handle("pdv:config", () => ({ serverUrl: cfg.serverUrl, startWithWindows: !!cfg.startWithWindows, mode }));
+ipcMain.handle("pdv:config", () => ({ serverUrl: cfg.serverUrl, servers: cfg.servers, startWithWindows: !!cfg.startWithWindows, mode }));
+ipcMain.handle("pdv:test-server", async (_e, url) => {
+  try {
+    const r = await net.fetch(cleanUrl(url) + "/api/", { cache: "no-store" });
+    return { ok: r.status < 500, error: r.status >= 500 ? "HTTP " + r.status : undefined };
+  } catch (err) {
+    return { ok: false, error: String(err.message || err) };
+  }
+});
+ipcMain.handle("pdv:add-server", (_e, s) => {
+  const url = cleanUrl(s.url);
+  if (!/^https?:\/\/[^\s]+$/.test(url)) return false;
+  cfg.servers = [...cfg.servers.filter((x) => x.url !== url), { name: s.name || url, url }];
+  saveConfig();
+  return true;
+});
+ipcMain.handle("pdv:remove-server", (_e, url) => {
+  if (cleanUrl(url) === cfg.serverUrl) return false;
+  cfg.servers = cfg.servers.filter((x) => x.url !== cleanUrl(url));
+  saveConfig();
+  return true;
+});
+ipcMain.handle("pdv:use-server", async (_e, url) => {
+  const u = cleanUrl(url);
+  if (!cfg.servers.some((x) => x.url === u)) return false;
+  cfg.serverUrl = u;
+  saveConfig();
+  await openBest();
+  return true;
+});
 ipcMain.handle("pdv:printers", async () => {
   const list = await win.webContents.getPrintersAsync();
   return list.map((p) => ({ name: p.name, displayName: p.displayName || p.name, isDefault: !!p.isDefault }));

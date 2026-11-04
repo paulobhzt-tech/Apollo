@@ -16,7 +16,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   garcom: "Garçom / Salão",
   cozinha: "Cozinha / KDS",
 };
-export const PAY_LABEL: Record<PayMethod, string> = {
+export const PAY_LABEL: Record<string, string> = {
   dinheiro: "Dinheiro",
   credito: "Crédito",
   debito: "Débito",
@@ -65,6 +65,8 @@ export const tableLabel = (t: { kind: "mesa" | "comanda"; number: number; name: 
 
 export const BRAND_LABEL: Record<string, string> = { visa: "Visa", mastercard: "Mastercard", elo: "Elo" };
 // "credito:visa" | {method, brand} -> "Crédito · Visa"
+/** Custom payment methods register their names here (see usePayMethods). */
+export const registerPayLabels = (m: { key: string; name: string }[]) => { for (const x of m) PAY_LABEL[x.key] = x.name; };
 export const payLabel = (method: string, brand?: string | null) => {
   const [m, b] = method.includes(":") ? method.split(":") : [method, brand ?? ""];
   return `${PAY_LABEL[m as PayMethod] ?? m}${b ? ` · ${BRAND_LABEL[b] ?? b}` : ""}`;

@@ -183,6 +183,7 @@ async def finalize_payment(order: dict, pay: PayIn) -> tuple[dict, dict | None]:
     if paid + 0.009 < total:
         raise HTTPException(400, f"Valor pago insuficiente (faltam R$ {total - paid:.2f})")
     change = round(paid - total, 2)
+    await validate_methods([p.method for p in pay.payments])
     if any(p.method in ("credito", "debito") and not p.brand for p in pay.payments):
         raise HTTPException(400, "Informe a bandeira do cartão (Visa, Mastercard ou Elo)")
     fiado = round(sum(p.amount for p in pay.payments if p.method == "fiado"), 2)
@@ -264,7 +265,26 @@ async def fiado_reverse(order: dict, amount: float, by_name: str, note: str) -> 
 
 
 async def card_fee_table() -> dict[str, float]:
-    return (await db.settings.find_one({"_id": "card_fees"}) or {}).get("fees", {})
+    """Fees by "credito:visa"-style key plus custom payment methods by their own key."""
+    fees = dict((await db.settings.find_one({"_id": "card_fees"}) or {}).get("fees", {}))
+    for m in await db.payment_methods.find({"builtin": False, "fee_pct": {"$gt": 0}}, {"_id": 0, "key": 1, "fee_pct": 1}).to_list(100):
+        fees[m["key"]] = m["fee_pct"]
+    return fees
+
+
+async def validate_methods(methods: list[str]) -> None:
+    """Rejects disabled or unknown payment methods (configured in Financeiro → Formas de pagamento)."""
+    cfg = {m["key"]: m for m in await db.payment_methods.find({}, {"_id": 0, "key": 1, "active": 1, "name": 1}).to_list(200)}
+    for k in set(methods):
+        if k in ("voucher", "online") and k not in cfg:
+            continue
+        m = cfg.get(k)
+        if m is None and k in ("dinheiro", "credito", "debito", "pix", "fiado"):
+            continue  # builtin not configured yet
+        if m is None:
+            raise HTTPException(400, f"Forma de pagamento desconhecida: {k}")
+        if not m.get("active", True):
+            raise HTTPException(400, f"Forma de pagamento desativada: {m['name']}")
 
 
 async def adjust_balance(customer_id: str, delta: float) -> None:

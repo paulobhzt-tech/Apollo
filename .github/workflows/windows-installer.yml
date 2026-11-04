@@ -1,4 +1,4 @@
-name: Instalador Windows (PDV-3.0-Setup.exe)
+name: Instalador Windows (Apollo-PDV-Setup.exe)
 
 on:
   workflow_dispatch:
@@ -24,6 +24,6 @@ jobs:
         run: yarn dist
       - uses: actions/upload-artifact@v4
         with:
-          name: PDV-3.0-Setup
-          path: desktop/dist/PDV-3.0-Setup.exe
+          name: Apollo-PDV-Setup
+          path: desktop/dist/Apollo-PDV-Setup.exe
           if-no-files-found: error

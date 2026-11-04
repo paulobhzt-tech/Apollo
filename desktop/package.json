@@ -1,8 +1,8 @@
 {
-  "name": "pdv-espeteria-desktop",
-  "productName": "PDV 3.0",
+  "name": "apollo-pdv-desktop",
+  "productName": "Apollo PDV",
   "version": "3.0.0",
-  "description": "PDV 3.0 - Espeteria Churras Buguer (aplicativo Windows)",
+  "description": "Apollo PDV (aplicativo Windows)",
   "author": "Espeteria Churras Buguer",
   "main": "main.js",
   "private": true,
@@ -16,15 +16,15 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "br.com.espeteria.pdv",
-    "productName": "PDV 3.0",
-    "copyright": "Espeteria Churras Buguer",
+    "appId": "br.com.apollo.pdv",
+    "productName": "Apollo PDV",
+    "copyright": "Apollo PDV",
     "directories": { "output": "dist", "buildResources": "build" },
     "files": ["main.js", "preload.js", "offline.html", "config.default.json", "web/**/*", "package.json"],
     "win": {
       "target": [{ "target": "nsis", "arch": ["x64"] }],
       "icon": "build/icon.png",
-      "artifactName": "PDV-3.0-Setup.${ext}"
+      "artifactName": "Apollo-PDV-Setup.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -32,8 +32,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "PDV 3.0",
-      "uninstallDisplayName": "PDV 3.0 - Espeteria Churras Buguer",
+      "shortcutName": "Apollo PDV",
+      "uninstallDisplayName": "Apollo PDV",
       "deleteAppDataOnUninstall": false
     }
   }

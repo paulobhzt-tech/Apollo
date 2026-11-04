@@ -10,7 +10,7 @@ export default function DevicePrinterField({ value, onChange }: { value: string;
   const list = useQuery({ queryKey: ["desktop-printers"], queryFn: () => d!.printers(), enabled: !!d });
   return (
     <div className="sm:col-span-2">
-      <Label className="text-xs text-zinc-400">Impressora no Windows (impressão direta pelo aplicativo PDV 3.0)</Label>
+      <Label className="text-xs text-zinc-400">Impressora no Windows (impressão direta pelo aplicativo Apollo PDV)</Label>
       {d && (list.data?.length ?? 0) > 0 ? (
         <Select value={value || "__default"} onValueChange={(v: string) => onChange(v === "__default" ? "" : v)}>
           <SelectTrigger className="mt-1 w-full" data-testid="printer-device-select"><SelectValue>{(v) => (v === "__default" ? "Impressora padrão do Windows" : (v as string))}</SelectValue></SelectTrigger>

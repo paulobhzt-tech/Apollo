@@ -59,6 +59,7 @@ export default function Financeiro() {
               <L k="(=) Lucro bruto" v={d.gross_profit} strong line />
               <L k="(−) Comissões garçons" v={-d.commissions} />
               {d.expenses_by_category.map((e) => <L key={e.name} k={`(−) ${EXP_LABEL[e.name as ExpenseCat] ?? e.name}`} v={-e.value} />)}
+              {d.other_revenue > 0 && <L k="(+) Contas a receber recebidas" v={d.other_revenue} />}
               <L k="(=) Lucro líquido" v={d.net_profit} strong line big />
             </dl>
           ) : <Empty />}

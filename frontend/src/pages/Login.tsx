@@ -48,7 +48,7 @@ export default function Login() {
           <div className="flex items-center gap-3">
             <span className="grid size-12 place-items-center rounded-2xl bg-primary text-white shadow-xl shadow-primary/30"><Flame className="size-6" /></span>
             <div>
-              <p className="font-heading text-2xl font-semibold text-white" data-testid="login-brand">Espeteria Churras Buguer</p>
+              <p className="font-heading text-2xl font-semibold text-white" data-testid="login-brand">Apollo PDV</p>
               <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Espetinhos · Churrasco · Burgers</p>
             </div>
           </div>

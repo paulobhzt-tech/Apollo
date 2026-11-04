@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException, Response
 
 from lib.auth import COOKIE, SESSION_HOURS, create_session, current_user, hash_pin, require
@@ -18,7 +19,7 @@ async def login(body: LoginIn, response: Response):
     if not emp:
         raise HTTPException(401, "PIN inválido")
     token = await create_session(emp["id"])
-    response.set_cookie(COOKIE, token, httponly=True, secure=True, samesite="lax", max_age=SESSION_HOURS * 3600, path="/")
+    response.set_cookie(COOKIE, token, httponly=True, secure=os.environ.get("COOKIE_SECURE", "true").lower() != "false", samesite="lax", max_age=SESSION_HOURS * 3600, path="/")
     return emp
 
 

@@ -2,8 +2,9 @@ import { getReceiptPref, setReceiptPref } from "@/lib/receipt";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
+import { usePayMethods } from "@/lib/payMethods";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Banknote, CreditCard, QrCode, Trash2, UserRound, Wallet } from "lucide-react";
+import { Banknote, CreditCard, QrCode, Ticket, Trash2, UserRound, Wallet } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,13 +14,8 @@ import { BRAND_LABEL, brl, PAY_LABEL, payLabel } from "@/lib/format";
 import type { CardBrand, FiadoCustomer, PayIn, PayMethod, Payment } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const METHODS: { m: PayMethod; icon: typeof Banknote }[] = [
-  { m: "dinheiro", icon: Banknote },
-  { m: "pix", icon: QrCode },
-  { m: "credito", icon: CreditCard },
-  { m: "debito", icon: Wallet },
-  { m: "fiado", icon: UserRound },
-];
+const ICONS: Record<string, typeof Banknote> = { dinheiro: Banknote, pix: QrCode, credito: CreditCard, debito: Wallet, fiado: UserRound };
+const ORDER = ["dinheiro", "pix", "credito", "debito", "fiado"];
 const BRANDS: CardBrand[] = ["visa", "mastercard", "elo"];
 const BRAND_COLOR: Record<CardBrand, string> = { visa: "#1A1F71", mastercard: "#EB001B", elo: "#FFCB05" };
 
@@ -46,6 +42,11 @@ export default function PaymentDialog(props: Props) {
 function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }: Props) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [method, setMethod] = useState<PayMethod>("dinheiro");
+  const cfg = usePayMethods();
+  const METHODS = useMemo(() => {
+    const list = cfg.data ?? ORDER.map((k, i) => ({ key: k, name: PAY_LABEL[k], active: true, sort: i }));
+    return list.filter((m) => m.active).sort((a, b) => a.sort - b.sort).map((m) => ({ m: m.key, label: m.name, icon: ICONS[m.key] ?? Ticket }));
+  }, [cfg.data]);
   const [amount, setAmount] = useState("");
   const [brand, setBrand] = useState<CardBrand | null>(null);
   const isCard = method === "credito" || method === "debito";
@@ -86,7 +87,7 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
       <div className="grid gap-5 md:grid-cols-[1.1fr_1fr]">
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-            {METHODS.map(({ m, icon: Icon }) => (
+            {METHODS.map(({ m, label, icon: Icon }) => (
               <button
                 key={m}
                 type="button"
@@ -98,7 +99,7 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
                 )}
               >
                 <Icon className="size-5" />
-                {PAY_LABEL[m]}
+                {label}
               </button>
             ))}
           </div>

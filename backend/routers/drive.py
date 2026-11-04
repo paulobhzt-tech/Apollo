@@ -178,6 +178,12 @@ async def drive_backup_now(_: dict = Depends(require())):
 
 # ---------- platform cron (.emergent/crons.yml) ----------
 async def _nightly() -> None:
+    from routers.serverbackup import local_settings, make_server_backup
+    try:
+        if (await local_settings()).auto:
+            await make_server_backup("automatico")
+    except Exception as e:  # noqa: BLE001 - never block the Drive upload
+        log.warning("Local server backup failed: %s", e)
     d = await _doc()
     if d.get("auto", True) and d.get("refresh_token"):
         await run_drive_backup("automatico")
