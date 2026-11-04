@@ -10,7 +10,7 @@ from lib.db import db
 from models.schemas import GeneralSettings, OkOut, Printer, PrinterIn, RestoreIn, RestoreOut
 
 router = APIRouter()
-BACKUP_COLLS = ["employees", "categories", "products", "ingredients", "stock_moves", "tables", "orders", "kitchen_tickets",
+BACKUP_COLLS = ["employees", "suppliers", "categories", "products", "ingredients", "stock_moves", "tables", "orders", "kitchen_tickets",
                 "invoices", "cash_sessions", "expenses", "fiado_customers", "customer_moves", "printers", "settings", "environments", "counters"]
 KEEP_ID = {"settings", "counters"}  # these use their own _id
 ISO = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")

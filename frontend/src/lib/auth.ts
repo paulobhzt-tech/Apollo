@@ -28,6 +28,7 @@ export const NAV: NavItem[] = [
   { to: "/notas", label: "Notas Fiscais", icon: "Receipt", roles: ["admin", "caixa"], group: "Financeiro" },
   { to: "/produtos", label: "Cadastro de Produtos", icon: "UtensilsCrossed", roles: ["admin"], group: "Cadastros" },
   { to: "/estoque", label: "Estoque & Insumos", icon: "Boxes", roles: ["admin", "caixa", "cozinha"], group: "Cadastros" },
+  { to: "/clientes", label: "Clientes & Fornecedores", icon: "Contact", roles: ["admin", "caixa"], group: "Cadastros" },
   { to: "/funcionarios", label: "Funcionários", icon: "Users", roles: ["admin"], group: "Cadastros" },
   { to: "/qrcodes", label: "QR Codes & Site", icon: "QrCode", roles: ["admin", "caixa", "garcom"], group: "Cadastros" },
   { to: "/config", label: "Configurações", icon: "Settings", roles: ["admin"], group: "Sistema" },

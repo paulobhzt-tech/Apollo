@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from lib.auth import current_user, require
 from lib.db import db
 from lib.orders import ingredient_map, now, product_cost
-from models.schemas import (Category, CategoryIn, Ingredient, IngredientIn, OkOut, Product, ProductIn,
+from models.schemas import (BulkDeleteIn, Category, CategoryIn, Ingredient, IngredientIn, OkOut, Product, ProductIn, Supplier, SupplierIn,
                             StockMove, StockMoveIn)
 
 router = APIRouter()
@@ -100,6 +100,40 @@ async def delete_product(id: str, _: dict = Depends(require())):
     if not res.deleted_count:
         raise HTTPException(404, "Produto não encontrado")
     return OkOut()
+
+
+@router.post("/products/bulk-delete", response_model=OkOut)
+async def bulk_delete_products(body: BulkDeleteIn, _: dict = Depends(require())):
+    res = await db.products.delete_many({"id": {"$in": body.ids}})
+    return OkOut(message=f"{res.deleted_count} produto(s) apagado(s)")
+
+
+# ---------- suppliers ----------
+@router.get("/suppliers", response_model=list[Supplier])
+async def list_suppliers(_: dict = Depends(require("caixa"))):
+    return await db.suppliers.find({}, {"_id": 0}).sort("name", 1).to_list(5000)
+
+
+@router.post("/suppliers", response_model=Supplier)
+async def create_supplier(body: SupplierIn, _: dict = Depends(require())):
+    s = Supplier(**body.model_dump()).model_dump()
+    await db.suppliers.insert_one(dict(s))
+    return s
+
+
+@router.put("/suppliers/{id}", response_model=Supplier)
+async def update_supplier(id: str, body: SupplierIn, _: dict = Depends(require())):
+    res = await db.suppliers.find_one_and_update({"id": id}, {"$set": body.model_dump()}, projection={"_id": 0}, return_document=True)
+    if not res:
+        raise HTTPException(404, "Fornecedor não encontrado")
+    return res
+
+
+@router.delete("/suppliers/{id}", response_model=OkOut)
+async def delete_supplier(id: str, _: dict = Depends(require())):
+    if not (await db.suppliers.delete_one({"id": id})).deleted_count:
+        raise HTTPException(404, "Fornecedor não encontrado")
+    return OkOut(message="Fornecedor descadastrado")
 
 
 # ---------- ingredients / stock ----------

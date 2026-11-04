@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from lib.auth import require
 from lib.db import db
 from lib.orders import adjust_balance, current_cash
-from models.schemas import CustomerMove, FiadoCustomer, FiadoCustomerIn, ReceiveIn
+from models.schemas import CustomerMove, FiadoCustomer, FiadoCustomerIn, OkOut, ReceiveIn
 
 router = APIRouter()
 
@@ -32,6 +32,16 @@ async def update_customer(id: str, body: FiadoCustomerIn, _: dict = Depends(requ
     await get_customer(id)
     await db.fiado_customers.update_one({"id": id}, {"$set": body.model_dump()})
     return await get_customer(id)
+
+
+@router.delete("/customers/{id}", response_model=OkOut)
+async def delete_customer(id: str, _: dict = Depends(require("caixa"))):
+    c = await get_customer(id)
+    if c.get("balance", 0) > 0.009:
+        raise HTTPException(400, f"{c['name']} ainda deve R$ {c['balance']:.2f}: receba o fiado antes de descadastrar")
+    await db.fiado_customers.delete_one({"id": id})
+    await db.customer_moves.delete_many({"customer_id": id})
+    return OkOut(message="Cliente descadastrado")
 
 
 @router.get("/customers/{id}/moves", response_model=list[CustomerMove])

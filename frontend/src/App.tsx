@@ -18,6 +18,7 @@ import Vendas from "@/pages/Vendas";
 import Fiado from "@/pages/Fiado";
 import Config from "@/pages/Config";
 import Impressao from "@/pages/Impressao";
+import Pessoas from "@/pages/Pessoas";
 import { homeFor, useMe } from "@/lib/auth";
 
 function Home() {
@@ -42,6 +43,8 @@ export default function App() {
       <Route path="/fiado" element={<Fiado />} />
       <Route path="/config" element={<Config />} />
       <Route path="/impressao" element={<Impressao />} />
+      <Route path="/clientes" element={<Pessoas />} />
+      <Route path="/fornecedores" element={<Pessoas />} />
       <Route path="/notas" element={<Notas />} />
       <Route path="/produtos" element={<Produtos />} />
       <Route path="/estoque" element={<Estoque />} />

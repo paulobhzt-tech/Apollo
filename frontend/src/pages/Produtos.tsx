@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api";
 import { brl, errMsg } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
-import type { Category, CategoryIn, Environment, EnvironmentIn, Ingredient, OptionGroup, Product, ProductIn, RecipeItem, Station } from "@/lib/types";
+import type { BulkDeleteIn, OkOut, Category, CategoryIn, Environment, EnvironmentIn, Ingredient, OptionGroup, Product, ProductIn, RecipeItem, Station } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { envName, useEnvironments } from "@/lib/environments";
 
@@ -33,9 +33,17 @@ export default function Produtos() {
   const catName = (id: string) => cats.find((c) => c.id === id)?.name ?? "—";
   const del = useMutation({
     mutationFn: (id: string) => apiDelete(`/products/${id}`),
-    onSuccess: () => { toast.success("Produto removido"); inv(); },
+    onSuccess: () => { toast.success("Produto apagado"); inv(); },
     onError: (e) => toast.error(errMsg(e)),
   });
+  const [sel, setSel] = useState<string[]>([]);
+  const all = products.data ?? [];
+  const bulk = useMutation({
+    mutationFn: (ids: string[]) => apiPost<OkOut>("/products/bulk-delete", { ids } satisfies BulkDeleteIn),
+    onSuccess: (r) => { toast.success(r.message); setSel([]); inv(); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
+  const toggle = (id: string) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
   return (
     <AppShell roles={[]}>
@@ -48,14 +56,26 @@ export default function Produtos() {
           <TabsTrigger value="ambientes" data-testid="tab-ambientes">Ambientes</TabsTrigger>
         </TabsList>
         <TabsContent value="produtos" className="mt-4">
+          {sel.length > 0 && (
+            <div className="mb-3 flex items-center justify-between rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2 animate-rise" data-testid="product-bulk-bar">
+              <span className="text-sm text-red-200">{sel.length} produto(s) selecionado(s)</span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setSel([])}>Limpar seleção</Button>
+                <Button size="sm" variant="destructive" disabled={bulk.isPending} onClick={() => window.confirm(`Apagar ${sel.length} produto(s)? As vendas antigas continuam no histórico.`) && bulk.mutate(sel)} data-testid="product-bulk-delete-button">
+                  <Trash2 className="size-4" /> Apagar selecionados
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="rounded-2xl border border-white/5 bg-panel">
             <Table>
               <TableHeader>
-                <TableRow><TableHead>Produto</TableHead><TableHead>Categoria</TableHead><TableHead>Ambiente</TableHead><TableHead className="text-right">Preço</TableHead><TableHead className="text-right">Custo</TableHead><TableHead className="text-right">Margem</TableHead><TableHead /></TableRow>
+                <TableRow><TableHead className="w-8"><Checkbox checked={all.length > 0 && sel.length === all.length} onCheckedChange={(v) => setSel(v ? all.map((p) => p.id) : [])} data-testid="product-select-all" /></TableHead><TableHead>Produto</TableHead><TableHead>Categoria</TableHead><TableHead>Ambiente</TableHead><TableHead className="text-right">Preço</TableHead><TableHead className="text-right">Custo</TableHead><TableHead className="text-right">Margem</TableHead><TableHead /></TableRow>
               </TableHeader>
               <TableBody>
                 {(products.data ?? []).map((p) => (
                   <TableRow key={p.id} data-testid={`product-row-${p.code || p.id}`}>
+                    <TableCell><Checkbox checked={sel.includes(p.id)} onCheckedChange={() => toggle(p.id)} data-testid={`product-select-${p.code || p.id}`} /></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         {p.image ? <img src={p.image} alt="" className="size-10 rounded-lg object-cover" /> : <div className="size-10 rounded-lg bg-muted" />}
@@ -75,7 +95,7 @@ export default function Produtos() {
                     <TableCell className={cn("text-right font-mono", p.margin_pct >= 65 ? "text-emerald-300" : p.margin_pct >= 45 ? "text-amber-300" : "text-red-300")}>{p.margin_pct}%</TableCell>
                     <TableCell className="text-right">
                       <Button size="icon-sm" variant="ghost" onClick={() => setEditing(p)} data-testid={`edit-product-${p.code || p.id}`}><Pencil /></Button>
-                      <Button size="icon-sm" variant="ghost" onClick={() => window.confirm(`Excluir ${p.name}?`) && del.mutate(p.id)} data-testid={`delete-product-${p.code || p.id}`}><Trash2 /></Button>
+                      <Button size="icon-sm" variant="ghost" onClick={() => window.confirm(`Apagar ${p.name}?`) && del.mutate(p.id)} data-testid={`delete-product-${p.code || p.id}`}><Trash2 /></Button>
                     </TableCell>
                   </TableRow>
                 ))}

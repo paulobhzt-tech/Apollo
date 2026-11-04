@@ -278,8 +278,11 @@ export interface PublicOrderStatus {
   items: OrderItem[];
   created_at: string;
 }
-export interface FiadoCustomer { id: string; name: string; phone: string; cpf: string; credit_limit: number; balance: number; created_at: string }
-export type FiadoCustomerIn = Pick<FiadoCustomer, "name" | "phone" | "cpf" | "credit_limit">;
+export interface FiadoCustomer { id: string; name: string; phone: string; cpf: string; email: string; address: string; notes: string; credit_limit: number; balance: number; created_at: string }
+export type FiadoCustomerIn = Pick<FiadoCustomer, "name" | "phone" | "cpf" | "credit_limit"> & Partial<Pick<FiadoCustomer, "email" | "address" | "notes">>;
+export interface Supplier { id: string; name: string; doc: string; phone: string; email: string; contact: string; address: string; supplies: string; notes: string; created_at: string }
+export type SupplierIn = Omit<Supplier, "id" | "created_at">;
+export interface BulkDeleteIn { ids: string[] }
 export interface CustomerMove {
   id: string; customer_id: string; type: "compra" | "pagamento" | "estorno"; amount: number; order_number: number | null;
   method: string; brand: string | null; note: string; by_name: string; cash_session_id: string | null; at: string;

@@ -588,6 +588,9 @@ class FiadoCustomer(BaseModel):
     name: str
     phone: str = ""
     cpf: str = ""
+    email: str = ""
+    address: str = ""
+    notes: str = ""
     credit_limit: float = 0
     balance: float = 0
     created_at: datetime = Field(default_factory=_now)
@@ -597,7 +600,38 @@ class FiadoCustomerIn(BaseModel):
     name: str = Field(min_length=2)
     phone: str = ""
     cpf: str = ""
+    email: str = ""
+    address: str = ""
+    notes: str = ""
     credit_limit: float = Field(default=0, ge=0)
+
+
+class Supplier(BaseModel):
+    id: str = Field(default_factory=_id)
+    name: str
+    doc: str = ""  # CNPJ ou CPF
+    phone: str = ""
+    email: str = ""
+    contact: str = ""
+    address: str = ""
+    supplies: str = ""  # o que fornece (carnes, bebidas…)
+    notes: str = ""
+    created_at: datetime = Field(default_factory=_now)
+
+
+class SupplierIn(BaseModel):
+    name: str = Field(min_length=2)
+    doc: str = ""
+    phone: str = ""
+    email: str = ""
+    contact: str = ""
+    address: str = ""
+    supplies: str = ""
+    notes: str = ""
+
+
+class BulkDeleteIn(BaseModel):
+    ids: list[str] = Field(min_length=1)
 
 
 class CustomerMove(BaseModel):
