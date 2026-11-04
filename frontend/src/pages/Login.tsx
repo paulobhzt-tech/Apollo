@@ -12,12 +12,6 @@ import { errMsg, ROLE_LABEL } from "@/lib/format";
 import type { Employee, Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const DEMO = [
-  { label: "Admin", pin: "1234" },
-  { label: "Caixa", pin: "0000" },
-  { label: "Garçom", pin: "1111" },
-  { label: "Cozinha", pin: "2222" },
-];
 
 export default function Login() {
   const nav = useNavigate();
@@ -107,17 +101,6 @@ export default function Login() {
           >
             <ShieldCheck className="size-5" /> {login.isPending ? "Entrando…" : "Entrar"}
           </button>
-          <div className="mt-6 border-t border-white/5 pt-4">
-            <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Acesso rápido (demonstração)</p>
-            <div className="mt-2 grid grid-cols-4 gap-2">
-              {DEMO.map((d) => (
-                <button key={d.pin} type="button" onClick={() => submit(d.pin)} data-testid={`quick-login-${d.label.toLowerCase()}`}
-                  className="rounded-lg border border-white/8 px-2 py-2 text-xs text-zinc-300 transition-colors duration-150 hover:border-primary/50 hover:text-white">
-                  {d.label}<span className="block font-mono text-[10px] text-zinc-500">{d.pin}</span>
-                </button>
-              ))}
-            </div>
-          </div>
         </section>
       </div>
       <Toaster richColors />

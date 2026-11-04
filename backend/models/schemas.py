@@ -382,7 +382,7 @@ class TransferIn(BaseModel):
 
 
 class TableStatusIn(BaseModel):
-    status: Literal["livre", "reservada", "conta"]
+    status: Literal["livre", "ocupada", "reservada", "conta"]
 
 
 # ---------- invoices ----------
@@ -644,6 +644,12 @@ class PrinterIn(BaseModel):
 
 
 class GeneralSettings(BaseModel):
+    company_name: str = ""  # razão social
+    trade_name: str = ""  # nome fantasia
+    cnpj: str = ""
+    ie: str = ""
+    city: str = ""
+    receipt_footer: str = ""
     pix_key: str = ""
     pix_holder: str = ""
     phone: str = ""

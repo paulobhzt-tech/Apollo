@@ -1,3 +1,4 @@
+import { getReceiptPref, printSimpleReceipt } from "@/lib/receipt";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Minus, Plus, ShoppingBag, Trash2, WifiOff } from "lucide-react";
@@ -60,6 +61,7 @@ export default function Pdv() {
     onSuccess: (r) => {
       toast.success(`Venda #${r.order.number} finalizada${r.order.change ? ` · Troco ${brl(r.order.change)}` : ""}`);
       reset();
+      if (getReceiptPref()) void printSimpleReceipt(r.order);
       if (r.invoice) setInvoice(r.invoice);
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["cash"] });

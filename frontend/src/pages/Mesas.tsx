@@ -22,6 +22,7 @@ import type { Category, ChosenOption, Invoice, Order, PayIn, Product, SaleResult
 import { cn } from "@/lib/utils";
 import { groupItems } from "@/lib/group";
 import PreBillDialog from "@/components/PreBillDialog";
+import { getReceiptPref, printSimpleReceipt } from "@/lib/receipt";
 
 type Kind = Table["kind"];
 
@@ -254,6 +255,16 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
     onSuccess: () => invalidateTables(),
     onError: onErr,
   });
+  const release = useMutation({
+    mutationFn: () => apiPost<Table>(`/tables/${table!.id}/release`),
+    onSuccess: () => { toast.success(`${tableLabel(table!)} liberada`); invalidateTables(); onClose(); },
+    onError: onErr,
+  });
+  const cancelTable = useMutation({
+    mutationFn: (b: { reason: string; manager_pin?: string }) => apiPost<Table>(`/tables/${table!.id}/cancel`, b),
+    onSuccess: () => { toast.success(`${tableLabel(table!)} cancelada e liberada`); invalidateTables(); onClose(); },
+    onError: onErr,
+  });
   const clearCall = useMutation({ mutationFn: () => apiPost<Table>(`/tables/${table!.id}/clear-call`), onSuccess: invalidateTables });
   const transfer = useMutation({
     mutationFn: () => apiPost<Table>(`/tables/${table!.id}/transfer`, { target_table_id: transferTo }),
@@ -265,6 +276,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
     onSuccess: (r) => {
       toast.success(`${tableLabel(table!)} fechada${r.order.change ? ` · Troco ${brl(r.order.change)}` : ""}`);
       setPayOpen(false); invalidateTables(); onClose();
+      if (getReceiptPref()) void printSimpleReceipt(r.order);
       if (r.invoice) setInvoice(r.invoice);
     },
     onError: onErr,
@@ -317,9 +329,10 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                   </div>
                   <Button className="w-full" onClick={() => openT.mutate()} disabled={openT.isPending} data-testid="open-table-button">Abrir {table.kind === "comanda" ? "comanda" : "mesa"}</Button>
                   <div className="flex gap-2">
-                    {table.status === "reservada"
-                      ? <Button variant="outline" size="sm" onClick={() => status.mutate("livre")} data-testid="table-unreserve-button">Liberar reserva</Button>
-                      : <Button variant="outline" size="sm" onClick={() => status.mutate("reservada")} data-testid="table-reserve-button">Marcar reservada</Button>}
+                    {(["livre", "ocupada", "reservada"] as const).map((st) => (
+                      <Button key={st} size="sm" variant={table.status === st ? "default" : "outline"} disabled={status.isPending}
+                        onClick={() => status.mutate(st)} data-testid={`table-status-${st}`}>{STATUS[st].label}</Button>
+                    ))}
                   </div>
                 </div>
               ) : (
@@ -414,6 +427,21 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                       </SelectContent>
                     </Select>
                     <Button variant="outline" disabled={!transferTo} onClick={() => transfer.mutate()} data-testid="transfer-button"><ArrowRightLeft className="size-4" /></Button>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/5 pt-3">
+                    <Button size="sm" variant="outline" disabled={status.isPending}
+                      onClick={() => status.mutate(table.status === "conta" ? "ocupada" : "conta")} data-testid="table-toggle-status-button">
+                      {table.status === "conta" ? "Voltar p/ ocupada" : "Marcar conta"}
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={release.isPending || items.some((i) => !i.cancelled)}
+                      title={items.some((i) => !i.cancelled) ? "Só libera sem consumo: feche a conta ou cancele" : ""}
+                      onClick={() => release.mutate()} data-testid="table-release-button">Liberar</Button>
+                    <Button size="sm" variant="destructive" disabled={cancelTable.isPending} data-testid="table-cancel-button" onClick={() => {
+                      const reason = window.prompt(`Motivo do cancelamento de ${tableLabel(table)}:`);
+                      if (!reason || reason.trim().length < 3) return;
+                      const manager_pin = canCancel(me) ? undefined : window.prompt("Sem permissão. PIN do gerente para autorizar:") ?? "";
+                      cancelTable.mutate({ reason, manager_pin });
+                    }}>Cancelar {table.kind === "comanda" ? "comanda" : "mesa"}</Button>
                   </div>
                 </>
               )}

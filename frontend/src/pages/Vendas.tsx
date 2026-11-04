@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Lock, RotateCcw, Search, X } from "lucide-react";
+import { Lock, Printer, RotateCcw, Search, X } from "lucide-react";
+import { printSimpleReceipt } from "@/lib/receipt";
 import { toast } from "sonner";
 import AppShell, { PageHeader, Stat } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
@@ -112,6 +113,9 @@ export default function Vendas() {
               {o.status === "cancelado" && o.cancel_reason && <p className="text-xs text-red-300">Motivo: {o.cancel_reason}{o.cancelled_by && ` · por ${o.cancelled_by}`}</p>}
               <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
                 <span className="font-mono text-lg text-white">{brl(o.total)}</span>
+                {o.status === "pago" && (
+                  <Button size="sm" variant="outline" onClick={() => void printSimpleReceipt(o)} data-testid={`history-receipt-${o.number}`}><Printer className="size-3.5" /> Cupom</Button>
+                )}
                 {o.status !== "cancelado" && (
                   <Button size="sm" variant="destructive" onClick={() => setTarget({ kind: "order", order: o })} data-testid={`history-refund-order-${o.number}`}>
                     <RotateCcw className="size-3.5" /> {o.status === "pago" ? "Estornar venda" : "Cancelar pedido"}

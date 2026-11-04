@@ -130,7 +130,7 @@ function Company() {
 }
 
 function CompanyForm({ init }: { init: GeneralSettings }) {
-  const [f, setF] = useState<GeneralSettings>({ ...{ pix_key: "", pix_holder: "", phone: "", address: "" }, ...init });
+  const [f, setF] = useState<GeneralSettings>({ ...{ company_name: "", trade_name: "", cnpj: "", ie: "", city: "", receipt_footer: "", pix_key: "", pix_holder: "", phone: "", address: "" }, ...init });
   const save = useMutation({
     mutationFn: () => apiPut<GeneralSettings>("/settings/general", f),
     onSuccess: () => { toast.success("Configurações salvas"); void queryClient.invalidateQueries({ queryKey: ["settings-general"] }); },
@@ -140,8 +140,14 @@ function CompanyForm({ init }: { init: GeneralSettings }) {
     <div><Label className="text-xs text-zinc-400">{label}</Label><Input value={f[k]} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} className="mt-1" data-testid={`settings-${k}-input`} /></div>
   );
   return (
-    <Panel title="Empresa & PIX (usado na cobrança do fiado pelo WhatsApp)">
+    <Panel title="Dados da empresa (aparecem no cupom, pré-conta e nota) e PIX">
       <div className="grid gap-3 sm:grid-cols-2">
+        {field("trade_name", "Nome fantasia", "Espeteria Churras Buguer")}
+        {field("company_name", "Razão social", "Espeteria Churras Buguer LTDA")}
+        {field("cnpj", "CNPJ", "00.000.000/0001-00")}
+        {field("ie", "Inscrição estadual", "Isento ou número")}
+        {field("city", "Cidade / UF", "Belo Horizonte/MG")}
+        {field("receipt_footer", "Mensagem no rodapé do cupom", "Obrigado pela preferência!")}
         {field("pix_key", "Chave PIX", "CNPJ, e-mail, telefone ou aleatória")}
         {field("pix_holder", "Nome do recebedor", "Espeteria Churras Buguer")}
         {field("phone", "Telefone / WhatsApp da loja", "(11) 99999-0000")}

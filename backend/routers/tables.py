@@ -68,7 +68,7 @@ async def delete_table(id: str, _: dict = Depends(require("caixa"))):
 @router.post("/tables/{id}/open", response_model=Table)
 async def open_table(id: str, body: OpenTableIn, user: dict = Depends(require(*STAFF))):
     t = await get_table(id)
-    if t["status"] in ("ocupada", "conta"):
+    if t.get("order_id"):
         raise HTTPException(400, "Mesa já está aberta")
     await db.tables.update_one({"id": id}, {"$set": {"people": body.people, "customer_name": body.customer_name}})
     await get_or_open_order({**t, "people": body.people}, user)
@@ -83,9 +83,39 @@ async def set_table_status(id: str, body: TableStatusIn, _: dict = Depends(requi
             raise HTTPException(400, "Mesa sem comanda aberta")
         await db.tables.update_one({"id": id}, {"$set": {"status": "conta", "call": ""}})
     elif t.get("order_id"):
-        raise HTTPException(400, "Feche a comanda antes de alterar o status")
+        if body.status != "ocupada":
+            raise HTTPException(400, "Mesa com consumo: feche a conta, cancele ou libere antes")
+        await db.tables.update_one({"id": id}, {"$set": {"status": "ocupada"}})
     else:
         await db.tables.update_one({"id": id}, {"$set": {"status": body.status}})
+    return await get_table(id)
+
+
+@router.post("/tables/{id}/release", response_model=Table)
+async def release_table(id: str, user: dict = Depends(require(*STAFF))):
+    """Liberar: frees a table/comanda that has nothing to charge (empty or every item cancelled)."""
+    t = await get_table(id)
+    if t.get("order_id"):
+        o = await db.orders.find_one({"id": t["order_id"]}, {"_id": 0, "items": 1, "status": 1})
+        if o and o["status"] == "aberto":
+            if any(not i.get("cancelled") for i in o["items"]):
+                raise HTTPException(400, "Há itens na comanda: feche a conta ou cancele a mesa")
+            await db.orders.update_one({"id": t["order_id"]}, {"$set": {"status": "cancelado", "cancel_reason": "Liberada sem consumo",
+                                                                        "cancelled_by": user["name"], "cancelled_at": now()}})
+            await db.kitchen_tickets.update_many({"order_id": t["order_id"]}, {"$set": {"status": "entregue"}})
+    await free_table(id)
+    return await get_table(id)
+
+
+@router.post("/tables/{id}/cancel", response_model=Table)
+async def cancel_table(id: str, body: CancelIn, user: dict = Depends(current_user)):
+    """Cancels the whole open order of a table/comanda (stock returned, tickets closed) and frees it. Needs cancel permission or a manager PIN."""
+    from routers.operations import cancel_order
+    t = await get_table(id)
+    if not t.get("order_id"):
+        raise HTTPException(400, "Mesa sem comanda aberta")
+    await cancel_order(t["order_id"], body, user)
+    await free_table(id)
     return await get_table(id)
 
 

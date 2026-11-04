@@ -1,3 +1,4 @@
+import { getReceiptPref, setReceiptPref } from "@/lib/receipt";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
@@ -55,6 +56,7 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
   const [service, setService] = useState(defaultService > 0);
   const [splitN, setSplitN] = useState("1");
   const [emit, setEmit] = useState(true);
+  const [receipt, setReceipt] = useState(getReceiptPref);
   const [docType, setDocType] = useState<"nfce" | "nfe">("nfce");
   const [cpf, setCpf] = useState("");
 
@@ -203,6 +205,10 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
           </dl>
           {!cashChangeOk && <p className="text-xs text-red-400">Troco só pode ser dado em dinheiro.</p>}
           <div className="space-y-2 rounded-xl border border-white/5 p-3">
+            <label className="flex items-center gap-2 text-sm text-zinc-300">
+              <Checkbox checked={receipt} onCheckedChange={(v) => { setReceipt(!!v); setReceiptPref(!!v); }} data-testid="payment-simple-receipt-checkbox" />
+              Imprimir cupom simples (não fiscal)
+            </label>
             <label className="flex items-center gap-2 text-sm text-zinc-300">
               <Checkbox checked={emit} onCheckedChange={(v) => setEmit(!!v)} data-testid="payment-emit-invoice-checkbox" />
               Emitir nota fiscal (simulada)

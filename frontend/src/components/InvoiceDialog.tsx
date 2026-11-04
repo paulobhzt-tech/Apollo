@@ -4,9 +4,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { groupItems } from "@/lib/group";
 import { brl, fmtDateTime, payLabel } from "@/lib/format";
-import type { Invoice } from "@/lib/types";
+import type { GeneralSettings, Invoice } from "@/lib/types";
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api";
+import { companyHeader } from "@/lib/receipt";
 
 export default function InvoiceDialog({ invoice, onClose }: { invoice: Invoice | null; onClose: () => void }) {
+  const settings = useQuery({ queryKey: ["settings-general"], queryFn: () => apiGet<GeneralSettings>("/settings/general"), enabled: !!invoice });
+  const h = companyHeader(settings.data);
   return (
     <Dialog open={!!invoice} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-h-[92vh] overflow-y-auto border-white/10 bg-elevated sm:max-w-md" data-testid="invoice-dialog">
@@ -18,9 +23,9 @@ export default function InvoiceDialog({ invoice, onClose }: { invoice: Invoice |
         {invoice && (
           <>
             <div className="print-area rounded-lg bg-white p-4 font-mono text-[11px] leading-relaxed text-zinc-900" data-testid="invoice-danfe">
-              <p className="text-center font-bold">ESPETERIA CHURRAS BUGUER LTDA</p>
-              <p className="text-center">CNPJ 12.345.678/0001-90 · IE 123.456.789.000</p>
-              <p className="text-center">Rua dos Sabores, 100 · São Paulo/SP</p>
+              <p className="text-center font-bold" data-testid="invoice-company-name">{(h.legal || h.name).toUpperCase()}</p>
+              {h.doc && <p className="text-center">{h.doc}</p>}
+              {h.addr && <p className="text-center">{h.addr}</p>}
               <p className="my-2 border-y border-dashed border-zinc-400 py-1 text-center font-bold">
                 {invoice.doc_type === "nfce" ? "Documento Auxiliar da Nota Fiscal de Consumidor Eletrônica" : "Documento Auxiliar da NF-e"}
               </p>
