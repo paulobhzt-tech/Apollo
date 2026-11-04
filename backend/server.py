@@ -32,7 +32,7 @@ api_router = APIRouter(prefix="/api")
 
 @api_router.get("/")
 async def root():
-    return {"message": "ChefControl PDV API"}
+    return {"message": "Espeteria Churras Buguer PDV API"}
 
 
 for r in (auth, catalog, tables, operations, reports, public):

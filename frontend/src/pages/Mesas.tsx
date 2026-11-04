@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import { useMe } from "@/lib/auth";
-import { brl, errMsg, fmtTime, kindLabel, minutesSince, tableLabel } from "@/lib/format";
+import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
 import type { Category, Invoice, Order, PayIn, Product, SaleResult, Table, TableIn } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -187,7 +187,7 @@ export function QrDialog({ table, onClose }: { table: Table | null; onClose: () 
       <DialogContent className="border-white/10 bg-elevated sm:max-w-sm" data-testid="qr-dialog">
         <DialogHeader><DialogTitle className="font-heading text-white">QR Code · {table ? tableLabel(table) : ""}</DialogTitle></DialogHeader>
         <div className="print-area flex flex-col items-center gap-3 rounded-2xl bg-white p-6 text-black">
-          <p className="font-heading text-lg font-semibold">Brasa & Forno</p>
+          <p className="font-heading text-lg font-semibold">Espeteria Churras Buguer</p>
           {table && <QRCodeSVG value={url} size={200} data-testid="qr-code-svg" />}
           <p className="text-sm">{table ? tableLabel(table) : ""} · Aponte a câmera e peça pelo celular</p>
         </div>
@@ -205,6 +205,7 @@ interface Pending { product: Product; qty: number; notes: string }
 
 function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table | null; onClose: () => void; onQr: (t: Table) => void; tables: Table[]; canDelete: boolean }) {
   const open = !!table;
+  const { data: me } = useMe();
   const order = useQuery({
     queryKey: ["table-order", table?.id],
     queryFn: () => apiGet<Order | null>(`/tables/${table!.id}/order`),
@@ -316,7 +317,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                           {(i.notes || i.cancel_reason) && <p className="truncate text-xs text-amber-300">{i.cancel_reason || i.notes}</p>}
                         </div>
                         <span className="font-mono text-zinc-200">{brl(i.qty * i.unit_price)}</span>
-                        {!i.cancelled && (
+                        {!i.cancelled && canCancel(me) && (
                           <button type="button" data-testid={`cancel-item-${i.id}`} onClick={() => {
                             const reason = window.prompt("Motivo do cancelamento:");
                             if (reason && reason.trim().length >= 3) cancelItem.mutate({ id: i.id, reason });

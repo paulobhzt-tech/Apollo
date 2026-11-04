@@ -34,7 +34,7 @@ async def main() -> None:
     ]
     emp_docs = []
     for name, role, pin, comm in emps:
-        e = Employee(name=name, role=role, commission_pct=comm, phone="(11) 98888-0000").model_dump()
+        e = Employee(name=name, role=role, commission_pct=comm, can_cancel=role == "admin", phone="(11) 98888-0000").model_dump()
         emp_docs.append(e)
         await db.employees.insert_one({**e, "pin_hash": hash_pin(pin)})
     waiters = [e for e in emp_docs if e["role"] == "garcom"]
@@ -131,12 +131,12 @@ async def main() -> None:
             service = round(sub * 0.1, 2) if channel == "mesa" else 0
             dfee = 7.99 if channel == "delivery" else 0
             total = round(sub + service + dfee, 2)
-            method = "online" if src in ("ifood", "99food", "keeta") else rng.choice(["dinheiro", "credito", "debito", "pix", "pix", "voucher"])
+            method = "online" if src in ("ifood", "99food", "keeta") else rng.choice(["dinheiro", "credito", "debito", "pix", "pix", "fiado"])
             paid_at = (day + timedelta(hours=rng.randint(1, 12), minutes=rng.randint(0, 59))).astimezone(timezone.utc)
             w = rng.choice(waiters) if channel == "mesa" else None
             o = Order(number=seq, channel=channel, source=src, items=items, status="pago",
                       delivery_status="entregue" if channel == "delivery" else None, subtotal=sub, service_fee=service,
-                      delivery_fee=dfee, total=total, payments=[{"method": method, "amount": total}],
+                      delivery_fee=dfee, total=total, payments=[{"method": method, "amount": total, "brand": rng.choice(["visa", "mastercard", "elo"]) if method in ("credito", "debito") else None}],
                       marketplace_fee=round(sub * MARKET_FEES.get(src, 0), 2), cmv=round(sum(i["qty"] * i["unit_cost"] for i in items), 2),
                       waiter_id=w["id"] if w else None, waiter_name=w["name"] if w else "",
                       table_number=rng.randint(1, 11) if channel == "mesa" else None,

@@ -21,6 +21,7 @@ export const NAV: NavItem[] = [
   { to: "/cozinha", label: "Cozinha (KDS)", icon: "ChefHat", roles: ["admin", "caixa", "garcom", "cozinha"] },
   { to: "/delivery", label: "Delivery", icon: "Bike", roles: ["admin", "caixa"] },
   { to: "/caixa", label: "Controle de Caixa", icon: "Wallet", roles: ["admin", "caixa"] },
+  { to: "/vendas", label: "Histórico de Vendas", icon: "History", roles: ["admin", "caixa"] },
   { to: "/notas", label: "Notas Fiscais", icon: "Receipt", roles: ["admin", "caixa"] },
   { to: "/produtos", label: "Cardápio & Fichas", icon: "UtensilsCrossed", roles: ["admin"] },
   { to: "/estoque", label: "Estoque & Insumos", icon: "Boxes", roles: ["admin", "caixa", "cozinha"] },

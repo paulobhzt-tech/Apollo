@@ -12,6 +12,7 @@ export interface Employee {
   role: Role;
   phone: string;
   commission_pct: number;
+  can_cancel: boolean;
   active: boolean;
   created_at: string;
 }
@@ -21,6 +22,7 @@ export interface EmployeeIn {
   phone: string;
   commission_pct: number;
   pin?: string;
+  can_cancel: boolean;
   active: boolean;
 }
 export interface Profile { id: string; name: string; role: Role }
@@ -79,7 +81,9 @@ export interface OrderItem {
   cancel_reason: string;
 }
 export interface OrderItemIn { product_id: string; qty: number; notes: string }
-export interface Payment { method: PayMethod; amount: number }
+export type CardBrand = "visa" | "mastercard" | "elo";
+export interface Payment { method: PayMethod; amount: number; brand?: CardBrand | null }
+export interface Refund { item_name: string; amount: number; method: string; brand: string | null; reason: string; by_name: string; at: string }
 export interface Order {
   id: string;
   number: number;
@@ -109,6 +113,11 @@ export interface Order {
   client_ref: string | null;
   created_at: string;
   paid_at: string | null;
+  refunds: Refund[];
+  refunded_total: number;
+  cancel_reason: string;
+  cancelled_by: string;
+  cancelled_at: string | null;
 }
 export interface PayIn {
   payments: Payment[];

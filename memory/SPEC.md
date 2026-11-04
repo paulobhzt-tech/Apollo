@@ -15,6 +15,9 @@ Public (no login): /cardapio/:tableId (QR table menu → order goes to table com
 ## Key flows / rules
 - PDV `POST /api/pdv/sale` = create+pay atomically, idempotent by `client_ref`. Requires open cash session. Multi-payment, change only in cash, discount, split display.
 - Offline: header toggle "Online/Offline" forces contingency; PDV sales queue in localStorage and replay to /pdv/sale when back online.
+- Cancel/refund permission: `Employee.can_cancel` (admin always allowed; set in Funcionários form). Enforced by `require_cancel` on `POST /api/orders/{id}/cancel` (estorno total), `POST /api/orders/{id}/items/{item_id}/refund` (cancel one item; on paid orders records a partial refund in `order.refunds` and subtracts it from cash/report totals) and table item cancel. History screen: /vendas (últimos itens + vendas).
+- Payments in UI: dinheiro, crédito, débito, pix, fiado. Crédito/débito require `brand` (visa | mastercard | elo) — backend 400 without it. Cash totals are keyed "credito:visa" etc.
+- App name: "Espeteria Churras Buguer" (RESTAURANT_NAME env default).
 - Tables & comandas: `tables` collection has `kind` ("mesa" | "comanda") + optional `name`; unique on (kind, number). Admin/caixa create (batch from Mesas screen "Nova mesa/comanda"), staff rename via `PUT /api/tables/{id}`, delete only when free. Label = "Mesa 3 · Varanda" / "Comanda 105 · Pedro" (stored on order as `table_label`, shown in KDS/QR menu). Same flow for both kinds:
 - Tables: open → add items (`/tables/{id}/items` creates kitchen ticket + stock deduction) → pré-conta → pay (`/tables/{id}/pay`, 10% service optional) → table freed. Cancel item w/ reason returns stock. Transfer to free table.
 - Stock: each product has recipe (ficha técnica); sales deduct ingredients (type "venda"); CMV = manual `cost_price` when > 0, otherwise recipe cost.

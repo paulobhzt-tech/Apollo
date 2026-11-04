@@ -62,3 +62,11 @@ export const uid = () =>
 export const kindLabel = (kind: "mesa" | "comanda") => (kind === "comanda" ? "Comanda" : "Mesa");
 export const tableLabel = (t: { kind: "mesa" | "comanda"; number: number; name: string }) =>
   `${kindLabel(t.kind)} ${t.number}${t.name ? ` · ${t.name}` : ""}`;
+
+export const BRAND_LABEL: Record<string, string> = { visa: "Visa", mastercard: "Mastercard", elo: "Elo" };
+// "credito:visa" | {method, brand} -> "Crédito · Visa"
+export const payLabel = (method: string, brand?: string | null) => {
+  const [m, b] = method.includes(":") ? method.split(":") : [method, brand ?? ""];
+  return `${PAY_LABEL[m as PayMethod] ?? m}${b ? ` · ${BRAND_LABEL[b] ?? b}` : ""}`;
+};
+export const canCancel = (me?: { role: Role; can_cancel?: boolean } | null) => !!me && (me.role === "admin" || !!me.can_cancel);

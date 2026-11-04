@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from lib.auth import current_user, require
+from lib.auth import current_user, require, require_cancel
 from lib.db import db
 from lib.orders import (build_items, create_ticket, finalize_payment, free_table, move_stock, new_order, now,
                         refresh_totals)
@@ -116,7 +116,7 @@ async def add_items(id: str, body: AddItemsIn, user: dict = Depends(require(*STA
 
 
 @router.post("/tables/{id}/items/{item_id}/cancel", response_model=Order)
-async def cancel_item(id: str, item_id: str, body: CancelIn, user: dict = Depends(require(*STAFF))):
+async def cancel_item(id: str, item_id: str, body: CancelIn, user: dict = Depends(require_cancel)):
     t = await get_table(id)
     order = await db.orders.find_one({"id": t.get("order_id"), "status": "aberto"}, {"_id": 0})
     if not order:

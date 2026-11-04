@@ -40,6 +40,7 @@ export default function Funcionarios() {
                 <p className="truncate font-medium text-white">{e.name}</p>
                 <Badge variant="outline" className={ROLE_COLOR[e.role]}>{ROLE_LABEL[e.role]}</Badge>
                 {!e.active && <Badge variant="outline" className="ml-1">Inativo</Badge>}
+                {(e.role === "admin" || e.can_cancel) && <Badge variant="outline" className="ml-1 border-red-400/30 text-red-300" data-testid={`employee-can-cancel-${e.id}`}>Pode estornar</Badge>}
               </div>
             </div>
             <div className="mt-3 flex items-center justify-between text-xs text-zinc-400">
@@ -67,10 +68,11 @@ function EmployeeForm({ editing, onClose }: { editing: Employee | "new"; onClose
   const [f, setF] = useState({
     name: isNew ? "" : editing.name, role: (isNew ? "garcom" : editing.role) as Role, phone: isNew ? "" : editing.phone,
     commission: isNew ? "0" : String(editing.commission_pct), active: isNew ? true : editing.active, pin: "",
+    can_cancel: isNew ? false : editing.can_cancel,
   });
   const save = useMutation({
     mutationFn: () => {
-      const body: EmployeeIn = { name: f.name, role: f.role, phone: f.phone, commission_pct: Number(f.commission.replace(",", ".")) || 0, active: f.active };
+      const body: EmployeeIn = { name: f.name, role: f.role, phone: f.phone, commission_pct: Number(f.commission.replace(",", ".")) || 0, active: f.active, can_cancel: f.can_cancel };
       if (f.pin) body.pin = f.pin;
       return isNew ? apiPost<Employee>("/employees", body) : apiPut<Employee>(`/employees/${editing.id}`, body);
     },
@@ -93,6 +95,10 @@ function EmployeeForm({ editing, onClose }: { editing: Employee | "new"; onClose
         <div><Label className="text-xs text-zinc-400">{isNew ? "PIN (4-6 dígitos)" : "Novo PIN (opcional)"}</Label><Input value={f.pin} inputMode="numeric" maxLength={6} onChange={(e) => setF({ ...f, pin: e.target.value.replace(/\D/g, "") })} className="mt-1 font-mono" data-testid="employee-pin-input" /></div>
         <div><Label className="text-xs text-zinc-400">Telefone</Label><Input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} className="mt-1" data-testid="employee-phone-input" /></div>
         <div><Label className="text-xs text-zinc-400">Comissão (%)</Label><Input value={f.commission} inputMode="decimal" onChange={(e) => setF({ ...f, commission: e.target.value })} className="mt-1 font-mono" data-testid="employee-commission-input" /></div>
+        <label className="col-span-2 flex items-start gap-2 rounded-xl border border-white/5 bg-panel p-3 text-sm text-zinc-300">
+          <Checkbox checked={f.role === "admin" || f.can_cancel} disabled={f.role === "admin"} onCheckedChange={(v) => setF({ ...f, can_cancel: !!v })} data-testid="employee-can-cancel-checkbox" />
+          <span>Autorizado a <b className="text-white">cancelar produtos e fazer estornos</b><span className="block text-xs text-zinc-500">Administradores sempre têm essa permissão.</span></span>
+        </label>
         <label className="col-span-2 flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={f.active} onCheckedChange={(v) => setF({ ...f, active: !!v })} data-testid="employee-active-checkbox" /> Ativo (pode acessar o sistema)</label>
       </div>
       <Button disabled={f.name.trim().length < 2 || !pinOk || save.isPending} onClick={() => save.mutate()} data-testid="employee-save-button">Salvar</Button>

@@ -43,7 +43,7 @@ export default function QrCodes() {
       <div className="print-area grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
         {(tables.data ?? []).map((t) => (
           <div key={t.id} className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 text-black" data-testid={`qr-card-${t.number}`}>
-            <p className="font-heading text-sm font-semibold">Brasa & Forno</p>
+            <p className="text-center font-heading text-sm font-semibold">Espeteria Churras Buguer</p>
             <QRCodeSVG value={`${origin}/cardapio/${t.id}`} size={130} />
             <p className="font-heading text-xl font-bold">{tableLabel(t)}</p>
             <div className="flex gap-1">

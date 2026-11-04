@@ -4,10 +4,10 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from lib.auth import current_user, require
+from lib.auth import current_user, require, require_cancel
 from lib.db import db
 from lib.orders import (MARKET_FEES, build_items, create_ticket, current_cash, emit_invoice, finalize_payment,
-                        free_table, move_stock, new_order, now)
+                        free_table, method_totals, move_stock, new_order, now, refresh_totals)
 from models.schemas import (CancelIn, CashCloseIn, CashMovement, CashMoveIn, CashOpenIn, CashSession,
                             DeliveryStatusIn, EmitInvoiceIn, Invoice, KitchenTicket, Order, OrderItem,
                             OrderItemIn, QuickSaleIn, SaleResult, SimulateIn, TicketStatusIn)
@@ -52,19 +52,58 @@ async def list_orders(status: Optional[str] = None, channel: Optional[str] = Non
 
 
 @router.post("/orders/{id}/cancel", response_model=Order)
-async def cancel_order(id: str, body: CancelIn, user: dict = Depends(require("caixa"))):
+async def cancel_order(id: str, body: CancelIn, user: dict = Depends(require_cancel)):
     o = await db.orders.find_one({"id": id}, {"_id": 0})
     if not o:
         raise HTTPException(404, "Pedido não encontrado")
     if o["status"] == "cancelado":
         raise HTTPException(400, "Pedido já cancelado")
-    await db.orders.update_one({"id": id}, {"$set": {"status": "cancelado", "cancel_reason": body.reason}})
+    await db.orders.update_one({"id": id}, {"$set": {"status": "cancelado", "cancel_reason": body.reason,
+                                                     "cancelled_by": user["name"], "cancelled_at": now()}})
     await move_stock([OrderItem(**i) for i in o["items"] if not i.get("cancelled")], user["name"], f"Cancelamento #{o['number']}", sign=1)
     if o.get("invoice_id"):
         await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}})
     if o.get("table_id") and o["status"] == "aberto":
         await free_table(o["table_id"])
     await db.kitchen_tickets.update_many({"order_id": id}, {"$set": {"status": "entregue"}})
+    return await db.orders.find_one({"id": id}, {"_id": 0})
+
+
+@router.post("/orders/{id}/items/{item_id}/refund", response_model=Order)
+async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depends(require_cancel)):
+    """Cancel one item. Open orders: just removed. Paid orders: partial refund (estorno) recorded on the order."""
+    o = await db.orders.find_one({"id": id}, {"_id": 0})
+    if not o:
+        raise HTTPException(404, "Pedido não encontrado")
+    if o["status"] == "cancelado":
+        raise HTTPException(400, "Pedido já cancelado")
+    item = next((i for i in o["items"] if i["id"] == item_id and not i.get("cancelled")), None)
+    if not item:
+        raise HTTPException(404, "Item não encontrado ou já cancelado")
+    await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1)
+    set_item = {"items.$.cancelled": True, "items.$.cancel_reason": body.reason}
+    if o["status"] == "aberto":
+        await db.orders.update_one({"id": id, "items.id": item_id}, {"$set": set_item})
+        return await refresh_totals(id)
+    live = [i for i in o["items"] if not i.get("cancelled") and i["id"] != item_id]
+    old_sub = o["subtotal"] or 1
+    new_sub = round(sum(i["qty"] * i["unit_price"] for i in live), 2)
+    service = round(o.get("service_fee", 0) * new_sub / old_sub, 2)
+    discount = min(o.get("discount", 0), new_sub)
+    total = round(new_sub - discount + service + (o.get("delivery_fee", 0) if live else 0), 2)
+    amount = round(o["total"] - total, 2)
+    pays = sorted(o.get("payments", []), key=lambda p: -p["amount"])
+    main = pays[0] if pays else {"method": "dinheiro"}
+    refund = {"item_name": f"{item['qty']}x {item['name']}", "amount": amount, "method": main["method"],
+              "brand": main.get("brand"), "reason": body.reason, "by_name": user["name"], "at": now()}
+    upd = {**set_item, "subtotal": new_sub, "service_fee": service, "discount": discount, "total": total,
+           "cmv": round(sum(i["qty"] * i.get("unit_cost", 0) for i in live), 2)}
+    if not live:
+        upd.update(status="cancelado", cancel_reason=body.reason, cancelled_by=user["name"], cancelled_at=now())
+        if o.get("invoice_id"):
+            await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}})
+    await db.orders.update_one({"id": id, "items.id": item_id},
+                               {"$set": upd, "$push": {"refunds": refund}, "$inc": {"refunded_total": amount}})
     return await db.orders.find_one({"id": id}, {"_id": 0})
 
 
@@ -177,14 +216,9 @@ async def delivery_status(id: str, body: DeliveryStatusIn, user: dict = Depends(
 
 # ---------- Cash register ----------
 async def cash_summary(s: dict) -> dict:
-    orders = await db.orders.find({"cash_session_id": s["id"], "status": "pago"}, {"_id": 0, "payments": 1, "change": 1, "total": 1}).to_list(10000)
-    totals: dict[str, float] = {}
-    for o in orders:
-        for p in o.get("payments", []):
-            totals[p["method"]] = totals.get(p["method"], 0) + p["amount"]
-        if o.get("change"):
-            totals["dinheiro"] = totals.get("dinheiro", 0) - o["change"]
-    totals = {k: round(v, 2) for k, v in totals.items()}
+    orders = await db.orders.find({"cash_session_id": s["id"], "status": "pago"},
+                                  {"_id": 0, "payments": 1, "change": 1, "total": 1, "refunds": 1}).to_list(10000)
+    totals = method_totals(orders, with_brand=True)
     sup = sum(m["amount"] for m in s.get("movements", []) if m["type"] == "suprimento")
     san = sum(m["amount"] for m in s.get("movements", []) if m["type"] == "sangria")
     s["totals_by_method"] = totals

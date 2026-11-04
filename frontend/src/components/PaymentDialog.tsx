@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
-import { Banknote, CreditCard, QrCode, Ticket, Trash2, UserRound, Wallet } from "lucide-react";
+import { Banknote, CreditCard, QrCode, Trash2, UserRound, Wallet } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { brl, PAY_LABEL } from "@/lib/format";
-import type { PayIn, PayMethod, Payment } from "@/lib/types";
+import { BRAND_LABEL, brl, PAY_LABEL, payLabel } from "@/lib/format";
+import type { CardBrand, PayIn, PayMethod, Payment } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const METHODS: { m: PayMethod; icon: typeof Banknote }[] = [
@@ -14,9 +14,10 @@ const METHODS: { m: PayMethod; icon: typeof Banknote }[] = [
   { m: "pix", icon: QrCode },
   { m: "credito", icon: CreditCard },
   { m: "debito", icon: Wallet },
-  { m: "voucher", icon: Ticket },
   { m: "fiado", icon: UserRound },
 ];
+const BRANDS: CardBrand[] = ["visa", "mastercard", "elo"];
+const BRAND_COLOR: Record<CardBrand, string> = { visa: "#1A1F71", mastercard: "#EB001B", elo: "#FFCB05" };
 
 interface Props {
   open: boolean;
@@ -42,6 +43,8 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
   const [payments, setPayments] = useState<Payment[]>([]);
   const [method, setMethod] = useState<PayMethod>("dinheiro");
   const [amount, setAmount] = useState("");
+  const [brand, setBrand] = useState<CardBrand | null>(null);
+  const isCard = method === "credito" || method === "debito";
   const [discount, setDiscount] = useState("");
   const [service, setService] = useState(defaultService > 0);
   const [splitN, setSplitN] = useState("1");
@@ -60,8 +63,8 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
 
   const add = (value?: number) => {
     const v = value ?? (Number(amount.replace(",", ".")) || remaining);
-    if (v <= 0) return;
-    setPayments((p) => [...p, { method, amount: Math.round(v * 100) / 100 }]);
+    if (v <= 0 || (isCard && !brand)) return;
+    setPayments((p) => [...p, { method, amount: Math.round(v * 100) / 100, brand: isCard ? brand : null }]);
     setAmount("");
   };
   const cashChangeOk = change <= payments.filter((p) => p.method === "dinheiro").reduce((s, p) => s + p.amount, 0) + 0.001;
@@ -74,7 +77,7 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
       </DialogHeader>
       <div className="grid gap-5 md:grid-cols-[1.1fr_1fr]">
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
             {METHODS.map(({ m, icon: Icon }) => (
               <button
                 key={m}
@@ -91,6 +94,21 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
               </button>
             ))}
           </div>
+          {isCard && (
+            <div className="space-y-1.5" data-testid="card-brand-picker">
+              <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Bandeira do cartão</p>
+              <div className="grid grid-cols-3 gap-2">
+                {BRANDS.map((b) => (
+                  <button key={b} type="button" onClick={() => setBrand(b)} data-testid={`card-brand-${b}`}
+                    className={cn("flex items-center justify-center gap-2 rounded-xl border px-2 py-2.5 text-sm font-semibold transition-colors duration-150 active:scale-95",
+                      brand === b ? "border-primary bg-primary/15 text-white" : "border-white/8 bg-panel text-zinc-300 hover:border-white/20")}>
+                    <span className="h-3 w-5 rounded-sm" style={{ background: BRAND_COLOR[b] }} />{BRAND_LABEL[b]}
+                  </button>
+                ))}
+              </div>
+              {!brand && <p className="text-xs text-amber-300">Selecione a bandeira para adicionar o pagamento.</p>}
+            </div>
+          )}
           <div className="flex gap-2">
             <Input
               inputMode="decimal"
@@ -101,7 +119,7 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
               data-testid="payment-amount-input"
               className="font-mono"
             />
-            <Button onClick={() => add()} data-testid="payment-add-button" disabled={remaining === 0 && method !== "dinheiro"}>
+            <Button onClick={() => add()} data-testid="payment-add-button" disabled={(remaining === 0 && method !== "dinheiro") || (isCard && !brand)}>
               Adicionar
             </Button>
           </div>
@@ -122,7 +140,7 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
           <div className="space-y-2">
             {payments.map((p, i) => (
               <div key={i} className="flex items-center justify-between rounded-lg bg-panel px-3 py-2 text-sm" data-testid={`payment-line-${i}`}>
-                <span>{PAY_LABEL[p.method]}</span>
+                <span>{payLabel(p.method, p.brand)}</span>
                 <span className="flex items-center gap-2 font-mono">
                   {brl(p.amount)}
                   <button type="button" onClick={() => setPayments((ps) => ps.filter((_, j) => j !== i))} data-testid={`payment-remove-${i}`}>

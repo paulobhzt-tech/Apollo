@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from lib.auth import require
 from lib.db import db
-from lib.orders import TAX_RATE, TZ, current_cash, day_bounds, local_today
+from lib.orders import TAX_RATE, TZ, current_cash, day_bounds, local_today, method_totals
 from models.schemas import Dashboard, Dre, Expense, ExpenseIn, OkOut
 
 router = APIRouter()
@@ -32,13 +32,7 @@ def top_products(orders: list[dict], n: int = 8) -> list[dict]:
 
 
 def payment_totals(orders: list[dict]) -> dict[str, float]:
-    out: dict[str, float] = {}
-    for o in orders:
-        for p in o.get("payments", []):
-            out[p["method"]] = out.get(p["method"], 0) + p["amount"]
-        if o.get("change"):
-            out["dinheiro"] = out.get("dinheiro", 0) - o["change"]
-    return out
+    return method_totals(orders)
 
 
 async def paid_between(start: datetime, end: datetime) -> list[dict]:

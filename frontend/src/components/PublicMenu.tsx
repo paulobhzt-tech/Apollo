@@ -38,7 +38,7 @@ export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOp
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-[#0B0C10]" />
         <div className="relative mx-auto max-w-3xl px-5 pb-6 pt-10">
           <div className="flex items-center gap-2 text-primary"><Flame className="size-5" /><span className="text-xs uppercase tracking-[0.2em]">Cardápio digital</span></div>
-          <h1 className="mt-2 font-heading text-4xl font-semibold text-white" data-testid="public-restaurant-name">{data?.restaurant ?? "Brasa & Forno"}</h1>
+          <h1 className="mt-2 font-heading text-4xl font-semibold text-white" data-testid="public-restaurant-name">{data?.restaurant ?? "Espeteria Churras Buguer"}</h1>
           {header}
         </div>
       </header>

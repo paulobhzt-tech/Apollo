@@ -47,3 +47,10 @@ def require(*roles: str):
             raise HTTPException(403, "Seu perfil não tem permissão para esta ação")
         return user
     return dep
+
+
+async def require_cancel(user: dict = Depends(current_user)) -> dict:
+    """Cancel/refund is allowed only for admin or employees the admin authorised (can_cancel)."""
+    if user["role"] != "admin" and not user.get("can_cancel"):
+        raise HTTPException(403, "Sem autorização para cancelar ou estornar. Solicite ao administrador.")
+    return user

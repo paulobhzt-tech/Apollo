@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiGet, apiPost } from "@/lib/api";
-import { brl, errMsg, fmtDateTime, PAY_LABEL } from "@/lib/format";
+import { brl, errMsg, fmtDateTime, payLabel } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
-import type { CashSession, PayMethod } from "@/lib/types";
+import type { CashSession } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Panel } from "./Dashboard";
 
@@ -63,7 +63,7 @@ export default function Caixa() {
             <Panel title="Totais por forma de pagamento">
               <ul className="space-y-2">
                 {Object.entries(s.totals_by_method).map(([k, v]) => (
-                  <li key={k} className="flex justify-between text-sm"><span className="text-zinc-300">{PAY_LABEL[k as PayMethod] ?? k}</span><span className="font-mono">{blind ? "••••" : brl(v)}</span></li>
+                  <li key={k} className="flex justify-between text-sm"><span className="text-zinc-300">{payLabel(k)}</span><span className="font-mono">{blind ? "••••" : brl(v)}</span></li>
                 ))}
                 {Object.keys(s.totals_by_method).length === 0 && <p className="text-sm text-zinc-500">Sem vendas neste turno.</p>}
               </ul>

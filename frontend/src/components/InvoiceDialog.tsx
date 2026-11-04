@@ -2,7 +2,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Printer } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { brl, fmtDateTime, PAY_LABEL } from "@/lib/format";
+import { brl, fmtDateTime, payLabel } from "@/lib/format";
 import type { Invoice } from "@/lib/types";
 
 export default function InvoiceDialog({ invoice, onClose }: { invoice: Invoice | null; onClose: () => void }) {
@@ -17,7 +17,7 @@ export default function InvoiceDialog({ invoice, onClose }: { invoice: Invoice |
         {invoice && (
           <>
             <div className="print-area rounded-lg bg-white p-4 font-mono text-[11px] leading-relaxed text-zinc-900" data-testid="invoice-danfe">
-              <p className="text-center font-bold">BRASA & FORNO RESTAURANTE LTDA</p>
+              <p className="text-center font-bold">ESPETERIA CHURRAS BUGUER LTDA</p>
               <p className="text-center">CNPJ 12.345.678/0001-90 · IE 123.456.789.000</p>
               <p className="text-center">Rua dos Sabores, 100 · São Paulo/SP</p>
               <p className="my-2 border-y border-dashed border-zinc-400 py-1 text-center font-bold">
@@ -37,7 +37,7 @@ export default function InvoiceDialog({ invoice, onClose }: { invoice: Invoice |
               <div className="mt-2 border-t border-dashed border-zinc-400 pt-1">
                 <div className="flex justify-between font-bold"><span>VALOR TOTAL</span><span>{brl(invoice.total)}</span></div>
                 {invoice.payments.map((p, i) => (
-                  <div key={i} className="flex justify-between"><span>{PAY_LABEL[p.method]}</span><span>{brl(p.amount)}</span></div>
+                  <div key={i} className="flex justify-between"><span>{payLabel(p.method, p.brand)}</span><span>{brl(p.amount)}</span></div>
                 ))}
               </div>
               <p className="mt-2">Consumidor: {invoice.customer_cpf || "não identificado"}</p>

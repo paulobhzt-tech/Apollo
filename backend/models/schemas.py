@@ -28,6 +28,7 @@ class Employee(BaseModel):
     role: Role
     phone: str = ""
     commission_pct: float = 0
+    can_cancel: bool = False
     active: bool = True
     created_at: datetime = Field(default_factory=_now)
 
@@ -38,6 +39,7 @@ class EmployeeIn(BaseModel):
     phone: str = ""
     commission_pct: float = Field(default=0, ge=0, le=100)
     pin: str = Field(pattern=r"^\d{4,6}$")
+    can_cancel: bool = False
     active: bool = True
 
 
@@ -48,6 +50,7 @@ class EmployeeUpdate(BaseModel):
     commission_pct: Optional[float] = Field(default=None, ge=0, le=100)
     pin: Optional[str] = Field(default=None, pattern=r"^\d{4,6}$")
     active: Optional[bool] = None
+    can_cancel: Optional[bool] = None
 
 
 class LoginIn(BaseModel):
@@ -170,9 +173,23 @@ class OrderItemIn(BaseModel):
     notes: str = ""
 
 
+CardBrand = Literal["visa", "mastercard", "elo"]
+
+
 class Payment(BaseModel):
     method: PayMethod
     amount: float = Field(gt=0)
+    brand: Optional[CardBrand] = None
+
+
+class Refund(BaseModel):
+    item_name: str
+    amount: float
+    method: str
+    brand: Optional[str] = None
+    reason: str
+    by_name: str
+    at: datetime = Field(default_factory=_now)
 
 
 class Order(BaseModel):
@@ -204,6 +221,11 @@ class Order(BaseModel):
     client_ref: Optional[str] = None
     created_at: datetime = Field(default_factory=_now)
     paid_at: Optional[datetime] = None
+    refunds: list[Refund] = []
+    refunded_total: float = 0
+    cancel_reason: str = ""
+    cancelled_by: str = ""
+    cancelled_at: Optional[datetime] = None
 
 
 class PayIn(BaseModel):

@@ -163,6 +163,8 @@ async def finalize_payment(order: dict, pay: PayIn) -> tuple[dict, dict | None]:
     if paid + 0.009 < total:
         raise HTTPException(400, f"Valor pago insuficiente (faltam R$ {total - paid:.2f})")
     change = round(paid - total, 2)
+    if any(p.method in ("credito", "debito") and not p.brand for p in pay.payments):
+        raise HTTPException(400, "Informe a bandeira do cartão (Visa, Mastercard ou Elo)")
     cash_paid = sum(p.amount for p in pay.payments if p.method == "dinheiro")
     if change > cash_paid + 0.009:
         raise HTTPException(400, "Troco só pode ser dado em dinheiro")
@@ -196,3 +198,22 @@ async def new_order(**fields) -> dict:
     order = Order(number=await next_seq("order"), **fields).model_dump()
     await db.orders.insert_one(dict(order))
     return order
+
+
+def pay_key(p: dict) -> str:
+    return f"{p['method']}:{p['brand']}" if p.get("brand") else p["method"]
+
+
+def method_totals(orders: list[dict], with_brand: bool = False) -> dict[str, float]:
+    """Net received per payment method (minus change and refunds)."""
+    out: dict[str, float] = {}
+    key = pay_key if with_brand else (lambda p: p["method"])
+    for o in orders:
+        for p in o.get("payments", []):
+            out[key(p)] = out.get(key(p), 0) + p["amount"]
+        if o.get("change"):
+            out["dinheiro"] = out.get("dinheiro", 0) - o["change"]
+        for r in o.get("refunds", []):
+            k = key(r)
+            out[k] = out.get(k, 0) - r["amount"]
+    return {k: round(v, 2) for k, v in out.items()}
