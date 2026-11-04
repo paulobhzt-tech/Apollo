@@ -49,6 +49,18 @@ def require(*roles: str):
     return dep
 
 
+async def cancel_authorizer(user: dict, manager_pin: str | None) -> str:
+    """Name of who authorised a cancel/refund: the user, or a manager who typed their PIN."""
+    if user["role"] == "admin" or user.get("can_cancel"):
+        return user["name"]
+    if manager_pin:
+        m = await db.employees.find_one({"pin_hash": hash_pin(manager_pin), "active": True})
+        if m and (m["role"] == "admin" or m.get("can_cancel")):
+            return m["name"]
+        raise HTTPException(403, "PIN de gerente inválido ou sem autorização")
+    raise HTTPException(403, "Sem autorização para cancelar ou estornar. Informe o PIN do gerente.")
+
+
 async def require_cancel(user: dict = Depends(current_user)) -> dict:
     """Cancel/refund is allowed only for admin or employees the admin authorised (can_cancel)."""
     if user["role"] != "admin" and not user.get("can_cancel"):

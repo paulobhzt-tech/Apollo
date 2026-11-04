@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { apiDelete, apiGet, apiPost } from "@/lib/api";
+import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api";
 import { brl, errMsg } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
-import type { Dre, Expense, ExpenseCat } from "@/lib/types";
+import type { CardFees, Dre, Expense, ExpenseCat } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CHART_COLORS, Empty, Panel, tooltipStyle } from "./Dashboard";
 
@@ -52,6 +52,7 @@ export default function Financeiro() {
               <L k="(+) Receita bruta" v={d.gross_revenue} strong />
               <L k="(−) Descontos" v={-d.discounts} />
               <L k="(−) Taxas de marketplace" v={-d.marketplace_fees} />
+              <L k="(−) Taxas de cartão" v={-d.card_fees} />
               <L k="(−) Impostos (Simples 6%)" v={-d.taxes} />
               <L k="(=) Receita líquida" v={d.net_revenue} strong line />
               <L k="(−) CMV" v={-d.cmv} />
@@ -106,6 +107,7 @@ export default function Financeiro() {
           </ul>
         </Panel>
       </div>
+      <CardFeesPanel />
       <Despesas />
     </AppShell>
   );
@@ -159,6 +161,34 @@ function Despesas() {
           ))}
         </TableBody>
       </Table>
+    </Panel>
+  );
+}
+
+const FEE_KEYS = ["credito", "debito"].flatMap((m) => ["visa", "mastercard", "elo"].map((b) => `${m}:${b}`));
+
+function CardFeesPanel() {
+  const q = useQuery({ queryKey: ["card-fees"], queryFn: () => apiGet<CardFees>("/settings/card-fees") });
+  return q.data ? <CardFeesForm key={JSON.stringify(q.data.fees)} fees={q.data.fees} /> : null;
+}
+
+function CardFeesForm({ fees }: { fees: Record<string, number> }) {
+  const [f, setF] = useState<Record<string, string>>(Object.fromEntries(FEE_KEYS.map((k) => [k, String(fees[k] ?? 0)])));
+  const save = useMutation({
+    mutationFn: () => apiPut<CardFees>("/settings/card-fees", { fees: Object.fromEntries(FEE_KEYS.map((k) => [k, Number(f[k].replace(",", ".")) || 0])) }),
+    onSuccess: () => { toast.success("Taxas salvas"); void queryClient.invalidateQueries({ queryKey: ["card-fees"] }); void queryClient.invalidateQueries({ queryKey: ["dre"] }); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
+  return (
+    <Panel title="Taxas da maquininha por bandeira (%)" className="mt-4" actions={<Button size="sm" onClick={() => save.mutate()} disabled={save.isPending} data-testid="card-fees-save">Salvar taxas</Button>}>
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+        {FEE_KEYS.map((k) => (
+          <div key={k}>
+            <p className="mb-1 text-xs text-zinc-400">{k.startsWith("credito") ? "Crédito" : "Débito"} · {k.split(":")[1] === "mastercard" ? "Master" : k.split(":")[1] === "visa" ? "Visa" : "Elo"}</p>
+            <Input value={f[k]} inputMode="decimal" onChange={(e) => setF({ ...f, [k]: e.target.value })} className="font-mono" data-testid={`card-fee-${k.replace(":", "-")}`} />
+          </div>
+        ))}
+      </div>
     </Panel>
   );
 }

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from lib.auth import current_user, require, require_cancel
+from lib.auth import cancel_authorizer, current_user, require
 from lib.db import db
 from lib.orders import (build_items, create_ticket, finalize_payment, free_table, move_stock, new_order, now,
                         refresh_totals)
@@ -116,7 +116,7 @@ async def add_items(id: str, body: AddItemsIn, user: dict = Depends(require(*STA
 
 
 @router.post("/tables/{id}/items/{item_id}/cancel", response_model=Order)
-async def cancel_item(id: str, item_id: str, body: CancelIn, user: dict = Depends(require_cancel)):
+async def cancel_item(id: str, item_id: str, body: CancelIn, user: dict = Depends(current_user)):
     t = await get_table(id)
     order = await db.orders.find_one({"id": t.get("order_id"), "status": "aberto"}, {"_id": 0})
     if not order:
@@ -124,8 +124,10 @@ async def cancel_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
     item = next((i for i in order["items"] if i["id"] == item_id and not i.get("cancelled")), None)
     if not item:
         raise HTTPException(404, "Item não encontrado")
+    auth = await cancel_authorizer(user, body.manager_pin)
+    reason = body.reason if auth == user["name"] else f"{body.reason} (autorizado por {auth})"
     await db.orders.update_one({"id": order["id"], "items.id": item_id},
-                               {"$set": {"items.$.cancelled": True, "items.$.cancel_reason": body.reason}})
+                               {"$set": {"items.$.cancelled": True, "items.$.cancel_reason": reason}})
     from models.schemas import OrderItem
     await move_stock([OrderItem(**item)], user["name"], f"Cancelamento: {body.reason}", sign=1)
     return await refresh_totals(order["id"])

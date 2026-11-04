@@ -47,7 +47,7 @@ export default function Vendas() {
           <Input placeholder="Produto ou nº do pedido" value={search} onChange={(e) => setSearch(e.target.value)} className="w-64 pl-9" data-testid="history-search-input" /></div>} />
       {!allowed && (
         <p className="mb-4 flex items-center gap-2 rounded-xl border border-white/8 bg-panel px-4 py-3 text-sm text-zinc-400" data-testid="history-no-permission">
-          <Lock className="size-4" /> Você pode consultar o histórico, mas estornos e cancelamentos só para funcionários autorizados pelo administrador.
+          <Lock className="size-4" /> Você pode consultar o histórico, mas estornos e cancelamentos exigem o PIN de um gerente autorizado.
         </p>
       )}
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -77,7 +77,7 @@ export default function Vendas() {
                     <TableCell className="text-zinc-300">{origin(o)}</TableCell>
                     <TableCell><span className="font-mono">#{o.number}</span> <Badge variant="outline" className={STATUS_BADGE[o.status].cls}>{STATUS_BADGE[o.status].label}</Badge></TableCell>
                     <TableCell className="text-right">
-                      {allowed && !i.cancelled && o.status !== "cancelado" && (
+                      {!i.cancelled && o.status !== "cancelado" && (
                         <Button size="xs" variant="outline" onClick={() => setTarget({ kind: "item", order: o, item: i })} data-testid={`history-cancel-item-${i.id}`}>
                           <X className="size-3" /> Cancelar
                         </Button>
@@ -112,7 +112,7 @@ export default function Vendas() {
               {o.status === "cancelado" && o.cancel_reason && <p className="text-xs text-red-300">Motivo: {o.cancel_reason}{o.cancelled_by && ` · por ${o.cancelled_by}`}</p>}
               <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
                 <span className="font-mono text-lg text-white">{brl(o.total)}</span>
-                {allowed && o.status !== "cancelado" && (
+                {o.status !== "cancelado" && (
                   <Button size="sm" variant="destructive" onClick={() => setTarget({ kind: "order", order: o })} data-testid={`history-refund-order-${o.number}`}>
                     <RotateCcw className="size-3.5" /> {o.status === "pago" ? "Estornar venda" : "Cancelar pedido"}
                   </Button>
@@ -122,20 +122,22 @@ export default function Vendas() {
           ))}
         </TabsContent>
       </Tabs>
-      <ReasonDialog target={target} onClose={() => setTarget(null)} />
+      <ReasonDialog target={target} allowed={allowed} onClose={() => setTarget(null)} />
     </AppShell>
   );
 }
 
-function ReasonDialog({ target, onClose }: { target: Target | null; onClose: () => void }) {
+function ReasonDialog({ target, allowed, onClose }: { target: Target | null; allowed: boolean; onClose: () => void }) {
   const [reason, setReason] = useState("");
+  const [pin, setPin] = useState("");
+  const manager_pin = allowed ? undefined : pin;
   const m = useMutation({
     mutationFn: () => target!.kind === "order"
-      ? apiPost<Order>(`/orders/${target!.order.id}/cancel`, { reason })
-      : apiPost<Order>(`/orders/${target!.order.id}/items/${target!.item.id}/refund`, { reason }),
+      ? apiPost<Order>(`/orders/${target!.order.id}/cancel`, { reason, manager_pin })
+      : apiPost<Order>(`/orders/${target!.order.id}/items/${target!.item.id}/refund`, { reason, manager_pin }),
     onSuccess: () => {
       toast.success(target!.kind === "order" ? `Pedido #${target!.order.number} estornado` : "Item cancelado e valor estornado");
-      setReason(""); onClose();
+      setReason(""); setPin(""); onClose();
       ["orders-history", "dashboard", "cash", "tables", "table-order", "invoices", "ingredients"].forEach((k) => void queryClient.invalidateQueries({ queryKey: [k] }));
     },
     onError: (e) => toast.error(errMsg(e)),
@@ -154,7 +156,11 @@ function ReasonDialog({ target, onClose }: { target: Target | null; onClose: () 
           {target?.order.status === "pago" ? " e o valor sai do caixa e dos relatórios." : "."}
         </p>
         <Input placeholder="Motivo (obrigatório)" value={reason} onChange={(e) => setReason(e.target.value)} data-testid="refund-reason-input" />
-        <Button variant="destructive" disabled={reason.trim().length < 3 || m.isPending} onClick={() => m.mutate()} data-testid="refund-confirm-button">
+        {!allowed && (
+          <Input type="password" inputMode="numeric" maxLength={6} placeholder="PIN do gerente (autorização)" value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} className="font-mono" data-testid="refund-manager-pin-input" />
+        )}
+        <Button variant="destructive" disabled={reason.trim().length < 3 || (!allowed && pin.length < 4) || m.isPending} onClick={() => m.mutate()} data-testid="refund-confirm-button">
           {m.isPending ? "Processando…" : "Confirmar"}
         </Button>
       </DialogContent>

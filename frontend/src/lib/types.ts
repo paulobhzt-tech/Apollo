@@ -29,6 +29,9 @@ export interface Profile { id: string; name: string; role: Role }
 
 export interface Category { id: string; name: string; station: Station; sort: number }
 export type CategoryIn = Omit<Category, "id">;
+export interface OptionChoice { name: string; price: number }
+export interface OptionGroup { name: string; required: boolean; multi: boolean; choices: OptionChoice[] }
+export interface ChosenOption { group: string; name: string }
 export interface RecipeItem { ingredient_id: string; qty: number }
 export interface Product {
   id: string;
@@ -41,6 +44,7 @@ export interface Product {
   active: boolean;
   recipe: RecipeItem[];
   cost_price: number;
+  options: OptionGroup[];
   cost: number;
   margin_pct: number;
 }
@@ -77,10 +81,11 @@ export interface OrderItem {
   unit_cost: number;
   notes: string;
   station: Station;
+  options: string[];
   cancelled: boolean;
   cancel_reason: string;
 }
-export interface OrderItemIn { product_id: string; qty: number; notes: string }
+export interface OrderItemIn { product_id: string; qty: number; notes: string; options?: ChosenOption[] }
 export type CardBrand = "visa" | "mastercard" | "elo";
 export interface Payment { method: PayMethod; amount: number; brand?: CardBrand | null }
 export interface Refund { item_name: string; amount: number; method: string; brand: string | null; reason: string; by_name: string; at: string }
@@ -114,6 +119,7 @@ export interface Order {
   created_at: string;
   paid_at: string | null;
   refunds: Refund[];
+  fiado_customer_id: string | null;
   refunded_total: number;
   cancel_reason: string;
   cancelled_by: string;
@@ -126,6 +132,7 @@ export interface PayIn {
   emit_invoice: boolean;
   doc_type: "nfce" | "nfe";
   customer_cpf: string;
+  fiado_customer_id?: string | null;
 }
 export interface QuickSaleIn extends PayIn {
   client_ref: string;
@@ -135,7 +142,7 @@ export interface QuickSaleIn extends PayIn {
 }
 export interface SaleResult { order: Order; invoice: Invoice | null }
 
-export interface KitchenItem { name: string; qty: number; notes: string; station: Station }
+export interface KitchenItem { name: string; qty: number; notes: string; station: Station; options: string[] }
 export interface KitchenTicket {
   id: string;
   order_id: string;
@@ -229,6 +236,7 @@ export interface Dre {
   gross_revenue: number;
   discounts: number;
   marketplace_fees: number;
+  card_fees: number;
   taxes: number;
   net_revenue: number;
   cmv: number;
@@ -263,4 +271,11 @@ export interface PublicOrderStatus {
   items: OrderItem[];
   created_at: string;
 }
+export interface FiadoCustomer { id: string; name: string; phone: string; cpf: string; credit_limit: number; balance: number; created_at: string }
+export type FiadoCustomerIn = Pick<FiadoCustomer, "name" | "phone" | "cpf" | "credit_limit">;
+export interface CustomerMove {
+  id: string; customer_id: string; type: "compra" | "pagamento" | "estorno"; amount: number; order_number: number | null;
+  method: string; brand: string | null; note: string; by_name: string; cash_session_id: string | null; at: string;
+}
+export interface CardFees { fees: Record<string, number> }
 export interface OkOut { ok: boolean; message: string }

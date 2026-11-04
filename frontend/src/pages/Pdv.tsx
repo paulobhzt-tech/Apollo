@@ -4,6 +4,7 @@ import { Minus, Plus, ShoppingBag, Trash2, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
 import ProductGrid from "@/components/ProductGrid";
+import OptionsDialog, { type Picked } from "@/components/OptionsDialog";
 import PaymentDialog from "@/components/PaymentDialog";
 import InvoiceDialog from "@/components/InvoiceDialog";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,9 @@ import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { brl, errMsg, uid } from "@/lib/format";
 import { cacheMenu, cachedMenu, enqueue, useOffline } from "@/lib/offline";
 import { queryClient } from "@/lib/queryClient";
-import type { Category, Invoice, PayIn, Product, QuickSaleIn, SaleResult } from "@/lib/types";
+import type { Category, ChosenOption, Invoice, PayIn, Product, QuickSaleIn, SaleResult } from "@/lib/types";
 
-interface CartLine { product: Product; qty: number; notes: string }
+interface CartLine { product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number }
 
 export default function Pdv() {
   const { offline, queue } = useOffline();
@@ -29,7 +30,7 @@ export default function Pdv() {
 
   useEffect(() => { if (products.data) cacheMenu(products.data); }, [products.data]);
   const prodList = products.data ?? cachedMenu();
-  const subtotal = Math.round(cart.reduce((s, l) => s + l.qty * l.product.price, 0) * 100) / 100;
+  const subtotal = Math.round(cart.reduce((s, l) => s + l.qty * (l.product.price + l.extra), 0) * 100) / 100;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -40,12 +41,15 @@ export default function Pdv() {
     return () => window.removeEventListener("keydown", onKey);
   }, [cart.length]);
 
-  const add = (p: Product) =>
-    setCart((c) => {
-      const i = c.findIndex((l) => l.product.id === p.id && !l.notes);
+  const [optFor, setOptFor] = useState<Product | null>(null);
+  const push = (p: Product, picked?: Picked) => setCart((c) => {
+    if (!picked) {
+      const i = c.findIndex((l) => l.product.id === p.id && !l.notes && !l.options.length);
       if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
-      return [...c, { product: p, qty: 1, notes: "" }];
-    });
+    }
+    return [...c, { product: p, qty: 1, notes: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
+  });
+  const add = (p: Product) => (p.options?.length ? setOptFor(p) : push(p));
   const setQty = (i: number, d: number) =>
     setCart((c) => c.flatMap((l, j) => (j !== i ? [l] : l.qty + d <= 0 ? [] : [{ ...l, qty: l.qty + d }])));
 
@@ -72,7 +76,7 @@ export default function Pdv() {
   const confirm = (pay: PayIn) => {
     const payload: QuickSaleIn = {
       ...pay, client_ref: uid(), customer_name: customer, send_to_kitchen: kitchen,
-      items: cart.map((l) => ({ product_id: l.product.id, qty: l.qty, notes: l.notes })),
+      items: cart.map((l) => ({ product_id: l.product.id, qty: l.qty, notes: l.notes, options: l.options })),
     };
     if (offline) {
       enqueue({ payload, total: subtotal, queued_at: new Date().toISOString() });
@@ -103,8 +107,8 @@ export default function Pdv() {
               {cart.map((l, i) => (
                 <div key={i} className="rounded-xl bg-panel p-3 animate-rise" data-testid={`cart-line-${i}`}>
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium text-white">{l.product.name}</p>
-                    <p className="font-mono text-sm text-white">{brl(l.qty * l.product.price)}</p>
+                    <p className="text-sm font-medium text-white">{l.product.name}{l.labels.length > 0 && <span className="block text-xs text-primary">{l.labels.join(" · ")}</span>}</p>
+                    <p className="font-mono text-sm text-white">{brl(l.qty * (l.product.price + l.extra))}</p>
                   </div>
                   <div className="mt-2 flex items-center gap-2">
                     <Button size="icon-xs" variant="outline" onClick={() => setQty(i, -1)} data-testid={`cart-dec-${i}`}><Minus /></Button>
@@ -133,6 +137,7 @@ export default function Pdv() {
       </div>
       <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={subtotal} title="Pagamento · Balcão" pending={sale.isPending} onConfirm={confirm} />
       <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />
+      <OptionsDialog product={optFor} onClose={() => setOptFor(null)} onConfirm={push} />
     </AppShell>
   );
 }

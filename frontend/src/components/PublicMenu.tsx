@@ -5,12 +5,13 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
+import OptionsDialog, { type Picked } from "./OptionsDialog";
 import { apiGet } from "@/lib/api";
 import { brl } from "@/lib/format";
-import type { OrderItemIn, Product, PublicMenu as Menu } from "@/lib/types";
+import type { ChosenOption, OrderItemIn, Product, PublicMenu as Menu } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export interface CartLine { product: Product; qty: number; notes: string }
+export interface CartLine { product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number }
 
 export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOpen }: {
   header: ReactNode;
@@ -23,12 +24,17 @@ export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOp
   const [cart, setCart] = useState<CartLine[]>([]);
   const data = menu.isError ? undefined : menu.data;
   const prods = useMemo(() => (data?.products ?? []).filter((p) => cat === "all" || p.category_id === cat), [data, cat]);
-  const total = Math.round(cart.reduce((s, l) => s + l.qty * l.product.price, 0) * 100) / 100;
+  const total = Math.round(cart.reduce((s, l) => s + l.qty * (l.product.price + l.extra), 0) * 100) / 100;
   const count = cart.reduce((s, l) => s + l.qty, 0);
-  const add = (p: Product) => setCart((c) => {
-    const i = c.findIndex((l) => l.product.id === p.id);
-    return i >= 0 ? c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l)) : [...c, { product: p, qty: 1, notes: "" }];
+  const [optFor, setOptFor] = useState<Product | null>(null);
+  const push = (p: Product, picked?: Picked) => setCart((c) => {
+    if (!picked) {
+      const i = c.findIndex((l) => l.product.id === p.id && !l.notes && !l.options.length);
+      if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
+    }
+    return [...c, { product: p, qty: 1, notes: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
   });
+  const add = (p: Product) => (p.options?.length ? setOptFor(p) : push(p));
   const dec = (i: number) => setCart((c) => c.flatMap((l, j) => (j !== i ? [l] : l.qty <= 1 ? [] : [{ ...l, qty: l.qty - 1 }])));
 
   return (
@@ -55,7 +61,7 @@ export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOp
       <main className="mx-auto max-w-3xl space-y-3 px-5 py-5">
         {menu.isError && <p className="py-10 text-center text-sm text-zinc-500">Cardápio indisponível no momento.</p>}
         {prods.map((p) => {
-          const inCart = cart.find((l) => l.product.id === p.id)?.qty ?? 0;
+          const inCart = cart.filter((l) => l.product.id === p.id).reduce((t, l) => t + l.qty, 0);
           return (
             <article key={p.id} className="flex gap-4 rounded-2xl border border-white/5 bg-[#141722] p-3 animate-rise" data-testid={`public-product-${p.code || p.id}`}>
               <div className="min-w-0 flex-1">
@@ -88,22 +94,23 @@ export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOp
           <SheetTitle className="font-heading text-xl text-white">Seu pedido</SheetTitle>
           <div className="mx-auto mt-3 w-full max-w-3xl space-y-3">
             {cart.map((l, i) => (
-              <div key={l.product.id} className="rounded-xl bg-white/5 p-3" data-testid={`public-cart-line-${i}`}>
+              <div key={i} className="rounded-xl bg-white/5 p-3" data-testid={`public-cart-line-${i}`}>
                 <div className="flex items-center gap-3">
                   <Button size="icon-xs" variant="outline" onClick={() => dec(i)} data-testid={`public-cart-dec-${i}`}><Minus /></Button>
                   <span className="w-5 text-center font-mono">{l.qty}</span>
-                  <Button size="icon-xs" variant="outline" onClick={() => add(l.product)} data-testid={`public-cart-inc-${i}`}><Plus /></Button>
-                  <span className="flex-1 text-sm text-white">{l.product.name}</span>
-                  <span className="font-mono text-sm">{brl(l.qty * l.product.price)}</span>
+                  <Button size="icon-xs" variant="outline" onClick={() => setCart((c) => c.map((x, j) => (j === i ? { ...x, qty: x.qty + 1 } : x)))} data-testid={`public-cart-inc-${i}`}><Plus /></Button>
+                  <span className="flex-1 text-sm text-white">{l.product.name}{l.labels.length > 0 && <span className="block text-xs text-primary">{l.labels.join(" · ")}</span>}</span>
+                  <span className="font-mono text-sm">{brl(l.qty * (l.product.price + l.extra))}</span>
                 </div>
                 <Input value={l.notes} placeholder="Observação (ex: sem cebola, borda recheada)" onChange={(e) => setCart((c) => c.map((x, j) => (j === i ? { ...x, notes: e.target.value } : x)))}
                   className="mt-2 h-8 text-xs" data-testid={`public-cart-notes-${i}`} />
               </div>
             ))}
-            {renderCheckout(cart, cart.map((l) => ({ product_id: l.product.id, qty: l.qty, notes: l.notes })), total, () => setCart([]))}
+            {renderCheckout(cart, cart.map((l) => ({ product_id: l.product.id, qty: l.qty, notes: l.notes, options: l.options })), total, () => setCart([]))}
           </div>
         </SheetContent>
       </Sheet>
+      <OptionsDialog product={optFor} onClose={() => setOptFor(null)} onConfirm={push} />
       <Toaster richColors position="bottom-center" />
     </div>
   );

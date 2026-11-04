@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
 import ProductGrid from "@/components/ProductGrid";
+import OptionsDialog, { type Picked } from "@/components/OptionsDialog";
 import PaymentDialog from "@/components/PaymentDialog";
 import InvoiceDialog from "@/components/InvoiceDialog";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -17,7 +18,7 @@ import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
-import type { Category, Invoice, Order, PayIn, Product, SaleResult, Table, TableIn } from "@/lib/types";
+import type { Category, ChosenOption, Invoice, Order, PayIn, Product, SaleResult, Table, TableIn } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Kind = Table["kind"];
@@ -201,7 +202,7 @@ export function QrDialog({ table, onClose }: { table: Table | null; onClose: () 
   );
 }
 
-interface Pending { product: Product; qty: number; notes: string }
+interface Pending { product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number }
 
 function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table | null; onClose: () => void; onQr: (t: Table) => void; tables: Table[]; canDelete: boolean }) {
   const open = !!table;
@@ -229,12 +230,12 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
     onError: onErr,
   });
   const send = useMutation({
-    mutationFn: () => apiPost<Order>(`/tables/${table!.id}/items`, { items: pending.map((p) => ({ product_id: p.product.id, qty: p.qty, notes: p.notes })) }),
+    mutationFn: () => apiPost<Order>(`/tables/${table!.id}/items`, { items: pending.map((p) => ({ product_id: p.product.id, qty: p.qty, notes: p.notes, options: p.options })) }),
     onSuccess: () => { toast.success("Itens enviados para a cozinha"); setPending([]); setAdding(false); invalidateTables(); },
     onError: onErr,
   });
   const cancelItem = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => apiPost<Order>(`/tables/${table!.id}/items/${id}/cancel`, { reason }),
+    mutationFn: ({ id, reason, manager_pin }: { id: string; reason: string; manager_pin?: string }) => apiPost<Order>(`/tables/${table!.id}/items/${id}/cancel`, { reason, manager_pin }),
     onSuccess: () => { toast.success("Item cancelado"); invalidateTables(); },
     onError: onErr,
   });
@@ -259,10 +260,15 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
     onError: onErr,
   });
 
-  const addPending = (p: Product) => setPending((c) => {
-    const i = c.findIndex((x) => x.product.id === p.id);
-    return i >= 0 ? c.map((x, j) => (j === i ? { ...x, qty: x.qty + 1 } : x)) : [...c, { product: p, qty: 1, notes: "" }];
+  const [optFor, setOptFor] = useState<Product | null>(null);
+  const push = (p: Product, picked?: Picked) => setPending((c) => {
+    if (!picked) {
+      const i = c.findIndex((l) => l.product.id === p.id && !l.notes && !l.options.length);
+      if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
+    }
+    return [...c, { product: p, qty: 1, notes: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
   });
+  const addPending = (p: Product) => (p.options?.length ? setOptFor(p) : push(p));
   const o = table?.order_id ? order.data ?? null : null;
   const items = (o?.items ?? []);
 
@@ -314,13 +320,16 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                         <span className="font-mono text-zinc-400">{i.qty}x</span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-white">{i.name}</p>
+                          {i.options?.length > 0 && <p className="truncate text-xs text-primary">{i.options.join(" · ")}</p>}
                           {(i.notes || i.cancel_reason) && <p className="truncate text-xs text-amber-300">{i.cancel_reason || i.notes}</p>}
                         </div>
                         <span className="font-mono text-zinc-200">{brl(i.qty * i.unit_price)}</span>
-                        {!i.cancelled && canCancel(me) && (
+                        {!i.cancelled && (
                           <button type="button" data-testid={`cancel-item-${i.id}`} onClick={() => {
                             const reason = window.prompt("Motivo do cancelamento:");
-                            if (reason && reason.trim().length >= 3) cancelItem.mutate({ id: i.id, reason });
+                            if (!reason || reason.trim().length < 3) return;
+                            const manager_pin = canCancel(me) ? undefined : window.prompt("Sem permissão. PIN do gerente para autorizar:") ?? "";
+                            cancelItem.mutate({ id: i.id, reason, manager_pin });
                           }}><X className="size-4 text-zinc-500 hover:text-red-400" /></button>
                         )}
                       </div>
@@ -336,11 +345,11 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                     <div className="mt-4 space-y-3 rounded-2xl border border-primary/20 bg-panel p-3">
                       <ProductGrid products={products.data ?? []} categories={categories.data ?? []} onAdd={addPending} compact />
                       {pending.map((p, i) => (
-                        <div key={p.product.id} className="flex items-center gap-2 text-sm" data-testid={`pending-line-${i}`}>
+                        <div key={i} className="flex items-center gap-2 text-sm" data-testid={`pending-line-${i}`}>
                           <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.flatMap((x, j) => j !== i ? [x] : x.qty <= 1 ? [] : [{ ...x, qty: x.qty - 1 }]))}><Minus /></Button>
                           <span className="w-5 text-center font-mono">{p.qty}</span>
-                          <Button size="icon-xs" variant="outline" onClick={() => addPending(p.product)}><Plus /></Button>
-                          <span className="flex-1 truncate">{p.product.name}</span>
+                          <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.map((x, j) => (j === i ? { ...x, qty: x.qty + 1 } : x)))}><Plus /></Button>
+                          <span className="flex-1 truncate">{p.product.name}{p.labels.length > 0 && <span className="block text-xs text-primary">{p.labels.join(" · ")}</span>}</span>
                           <Input value={p.notes} placeholder="Obs." onChange={(e) => setPending((c) => c.map((x, j) => j === i ? { ...x, notes: e.target.value } : x))} className="h-7 w-28 text-xs" data-testid={`pending-notes-${i}`} />
                         </div>
                       ))}
@@ -381,6 +390,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
       <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} defaultService={10}
         title={`Fechamento · ${table ? tableLabel(table) : ""}`} pending={pay.isPending} onConfirm={(p) => pay.mutate(p)} />
       <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />
+      <OptionsDialog product={optFor} onClose={() => setOptFor(null)} onConfirm={push} />
     </>
   );
 }

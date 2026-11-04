@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from lib.auth import require
 from lib.db import db
-from lib.orders import TAX_RATE, TZ, current_cash, day_bounds, local_today, method_totals
-from models.schemas import Dashboard, Dre, Expense, ExpenseIn, OkOut
+from lib.orders import TAX_RATE, TZ, card_fee_table, current_cash, day_bounds, local_today, method_totals
+from models.schemas import CardFees, Dashboard, Dre, Expense, ExpenseIn, OkOut
 
 router = APIRouter()
 PAY_LABEL = {"dinheiro": "Dinheiro", "credito": "Crédito", "debito": "Débito", "pix": "PIX", "voucher": "Voucher",
@@ -93,7 +93,10 @@ async def dre(start: Optional[str] = None, end: Optional[str] = None, _: dict = 
     discounts = round(sum(o.get("discount", 0) for o in orders), 2)
     mfees = round(sum(o.get("marketplace_fee", 0) for o in orders), 2)
     taxes = round((gross - discounts) * TAX_RATE, 2)
-    net_rev = round(gross - discounts - mfees - taxes, 2)
+    fees = await card_fee_table()
+    card_fees = round(sum(v * fees.get(k, 0) / 100 for k, v in method_totals(orders, with_brand=True).items()
+                          if k.startswith(("credito:", "debito:"))), 2)
+    net_rev = round(gross - discounts - mfees - card_fees - taxes, 2)
     cmv = round(sum(o.get("cmv", 0) for o in orders), 2)
     gross_profit = round(net_rev - cmv, 2)
     emps = {e["id"]: e for e in await db.employees.find({}, {"_id": 0, "pin_hash": 0}).to_list(500)}
@@ -122,7 +125,7 @@ async def dre(start: Optional[str] = None, end: Optional[str] = None, _: dict = 
     for o in orders:
         by_source[o["source"]] = by_source.get(o["source"], 0) + o["total"]
     return {
-        "start": start, "end": end, "gross_revenue": gross, "discounts": discounts, "marketplace_fees": mfees,
+        "start": start, "end": end, "gross_revenue": gross, "discounts": discounts, "marketplace_fees": mfees, "card_fees": card_fees,
         "taxes": taxes, "net_revenue": net_rev, "cmv": cmv, "gross_profit": gross_profit, "commissions": commissions,
         "expenses": expenses, "expenses_by_category": nv(exp_cat), "net_profit": net,
         "margin_pct": round(net / gross * 100, 1) if gross else 0, "orders": len(orders),
@@ -130,6 +133,19 @@ async def dre(start: Optional[str] = None, end: Optional[str] = None, _: dict = 
         "daily": [{"name": k, "value": v} for k, v in sorted(daily.items(), key=lambda x: (x[0][3:], x[0][:2]))],
         "top_products": top_products(orders, 10), "commission_list": commission_list,
     }
+
+
+@router.get("/settings/card-fees", response_model=CardFees)
+async def get_card_fees(_: dict = Depends(require("caixa"))):
+    return {"fees": await card_fee_table()}
+
+
+@router.put("/settings/card-fees", response_model=CardFees)
+async def put_card_fees(body: CardFees, _: dict = Depends(require())):
+    allowed = {f"{m}:{b}" for m in ("credito", "debito") for b in ("visa", "mastercard", "elo")}
+    fees = {k: round(v, 2) for k, v in body.fees.items() if k in allowed and 0 <= v <= 20}
+    await db.settings.update_one({"_id": "card_fees"}, {"$set": {"fees": fees}}, upsert=True)
+    return {"fees": fees}
 
 
 @router.get("/expenses", response_model=list[Expense])

@@ -15,6 +15,7 @@ import QrCodes from "@/pages/QrCodes";
 import Cardapio from "@/pages/Cardapio";
 import PedirDelivery from "@/pages/PedirDelivery";
 import Vendas from "@/pages/Vendas";
+import Fiado from "@/pages/Fiado";
 import { homeFor, useMe } from "@/lib/auth";
 
 function Home() {
@@ -36,6 +37,7 @@ export default function App() {
       <Route path="/delivery" element={<Delivery />} />
       <Route path="/caixa" element={<Caixa />} />
       <Route path="/vendas" element={<Vendas />} />
+      <Route path="/fiado" element={<Fiado />} />
       <Route path="/notas" element={<Notas />} />
       <Route path="/produtos" element={<Produtos />} />
       <Route path="/estoque" element={<Estoque />} />

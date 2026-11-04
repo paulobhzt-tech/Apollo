@@ -17,7 +17,7 @@ IMG = {
     "bar": "https://images.unsplash.com/photo-1597075687490-8f673c6c17f6?crop=entropy&cs=srgb&fm=jpg&q=80&w=800",
 }
 
-COLLS = ["employees", "sessions", "categories", "products", "ingredients", "stock_moves", "tables", "orders",
+COLLS = ["fiado_customers", "customer_moves", "settings", "employees", "sessions", "categories", "products", "ingredients", "stock_moves", "tables", "orders",
          "kitchen_tickets", "invoices", "cash_sessions", "expenses", "counters"]
 
 
@@ -185,6 +185,8 @@ async def main() -> None:
                            ("Conta de energia", "energia", 1890), ("Conta de água", "agua", 420),
                            ("Impulsionamento Instagram", "marketing", 600), ("Manutenção forno", "manutencao", 350)]:
         await db.expenses.insert_one(Expense(description=desc, category=cat, amount=amt, date=month_start).model_dump())
+    from seed_extras import main as extras
+    await extras()
     print(f"Seed OK: {len(emp_docs)} funcionários, {len(prods)} produtos, {len(orders)} pedidos históricos")
 
 

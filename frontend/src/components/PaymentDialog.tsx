@@ -1,4 +1,7 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Banknote, CreditCard, QrCode, Trash2, UserRound, Wallet } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BRAND_LABEL, brl, PAY_LABEL, payLabel } from "@/lib/format";
-import type { CardBrand, PayIn, PayMethod, Payment } from "@/lib/types";
+import type { CardBrand, FiadoCustomer, PayIn, PayMethod, Payment } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const METHODS: { m: PayMethod; icon: typeof Banknote }[] = [
@@ -45,6 +48,9 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
   const [amount, setAmount] = useState("");
   const [brand, setBrand] = useState<CardBrand | null>(null);
   const isCard = method === "credito" || method === "debito";
+  const [fiadoId, setFiadoId] = useState("");
+  const customers = useQuery({ queryKey: ["customers"], queryFn: () => apiGet<FiadoCustomer[]>("/customers"), enabled: method === "fiado" });
+  const fiadoCust = customers.data?.find((c) => c.id === fiadoId);
   const [discount, setDiscount] = useState("");
   const [service, setService] = useState(defaultService > 0);
   const [splitN, setSplitN] = useState("1");
@@ -63,7 +69,7 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
 
   const add = (value?: number) => {
     const v = value ?? (Number(amount.replace(",", ".")) || remaining);
-    if (v <= 0 || (isCard && !brand)) return;
+    if (v <= 0 || (isCard && !brand) || (method === "fiado" && !fiadoId)) return;
     setPayments((p) => [...p, { method, amount: Math.round(v * 100) / 100, brand: isCard ? brand : null }]);
     setAmount("");
   };
@@ -109,6 +115,21 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
               {!brand && <p className="text-xs text-amber-300">Selecione a bandeira para adicionar o pagamento.</p>}
             </div>
           )}
+          {method === "fiado" && (
+            <div className="space-y-1.5" data-testid="fiado-customer-picker">
+              <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Cliente da conta fiado</p>
+              <Select value={fiadoId} onValueChange={(v: string) => setFiadoId(v)}>
+                <SelectTrigger className="w-full" data-testid="fiado-customer-select">
+                  <SelectValue>{(v) => customers.data?.find((c) => c.id === v)?.name ?? "Selecione o cliente"}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {(customers.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name} · deve {brl(c.balance)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {fiadoCust && fiadoCust.credit_limit > 0 && <p className="text-xs text-zinc-500">Limite disponível: {brl(fiadoCust.credit_limit - fiadoCust.balance)}</p>}
+              {customers.data?.length === 0 && <p className="text-xs text-amber-300">Cadastre clientes em “Conta Fiado”.</p>}
+            </div>
+          )}
           <div className="flex gap-2">
             <Input
               inputMode="decimal"
@@ -119,7 +140,7 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
               data-testid="payment-amount-input"
               className="font-mono"
             />
-            <Button onClick={() => add()} data-testid="payment-add-button" disabled={(remaining === 0 && method !== "dinheiro") || (isCard && !brand)}>
+            <Button onClick={() => add()} data-testid="payment-add-button" disabled={(remaining === 0 && method !== "dinheiro") || (isCard && !brand) || (method === "fiado" && !fiadoId)}>
               Adicionar
             </Button>
           </div>
@@ -201,7 +222,7 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
             className="h-12 w-full text-base"
             disabled={!canConfirm}
             data-testid="payment-confirm-button"
-            onClick={() => onConfirm({ payments, discount: disc, service_pct: service ? defaultService : 0, emit_invoice: emit, doc_type: docType, customer_cpf: cpf })}
+            onClick={() => onConfirm({ payments, discount: disc, service_pct: service ? defaultService : 0, emit_invoice: emit, doc_type: docType, customer_cpf: cpf, fiado_customer_id: payments.some((p) => p.method === "fiado") ? fiadoId : null })}
           >
             {pending ? "Processando…" : `Finalizar ${brl(total)}`}
           </Button>

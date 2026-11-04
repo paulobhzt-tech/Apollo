@@ -102,6 +102,7 @@ export default function Kds() {
                         {t.items.map((i, idx) => (
                           <li key={idx} className="text-sm">
                             <span className="font-mono text-primary">{i.qty}x</span> <span className="text-zinc-100">{i.name}</span>
+                            {i.options?.map((o) => <p key={o} className="ml-6 text-xs font-semibold text-sky-300" data-testid="kds-item-option">▸ {o}</p>)}
                             {i.notes && <p className="ml-6 rounded bg-amber-400/10 px-1.5 text-xs font-medium text-amber-300">⚠ {i.notes}</p>}
                           </li>
                         ))}

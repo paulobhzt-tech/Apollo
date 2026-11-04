@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, useLocation } from "react-router-dom";
 import {
   Armchair, Bike, Boxes, ChefHat, LayoutDashboard, LineChart, LogOut, Menu, QrCode, Receipt, ShoppingCart,
-  Users, UtensilsCrossed, Wallet, WifiOff, Wifi, Flame, History,
+  Users, UtensilsCrossed, Wallet, WifiOff, Wifi, Flame, History, HandCoins,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const ICONS: Record<string, typeof Menu> = {
-  LayoutDashboard, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History,
+  LayoutDashboard, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins,
 };
 
 function NavList({ role, onNavigate }: { role: Role; onNavigate?: () => void }) {

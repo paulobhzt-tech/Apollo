@@ -4,10 +4,10 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from lib.auth import current_user, require, require_cancel
+from lib.auth import cancel_authorizer, current_user, require
 from lib.db import db
 from lib.orders import (MARKET_FEES, build_items, create_ticket, current_cash, emit_invoice, finalize_payment,
-                        free_table, method_totals, move_stock, new_order, now, refresh_totals)
+                        fiado_reverse, free_table, method_totals, move_stock, new_order, now, pay_key, refresh_totals)
 from models.schemas import (CancelIn, CashCloseIn, CashMovement, CashMoveIn, CashOpenIn, CashSession,
                             DeliveryStatusIn, EmitInvoiceIn, Invoice, KitchenTicket, Order, OrderItem,
                             OrderItemIn, QuickSaleIn, SaleResult, SimulateIn, TicketStatusIn)
@@ -52,14 +52,20 @@ async def list_orders(status: Optional[str] = None, channel: Optional[str] = Non
 
 
 @router.post("/orders/{id}/cancel", response_model=Order)
-async def cancel_order(id: str, body: CancelIn, user: dict = Depends(require_cancel)):
+async def cancel_order(id: str, body: CancelIn, user: dict = Depends(current_user)):
     o = await db.orders.find_one({"id": id}, {"_id": 0})
     if not o:
         raise HTTPException(404, "Pedido não encontrado")
     if o["status"] == "cancelado":
         raise HTTPException(400, "Pedido já cancelado")
+    auth = await cancel_authorizer(user, body.manager_pin)
+    who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
     await db.orders.update_one({"id": id}, {"$set": {"status": "cancelado", "cancel_reason": body.reason,
-                                                     "cancelled_by": user["name"], "cancelled_at": now()}})
+                                                     "cancelled_by": who, "cancelled_at": now()}})
+    if o["status"] == "pago":
+        fiado = sum(p["amount"] for p in o.get("payments", []) if p["method"] == "fiado") - \
+            sum(r["amount"] for r in o.get("refunds", []) if r["method"] == "fiado")
+        await fiado_reverse(o, fiado, who, f"Estorno do pedido #{o['number']}")
     await move_stock([OrderItem(**i) for i in o["items"] if not i.get("cancelled")], user["name"], f"Cancelamento #{o['number']}", sign=1)
     if o.get("invoice_id"):
         await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}})
@@ -70,7 +76,7 @@ async def cancel_order(id: str, body: CancelIn, user: dict = Depends(require_can
 
 
 @router.post("/orders/{id}/items/{item_id}/refund", response_model=Order)
-async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depends(require_cancel)):
+async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depends(current_user)):
     """Cancel one item. Open orders: just removed. Paid orders: partial refund (estorno) recorded on the order."""
     o = await db.orders.find_one({"id": id}, {"_id": 0})
     if not o:
@@ -80,6 +86,8 @@ async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
     item = next((i for i in o["items"] if i["id"] == item_id and not i.get("cancelled")), None)
     if not item:
         raise HTTPException(404, "Item não encontrado ou já cancelado")
+    auth = await cancel_authorizer(user, body.manager_pin)
+    who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
     await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1)
     set_item = {"items.$.cancelled": True, "items.$.cancel_reason": body.reason}
     if o["status"] == "aberto":
@@ -95,15 +103,17 @@ async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
     pays = sorted(o.get("payments", []), key=lambda p: -p["amount"])
     main = pays[0] if pays else {"method": "dinheiro"}
     refund = {"item_name": f"{item['qty']}x {item['name']}", "amount": amount, "method": main["method"],
-              "brand": main.get("brand"), "reason": body.reason, "by_name": user["name"], "at": now()}
+              "brand": main.get("brand"), "reason": body.reason, "by_name": who, "at": now()}
     upd = {**set_item, "subtotal": new_sub, "service_fee": service, "discount": discount, "total": total,
            "cmv": round(sum(i["qty"] * i.get("unit_cost", 0) for i in live), 2)}
     if not live:
-        upd.update(status="cancelado", cancel_reason=body.reason, cancelled_by=user["name"], cancelled_at=now())
+        upd.update(status="cancelado", cancel_reason=body.reason, cancelled_by=who, cancelled_at=now())
         if o.get("invoice_id"):
             await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}})
     await db.orders.update_one({"id": id, "items.id": item_id},
                                {"$set": upd, "$push": {"refunds": refund}, "$inc": {"refunded_total": amount}})
+    if main["method"] == "fiado":
+        await fiado_reverse(o, amount, who, f"Estorno de {refund['item_name']} (#{o['number']})")
     return await db.orders.find_one({"id": id}, {"_id": 0})
 
 
@@ -219,6 +229,9 @@ async def cash_summary(s: dict) -> dict:
     orders = await db.orders.find({"cash_session_id": s["id"], "status": "pago"},
                                   {"_id": 0, "payments": 1, "change": 1, "total": 1, "refunds": 1}).to_list(10000)
     totals = method_totals(orders, with_brand=True)
+    async for r in db.customer_moves.find({"cash_session_id": s["id"], "type": "pagamento"}, {"_id": 0}):
+        k = pay_key(r)
+        totals[k] = round(totals.get(k, 0) + r["amount"], 2)
     sup = sum(m["amount"] for m in s.get("movements", []) if m["type"] == "suprimento")
     san = sum(m["amount"] for m in s.get("movements", []) if m["type"] == "sangria")
     s["totals_by_method"] = totals

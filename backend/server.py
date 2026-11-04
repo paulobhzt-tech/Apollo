@@ -13,7 +13,7 @@ load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
 from lib.db import client, db, ensure_indexes  # noqa: E402
-from routers import auth, catalog, operations, public, reports, tables  # noqa: E402
+from routers import auth, catalog, fiado, operations, public, reports, tables  # noqa: E402
 
 
 @asynccontextmanager
@@ -35,7 +35,7 @@ async def root():
     return {"message": "Espeteria Churras Buguer PDV API"}
 
 
-for r in (auth, catalog, tables, operations, reports, public):
+for r in (auth, catalog, tables, operations, reports, public, fiado):
     api_router.include_router(r.router)
 
 app.add_middleware(

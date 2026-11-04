@@ -60,8 +60,23 @@ async def build_items(items_in: list[OrderItemIn]) -> list[OrderItem]:
         p = prods.get(it.product_id)
         if not p:
             raise HTTPException(400, "Produto indisponível ou inexistente")
+        groups = {g["name"]: g for g in p.get("options", [])}
+        labels, extra = [], 0.0
+        for ch in it.options:
+            g = groups.get(ch.group)
+            c = next((c for c in g["choices"] if c["name"] == ch.name), None) if g else None
+            if not c:
+                raise HTTPException(400, f"Opção inválida: {ch.group} / {ch.name}")
+            labels.append(f"{ch.group}: {ch.name}")
+            extra += c["price"]
+        for g in groups.values():
+            n = sum(1 for ch in it.options if ch.group == g["name"])
+            if g.get("required") and not n:
+                raise HTTPException(400, f"Escolha {g['name']} para {p['name']}")
+            if not g.get("multi") and n > 1:
+                raise HTTPException(400, f"Escolha apenas uma opção em {g['name']}")
         out.append(OrderItem(
-            product_id=p["id"], name=p["name"], qty=it.qty, unit_price=p["price"],
+            product_id=p["id"], name=p["name"], qty=it.qty, unit_price=round(p["price"] + extra, 2), options=labels,
             unit_cost=product_cost(p, ings), notes=it.notes,
             station=cats.get(p["category_id"], {}).get("station", "cozinha"),
         ))
@@ -104,7 +119,7 @@ def ticket_label(order: dict) -> str:
 async def create_ticket(order: dict, items: list[OrderItem]) -> None:
     t = KitchenTicket(
         order_id=order["id"], order_number=order["number"], label=ticket_label(order), source=order["source"],
-        items=[KitchenItem(name=i.name, qty=i.qty, notes=i.notes, station=i.station) for i in items],
+        items=[KitchenItem(name=i.name, qty=i.qty, notes=i.notes, station=i.station, options=i.options) for i in items],
     )
     await db.kitchen_tickets.insert_one(t.model_dump())
 
@@ -165,6 +180,14 @@ async def finalize_payment(order: dict, pay: PayIn) -> tuple[dict, dict | None]:
     change = round(paid - total, 2)
     if any(p.method in ("credito", "debito") and not p.brand for p in pay.payments):
         raise HTTPException(400, "Informe a bandeira do cartão (Visa, Mastercard ou Elo)")
+    fiado = round(sum(p.amount for p in pay.payments if p.method == "fiado"), 2)
+    cust = None
+    if fiado:
+        cust = await db.fiado_customers.find_one({"id": pay.fiado_customer_id}, {"_id": 0}) if pay.fiado_customer_id else None
+        if not cust:
+            raise HTTPException(400, "Selecione o cliente da conta fiado")
+        if cust["credit_limit"] > 0 and cust["balance"] + fiado > cust["credit_limit"] + 0.009:
+            raise HTTPException(400, f"Limite de crédito de {cust['name']} excedido (saldo {cust['balance']:.2f} / limite {cust['credit_limit']:.2f})")
     cash_paid = sum(p.amount for p in pay.payments if p.method == "dinheiro")
     if change > cash_paid + 0.009:
         raise HTTPException(400, "Troco só pode ser dado em dinheiro")
@@ -176,6 +199,12 @@ async def finalize_payment(order: dict, pay: PayIn) -> tuple[dict, dict | None]:
     }
     if pay.customer_cpf:
         upd["customer.cpf"] = pay.customer_cpf
+    if cust:
+        upd["fiado_customer_id"] = cust["id"]
+        await adjust_balance(cust["id"], fiado)
+        from models.schemas import CustomerMove
+        await db.customer_moves.insert_one(CustomerMove(customer_id=cust["id"], type="compra", amount=fiado,
+                                                        order_number=order["number"], note="Venda no fiado").model_dump())
     await db.orders.update_one({"id": order["id"]}, {"$set": upd})
     if order.get("table_id"):
         await free_table(order["table_id"])
@@ -217,3 +246,24 @@ def method_totals(orders: list[dict], with_brand: bool = False) -> dict[str, flo
             k = key(r)
             out[k] = out.get(k, 0) - r["amount"]
     return {k: round(v, 2) for k, v in out.items()}
+
+
+async def fiado_reverse(order: dict, amount: float, by_name: str, note: str) -> None:
+    """Give back store credit when a fiado sale (or part of it) is refunded."""
+    if not order.get("fiado_customer_id") or amount <= 0:
+        return
+    from models.schemas import CustomerMove
+    await adjust_balance(order["fiado_customer_id"], -amount)
+    await db.customer_moves.insert_one(CustomerMove(customer_id=order["fiado_customer_id"], type="estorno", amount=round(amount, 2),
+                                                    order_number=order["number"], note=note, by_name=by_name).model_dump())
+
+
+async def card_fee_table() -> dict[str, float]:
+    return (await db.settings.find_one({"_id": "card_fees"}) or {}).get("fees", {})
+
+
+async def adjust_balance(customer_id: str, delta: float) -> None:
+    """Atomic $inc, then normalise to cents so float noise never reaches the UI."""
+    c = await db.fiado_customers.find_one_and_update({"id": customer_id}, {"$inc": {"balance": round(delta, 2)}}, return_document=True)
+    if c:
+        await db.fiado_customers.update_one({"id": customer_id}, {"$set": {"balance": round(c["balance"], 2)}})

@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api";
 import { brl, errMsg } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
-import type { Category, CategoryIn, Ingredient, Product, ProductIn, RecipeItem, Station } from "@/lib/types";
+import type { Category, CategoryIn, Ingredient, OptionGroup, Product, ProductIn, RecipeItem, Station } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const STATION_LABEL: Record<Station, string> = { cozinha: "Cozinha quente", forno: "Forno pizzaria", bar: "Bar / Bebidas" };
@@ -115,7 +115,7 @@ function Categorias({ cats }: { cats: Category[] }) {
   );
 }
 
-const EMPTY: ProductIn = { name: "", description: "", category_id: "", price: 0, code: "", image: "", active: true, recipe: [], cost_price: 0 };
+const EMPTY: ProductIn = { name: "", description: "", category_id: "", price: 0, code: "", image: "", active: true, recipe: [], cost_price: 0, options: [] };
 
 function ProductDialog({ editing, onClose, cats, ings }: { editing: Product | "new" | null; onClose: () => void; cats: Category[]; ings: Ingredient[] }) {
   return (
@@ -130,7 +130,7 @@ function ProductDialog({ editing, onClose, cats, ings }: { editing: Product | "n
 function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new"; onClose: () => void; cats: Category[]; ings: Ingredient[] }) {
   const [f, setF] = useState<ProductIn>(editing === "new" ? { ...EMPTY, category_id: cats[0]?.id ?? "" } : {
     name: editing.name, description: editing.description, category_id: editing.category_id, price: editing.price,
-    code: editing.code, image: editing.image, active: editing.active, recipe: editing.recipe, cost_price: editing.cost_price ?? 0,
+    code: editing.code, image: editing.image, active: editing.active, recipe: editing.recipe, cost_price: editing.cost_price ?? 0, options: editing.options ?? [],
   });
   const [priceStr, setPriceStr] = useState(editing === "new" ? "" : String(editing.price));
   const [costStr, setCostStr] = useState(editing === "new" || !editing.cost_price ? "" : String(editing.cost_price));
@@ -184,6 +184,7 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
         <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={f.active} onCheckedChange={(v) => setF({ ...f, active: !!v })} data-testid="product-active-checkbox" /> Disponível para venda</label>
       </div>
 
+      <OptionsEditor value={f.options} onChange={(options) => setF({ ...f, options })} />
       <div className="mt-2 rounded-2xl border border-white/5 bg-panel p-4">
         <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-400">Ficha técnica</p>
         <div className="mt-3 flex gap-2">
@@ -213,7 +214,39 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
           <div><p className="text-[10px] uppercase text-zinc-500">Preço sugerido (CMV 30%)</p><p className="font-mono text-primary">{brl(cost / 0.3)}</p></div>
         </div>
       </div>
-      <Button className="mt-2" disabled={!f.name.trim() || !f.category_id || save.isPending} onClick={() => save.mutate({ ...f, price, cost_price: manualCost })} data-testid="product-save-button">Salvar produto</Button>
+      <Button className="mt-2" disabled={!f.name.trim() || !f.category_id || save.isPending} onClick={() => save.mutate({ ...f, price, cost_price: manualCost, options: f.options.filter((g) => g.name.trim() && g.choices.length) })} data-testid="product-save-button">Salvar produto</Button>
     </>
+  );
+}
+
+const choicesText = (g: OptionGroup) => g.choices.map((c) => (c.price ? `${c.name}:${c.price}` : c.name)).join(", ");
+const parseChoices = (t: string) => t.split(",").map((x) => x.trim()).filter(Boolean).map((x) => {
+  const [name, price] = x.split(":");
+  return { name: name.trim(), price: Number((price ?? "0").replace(",", ".")) || 0 };
+}).filter((c) => c.name);
+
+function OptionsEditor({ value, onChange }: { value: OptionGroup[]; onChange: (v: OptionGroup[]) => void }) {
+  const upd = (i: number, g: Partial<OptionGroup>) => onChange(value.map((x, j) => (j === i ? { ...x, ...g } : x)));
+  return (
+    <div className="mt-2 rounded-2xl border border-white/5 bg-panel p-4" data-testid="options-editor">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-400">Opções (ponto, acompanhamentos, adicionais)</p>
+        <Button size="xs" variant="outline" onClick={() => onChange([...value, { name: "", required: false, multi: false, choices: [] }])} data-testid="options-add-group"><Plus /> Grupo</Button>
+      </div>
+      {value.map((g, i) => (
+        <div key={i} className="mt-3 space-y-2 rounded-xl border border-white/5 p-3" data-testid={`options-group-${i}`}>
+          <div className="flex gap-2">
+            <Input placeholder="Nome do grupo (ex: Ponto da carne)" value={g.name} onChange={(e) => upd(i, { name: e.target.value })} data-testid={`options-group-name-${i}`} />
+            <Button size="icon-sm" variant="ghost" onClick={() => onChange(value.filter((_, j) => j !== i))} data-testid={`options-group-remove-${i}`}><Trash2 /></Button>
+          </div>
+          <Input defaultValue={choicesText(g)} placeholder="Escolhas separadas por vírgula. Preço extra com dois-pontos: Farofa, Mandioca:6"
+            onBlur={(e) => upd(i, { choices: parseChoices(e.target.value) })} data-testid={`options-group-choices-${i}`} />
+          <div className="flex gap-4 text-xs text-zinc-300">
+            <label className="flex items-center gap-2"><Checkbox checked={g.required} onCheckedChange={(v) => upd(i, { required: !!v })} data-testid={`options-group-required-${i}`} /> Obrigatório</label>
+            <label className="flex items-center gap-2"><Checkbox checked={g.multi} onCheckedChange={(v) => upd(i, { multi: !!v })} data-testid={`options-group-multi-${i}`} /> Permite várias</label>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

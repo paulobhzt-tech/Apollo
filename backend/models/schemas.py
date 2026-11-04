@@ -82,6 +82,23 @@ class RecipeItem(BaseModel):
     qty: float = Field(gt=0)
 
 
+class OptionChoice(BaseModel):
+    name: str = Field(min_length=1)
+    price: float = Field(default=0, ge=0)
+
+
+class OptionGroup(BaseModel):
+    name: str = Field(min_length=1)
+    required: bool = False
+    multi: bool = False
+    choices: list[OptionChoice] = Field(min_length=1)
+
+
+class ChosenOption(BaseModel):
+    group: str
+    name: str
+
+
 class Product(BaseModel):
     id: str = Field(default_factory=_id)
     name: str
@@ -93,6 +110,7 @@ class Product(BaseModel):
     active: bool = True
     recipe: list[RecipeItem] = []
     cost_price: float = 0  # manual cost; when > 0 it overrides the recipe cost
+    options: list[OptionGroup] = []
     cost: float = 0
     margin_pct: float = 0
 
@@ -107,6 +125,7 @@ class ProductIn(BaseModel):
     active: bool = True
     recipe: list[RecipeItem] = []
     cost_price: float = Field(default=0, ge=0)
+    options: list[OptionGroup] = []
 
 
 # ---------- stock ----------
@@ -163,6 +182,7 @@ class OrderItem(BaseModel):
     unit_cost: float = 0
     notes: str = ""
     station: Station = "cozinha"
+    options: list[str] = []
     cancelled: bool = False
     cancel_reason: str = ""
 
@@ -171,6 +191,7 @@ class OrderItemIn(BaseModel):
     product_id: str
     qty: int = Field(ge=1, le=99)
     notes: str = ""
+    options: list[ChosenOption] = []
 
 
 CardBrand = Literal["visa", "mastercard", "elo"]
@@ -222,6 +243,7 @@ class Order(BaseModel):
     created_at: datetime = Field(default_factory=_now)
     paid_at: Optional[datetime] = None
     refunds: list[Refund] = []
+    fiado_customer_id: Optional[str] = None
     refunded_total: float = 0
     cancel_reason: str = ""
     cancelled_by: str = ""
@@ -235,6 +257,7 @@ class PayIn(BaseModel):
     emit_invoice: bool = True
     doc_type: Literal["nfce", "nfe"] = "nfce"
     customer_cpf: str = ""
+    fiado_customer_id: Optional[str] = None
 
 
 class QuickSaleIn(PayIn):
@@ -251,6 +274,7 @@ class SaleResult(BaseModel):
 
 class CancelIn(BaseModel):
     reason: str = Field(min_length=3)
+    manager_pin: Optional[str] = None
 
 
 # ---------- kitchen ----------
@@ -259,6 +283,7 @@ class KitchenItem(BaseModel):
     qty: int
     notes: str = ""
     station: Station = "cozinha"
+    options: list[str] = []
 
 
 class KitchenTicket(BaseModel):
@@ -464,6 +489,7 @@ class Dre(BaseModel):
     gross_revenue: float
     discounts: float
     marketplace_fees: float
+    card_fees: float
     taxes: float
     net_revenue: float
     cmv: float
@@ -526,6 +552,48 @@ class PublicOrderStatus(BaseModel):
     total: float
     items: list[OrderItem]
     created_at: datetime
+
+
+class FiadoCustomer(BaseModel):
+    id: str = Field(default_factory=_id)
+    name: str
+    phone: str = ""
+    cpf: str = ""
+    credit_limit: float = 0
+    balance: float = 0
+    created_at: datetime = Field(default_factory=_now)
+
+
+class FiadoCustomerIn(BaseModel):
+    name: str = Field(min_length=2)
+    phone: str = ""
+    cpf: str = ""
+    credit_limit: float = Field(default=0, ge=0)
+
+
+class CustomerMove(BaseModel):
+    id: str = Field(default_factory=_id)
+    customer_id: str
+    type: Literal["compra", "pagamento", "estorno"]
+    amount: float
+    order_number: Optional[int] = None
+    method: str = ""
+    brand: Optional[str] = None
+    note: str = ""
+    by_name: str = ""
+    cash_session_id: Optional[str] = None
+    at: datetime = Field(default_factory=_now)
+
+
+class ReceiveIn(BaseModel):
+    amount: float = Field(gt=0)
+    method: Literal["dinheiro", "credito", "debito", "pix"]
+    brand: Optional[CardBrand] = None
+    note: str = ""
+
+
+class CardFees(BaseModel):
+    fees: dict[str, float] = {}
 
 
 class OkOut(BaseModel):

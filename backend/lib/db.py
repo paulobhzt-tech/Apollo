@@ -41,6 +41,9 @@ INDEXES: dict[str, list[IndexModel]] = {
     "kitchen_tickets": [_id_idx(), IndexModel([("status", ASCENDING), ("created_at", ASCENDING)], name="status_created")],
     "invoices": [_id_idx(), IndexModel([("emitted_at", DESCENDING)], name="emitted_desc")],
     "cash_sessions": [_id_idx(), IndexModel([("status", ASCENDING)], name="status")],
+    "fiado_customers": [_id_idx()],
+    "customer_moves": [IndexModel([("customer_id", ASCENDING), ("at", DESCENDING)], name="customer_at"),
+                       IndexModel([("cash_session_id", ASCENDING)], name="cash_session")],
     "expenses": [_id_idx(), IndexModel([("date", DESCENDING)], name="date_desc")],
 }
 
