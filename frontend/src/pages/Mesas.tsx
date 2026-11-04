@@ -20,6 +20,8 @@ import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, u
 import { queryClient } from "@/lib/queryClient";
 import type { Category, ChosenOption, Invoice, Order, PayIn, Product, SaleResult, Table, TableIn } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { groupItems } from "@/lib/group";
+import PreBillDialog from "@/components/PreBillDialog";
 
 type Kind = Table["kind"];
 
@@ -228,6 +230,8 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   const [payOpen, setPayOpen] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [transferTo, setTransferTo] = useState("");
+  const [preBill, setPreBill] = useState(false);
+  const [grouped, setGrouped] = useState(true);
 
   const onErr = (e: unknown) => toast.error(errMsg(e));
   const openT = useMutation({
@@ -320,7 +324,30 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                 </div>
               ) : (
                 <>
-                  <div className="mt-5 space-y-2" data-testid="table-order-items">
+                  <div className="mt-5 flex items-center justify-between">
+                    <span className="text-xs uppercase tracking-[0.15em] text-zinc-500">Itens · {items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)} un.</span>
+                    <button type="button" onClick={() => setGrouped((g) => !g)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-300 transition-colors duration-150 hover:border-primary/50" data-testid="toggle-group-items">
+                      {grouped ? "Ver item a item (cancelar)" : "Agrupar quantidades"}
+                    </button>
+                  </div>
+                  {grouped ? (
+                    <div className="mt-2 space-y-2" data-testid="table-order-grouped">
+                      {groupItems(items).map((g) => (
+                        <div key={g.key} className="flex items-center gap-3 rounded-xl bg-panel px-3 py-2.5 text-sm" data-testid="grouped-line">
+                          <span className="min-w-8 font-mono text-primary" data-testid="grouped-line-qty">{g.qty}x</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-white">{g.name}</p>
+                            {g.options.length > 0 && <p className="truncate text-xs text-primary">{g.options.join(" · ")}</p>}
+                            {g.notes.length > 0 && <p className="truncate text-xs text-amber-300">{g.notes.join(" · ")}</p>}
+                          </div>
+                          <span className="font-mono text-xs text-zinc-500">{brl(g.unit_price)}</span>
+                          <span className="font-mono text-zinc-200">{brl(g.total)}</span>
+                        </div>
+                      ))}
+                      {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
+                    </div>
+                  ) : (
+                  <div className="mt-2 space-y-2" data-testid="table-order-items">
                     {items.map((i) => (
                       <div key={i.id} className={cn("flex items-center gap-3 rounded-xl bg-panel px-3 py-2.5 text-sm", i.cancelled && "opacity-40 line-through")}>
                         <span className="font-mono text-zinc-400">{i.qty}x</span>
@@ -342,6 +369,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                     ))}
                     {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
                   </div>
+                  )}
                   <div className="mt-4 flex items-end justify-between border-t border-white/10 pt-3">
                     <span className="text-sm text-zinc-400">Subtotal (+10% serviço opcional)</span>
                     <span className="font-mono text-2xl text-white" data-testid="table-order-total">{brl(o?.total ?? table.total)}</span>
@@ -371,7 +399,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                   )}
 
                   <div className="mt-3 grid grid-cols-2 gap-2">
-                    <Button variant="outline" onClick={() => status.mutate("conta")} disabled={table.status === "conta"} data-testid="request-bill-button">
+                    <Button variant="outline" onClick={() => setPreBill(true)} disabled={!items.some((i) => !i.cancelled)} data-testid="request-bill-button">
                       <Receipt className="size-4" /> Pré-conta
                     </Button>
                     <Button variant="secondary" onClick={() => setPayOpen(true)} disabled={!items.some((i) => !i.cancelled)} data-testid="close-table-button">
@@ -393,6 +421,10 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
           )}
         </SheetContent>
       </Sheet>
+      {table && preBill && (
+        <PreBillDialog table={table} order={o} open={preBill} onClose={() => setPreBill(false)}
+          onPrinted={() => { if (table.status !== "conta") status.mutate("conta"); setPreBill(false); }} />
+      )}
       <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} defaultService={10}
         title={`Fechamento · ${table ? tableLabel(table) : ""}`} pending={pay.isPending} onConfirm={(p) => pay.mutate(p)} />
       <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />

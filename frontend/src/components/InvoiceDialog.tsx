@@ -2,6 +2,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Printer } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { groupItems } from "@/lib/group";
 import { brl, fmtDateTime, payLabel } from "@/lib/format";
 import type { Invoice } from "@/lib/types";
 
@@ -26,8 +27,8 @@ export default function InvoiceDialog({ invoice, onClose }: { invoice: Invoice |
               <p className="text-center text-[10px] font-bold text-red-700">AMBIENTE DE SIMULAÇÃO — SEM VALOR FISCAL</p>
               <table className="mt-2 w-full">
                 <tbody>
-                  {invoice.items.map((i, idx) => (
-                    <tr key={idx}>
+                  {groupItems(invoice.items.map((i) => ({ ...i, options: [], notes: "", cancelled: false }))).map((i) => (
+                    <tr key={i.key}>
                       <td>{i.qty}x {i.name}</td>
                       <td className="text-right">{brl(i.qty * i.unit_price)}</td>
                     </tr>
