@@ -1,3 +1,4 @@
+import BillAlertsPanel from "@/components/BillAlerts";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowRight } from "lucide-react";
@@ -22,6 +23,7 @@ export default function Dashboard() {
           <AlertTriangle className="size-4" /> O caixa está fechado. Abra o caixa para registrar vendas. <ArrowRight className="ml-auto size-4" />
         </Link>
       )}
+      <BillAlertsPanel />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Faturamento hoje" value={brl(d?.revenue_today ?? 0)} testid="stat-revenue" accent="text-primary" />
         <Stat label="Pedidos pagos" value={String(d?.orders_today ?? 0)} hint={`Ticket médio ${brl(d?.avg_ticket ?? 0)}`} testid="stat-orders" />

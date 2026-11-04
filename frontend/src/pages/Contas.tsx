@@ -117,13 +117,13 @@ export default function Contas() {
   );
 }
 
-function BillForm({ kind, bill, partyLabel, onClose }: { kind: BillKind; bill: Bill | null; partyLabel: string; onClose: () => void }) {
+export function BillForm({ kind, bill, partyLabel, onClose, initialParty = "" }: { kind: BillKind; bill: Bill | null; partyLabel: string; onClose: () => void; initialParty?: string }) {
   const cats = useQuery({ queryKey: ["account-categories"], queryFn: () => apiGet<AccountCategory[]>("/account-categories") });
   const parties = useQuery({
     queryKey: [kind === "pagar" ? "suppliers" : "customers"],
     queryFn: async (): Promise<{ id: string; name: string }[]> => (kind === "pagar" ? apiGet<Supplier[]>("/suppliers") : apiGet<FiadoCustomer[]>("/customers")),
   });
-  const [f, setF] = useState({ description: bill?.description ?? "", category_id: bill?.category_id ?? "", party: bill?.party ?? "", amount: bill ? String(bill.amount) : "", due_date: bill?.due_date ?? today(), notes: bill?.notes ?? "", repeat: "1" });
+  const [f, setF] = useState({ description: bill?.description ?? "", category_id: bill?.category_id ?? "", party: bill?.party ?? initialParty, amount: bill ? String(bill.amount) : "", due_date: bill?.due_date ?? today(), notes: bill?.notes ?? "", repeat: "1" });
   const save = useMutation({
     mutationFn: () => {
       const body: BillIn = { kind, description: f.description, category_id: f.category_id, party: f.party, amount: num(f.amount), due_date: f.due_date, notes: f.notes, repeat_months: Math.max(1, Math.min(24, Number(f.repeat) || 1)) };

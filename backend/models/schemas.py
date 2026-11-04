@@ -689,6 +689,7 @@ class GeneralSettings(BaseModel):
     ie: str = ""
     city: str = ""
     receipt_footer: str = ""
+    alert_phone: str = ""  # WhatsApp do dono para lembretes de contas
     pix_key: str = ""
     pix_holder: str = ""
     phone: str = ""
@@ -813,6 +814,15 @@ class BillSummary(BaseModel):
     receber_aberto: float
     receber_vencido: float
     fiado_aberto: float
+
+
+class BillAlerts(BaseModel):
+    today: str
+    tomorrow_date: str
+    overdue: list[Bill]
+    due_today: list[Bill]
+    due_tomorrow: list[Bill]
+    alert_phone: str = ""
 
 
 class PaymentMethodCfg(BaseModel):

@@ -138,7 +138,7 @@ function Company() {
 }
 
 function CompanyForm({ init }: { init: GeneralSettings }) {
-  const [f, setF] = useState<GeneralSettings>({ ...{ company_name: "", trade_name: "", cnpj: "", ie: "", city: "", receipt_footer: "", pix_key: "", pix_holder: "", phone: "", address: "" }, ...init });
+  const [f, setF] = useState<GeneralSettings>({ ...{ company_name: "", trade_name: "", cnpj: "", ie: "", city: "", receipt_footer: "", alert_phone: "", pix_key: "", pix_holder: "", phone: "", address: "" }, ...init });
   const save = useMutation({
     mutationFn: () => apiPut<GeneralSettings>("/settings/general", f),
     onSuccess: () => { toast.success("Configurações salvas"); void queryClient.invalidateQueries({ queryKey: ["settings-general"] }); },
@@ -156,6 +156,7 @@ function CompanyForm({ init }: { init: GeneralSettings }) {
         {field("ie", "Inscrição estadual", "Isento ou número")}
         {field("city", "Cidade / UF", "Belo Horizonte/MG")}
         {field("receipt_footer", "Mensagem no rodapé do cupom", "Obrigado pela preferência!")}
+        {field("alert_phone", "Seu WhatsApp para lembretes de contas", "(31) 99999-0000")}
         {field("pix_key", "Chave PIX", "CNPJ, e-mail, telefone ou aleatória")}
         {field("pix_holder", "Nome do recebedor", "Espeteria Churras Buguer")}
         {field("phone", "Telefone / WhatsApp da loja", "(11) 99999-0000")}

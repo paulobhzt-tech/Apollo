@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Pencil, Plus, Receipt, Search, Trash2 } from "lucide-react";
+import { BillForm } from "@/pages/Contas";
 import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
 import AppShell, { PageHeader } from "@/components/AppShell";
@@ -135,6 +136,7 @@ function Fornecedores() {
   const q = useQuery({ queryKey: ["suppliers"], queryFn: () => apiGet<Supplier[]>("/suppliers") });
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Supplier | "new" | null>(null);
+  const [billFor, setBillFor] = useState<Supplier | null>(null);
   const del = useMutation({
     mutationFn: (id: string) => apiDelete<OkOut>(`/suppliers/${id}`),
     onSuccess: () => { toast.success("Fornecedor descadastrado"); void queryClient.invalidateQueries({ queryKey: ["suppliers"] }); },
@@ -156,6 +158,7 @@ function Fornecedores() {
                 <TableCell className="font-mono text-xs text-zinc-400">{s.doc || "—"}</TableCell>
                 <TableCell className="text-right">
                   {isAdmin && <>
+                    <Button size="sm" variant="outline" onClick={() => setBillFor(s)} data-testid={`supplier-bill-${s.id}`}><Receipt className="size-3.5" /> Lançar conta</Button>
                     <Button size="icon-sm" variant="ghost" onClick={() => setEditing(s)} data-testid={`supplier-edit-${s.id}`}><Pencil /></Button>
                     <Button size="icon-sm" variant="ghost" onClick={() => window.confirm(`Descadastrar ${s.name}?`) && del.mutate(s.id)} data-testid={`supplier-delete-${s.id}`}><Trash2 /></Button>
                   </>}
@@ -169,6 +172,11 @@ function Fornecedores() {
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
         <DialogContent className="border-white/10 bg-elevated sm:max-w-lg" data-testid="supplier-dialog">
           {editing && <SupplierForm s={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!billFor} onOpenChange={(v) => !v && setBillFor(null)}>
+        <DialogContent className="border-white/10 bg-elevated sm:max-w-lg" data-testid="supplier-bill-dialog">
+          {billFor && <BillForm kind="pagar" bill={null} partyLabel="Fornecedor" initialParty={billFor.name} onClose={() => setBillFor(null)} />}
         </DialogContent>
       </Dialog>
     </>

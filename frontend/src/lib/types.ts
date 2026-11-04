@@ -293,7 +293,7 @@ export interface CardFees { fees: Record<string, number> }
 export type PrinterPurpose = string; // "caixa" or an environment key
 export interface Printer { id: string; name: string; purpose: PrinterPurpose; paper: "58mm" | "80mm" | "A4"; ip: string; device_name: string; copies: number; active: boolean }
 export type PrinterIn = Omit<Printer, "id">;
-export interface GeneralSettings { company_name: string; trade_name: string; cnpj: string; ie: string; city: string; receipt_footer: string; pix_key: string; pix_holder: string; phone: string; address: string }
+export interface GeneralSettings { company_name: string; trade_name: string; cnpj: string; ie: string; city: string; receipt_footer: string; alert_phone: string; pix_key: string; pix_holder: string; phone: string; address: string }
 export interface OptionRank { group: string; name: string; qty: number; products: string[] }
 export interface RestoreIn { data: Record<string, unknown[]> }
 export interface RestoreOut { ok: boolean; counts: Record<string, number>; message: string }
@@ -316,3 +316,4 @@ export interface PaymentMethodCfg { id: string; key: string; name: string; kind:
 export interface PaymentMethodIn { name: string; fee_pct: number; active: boolean; sort: number }
 export interface ServerBackupInfo { id: string; at: string; trigger: string; size_kb: number; by_name: string }
 export interface LocalBackupSettings { auto: boolean; keep: number }
+export interface BillAlerts { today: string; tomorrow_date: string; overdue: Bill[]; due_today: Bill[]; due_tomorrow: Bill[]; alert_phone: string }

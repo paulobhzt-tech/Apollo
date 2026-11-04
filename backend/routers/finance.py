@@ -2,14 +2,14 @@
 import calendar
 import re
 import unicodedata
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from lib.auth import current_user, require
 from lib.orders import local_today
 from lib.db import db
-from models.schemas import (AccountCategory, AccountCategoryIn, Bill, BillIn, BillPayIn, BillSummary, OkOut,
+from models.schemas import (AccountCategory, AccountCategoryIn, Bill, BillAlerts, BillIn, BillPayIn, BillSummary, OkOut,
                             PaymentMethodCfg, PaymentMethodIn)
 
 router = APIRouter()
@@ -138,6 +138,18 @@ async def bills_summary(_: dict = Depends(require("caixa"))):
             out["pagar_hoje"] += b["amount"]
     fiado = await db.fiado_customers.aggregate([{"$group": {"_id": None, "t": {"$sum": "$balance"}}}]).to_list(1)
     return BillSummary(**{k: round(v, 2) for k, v in out.items()}, fiado_aberto=round(fiado[0]["t"], 2) if fiado else 0)
+
+
+@router.get("/bills/alerts", response_model=BillAlerts)
+async def bills_alerts(_: dict = Depends(require("caixa"))):
+    """Painel: open bills overdue, due today and due tomorrow (tomorrow = WhatsApp reminder for the owner)."""
+    today = local_today()
+    tomorrow = (date.fromisoformat(today) + timedelta(days=1)).isoformat()
+    bills = await db.bills.find({"status": "aberto", "due_date": {"$lte": tomorrow}}, {"_id": 0}).sort("due_date", 1).to_list(1000)
+    gen = await db.settings.find_one({"_id": "general"}) or {}
+    return BillAlerts(today=today, tomorrow_date=tomorrow, overdue=[b for b in bills if b["due_date"] < today],
+                      due_today=[b for b in bills if b["due_date"] == today], due_tomorrow=[b for b in bills if b["due_date"] == tomorrow],
+                      alert_phone=gen.get("alert_phone", ""))
 
 
 async def _category_name(cid: str, kind: str) -> str:
