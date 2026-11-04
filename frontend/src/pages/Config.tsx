@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import SelfTest from "@/components/SelfTest";
+import SyncPanel from "@/components/SyncPanel";
+import DevicePrinterField from "@/components/DevicePrinterField";
 import DriveBackup from "@/components/DriveBackup";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CloudUpload, Download, Pencil, Plus, Printer as PrinterIcon, Trash2, Upload } from "lucide-react";
@@ -36,12 +38,14 @@ export default function Config() {
           <TabsTrigger value="taxas" data-testid="config-tab-fees">Taxas de cartão</TabsTrigger>
           <TabsTrigger value="backup" data-testid="config-tab-backup">Backup</TabsTrigger>
           <TabsTrigger value="autoteste" data-testid="config-tab-selftest">Auto teste</TabsTrigger>
+          <TabsTrigger value="sync" data-testid="config-tab-sync">Sincronização</TabsTrigger>
         </TabsList>
         <TabsContent value="impressoras" className="mt-4"><Printers /></TabsContent>
         <TabsContent value="empresa" className="mt-4"><Company /></TabsContent>
         <TabsContent value="taxas" className="mt-0"><CardFeesPanel /></TabsContent>
         <TabsContent value="backup" className="mt-4"><Backup flash={params.get("drive")} /></TabsContent>
         <TabsContent value="autoteste" className="mt-4"><SelfTest /></TabsContent>
+        <TabsContent value="sync" className="mt-4"><SyncPanel /></TabsContent>
       </Tabs>
     </AppShell>
   );
@@ -71,7 +75,7 @@ function Printers() {
               <span className="grid size-10 place-items-center rounded-xl bg-primary/15 text-primary"><PrinterIcon className="size-5" /></span>
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-white">{p.name}</p>
-                <p className="text-xs text-zinc-500">{label(p.purpose)} · {p.paper}{p.ip && ` · ${p.ip}`} · {p.copies} via(s)</p>
+                <p className="text-xs text-zinc-500">{label(p.purpose)} · {p.paper}{p.device_name && ` · ${p.device_name}`}{p.ip && ` · ${p.ip}`} · {p.copies} via(s)</p>
               </div>
               {!p.active && <Badge variant="outline">Inativa</Badge>}
             </div>
@@ -94,7 +98,7 @@ function Printers() {
 
 function PrinterForm({ editing, onClose }: { editing: Printer | "new"; onClose: () => void }) {
   const P = usePurposes();
-  const [f, setF] = useState<PrinterIn>(editing === "new" ? { name: "", purpose: "cozinha", paper: "80mm", ip: "", copies: 1, active: true } : { ...editing });
+  const [f, setF] = useState<PrinterIn>(editing === "new" ? { name: "", purpose: "cozinha", paper: "80mm", ip: "", device_name: "", copies: 1, active: true } : { ...editing });
   const save = useMutation({
     mutationFn: () => (editing === "new" ? apiPost<Printer>("/printers", f) : apiPut<Printer>(`/printers/${editing.id}`, f)),
     onSuccess: () => { toast.success("Impressora salva"); invP(); onClose(); },
@@ -116,6 +120,7 @@ function PrinterForm({ editing, onClose }: { editing: Printer | "new"; onClose: 
             <SelectContent>{["58mm", "80mm", "A4"].map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
           </Select></div>
         <div><Label className="text-xs text-zinc-400">IP (opcional)</Label><Input value={f.ip} placeholder="192.168.0.50" onChange={(e) => setF({ ...f, ip: e.target.value })} className="mt-1 font-mono" data-testid="printer-ip-input" /></div>
+        <DevicePrinterField value={f.device_name ?? ""} onChange={(v) => setF({ ...f, device_name: v })} />
         <div><Label className="text-xs text-zinc-400">Vias</Label><Input value={String(f.copies)} inputMode="numeric" onChange={(e) => setF({ ...f, copies: Math.min(5, Math.max(1, Number(e.target.value) || 1)) })} className="mt-1 font-mono" data-testid="printer-copies-input" /></div>
       </div>
       <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={f.active} onCheckedChange={(v) => setF({ ...f, active: !!v })} data-testid="printer-active-checkbox" /> Ativa</label>

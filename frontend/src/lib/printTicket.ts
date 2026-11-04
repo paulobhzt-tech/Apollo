@@ -1,3 +1,4 @@
+import { desktop } from "@/lib/desktop";
 import type { KitchenTicket, Printer } from "@/lib/types";
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
@@ -25,8 +26,14 @@ export function ticketHtml(t: KitchenTicket, station: string, envLabel: string, 
   <div class="meta">Pedido #${t.order_number} · ${time}</div>${rows}<p style="text-align:center;font-size:11px">Espeteria Churras Buguer</p></body></html>`;
 }
 
-/** Prints HTML through a hidden iframe (no pop-up). Silent with Chrome started with --kiosk-printing. */
-export function printHtml(html: string, copies = 1): Promise<void> {
+/** Desktop app: silent print straight to the chosen Windows printer. Browser: hidden iframe (print dialog unless --kiosk-printing). */
+export async function printHtml(html: string, copies = 1, printer?: Pick<Printer, "device_name" | "paper">): Promise<void> {
+  const d = desktop();
+  if (d) {
+    const r = await d.print({ html, deviceName: printer?.device_name || undefined, copies, paper: printer?.paper });
+    if (!r.ok) throw new Error(r.error || "Falha na impressão");
+    return;
+  }
   return new Promise((resolve) => {
     const frame = document.createElement("iframe");
     frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";

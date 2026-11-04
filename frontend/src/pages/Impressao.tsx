@@ -11,6 +11,7 @@ import { apiGet, apiPost } from "@/lib/api";
 import { envName, useEnvironments } from "@/lib/environments";
 import { fmtTime } from "@/lib/format";
 import { printHtml, ticketHtml } from "@/lib/printTicket";
+import { isDesktop } from "@/lib/desktop";
 import { queryClient } from "@/lib/queryClient";
 import type { KitchenTicket, Printer } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -40,7 +41,7 @@ export default function Impressao() {
 
   const printOne = async (t: KitchenTicket, station: string) => {
     const pr = printerFor(station);
-    await printHtml(ticketHtml(t, station, envName(envs.data, station), pr?.paper), pr?.copies ?? 1);
+    await printHtml(ticketHtml(t, station, envName(envs.data, station), pr?.paper), pr?.copies ?? 1, pr);
     await apiPost<KitchenTicket>(`/kds/tickets/${t.id}/printed`, { station });
     setLog((l) => [{ id: `${t.id}-${station}-${Date.now()}`, text: `${envName(envs.data, station)} · ${t.label} (#${t.order_number})${pr ? ` → ${pr.name}` : ""}`, at: new Date().toISOString() }, ...l].slice(0, 30));
   };
@@ -97,7 +98,7 @@ export default function Impressao() {
           </Panel>
           <Panel title="Impressão sem janela (recomendado)">
             <p className="text-xs leading-relaxed text-zinc-400">
-              Defina a impressora térmica como padrão do Windows e abra o Google Chrome com a opção <code className="rounded bg-white/10 px-1 font-mono text-zinc-200">--kiosk-printing</code> no atalho.
+              {isDesktop() ? "Aplicativo PDV 3.0: os tickets saem direto na impressora do Windows escolhida em Configurações → Impressoras, sem janela." : <>Instale o aplicativo <b>PDV 3.0</b> para Windows para imprimir direto, ou defina a impressora térmica como padrão e abra o Chrome com a opção <code className="rounded bg-white/10 px-1 font-mono text-zinc-200">--kiosk-printing</code> no atalho.</>}
               Assim os tickets saem direto, sem a janela de confirmação. Para imprimir em várias impressoras, use um computador/tablet por ambiente ou um perfil do Chrome para cada impressora.
             </p>
           </Panel>

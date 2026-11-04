@@ -665,6 +665,7 @@ class Printer(BaseModel):
     purpose: str = "caixa"  # "caixa" or an environment key
     paper: Literal["58mm", "80mm", "A4"] = "80mm"
     ip: str = ""
+    device_name: str = ""  # Windows printer name (desktop app prints silently to it)
     copies: int = 1
     active: bool = True
 
@@ -674,6 +675,7 @@ class PrinterIn(BaseModel):
     purpose: str = "caixa"  # "caixa" or an environment key
     paper: Literal["58mm", "80mm", "A4"] = "80mm"
     ip: str = ""
+    device_name: str = ""
     copies: int = Field(default=1, ge=1, le=5)
     active: bool = True
 

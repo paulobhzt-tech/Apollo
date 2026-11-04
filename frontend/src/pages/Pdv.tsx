@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { brl, errMsg, uid } from "@/lib/format";
-import { cacheMenu, cachedMenu, enqueue, useOffline } from "@/lib/offline";
+import { cacheMenu, cachedMenu, enqueue, newClientRef, useOffline } from "@/lib/offline";
 import { queryClient } from "@/lib/queryClient";
 import type { Category, ChosenOption, Invoice, PayIn, Product, QuickSaleIn, SaleResult } from "@/lib/types";
 
@@ -77,7 +77,7 @@ export default function Pdv() {
 
   const confirm = (pay: PayIn) => {
     const payload: QuickSaleIn = {
-      ...pay, client_ref: uid(), customer_name: customer, send_to_kitchen: kitchen,
+      ...pay, client_ref: newClientRef(), customer_name: customer, send_to_kitchen: kitchen,
       items: cart.map((l) => ({ product_id: l.product.id, qty: l.qty, notes: l.notes, options: l.options })),
     };
     if (offline) {

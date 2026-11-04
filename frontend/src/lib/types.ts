@@ -289,7 +289,7 @@ export interface CustomerMove {
 }
 export interface CardFees { fees: Record<string, number> }
 export type PrinterPurpose = string; // "caixa" or an environment key
-export interface Printer { id: string; name: string; purpose: PrinterPurpose; paper: "58mm" | "80mm" | "A4"; ip: string; copies: number; active: boolean }
+export interface Printer { id: string; name: string; purpose: PrinterPurpose; paper: "58mm" | "80mm" | "A4"; ip: string; device_name: string; copies: number; active: boolean }
 export type PrinterIn = Omit<Printer, "id">;
 export interface GeneralSettings { company_name: string; trade_name: string; cnpj: string; ie: string; city: string; receipt_footer: string; pix_key: string; pix_holder: string; phone: string; address: string }
 export interface OptionRank { group: string; name: string; qty: number; products: string[] }

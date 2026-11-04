@@ -1,0 +1,40 @@
+{
+  "name": "pdv-espeteria-desktop",
+  "productName": "PDV 3.0",
+  "version": "3.0.0",
+  "description": "PDV 3.0 - Espeteria Churras Buguer (aplicativo Windows)",
+  "author": "Espeteria Churras Buguer",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "web": "node scripts/build-web.js",
+    "start": "electron .",
+    "dist": "node scripts/build-web.js && electron-builder --win nsis --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.4.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "br.com.espeteria.pdv",
+    "productName": "PDV 3.0",
+    "copyright": "Espeteria Churras Buguer",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "offline.html", "config.default.json", "web/**/*", "package.json"],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.png",
+      "artifactName": "PDV-3.0-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PDV 3.0",
+      "uninstallDisplayName": "PDV 3.0 - Espeteria Churras Buguer",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

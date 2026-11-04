@@ -49,5 +49,5 @@ export async function printSimpleReceipt(o: Order) {
     ${o.change ? `<div class="row"><span>Troco</span><span>${brl(o.change)}</span></div>` : ""}
     <div class="sep"></div><div class="c"><b>NÃO É DOCUMENTO FISCAL</b><br>${esc(s?.receipt_footer || "Obrigado pela preferência!")}</div>
   </body></html>`;
-  await printHtml(html, 1);
+  await printHtml(html, pr?.copies ?? 1, pr);
 }

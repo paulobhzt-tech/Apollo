@@ -55,7 +55,7 @@ export default function PreBillDialog({ table, order, open, onClose, onPrinted }
       <div class="sep"></div><div class="c"><b>NÃO É DOCUMENTO FISCAL</b><br>Confira seu pedido antes do pagamento</div>
       <div class="c" style="font-size:10px">${fmtDateTime(new Date().toISOString())}</div>
     </body></html>`;
-    await printHtml(html, 1);
+    await printHtml(html, 1, pr);
     onPrinted();
   };
 
