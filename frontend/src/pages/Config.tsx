@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import SelfTest from "@/components/SelfTest";
+import DriveBackup from "@/components/DriveBackup";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CloudUpload, Download, Pencil, Plus, Printer as PrinterIcon, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -22,20 +25,23 @@ import { Panel } from "./Dashboard";
 const invP = () => void queryClient.invalidateQueries({ queryKey: ["printers"] });
 
 export default function Config() {
+  const [params] = useSearchParams();
   return (
     <AppShell roles={[]}>
-      <PageHeader title="Configurações" subtitle="Impressoras, dados da empresa e PIX, taxas de cartão e backup" />
-      <Tabs defaultValue="impressoras">
+      <PageHeader title="Configurações" subtitle="Impressoras, dados da empresa e PIX, taxas de cartão, backup e auto teste" />
+      <Tabs defaultValue={params.get("tab") ?? "impressoras"}>
         <TabsList>
           <TabsTrigger value="impressoras" data-testid="config-tab-printers">Impressoras</TabsTrigger>
           <TabsTrigger value="empresa" data-testid="config-tab-company">Empresa & PIX</TabsTrigger>
           <TabsTrigger value="taxas" data-testid="config-tab-fees">Taxas de cartão</TabsTrigger>
           <TabsTrigger value="backup" data-testid="config-tab-backup">Backup</TabsTrigger>
+          <TabsTrigger value="autoteste" data-testid="config-tab-selftest">Auto teste</TabsTrigger>
         </TabsList>
         <TabsContent value="impressoras" className="mt-4"><Printers /></TabsContent>
         <TabsContent value="empresa" className="mt-4"><Company /></TabsContent>
         <TabsContent value="taxas" className="mt-0"><CardFeesPanel /></TabsContent>
-        <TabsContent value="backup" className="mt-4"><Backup /></TabsContent>
+        <TabsContent value="backup" className="mt-4"><Backup flash={params.get("drive")} /></TabsContent>
+        <TabsContent value="autoteste" className="mt-4"><SelfTest /></TabsContent>
       </Tabs>
     </AppShell>
   );
@@ -146,7 +152,7 @@ function CompanyForm({ init }: { init: GeneralSettings }) {
   );
 }
 
-function Backup() {
+function Backup({ flash }: { flash: string | null }) {
   const [busy, setBusy] = useState(false);
   const download = async () => {
     setBusy(true);
@@ -166,7 +172,8 @@ function Backup() {
   };
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-    <Panel title="Backup completo">
+    <DriveBackup flash={flash} />
+    <Panel title="Backup manual (baixar arquivo)">
       <p className="text-sm text-zinc-400">Gera um arquivo com produtos (incluindo imagens), estoque, vendas, caixa, fiado, funcionários (sem PINs) e configurações.</p>
       <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-zinc-300">
         <li>Clique em “Baixar backup”.</li>

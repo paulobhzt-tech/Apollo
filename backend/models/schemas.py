@@ -667,6 +667,50 @@ class RestoreOut(BaseModel):
     message: str = ""
 
 
+class DriveBackupInfo(BaseModel):
+    at: Optional[datetime] = None
+    ok: bool = False
+    file_name: str = ""
+    size_kb: int = 0
+    trigger: str = ""  # "manual" | "automatico"
+    error: str = ""
+
+
+class DriveStatus(BaseModel):
+    configured: bool  # Google credentials present on the server
+    connected: bool
+    email: str = ""
+    auto: bool = True
+    folder_name: str = "Backups Espeteria"
+    last: Optional[DriveBackupInfo] = None
+    history: list[DriveBackupInfo] = []
+
+
+class DriveSettingsIn(BaseModel):
+    auto: bool
+
+
+class AuthUrlOut(BaseModel):
+    authorization_url: str
+
+
+class SelfTestCheck(BaseModel):
+    key: str
+    label: str
+    status: Literal["ok", "aviso", "falha"]
+    detail: str = ""
+    fix: str = ""  # where to fix it in the app
+
+
+class SelfTestResult(BaseModel):
+    at: datetime
+    by_name: str = ""
+    ok: int
+    warnings: int
+    failures: int
+    checks: list[SelfTestCheck]
+
+
 class OkOut(BaseModel):
     ok: bool = True
     message: str = ""

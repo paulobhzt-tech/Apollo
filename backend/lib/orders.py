@@ -1,5 +1,5 @@
 """Order domain helpers shared by PDV, tables, delivery and public routers."""
-import random
+import secrets
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -153,10 +153,10 @@ async def emit_invoice(order: dict, doc_type: str = "nfce", cpf: str = "") -> di
     number = await next_seq(f"invoice_{doc_type}")
     model = "65" if doc_type == "nfce" else "55"
     dt = now()
-    key = f"35{dt:%y%m}12345678000190{model}001{number:09d}1{random.randint(10**7, 10**8 - 1)}"
+    key = f"35{dt:%y%m}12345678000190{model}001{number:09d}1{secrets.randbelow(9 * 10**7) + 10**7}"
     key += str(sum(int(c) for c in key) % 10)
     inv = Invoice(
-        number=number, doc_type=doc_type, access_key=key, protocol=f"135{random.randint(10**11, 10**12 - 1)}",
+        number=number, doc_type=doc_type, access_key=key, protocol=f"135{secrets.randbelow(9 * 10**11) + 10**11}",
         order_id=order["id"], order_number=order["number"], total=order["total"],
         items=[InvoiceItem(name=i["name"], qty=i["qty"], unit_price=i["unit_price"]) for i in order["items"] if not i.get("cancelled")],
         payments=order.get("payments", []), customer_cpf=cpf,

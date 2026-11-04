@@ -37,7 +37,7 @@ export function printHtml(html: string, copies = 1): Promise<void> {
     doc.write(Array.from({ length: Math.max(1, copies) }, () => html).join('<div style="page-break-after:always"></div>'));
     doc.close();
     setTimeout(() => {
-      try { frame.contentWindow?.focus(); frame.contentWindow?.print(); } catch { /* ignore */ }
+      try { frame.contentWindow?.focus(); frame.contentWindow?.print(); } catch (err) { console.error("Falha ao imprimir ticket:", err); }
       setTimeout(() => { frame.remove(); resolve(); }, 500);
     }, 250);
   });

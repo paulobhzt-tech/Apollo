@@ -16,7 +16,7 @@ import { cacheMenu, cachedMenu, enqueue, useOffline } from "@/lib/offline";
 import { queryClient } from "@/lib/queryClient";
 import type { Category, ChosenOption, Invoice, PayIn, Product, QuickSaleIn, SaleResult } from "@/lib/types";
 
-interface CartLine { product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number }
+interface CartLine { key: string; product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number }
 
 export default function Pdv() {
   const { offline, queue } = useOffline();
@@ -47,7 +47,7 @@ export default function Pdv() {
       const i = c.findIndex((l) => l.product.id === p.id && !l.notes && !l.options.length);
       if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
     }
-    return [...c, { product: p, qty: 1, notes: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
+    return [...c, { key: uid(), product: p, qty: 1, notes: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
   });
   const add = (p: Product) => (p.options?.length ? setOptFor(p) : push(p));
   const setQty = (i: number, d: number) =>
@@ -105,7 +105,7 @@ export default function Pdv() {
             <Input placeholder="Nome do cliente (opcional)" value={customer} onChange={(e) => setCustomer(e.target.value)} className="mt-3" data-testid="pdv-customer-input" />
             <div className="mt-3 flex-1 space-y-2 overflow-y-auto pr-1">
               {cart.map((l, i) => (
-                <div key={i} className="rounded-xl bg-panel p-3 animate-rise" data-testid={`cart-line-${i}`}>
+                <div key={l.key} className="rounded-xl bg-panel p-3 animate-rise" data-testid={`cart-line-${i}`}>
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-sm font-medium text-white">{l.product.name}{l.labels.length > 0 && <span className="block text-xs text-primary">{l.labels.join(" · ")}</span>}</p>
                     <p className="font-mono text-sm text-white">{brl(l.qty * (l.product.price + l.extra))}</p>

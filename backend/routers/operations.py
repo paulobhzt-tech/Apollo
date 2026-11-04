@@ -1,4 +1,4 @@
-import random
+import secrets
 from datetime import timedelta
 from typing import Optional
 
@@ -29,6 +29,7 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
     order = await new_order(channel="balcao", source="pdv", items=[i.model_dump() for i in items],
                             client_ref=body.client_ref, customer={"name": body.customer_name, "cpf": body.customer_cpf},
                             waiter_id=user["id"], waiter_name=user["name"])
+    inv = None
     try:
         order, inv = await finalize_payment(order, body)
     except HTTPException:
@@ -181,11 +182,12 @@ async def simulate(body: SimulateIn, _: dict = Depends(require("caixa"))):
     prods = await db.products.find({"active": True}, {"_id": 0, "id": 1}).to_list(500)
     if not prods:
         raise HTTPException(400, "Cadastre produtos primeiro")
-    picks = random.sample(prods, k=min(len(prods), random.randint(1, 3)))
-    items = await build_items([OrderItemIn(product_id=p["id"], qty=random.randint(1, 2)) for p in picks])
+    rng = secrets.SystemRandom()
+    picks = rng.sample(prods, k=min(len(prods), rng.randint(1, 3)))
+    items = await build_items([OrderItemIn(product_id=p["id"], qty=rng.randint(1, 2)) for p in picks])
     return await create_delivery_order(body.source, items, {
-        "name": random.choice(NAMES), "phone": f"(11) 9{random.randint(1000, 9999)}-{random.randint(1000, 9999)}",
-        "address": random.choice(STREETS)}, pay_on_delivery=None if body.source != "site" else "pix")
+        "name": rng.choice(NAMES), "phone": f"(11) 9{rng.randint(1000, 9999)}-{rng.randint(1000, 9999)}",
+        "address": rng.choice(STREETS)}, pay_on_delivery=None if body.source != "site" else "pix")
 
 
 async def create_delivery_order(source: str, items: list[OrderItem], customer: dict, pay_on_delivery: str | None) -> dict:

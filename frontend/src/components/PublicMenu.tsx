@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
 import OptionsDialog, { type Picked } from "./OptionsDialog";
 import { apiGet } from "@/lib/api";
-import { brl } from "@/lib/format";
+import { brl, uid } from "@/lib/format";
 import type { ChosenOption, OrderItemIn, Product, PublicMenu as Menu } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export interface CartLine { product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number }
+export interface CartLine { key: string; product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number }
 
 export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOpen }: {
   header: ReactNode;
@@ -32,7 +32,7 @@ export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOp
       const i = c.findIndex((l) => l.product.id === p.id && !l.notes && !l.options.length);
       if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
     }
-    return [...c, { product: p, qty: 1, notes: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
+    return [...c, { key: uid(), product: p, qty: 1, notes: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
   });
   const add = (p: Product) => (p.options?.length ? setOptFor(p) : push(p));
   const dec = (i: number) => setCart((c) => c.flatMap((l, j) => (j !== i ? [l] : l.qty <= 1 ? [] : [{ ...l, qty: l.qty - 1 }])));
@@ -94,7 +94,7 @@ export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOp
           <SheetTitle className="font-heading text-xl text-white">Seu pedido</SheetTitle>
           <div className="mx-auto mt-3 w-full max-w-3xl space-y-3">
             {cart.map((l, i) => (
-              <div key={i} className="rounded-xl bg-white/5 p-3" data-testid={`public-cart-line-${i}`}>
+              <div key={l.key} className="rounded-xl bg-white/5 p-3" data-testid={`public-cart-line-${i}`}>
                 <div className="flex items-center gap-3">
                   <Button size="icon-xs" variant="outline" onClick={() => dec(i)} data-testid={`public-cart-dec-${i}`}><Minus /></Button>
                   <span className="w-5 text-center font-mono">{l.qty}</span>

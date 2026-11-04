@@ -293,3 +293,10 @@ export interface OptionRank { group: string; name: string; qty: number; products
 export interface RestoreIn { data: Record<string, unknown[]> }
 export interface RestoreOut { ok: boolean; counts: Record<string, number>; message: string }
 export interface OkOut { ok: boolean; message: string }
+export interface DriveBackupInfo { at: string | null; ok: boolean; file_name: string; size_kb: number; trigger: string; error: string }
+export interface DriveStatus { configured: boolean; connected: boolean; email: string; auto: boolean; folder_name: string; last: DriveBackupInfo | null; history: DriveBackupInfo[] }
+export interface DriveSettingsIn { auto: boolean }
+export interface AuthUrlOut { authorization_url: string }
+export type SelfTestStatus = "ok" | "aviso" | "falha";
+export interface SelfTestCheck { key: string; label: string; status: SelfTestStatus; detail: string; fix: string }
+export interface SelfTestResult { at: string; by_name: string; ok: number; warnings: number; failures: number; checks: SelfTestCheck[] }

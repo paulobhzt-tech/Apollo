@@ -1,0 +1,9 @@
+crons:
+  - name: nightly-backup
+    description: "Envia o backup completo para o Google Drive todo dia às 03:00 (Brasília)"
+    cron: "0 3 * * *"
+    timezone: "America/Sao_Paulo"
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    endpoint: "{{BASE_URL}}/api/cron/nightly-backup"
+    method: POST
+    enabled: true

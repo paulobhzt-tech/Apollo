@@ -54,16 +54,24 @@ async def put_general(body: GeneralSettings, _: dict = Depends(require())):
     return body
 
 
-@router.get("/backup")
-async def backup(_: dict = Depends(require())):
-    """Full JSON export (products incl. images, orders, finance…). PIN hashes and sessions are excluded."""
+async def build_backup() -> tuple[str, dict]:
+    """Full JSON export (products incl. images, orders, finance…). PIN hashes, sessions and Drive tokens are excluded."""
     data = {}
     for c in BACKUP_COLLS:
-        proj = {"_id": 0, "pin_hash": 0} if c == "employees" else (None if c in KEEP_ID else {"_id": 0})
-        data[c] = await db[c].find({}, proj).to_list(100000)
+        if c == "employees":
+            proj = {"_id": 0, "pin_hash": 0}
+        else:
+            proj = None if c in KEEP_ID else {"_id": 0}
+        q = {"_id": {"$nin": ["drive", "selftest_last"]}} if c == "settings" else {}
+        data[c] = await db[c].find(q, proj).to_list(100000)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M")
-    return JSONResponse(jsonable_encoder({"app": "Espeteria Churras Buguer", "created_at": stamp, "data": data}),
-                        headers={"Content-Disposition": f'attachment; filename="backup-espeteria-{stamp}.json"'})
+    return stamp, jsonable_encoder({"app": "Espeteria Churras Buguer", "created_at": stamp, "data": data})
+
+
+@router.get("/backup")
+async def backup(_: dict = Depends(require())):
+    stamp, payload = await build_backup()
+    return JSONResponse(payload, headers={"Content-Disposition": f'attachment; filename="backup-espeteria-{stamp}.json"'})
 
 
 def revive(v):
@@ -85,6 +93,8 @@ async def restore(body: RestoreIn, me: dict = Depends(require())):
     """Replaces each collection present in the backup. Employees keep their current PINs (backups never carry PINs);
     employees that do not exist here are restored inactive until the admin sets a PIN. The logged-in admin is always kept."""
     data = {k: v for k, v in body.data.items() if k in BACKUP_COLLS}
+    if "settings" in data:  # never overwrite the Google Drive connection of this install
+        data["settings"] = [d for d in data["settings"] if isinstance(d, dict) and d.get("_id") != "drive"]
     if not data.get("products") and not data.get("orders"):
         raise HTTPException(400, "Arquivo de backup inválido ou vazio")
     counts: dict[str, int] = {}
@@ -104,7 +114,7 @@ async def restore(body: RestoreIn, me: dict = Depends(require())):
                 await db.employees.replace_one({"id": d["id"]}, d, upsert=True)
             counts[c] = len(keep)
             continue
-        await db[c].delete_many({})
+        await db[c].delete_many({"_id": {"$ne": "drive"}} if c == "settings" else {})
         if docs:
             await db[c].insert_many(docs)
         counts[c] = len(docs)

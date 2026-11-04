@@ -45,19 +45,21 @@ export default function Impressao() {
     setLog((l) => [{ id: `${t.id}-${station}-${Date.now()}`, text: `${envName(envs.data, station)} · ${t.label} (#${t.order_number})${pr ? ` → ${pr.name}` : ""}`, at: new Date().toISOString() }, ...l].slice(0, 30));
   };
 
+  const latest = useRef({ printOne, autoKeys });
+  latest.current = { printOne, autoKeys };
   useEffect(() => {
     if (!cfg.auto || !queue.data?.length || busy.current) return;
+    const { printOne: print, autoKeys: keys } = latest.current;
     busy.current = true;
     void (async () => {
       try {
         for (const t of queue.data) {
-          const pending = [...new Set(t.items.filter((i) => autoKeys.includes(i.station) && i.print_ticket !== false).map((i) => i.station))].filter((s) => !t.printed.includes(s));
-          for (const s of pending) await printOne(t, s);
+          const pending = [...new Set(t.items.filter((i) => keys.includes(i.station) && i.print_ticket !== false).map((i) => i.station))].filter((s) => !t.printed.includes(s));
+          for (const s of pending) await print(t, s);
         }
-      } catch { toast.error("Falha ao imprimir um ticket"); }
+      } catch (err) { console.error("Auto print failed:", err); toast.error("Falha ao imprimir um ticket"); }
       finally { busy.current = false; void queryClient.invalidateQueries({ queryKey: ["print-queue"] }); void queryClient.invalidateQueries({ queryKey: ["print-recent"] }); }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue.data, cfg.auto]);
 
   const toggleStation = (k: string) => setCfg((c) => ({ ...c, stations: c.stations.includes(k) ? c.stations.filter((x) => x !== k) : [...c.stations, k] }));

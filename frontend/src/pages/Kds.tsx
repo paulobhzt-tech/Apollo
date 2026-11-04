@@ -25,7 +25,7 @@ function beep() {
     o.connect(g); g.connect(ctx.destination);
     o.frequency.value = 880; g.gain.value = 0.08;
     o.start(); o.stop(ctx.currentTime + 0.25);
-  } catch { /* audio not allowed */ }
+  } catch (err) { console.warn("Som de novo pedido bloqueado pelo navegador:", err); }
 }
 
 export default function Kds() {

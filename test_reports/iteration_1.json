@@ -1,0 +1,90 @@
+{
+  "iteration": 1,
+  "passed": 11,
+  "failed": 0,
+  "bugs": [],
+  "action_items": [
+    "Seed facts in briefing/test_credentials.md are stale: the live DB currently has only 2 employees (both admin: 'Henrique J', 'Paulo H') and PINs 0000/1111/2222/3333 (caixa/garcom/cozinha) do NOT exist. Only PIN 1234 (admin) works. Worked around by using admin for all role checks (admin passes every require() check) and by creating one tscheck- caixa employee for the 403 negative test. This is a data-state note, not an app bug.",
+    "The 'Cash session is open' seed fact was also false at test time (cash was closed, returned null from GET /api/cash/current). Opened a real cash session via POST /api/cash/open (additive, non-destructive) so PDV/invoice flows could be exercised, since an open cash session is required baseline app state, not seeded test data."
+  ],
+  "retest_needed": false,
+  "checks": [
+    {
+      "criterion": "PDV cart lines use stable keys (code-review fix)",
+      "name": "pdv-cart-stable-keys-checkout",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "Logged in as admin (1234), added 3 distinct products to /pdv cart, set note 'sem cebola' on 2nd line, removed 1st line via cart-dec-0 (qty 1 -> removed), confirmed note stayed on the product by checking cart-notes-0 == 'sem cebola' after removal (count 3->2). Checked out via PIX, payment-dialog confirmed, saw 'finalizada' success toast."
+    },
+    {
+      "criterion": "Mesas pending items stable keys",
+      "name": "mesas-pending-stable-keys",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "Opened free Mesa 7 via table-card-7 -> open-table-button, added 2 products to pending (auto-opens add grid), set note 'sem cebola' on pending-line-1, decremented pending-line-0's qty (1->0, removed), verified pending-notes-0 == 'sem cebola' (now 1st line). Sent items: POST .../tables/{id}/items returned <400 (captured via waitForResponse) and 'Itens enviados' toast appeared. (First attempt failed intermittently waiting for add-items-button right after opening the table because opening already auto-sets adding=true, racing with the button's brief visibility; rewritten to wait on table-order-items instead -> passed on rerun.)"
+    },
+    {
+      "criterion": "Public QR menu cart stable keys",
+      "name": "cardapio-public-cart-stable-keys",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "Opened /cardapio/<free table id> (no login, public route), added 2 distinct products via public-add-*, opened public-cart-sheet (2 lines), captured 2nd line's product name, removed 1st line via public-cart-dec-0 (qty1->removed), verified remaining line (public-cart-line-0) now shows the product/name that was previously on line 1, and public-send-order button still enabled."
+    },
+    {
+      "criterion": "Auto teste refactor",
+      "name": "autoteste-selftest-run",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "On /config?tab=autoteste clicked selftest-run-button; captured POST /api/selftest response: 200, body.checks.length==11, ok+warnings+failures==11. UI rendered 13 selftest-check-* rows (11 server + 2 device: internet, offline-queue), each with an ok/aviso/falha tone class (emerald/amber/red border)."
+    },
+    {
+      "criterion": "Auto teste refactor (non-admin 403)",
+      "name": "test_tscheck_autoteste.py::test_selftest_non_admin_forbidden",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "Created employee 'tscheck-selftest-caixa' (role=caixa) via admin, logged in as that PIN, POST /api/selftest -> 403. (Could not use briefing's caixa PIN 0000 - that account does not exist in the current DB; see action_items.)"
+    },
+    {
+      "criterion": "Auto teste refactor (admin happy path, backend)",
+      "name": "test_tscheck_autoteste.py::test_selftest_admin_ok",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "POST /api/selftest as admin (PIN 1234) -> 200, checks=11 items with key in {banco,acesso,produtos,ambientes,impressoras,fila,caixa,estoque,pagamentos,backup,agendador}, ok+warnings+failures==11."
+    },
+    {
+      "criterion": "Mock invoice/delivery generation now uses secrets module (delivery)",
+      "name": "delivery-simulate-mock-order",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "On /delivery clicked simulate-ifood; POST /api/delivery/simulate -> 200; order with returned order.number became visible as delivery-order-{number} card on the page."
+    },
+    {
+      "criterion": "Mock invoice/delivery generation now uses secrets module (delivery, backend)",
+      "name": "test_tscheck_delivery_simulate.py::test_delivery_simulate_ifood_creates_order",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "POST /api/delivery/simulate {source:'ifood'} -> 200, channel=delivery, source=ifood, delivery_status=pendente, >=1 item; GET /api/delivery/orders includes the created order id."
+    },
+    {
+      "criterion": "Mock invoice/delivery generation now uses secrets module (NFC-e access_key)",
+      "name": "test_tscheck_nfce_invoice.py::test_pdv_sale_pix_emits_nfce_with_44_digit_access_key",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "POST /api/pdv/sale (pix, full amount, emit_invoice=true, doc_type=nfce) -> 200; response.invoice.doc_type=='nfce', access_key is 44 numeric digits (lib/orders.py emit_invoice uses secrets.randbelow)."
+    },
+    {
+      "criterion": "Central de Impressão auto print still works after ref refactor",
+      "name": "impressao-auto-print-churrasqueira",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "On /impressao, checked print-env-checkbox-churrasqueira and confirmed print-status shows 'Imprimindo automaticamente'; created a PDV sale of 'Espeto de Linguiça' (ES04) via API; print-log gained a line containing '#{order_number}' within 15s; follow-up GET /api/print/queue?stations=churrasqueira no longer listed that order."
+    },
+    {
+      "criterion": "No regressions / console errors",
+      "name": "no-regressions-console-clean",
+      "lane": "browser",
+      "status": "flaky",
+      "evidence": "First run hit transient infra-level 429s (rate limiting on the preview ingress from rapid successive checks) causing body to be hidden/blocked; rerun ~20s later passed cleanly: Dashboard (/), /vendas, /caixa, /cozinha loaded with no console errors and no API responses >=400; /config?tab=backup showed the Drive panel text 'Aguardando as credenciais...' (expected deviation, Drive not configured)."
+    }
+  ]
+}

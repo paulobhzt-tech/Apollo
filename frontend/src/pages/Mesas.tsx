@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import { useMe } from "@/lib/auth";
-import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel } from "@/lib/format";
+import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, uid } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
 import type { Category, ChosenOption, Invoice, Order, PayIn, Product, SaleResult, Table, TableIn } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -208,7 +208,7 @@ export function QrDialog({ table, onClose }: { table: Table | null; onClose: () 
   );
 }
 
-interface Pending { product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number }
+interface Pending { key: string; product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number }
 
 function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table | null; onClose: () => void; onQr: (t: Table) => void; tables: Table[]; canDelete: boolean }) {
   const open = !!table;
@@ -272,7 +272,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
       const i = c.findIndex((l) => l.product.id === p.id && !l.notes && !l.options.length);
       if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
     }
-    return [...c, { product: p, qty: 1, notes: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
+    return [...c, { key: uid(), product: p, qty: 1, notes: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
   });
   const addPending = (p: Product) => (p.options?.length ? setOptFor(p) : push(p));
   const o = table?.order_id ? order.data ?? null : null;
@@ -351,7 +351,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                     <div className="mt-4 space-y-3 rounded-2xl border border-primary/20 bg-panel p-3">
                       <ProductGrid products={products.data ?? []} categories={categories.data ?? []} onAdd={addPending} compact />
                       {pending.map((p, i) => (
-                        <div key={i} className="flex items-center gap-2 text-sm" data-testid={`pending-line-${i}`}>
+                        <div key={p.key} className="flex items-center gap-2 text-sm" data-testid={`pending-line-${i}`}>
                           <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.flatMap((x, j) => j !== i ? [x] : x.qty <= 1 ? [] : [{ ...x, qty: x.qty - 1 }]))}><Minus /></Button>
                           <span className="w-5 text-center font-mono">{p.qty}</span>
                           <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.map((x, j) => (j === i ? { ...x, qty: x.qty + 1 } : x)))}><Plus /></Button>
