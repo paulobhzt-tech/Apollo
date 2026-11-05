@@ -54,7 +54,17 @@ Cada cliente possui contêiner Mongo e volume separados; sua aplicação pode ac
 ## Mensalidades
 Use o painel administrativo isolado `python -m management.panel`, disponível somente em localhost, para controlar vencimento e registrar recebimentos manualmente. Nenhum cliente terá o caixa bloqueado automaticamente por atraso: isso exige regras claras e validação contratual.
 
-## Atenção sobre backups
-- O script `deploy/vps/backup-mongo.sh` é **para a instalação única antiga**, não abrange automaticamente todos os clientes SaaS.
-- Crie backups criptografados **por tenant**, em outro local, e teste restaurações. Não declare produção aprovada sem esse procedimento.
+## Backup isolado por restaurante (implementado, ainda não implantado)
+- O script `deploy/vps/backup-mongo.sh` é **para a instalação única antiga**. Para SaaS use `management/backup_tenants.py` na raiz do repositório.
+- Exemplo de execução na VPS, **após** provisionar o restaurante e instalar Docker:
+
+```bash
+python3 -m management.backup_tenants backup --tenant restaurante1
+python3 -m management.backup_tenants verify /var/backups/apollo-saas/restaurante1/ARQUIVO.archive.gz
+```
+
+- O comando mantém cópias locais separadas por cliente, com permissão restrita, verificação da integridade gzip e retenção padrão de 7 dias. **Ele não é agendado automaticamente**: configure timer de systemd ou cron em horários de menor movimento depois de validar backups reais.
+- A verificação gzip detecta arquivos corrompidos, mas **não substitui um teste completo de restauração em MongoDB separado**. Não restaure sobre o banco em produção.
+- Envie cópias criptografadas para armazenamento externo, fora da VPS, com controles de acesso e política de retenção. Backups no mesmo disco não protegem contra falha do servidor.
+- Backups, recuperação, disponibilidade e privacidade precisam de validação antes de liberar clientes pagantes.
 - VPS com apenas 2 GB de RAM pode não comportar vários MongoDB independentes. Faça benchmark real: você pode começar com um restaurante e migrar para servidor maior conforme escalar.
