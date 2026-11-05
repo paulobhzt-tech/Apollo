@@ -14,8 +14,6 @@ services:
         value: "true"
       - key: CORS_ORIGINS
         value: ""
-      - key: PIN_SALT
-        generateValue: true
       - key: WEBHOOK_CRON_SECRET
         generateValue: true
       - key: SERVE_FRONTEND_DIR
