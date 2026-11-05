@@ -10,7 +10,7 @@ const front = path.resolve(root, "..", "frontend");
 const out = path.join(root, "web");
 
 const channel = process.env.PDV_BUILD_CHANNEL || "production";
-const url = String(process.env.PDV_SERVER_URL || "").trim().replace(/\\/+$/, "");
+const url = String(process.env.PDV_SERVER_URL || "").trim().replace(/[/]+$/, "");
 if (!["production", "test"].includes(channel)) {
   throw new Error("PDV_BUILD_CHANNEL deve ser production ou test.");
 }
