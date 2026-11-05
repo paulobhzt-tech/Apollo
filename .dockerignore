@@ -1,0 +1,12 @@
+**/node_modules
+**/.env
+**/.env.*
+**/__pycache__
+**/*.pyc
+.git
+desktop/dist
+desktop/web
+backend/backups
+backend/tests
+frontend/dist
+test_reports
