@@ -67,13 +67,15 @@ function EmployeeForm({ editing, onClose }: { editing: Employee | "new"; onClose
   const isNew = editing === "new";
   const [f, setF] = useState({
     name: isNew ? "" : editing.name, role: (isNew ? "garcom" : editing.role) as Role, phone: isNew ? "" : editing.phone,
-    commission: isNew ? "0" : String(editing.commission_pct), active: isNew ? true : editing.active, pin: "",
+    commission: isNew ? "0" : String(editing.commission_pct), active: isNew ? true : editing.active, pin: "", username: "", password: "",
     can_cancel: isNew ? false : editing.can_cancel,
   });
   const save = useMutation({
     mutationFn: () => {
       const body: EmployeeIn = { name: f.name, role: f.role, phone: f.phone, commission_pct: Number(f.commission.replace(",", ".")) || 0, active: f.active, can_cancel: f.can_cancel };
       if (f.pin) body.pin = f.pin;
+      if (f.username.trim()) body.username = f.username.trim();
+      if (f.password) body.password = f.password;
       return isNew ? apiPost<Employee>("/employees", body) : apiPut<Employee>(`/employees/${editing.id}`, body);
     },
     onSuccess: () => { toast.success("Funcionário salvo"); inv(); onClose(); },
@@ -93,6 +95,8 @@ function EmployeeForm({ editing, onClose }: { editing: Employee | "new"; onClose
           </Select>
         </div>
         <div><Label className="text-xs text-zinc-400">{isNew ? "PIN (4-6 dígitos)" : "Novo PIN (opcional)"}</Label><Input value={f.pin} inputMode="numeric" maxLength={6} onChange={(e) => setF({ ...f, pin: e.target.value.replace(/\D/g, "") })} className="mt-1 font-mono" data-testid="employee-pin-input" /></div>
+        <div><Label className="text-xs text-zinc-400">Usuário de acesso (opcional)</Label><Input value={f.username} autoComplete="off" onChange={(e) => setF({ ...f, username: e.target.value })} className="mt-1" placeholder={isNew ? "ex.: operador01" : "Manter atual se vazio"} /></div>
+        <div><Label className="text-xs text-zinc-400">Senha (mín. 8 caracteres)</Label><Input type="password" value={f.password} autoComplete="new-password" onChange={(e) => setF({ ...f, password: e.target.value })} className="mt-1" /></div>
         <div><Label className="text-xs text-zinc-400">Telefone</Label><Input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} className="mt-1" data-testid="employee-phone-input" /></div>
         <div><Label className="text-xs text-zinc-400">Comissão (%)</Label><Input value={f.commission} inputMode="decimal" onChange={(e) => setF({ ...f, commission: e.target.value })} className="mt-1 font-mono" data-testid="employee-commission-input" /></div>
         <label className="col-span-2 flex items-start gap-2 rounded-xl border border-white/5 bg-panel p-3 text-sm text-zinc-300">

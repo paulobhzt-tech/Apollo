@@ -43,9 +43,9 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
-    --color-panel: #141722;
-    --color-shell: #10121A;
-    --color-elevated: #181C2B;
+    --color-panel: var(--panel);
+    --color-shell: var(--shell);
+    --color-elevated: var(--elevated);
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -72,6 +72,9 @@
 }
 
 :root, .dark {
+    --panel: #141722;
+    --shell: #10121A;
+    --elevated: #181C2B;
     --background: #090A0F;
     --foreground: #F4F4F5;
     --card: #141722;
@@ -106,6 +109,40 @@
     --sidebar-ring: #F97316;
 }
 
+:root:not(.dark) {
+    --panel: #FFFFFF;
+    --shell: #F3F4F6;
+    --elevated: #F1F5F9;
+    --background: #F8FAFC;
+    --foreground: #111827;
+    --card: #FFFFFF;
+    --card-foreground: #111827;
+    --popover: #FFFFFF;
+    --popover-foreground: #111827;
+    --primary: #EA580C;
+    --primary-foreground: #FFFFFF;
+    --secondary: #E5E7EB;
+    --secondary-foreground: #111827;
+    --muted: #F1F5F9;
+    --muted-foreground: #475569;
+    --accent: #E2E8F0;
+    --accent-foreground: #111827;
+    --border: rgba(15, 23, 42, 0.16);
+    --input: rgba(15, 23, 42, 0.2);
+    --ring: #EA580C;
+    --sidebar: #F3F4F6;
+    --sidebar-foreground: #111827;
+    --sidebar-accent: #E2E8F0;
+    --sidebar-accent-foreground: #111827;
+    --sidebar-border: rgba(15, 23, 42, 0.12);
+}
+:root:not(.dark) .text-white { color: #111827; }
+:root:not(.dark) .bg-primary.text-white, :root:not(.dark) button.bg-primary { color: #FFFFFF; }
+:root:not(.dark) .text-zinc-400 { color: #475569; }
+:root:not(.dark) .text-zinc-500 { color: #64748B; }
+:root:not(.dark) .border-white\\/5, :root:not(.dark) .border-white\\/8 { border-color: rgba(15, 23, 42, 0.12); }
+:root:not(.dark) .bg-white\\/5 { background-color: rgba(15, 23, 42, 0.04); }
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -115,8 +152,9 @@
     }
   html {
     @apply font-sans;
-    color-scheme: dark;
+    color-scheme: light;
     }
+  html.dark { color-scheme: dark; }
   h1, h2, h3, h4 {
     @apply font-heading tracking-tight;
   }

@@ -19,6 +19,8 @@ export interface Employee {
   created_at: string;
 }
 export interface EmployeeIn {
+  username?: string;
+  password?: string;
   name: string;
   role: Role;
   phone: string;
