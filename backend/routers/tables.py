@@ -171,12 +171,14 @@ async def cancel_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
 
 @router.post("/tables/{id}/transfer", response_model=Table)
 async def transfer(id: str, body: TransferIn, _: dict = Depends(require(*STAFF))):
+    if id == body.target_table_id:
+        raise HTTPException(400, "Selecione uma mesa de destino diferente da origem")
     src = await get_table(id)
     dst = await get_table(body.target_table_id)
     if not src.get("order_id"):
         raise HTTPException(400, "Mesa de origem sem comanda")
-    if dst.get("order_id") or dst["status"] in ("ocupada", "conta"):
-        raise HTTPException(400, "Mesa de destino precisa estar livre")
+    if dst.get("order_id") or dst["status"] != "livre":
+        raise HTTPException(400, "Mesa de destino precisa estar livre e não reservada")
     await db.orders.update_one({"id": src["order_id"]}, {"$set": {"table_id": dst["id"], "table_number": dst["number"], "table_label": table_label(dst)}})
     keep = {k: src[k] for k in ("status", "customer_name", "people", "waiter_id", "waiter_name", "order_id", "opened_at", "total")}
     await db.tables.update_one({"id": dst["id"]}, {"$set": keep})
