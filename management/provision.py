@@ -14,7 +14,7 @@ import os
 from urllib.parse import quote
 
 SLUG = re.compile(r"^[a-z][a-z0-9-]{1,38}[a-z0-9]$")
-DOMAIN = re.compile(r"^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$")
+DOMAIN = re.compile(r"^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
 EDGE = "apollo_edge"
 
 
