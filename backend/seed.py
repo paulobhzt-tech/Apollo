@@ -201,6 +201,12 @@ async def main() -> None:
         await db.expenses.insert_one(Expense(description=desc, category=cat, amount=amt, date=month_start).model_dump())
     from seed_extras import main as extras
     await extras()
+    await db.settings.update_one(
+        {"_id": "general"},
+        {"$set": {"trade_name": "Restaurante Demonstração Apollo", "company_name": "Empresa Fictícia (Demonstração)",
+                  "receipt_footer": "DEMONSTRAÇÃO - SEM VALOR FISCAL", "logo_url": "", "cnpj": "", "pix_key": ""}},
+        upsert=True,
+    )
     # Display access codes once on the trusted operator terminal; never commit or share.
     print(f"Seed OK: {len(emp_docs)} funcionários, {len(prods)} produtos, {len(orders)} pedidos fictícios")
     print("PINs demonstrativos (anote em local seguro; mudam a cada reset):")
