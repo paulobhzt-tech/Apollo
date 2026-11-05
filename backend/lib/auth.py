@@ -105,3 +105,40 @@ async def pin_in_use(pin: str, exclude_id: str | None = None) -> bool:
         if emp.get("id") != exclude_id and verify_pin(pin, emp.get("pin_hash", "")):
             return True
     return False
+
+
+async def revoke_session(token: str | None) -> None:
+    if token:
+        await db.sessions.delete_many({"$or": [
+            {"token_hash": hashlib.sha256(token.encode()).hexdigest()},
+            {"token": token},
+        ]})
+
+
+LOGIN_LIMIT = 5
+LOGIN_WINDOW = 900
+
+
+def login_key(request: Request) -> str:
+    address = request.client.host if request.client else "unknown"
+    bucket = int(datetime.now(timezone.utc).timestamp()) // LOGIN_WINDOW
+    return f"{address}:{bucket}"
+
+
+async def check_login_limit(request: Request) -> None:
+    record = await db.login_attempts.find_one({"_id": login_key(request)})
+    if record and record.get("attempts", 0) >= LOGIN_LIMIT:
+        raise HTTPException(429, "Muitas tentativas de PIN. Tente novamente mais tarde.")
+
+
+async def failed_login(request: Request) -> None:
+    await db.login_attempts.update_one(
+        {"_id": login_key(request)},
+        {"$inc": {"attempts": 1}, "$setOnInsert": {
+            "expires_at": datetime.now(timezone.utc) + timedelta(minutes=30)
+        }}, upsert=True,
+    )
+
+
+async def successful_login(request: Request) -> None:
+    await db.login_attempts.delete_one({"_id": login_key(request)})
