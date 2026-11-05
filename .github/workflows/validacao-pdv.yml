@@ -31,7 +31,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install integration test dependencies
-        run: python -m pip install pytest pytest-asyncio fastapi motor pymongo python-dotenv pydantic bcrypt
+        run: python -m pip install pytest pytest-xdist pytest-asyncio fastapi motor pymongo python-dotenv pydantic bcrypt
       - name: Start MongoDB replica set for transactional tests
         run: |
           docker run -d --name apollo-test-mongo -p 127.0.0.1:27017:27017 mongo:7 --replSet rs0 --bind_ip_all
