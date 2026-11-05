@@ -1,7 +1,9 @@
 import os
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 
-from lib.auth import COOKIE, SESSION_HOURS, create_session, current_user, hash_pin, require
+from lib.auth import (COOKIE, SESSION_HOURS, create_session, current_user, secure_hash_pin, require,
+                      find_employee_by_pin, pin_in_use, revoke_session,
+                      check_login_limit, failed_login, successful_login)
 from lib.db import db
 from models.schemas import Employee, EmployeeIn, EmployeeUpdate, LoginIn, OkOut, Profile
 
@@ -14,17 +16,23 @@ async def profiles():
 
 
 @router.post("/auth/login", response_model=Employee)
-async def login(body: LoginIn, response: Response):
-    emp = await db.employees.find_one({"pin_hash": hash_pin(body.pin), "active": True}, {"_id": 0, "pin_hash": 0})
+async def login(body: LoginIn, response: Response, request: Request):
+    await check_login_limit(request)
+    emp = await find_employee_by_pin(body.pin)
     if not emp:
+        await failed_login(request)
         raise HTTPException(401, "PIN inválido")
+    await successful_login(request)
+    emp.pop("pin_hash", None)
+    emp.pop("_id", None)
     token = await create_session(emp["id"])
     response.set_cookie(COOKIE, token, httponly=True, secure=os.environ.get("COOKIE_SECURE", "true").lower() != "false", samesite="lax", max_age=SESSION_HOURS * 3600, path="/")
     return emp
 
 
 @router.post("/auth/logout", response_model=OkOut)
-async def logout(response: Response):
+async def logout(response: Response, request: Request):
+    await revoke_session(request.cookies.get(COOKIE))
     response.delete_cookie(COOKIE, path="/")
     return OkOut()
 
@@ -36,10 +44,7 @@ async def me(user: dict = Depends(current_user)):
 
 # ---------- employees (admin) ----------
 async def _pin_free(pin: str, exclude_id: str | None = None) -> None:
-    q: dict = {"pin_hash": hash_pin(pin)}
-    if exclude_id:
-        q["id"] = {"$ne": exclude_id}
-    if await db.employees.find_one(q):
+    if await pin_in_use(pin, exclude_id):
         raise HTTPException(400, "Este PIN já está em uso por outro funcionário")
 
 
@@ -54,7 +59,7 @@ async def create_employee(body: EmployeeIn, _: dict = Depends(require())):
     data = body.model_dump()
     pin = data.pop("pin")
     emp = Employee(**data).model_dump()
-    await db.employees.insert_one({**emp, "pin_hash": hash_pin(pin)})
+    await db.employees.insert_one({**emp, "pin_hash": secure_hash_pin(pin)})
     return emp
 
 
@@ -64,12 +69,14 @@ async def update_employee(id: str, body: EmployeeUpdate, user: dict = Depends(re
     if "pin" in data:
         pin = data.pop("pin")
         await _pin_free(pin, id)
-        data["pin_hash"] = hash_pin(pin)
+        data["pin_hash"] = secure_hash_pin(pin)
     if id == user["id"] and (data.get("active") is False or data.get("role", "admin") != "admin"):
         raise HTTPException(400, "Você não pode desativar ou rebaixar seu próprio usuário")
     res = await db.employees.find_one_and_update({"id": id}, {"$set": data}, projection={"_id": 0, "pin_hash": 0}, return_document=True)
     if not res:
         raise HTTPException(404, "Funcionário não encontrado")
+    if "pin_hash" in data or "role" in data or data.get("active") is False:
+        await db.sessions.delete_many({"employee_id": id})
     return res
 
 
