@@ -35,7 +35,7 @@ api_router = APIRouter(prefix="/api")
 
 @api_router.get("/")
 async def root():
-    return {"message": "Espeteria Churras Buguer PDV API"}
+    return {"message": "Apollo PDV API"}
 
 
 for r in (auth, catalog, tables, operations, reports, public, fiado, config, production, drive, system, finance, serverbackup):
