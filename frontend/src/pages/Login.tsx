@@ -18,14 +18,15 @@ export default function Login() {
   const [pin, setPin] = useState("");
   const [selected, setSelected] = useState<Profile | null>(null);
   const [rememberOperator, setRememberOperator] = useState(() => localStorage.getItem("apollo-remember-operator") === "true");
+  const branding = useQuery({ queryKey: ["branding"], queryFn: () => apiGet<{trade_name: string; logo_url: string}>("/branding"), retry: false });
+  const profiles = useQuery({ queryKey: ["profiles"], queryFn: () => apiGet<Profile[]>("/auth/profiles"), retry: false });
   useEffect(() => {
     if (!rememberOperator || !profiles.data?.length) return;
     const id = localStorage.getItem("apollo-last-operator-id");
     const remembered = profiles.data.find((p) => p.id === id);
     if (remembered) setSelected(remembered);
   }, [rememberOperator, profiles.data]);
-  const branding = useQuery({ queryKey: ["branding"], queryFn: () => apiGet<{trade_name: string; logo_url: string}>("/branding"), retry: false });
-  const profiles = useQuery({ queryKey: ["profiles"], queryFn: () => apiGet<Profile[]>("/auth/profiles"), retry: false });
+
 
   const login = useMutation({
     mutationFn: (p: string) => apiPost<Employee>("/auth/login", { pin: p }),
