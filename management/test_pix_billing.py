@@ -28,7 +28,7 @@ class BillingTests(unittest.TestCase):
         self.db.execute("""INSERT INTO licenses
           (id,customer,plan,domain,monthly_cents,status,due_date,created_at)
           VALUES(?,?,?,?,?,?,?,?)""",
-          ("APL-TEST","Restaurante Teste","mensal","",9900,"trial","2026-11-10","2026-11-05"))
+          ("APL-TEST","Restaurante Teste","mensal","",9990,"trial","2026-11-10","2026-11-05"))
         self.db.commit()
         self.calls = []
         self.status = "pending"
