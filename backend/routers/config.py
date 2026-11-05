@@ -77,13 +77,13 @@ async def build_backup() -> tuple[str, dict]:
         q = {"_id": {"$nin": ["drive", "selftest_last"]}} if c == "settings" else {}
         data[c] = await db[c].find(q, proj).to_list(100000)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M")
-    return stamp, jsonable_encoder({"app": "Espeteria Churras Buguer", "created_at": stamp, "data": data})
+    return stamp, jsonable_encoder({"app": "Apollo PDV", "created_at": stamp, "data": data})
 
 
 @router.get("/backup")
 async def backup(_: dict = Depends(require())):
     stamp, payload = await build_backup()
-    return JSONResponse(payload, headers={"Content-Disposition": f'attachment; filename="backup-espeteria-{stamp}.json"'})
+    return JSONResponse(payload, headers={"Content-Disposition": f'attachment; filename="backup-apollo-{stamp}.json"'})
 
 
 def revive(v):
