@@ -39,8 +39,8 @@ cfg.testBuild = channel === "test";
 fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2) + "\n");
 console.log("Canal:", channel, "| Servidor:", url);
 
-execSync("npm install --no-audit --no-fund", { cwd: front, stdio: "inherit", shell: true });
-execSync("npm run build", { cwd: front, stdio: "inherit", shell: true });
+execSync("yarn install", { cwd: front, stdio: "inherit", shell: true });
+execSync("yarn build", { cwd: front, stdio: "inherit", shell: true });
 fs.rmSync(out, { recursive: true, force: true });
 fs.cpSync(path.join(front, "dist"), out, { recursive: true });
 console.log("Telas integradas ao instalador:", out);
