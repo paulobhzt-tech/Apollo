@@ -1,0 +1,23 @@
+name: apollo-saas-gateway
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    networks: [edge]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./sites:/etc/caddy/sites:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    security_opt: [no-new-privileges:true]
+networks:
+  edge:
+    external: true
+    name: apollo_edge
+volumes:
+  caddy_data:
+  caddy_config:
