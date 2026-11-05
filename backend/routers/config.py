@@ -1,5 +1,6 @@
 import re
 from datetime import datetime, timezone
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -43,6 +44,13 @@ async def delete_printer(id: str, _: dict = Depends(require())):
     return OkOut()
 
 
+@router.get("/branding")
+async def public_branding():
+    """Only public branding fields; never reveal Pix keys, contact or financial settings."""
+    setting = await db.settings.find_one({"_id": "general"}, {"_id": 0, "trade_name": 1, "logo_url": 1}) or {}
+    return {"trade_name": setting.get("trade_name", ""), "logo_url": setting.get("logo_url", "")}
+
+
 @router.get("/settings/general", response_model=GeneralSettings)
 async def get_general(_: dict = Depends(current_user)):
     return {k: v for k, v in (await db.settings.find_one({"_id": "general"}) or {}).items() if k != "_id"}
@@ -50,6 +58,10 @@ async def get_general(_: dict = Depends(current_user)):
 
 @router.put("/settings/general", response_model=GeneralSettings)
 async def put_general(body: GeneralSettings, _: dict = Depends(require())):
+    if body.logo_url:
+        parsed = urlsplit(body.logo_url)
+        if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
+            raise HTTPException(400, "A imagem da marca deve usar uma URL HTTPS válida")
     await db.settings.update_one({"_id": "general"}, {"$set": body.model_dump()}, upsert=True)
     return body
 
