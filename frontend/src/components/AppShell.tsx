@@ -14,6 +14,8 @@ import { setForcedOffline, syncQueue, useOffline } from "@/lib/offline";
 import type { Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTheme } from "next-themes";
+import { Moon, Sun } from "lucide-react";
 
 const ICONS: Record<string, typeof Menu> = {
   LayoutDashboard, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard,
@@ -99,6 +101,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
   const { data: me, isLoading, isError } = useMe();
   const [open, setOpen] = useState(false);
   const loc = useLocation();
+  const { resolvedTheme, setTheme } = useTheme();
 
   if (isLoading) return <div className="grid min-h-screen place-items-center text-zinc-500">Carregando…</div>;
   if (isError || !me) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
@@ -138,6 +141,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
             })}
           </nav>
           <div className="ml-auto flex items-center gap-3">
+            <button type="button" aria-label={resolvedTheme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"} title={resolvedTheme === "dark" ? "Tema claro" : "Tema escuro"} onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")} className="rounded-lg border border-border p-2 text-foreground hover:bg-accent" data-testid="theme-toggle">{resolvedTheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}</button>
             <OfflineBadge />
             <span className="hidden text-xs text-zinc-500 sm:inline" data-testid="header-user">{me.name}</span>
           </div>
