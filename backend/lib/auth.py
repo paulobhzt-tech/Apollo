@@ -1,5 +1,7 @@
 """PIN-based session auth. Sessions live in db.sessions; the token rides an httpOnly cookie."""
 import hashlib
+import hmac
+import bcrypt
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -15,6 +17,19 @@ SESSION_HOURS = 14
 def hash_pin(pin: str) -> str:
     salt = os.environ.get("PIN_SALT", "chefcontrol-pdv")
     return hashlib.sha256(f"{salt}:{pin}".encode()).hexdigest()
+
+
+def secure_hash_pin(pin: str) -> str:
+    return bcrypt.hashpw(pin.encode(), bcrypt.gensalt(rounds=12)).decode()
+
+
+def verify_pin(pin: str, stored: str) -> bool:
+    if stored.startswith(("$2a$", "$2b$", "$2y$")):
+        try:
+            return bcrypt.checkpw(pin.encode(), stored.encode())
+        except ValueError:
+            return False
+    return hmac.compare_digest(hash_pin(pin), stored)
 
 
 async def create_session(employee_id: str) -> str:
