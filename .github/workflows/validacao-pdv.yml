@@ -50,7 +50,7 @@ jobs:
         env:
           MONGO_URL: mongodb://127.0.0.1:27017/?replicaSet=rs0
           DB_NAME: apollo_partial_payment_ci
-        run: pytest -q tests/test_partial_payment_integration.py
+        run: pytest -q -n 0 tests/test_partial_payment_integration.py
 
   frontend:
     runs-on: ubuntu-latest
