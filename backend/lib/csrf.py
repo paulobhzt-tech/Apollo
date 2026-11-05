@@ -7,7 +7,7 @@ from starlette.responses import JSONResponse
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 
 
-def origin_allowed(origin: str | None, host: str, fetch_site: str | None) -> bool:
+def origin_allowed(origin: str | None, host: str, fetch_site: str | None, scheme: str | None = None) -> bool:
     """Do not trust same-site sibling hosts; only same-origin is acceptable."""
     if origin:
         if origin == "null":
@@ -16,6 +16,7 @@ def origin_allowed(origin: str | None, host: str, fetch_site: str | None) -> boo
             parsed = urlsplit(origin)
             return (
                 parsed.scheme in ("http", "https")
+                and (scheme is None or parsed.scheme == scheme)
                 and parsed.netloc.lower() == host.lower()
                 and not parsed.username
                 and not parsed.password
@@ -38,7 +39,7 @@ class CsrfOriginMiddleware(BaseHTTPMiddleware):
             host = request.headers.get("host", "")
             has_session = bool(request.cookies.get("pdv_session"))
             # Login endpoints also reject explicitly hostile Origins.
-            if (has_session or origin is not None) and not origin_allowed(origin, host, site):
+            if (has_session or origin is not None) and not origin_allowed(origin, host, site, request.url.scheme):
                 return JSONResponse(
                     {"detail": "Origem não autorizada para esta operação"},
                     status_code=403,
