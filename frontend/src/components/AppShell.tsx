@@ -106,7 +106,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
 
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-white/5 bg-shell p-4 lg:flex">
+      <aside className="hidden">
         <Brand />
         <div className="mt-8 flex-1 overflow-y-auto">
           <NavList role={me.role} />
@@ -126,11 +126,17 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-white/5 bg-background/80 px-4 backdrop-blur-xl lg:px-8">
+        <header className="sticky top-0 z-30 flex min-h-16 flex-wrap items-center gap-3 border-b border-white/5 bg-background/95 px-4 py-2 backdrop-blur-xl lg:px-6">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)} data-testid="mobile-menu-button">
             <Menu className="size-5" />
           </Button>
-          <div className="lg:hidden"><span className="font-heading font-semibold">Apollo PDV</span></div>
+          <div className="shrink-0"><Brand /></div>
+          <nav aria-label="Menu principal" className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto lg:flex">
+            {NAV.filter((item) => item.roles.includes(me.role)).map((item) => {
+              const Icon = ICONS[item.icon];
+              return <NavLink key={item.to} to={item.to} title={item.label} className={({ isActive }) => cn("flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors", isActive ? "bg-primary/15 text-primary" : "text-zinc-400 hover:bg-white/5 hover:text-white")}><Icon className="size-4" /><span>{item.label}</span></NavLink>;
+            })}
+          </nav>
           <div className="ml-auto flex items-center gap-3">
             <OfflineBadge />
             <span className="hidden text-xs text-zinc-500 sm:inline" data-testid="header-user">{me.name}</span>
