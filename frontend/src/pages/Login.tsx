@@ -16,6 +16,9 @@ import { cn } from "@/lib/utils";
 export default function Login() {
   const nav = useNavigate();
   const [pin, setPin] = useState("");
+  const [mode, setMode] = useState<"password" | "pin">("password");
+  const [username, setUsername] = useState(() => localStorage.getItem("apollo-login-username") || "");
+  const [password, setPassword] = useState("");
   const [selected, setSelected] = useState<Profile | null>(null);
   const [rememberOperator, setRememberOperator] = useState(() => localStorage.getItem("apollo-remember-operator") === "true");
   const branding = useQuery({ queryKey: ["branding"], queryFn: () => apiGet<{trade_name: string; logo_url: string}>("/branding"), retry: false });
@@ -29,9 +32,10 @@ export default function Login() {
 
 
   const login = useMutation({
-    mutationFn: (p: string) => apiPost<Employee>("/auth/login", { pin: p }),
+    mutationFn: (credentials: {pin?: string; username?: string; password?: string}) => apiPost<Employee>("/auth/login", credentials),
     onSuccess: (emp) => {
       if (rememberOperator && selected) localStorage.setItem("apollo-last-operator-id", selected.id);
+      if (rememberOperator && mode === "password") localStorage.setItem("apollo-login-username", username.trim());
       beginSession();
       queryClient.setQueryData(["me"], emp);
       toast.success(`Bem-vindo(a), ${emp.name}`);
@@ -40,6 +44,7 @@ export default function Login() {
     onError: (e) => {
       toast.error(errMsg(e));
       setPin("");
+      setPassword("");
     },
   });
 
@@ -48,7 +53,8 @@ export default function Login() {
     const next = (pin + d).slice(0, 6);
     setPin(next);
   };
-  const submit = (p = pin) => p.length >= 4 && login.mutate(p);
+  const submit = (p = pin) => p.length >= 4 && login.mutate({pin: p});
+  const submitPassword = () => username.trim() && password && login.mutate({username: username.trim(), password});
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
@@ -86,7 +92,8 @@ export default function Login() {
         </section>
 
         <section className="rounded-3xl border border-white/8 bg-panel/80 p-6 shadow-2xl backdrop-blur-xl sm:p-8 animate-rise" data-testid="pin-panel">
-          <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-500">
+          <div className="mb-5 flex gap-2"><button type="button" onClick={() => setMode("password")} className={mode === "password" ? "rounded-lg bg-primary px-3 py-2 text-white" : "rounded-lg border px-3 py-2"}>Usuário e senha</button><button type="button" onClick={() => setMode("pin")} className={mode === "pin" ? "rounded-lg bg-primary px-3 py-2 text-white" : "rounded-lg border px-3 py-2"}>PIN</button></div>
+          {mode === "password" ? <form onSubmit={(e) => { e.preventDefault(); submitPassword(); }} className="space-y-4"><label className="block text-sm">Usuário<input className="mt-1 w-full rounded-xl border border-border bg-elevated p-3 text-foreground" value={username} autoComplete="username" onChange={(e) => setUsername(e.target.value)} /></label><label className="block text-sm">Senha<input type="password" className="mt-1 w-full rounded-xl border border-border bg-elevated p-3 text-foreground" value={password} autoComplete="current-password" onChange={(e) => setPassword(e.target.value)} /></label><button type="submit" disabled={!username.trim() || !password || login.isPending} className="w-full rounded-xl bg-primary p-3 font-semibold text-white disabled:opacity-40">Entrar</button></form> : <><p className="text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-500">
             {selected ? `Olá, ${selected.name}` : "Acesso por PIN"}
           </p>
           <div className="mt-4 flex justify-center gap-3" data-testid="pin-display">
@@ -102,8 +109,9 @@ export default function Login() {
             <Key onClick={() => press("0")} testid="pin-digit-0">0</Key>
             <Key onClick={() => setPin(pin.slice(0, -1))} testid="pin-backspace" muted><Delete className="mx-auto size-5" /></Key>
           </div>
+          </>}
           <label className="mt-5 flex cursor-pointer items-center gap-2 text-sm text-zinc-400"><input type="checkbox" checked={rememberOperator} onChange={(e) => { const value = e.target.checked; setRememberOperator(value); localStorage.setItem("apollo-remember-operator", String(value)); if (!value) localStorage.removeItem("apollo-last-operator-id"); }} /> Lembrar meu usuário neste dispositivo (não salva PIN)</label>
-          <button
+          {mode === "pin" && <button
             type="button"
             onClick={() => submit()}
             disabled={pin.length < 4 || login.isPending}
@@ -111,7 +119,7 @@ export default function Login() {
             className="mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary font-heading text-lg font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#EA580C] active:scale-[0.98] disabled:opacity-40"
           >
             <ShieldCheck className="size-5" /> {login.isPending ? "Entrando…" : "Entrar"}
-          </button>
+          </button>}
         </section>
       </div>
       <Toaster richColors />
