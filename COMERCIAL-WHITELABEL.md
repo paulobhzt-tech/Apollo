@@ -57,3 +57,22 @@ A VPS NVMe 2 tem capacidade limitada. Meça RAM, CPU, disco e operações reais 
 - Políticas de LGPD, contratos, condições de suporte e disponibilidade.
 
 **Nunca publique a base de licenças, senhas, PINs ou arquivos `.env` no GitHub.**
+
+## Cobrança mensal por Pix — Mercado Pago (implementação de testes)
+
+O módulo `management/pix_billing.py` cria uma cobrança Pix individual usando a API oficial do Mercado Pago. A renovação cadastral ocorre somente após nova consulta autenticada ao provedor confirmar o status `approved`, o ID do pagamento, a referência, a moeda BRL e o valor exato. A confirmação é idempotente; uma cobrança não renova a mesma licença duas vezes.
+
+Requisitos: conta Mercado Pago própria, credencial Access Token mantida apenas em ambiente privado, e-mail válido do pagador, banco local administrativo e validação em ambiente de testes. **Nunca coloque o token no GitHub ou no chat.**
+
+Exemplo no computador seguro do proprietário, após configurar `APOLLO_LICENSE_DB` e `MP_ACCESS_TOKEN` no ambiente:
+
+```bash
+python3 -m management.pix_billing create --license-id APL-ID_DO_CLIENTE --payer-email cliente@exemplo.com
+python3 -m management.pix_billing reconcile
+```
+
+O comando `create` devolve o Pix copia e cola e um link de pagamento, quando fornecidos pelo Mercado Pago. Compartilhe apenas com o cliente correto. Após homologar, programe `reconcile` de 5 a 15 minutos com um timer `systemd` ou outro agendador; a rotina de agendamento **não foi instalada na VPS**.
+
+**Limitações:** esta implementação emite Pix avulsos, não Pix Automático. Cada nova mensalidade precisa de emissão e entrega da cobrança. O painel comercial ainda não oferece botão para gerar o Pix, nem há webhook público de pagamentos. Também não existe bloqueio automático do caixa por inadimplência. Sem credenciais, VPS ativa e homologação de pagamentos reais, nenhuma cobrança é criada em produção.
+
+Documentação oficial: https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/payment-brick/payment-submission/pix
