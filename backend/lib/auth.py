@@ -35,7 +35,7 @@ def verify_pin(pin: str, stored: str) -> bool:
 async def create_session(employee_id: str) -> str:
     token = secrets.token_urlsafe(32)
     await db.sessions.insert_one({
-        "token": token,
+        "token_hash": hashlib.sha256(token.encode()).hexdigest(),
         "employee_id": employee_id,
         "expires_at": datetime.now(timezone.utc) + timedelta(hours=SESSION_HOURS),
     })
@@ -46,7 +46,8 @@ async def current_user(request: Request) -> dict:
     token = request.cookies.get(COOKIE)
     if not token:
         raise HTTPException(401, "Não autenticado")
-    s = await db.sessions.find_one({"token": token})
+    digest = hashlib.sha256(token.encode()).hexdigest()
+    s = await db.sessions.find_one({"$or": [{"token_hash": digest}, {"token": token}]})
     if not s or s["expires_at"] < datetime.now(timezone.utc):
         raise HTTPException(401, "Sessão expirada")
     emp = await db.employees.find_one({"id": s["employee_id"], "active": True}, {"_id": 0, "pin_hash": 0})
