@@ -233,8 +233,6 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, _: dict = Depends(re
         raise HTTPException(400, "Emissão fiscal parcial ainda não habilitada. Use comprovante não fiscal.")
     if body.payment.fiado_customer_id or any(p.method == "fiado" for p in body.payment.payments):
         raise HTTPException(400, "Fiado não está habilitado no pagamento parcial")
-    if body.payment.discount or body.payment.service_pct:
-        raise HTTPException(400, "Desconto e taxa de serviço ainda não disponíveis no pagamento parcial")
     await validate_methods([p.method for p in body.payment.payments])
     if any(p.method in ("credito", "debito") and not p.brand for p in body.payment.payments):
         raise HTTPException(400, "Informe a bandeira do cartão")
@@ -270,8 +268,12 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, _: dict = Depends(re
                 if not chosen or any(k not in {i["id"] for i in order["items"]} for k in body.quantities):
                     raise HTTPException(400, "Selecione itens válidos")
                 subtotal = round(sum(i["qty"] * i["unit_price"] for i in chosen), 2)
+                if body.payment.discount > subtotal:
+                    raise HTTPException(400, "Desconto maior que o valor dos itens selecionados")
+                service_fee = round(subtotal * body.payment.service_pct / 100, 2)
+                total = round(subtotal - body.payment.discount + service_fee, 2)
                 paid = round(sum(p.amount for p in body.payment.payments), 2)
-                change = round(paid - subtotal, 2)
+                change = round(paid - total, 2)
                 if change < -0.009:
                     raise HTTPException(400, "Pagamento insuficiente")
                 if change > sum(p.amount for p in body.payment.payments if p.method == "dinheiro") + 0.009:
@@ -280,7 +282,8 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, _: dict = Depends(re
                 receipt = Order(number=number, channel="mesa", source="mesa",
                     table_number=table["number"], table_label=table_label(table),
                     items=[OrderItem(**i) for i in chosen], status="pago",
-                    subtotal=subtotal, total=subtotal, payments=body.payment.payments,
+                    subtotal=subtotal, discount=body.payment.discount, service_fee=service_fee,
+                    total=total, payments=body.payment.payments,
                     change=max(0, change), paid_at=now(), cash_session_id=cash["id"],
                     client_ref=body.client_ref, waiter_id=order.get("waiter_id"),
                     waiter_name=order.get("waiter_name", ""),
