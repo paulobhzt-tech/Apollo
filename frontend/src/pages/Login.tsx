@@ -17,6 +17,7 @@ export default function Login() {
   const nav = useNavigate();
   const [pin, setPin] = useState("");
   const [selected, setSelected] = useState<Profile | null>(null);
+  const branding = useQuery({ queryKey: ["branding"], queryFn: () => apiGet<{trade_name: string; logo_url: string}>("/branding"), retry: false });
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: () => apiGet<Profile[]>("/auth/profiles"), retry: false });
 
   const login = useMutation({
@@ -46,10 +47,10 @@ export default function Login() {
       <div className="relative mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-10 lg:grid-cols-[1.2fr_1fr]">
         <section className="animate-rise">
           <div className="flex items-center gap-3">
-            <span className="grid size-12 place-items-center rounded-2xl bg-primary text-white shadow-xl shadow-primary/30"><Flame className="size-6" /></span>
+            <span className="grid size-12 place-items-center rounded-2xl bg-primary text-white shadow-xl shadow-primary/30">{branding.data?.logo_url ? <img src={branding.data.logo_url} alt="Logomarca" className="size-12 rounded-2xl object-cover" /> : <Flame className="size-6" />}</span>
             <div>
-              <p className="font-heading text-2xl font-semibold text-white" data-testid="login-brand">Apollo PDV</p>
-              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Espetinhos · Churrasco · Burgers</p>
+              <p className="font-heading text-2xl font-semibold text-white" data-testid="login-brand">{branding.data?.trade_name || "Apollo PDV"}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Gestão de atendimento, vendas e estoque</p>
             </div>
           </div>
           <h1 className="mt-10 max-w-lg text-4xl font-semibold leading-tight text-white sm:text-5xl">
