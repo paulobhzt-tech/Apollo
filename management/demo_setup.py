@@ -28,7 +28,7 @@ def prepare_demo(base: Path, slug: str, domain: str) -> Path:
 
 
 def enable_demo_gateway(base: Path, slug: str, bcrypt_hash: str) -> Path:
-    if not slug.startswith("demo-"):
+    if not SLUG.fullmatch(slug) or not slug.startswith("demo-"):
         raise ValueError("Identificador de demonstração inválido")
     if not BCRYPT_HASH.fullmatch(bcrypt_hash):
         raise ValueError("Forneça hash bcrypt válido criado pelo Caddy (não a senha)")
