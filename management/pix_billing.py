@@ -81,8 +81,8 @@ def create_pix(db, license_id, payer_email, token, *, transport=urlopen, today=N
     if status == "cancelled" or cents <= 0:
         raise ValueError("Licenca cancelada ou plano sem cobranca")
     days = VALID_PLANS.get(plan.lower())
-    if not days:
-        raise ValueError("Plano nao suportado para Pix")
+    if not days or plan.lower() != "mensal":
+        raise ValueError("Cobranca Pix automatica disponivel apenas para plano mensal; outros planos exigem preco proprio")
     existing = db.execute("""SELECT id, payment_id, qr_code, ticket_url FROM pix_invoices
        WHERE license_id=? AND status IN ('creating','pending')""", (license_id,)).fetchone()
     if existing:
