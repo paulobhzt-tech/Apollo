@@ -63,7 +63,7 @@ class BillingTests(unittest.TestCase):
         self.assertEqual(reconcile(self.db,"test-token",transport=self.fake_api,today=date(2026,11,5)),0)
         self.assertEqual(self.db.execute("SELECT due_date FROM licenses").fetchone()[0],"2026-11-10")
         self.status = "approved"
-        self.assertEqual(reconcile(self.db,"test-token",transport=self.fake_api,today=date(2026,11,5)),1)
+        self.assertEqual(reconcile(self.db,"test-token",transport=self.fake_api,today=date(2026,11,5)),1, msg=str({"invoices":self.db.execute("SELECT id,payment_id,status,amount_cents FROM pix_invoices").fetchall(),"ref":self.reference,"status":self.status,"calls":len(self.calls)}))
         self.assertEqual(self.db.execute("SELECT due_date FROM licenses").fetchone()[0],"2026-12-10")
         self.assertEqual(reconcile(self.db,"test-token",transport=self.fake_api,today=date(2026,11,5)),0)
         self.assertEqual(self.db.execute("SELECT due_date FROM licenses").fetchone()[0],"2026-12-10")
