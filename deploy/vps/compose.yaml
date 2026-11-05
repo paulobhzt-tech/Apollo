@@ -22,6 +22,10 @@ services:
     restart: unless-stopped
     depends_on:
       - mongo
+    # Only accessible from the VPS itself or through a private SSH tunnel.
+    # Never bind the app to 0.0.0.0 before enabling trusted HTTPS.
+    ports:
+      - "127.0.0.1:10000:10000"
     environment:
       MONGO_URL: ${MONGO_URL:?Defina MONGO_URL}
       DB_NAME: apollo_pdv
