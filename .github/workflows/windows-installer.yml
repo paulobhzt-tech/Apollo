@@ -2,6 +2,15 @@ name: Instalador Windows (Apollo-PDV-Setup.exe)
 
 on:
   workflow_dispatch:
+    inputs:
+      channel:
+        description: "Tipo do instalador: teste local ou producao HTTPS"
+        type: choice
+        required: true
+        default: test
+        options:
+          - test
+          - production
   push:
     tags: ["v*"]
 
@@ -13,17 +22,41 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Instalar dependências do aplicativo desktop
+      - name: Definir servidor e canal do instalador
+        shell: pwsh
+        env:
+          REQUESTED_CHANNEL: ${{ inputs.channel }}
+          PUBLISHED_URL: ${{ vars.PDV_SERVER_URL }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          $channel = if ($env:EVENT_NAME -eq "workflow_dispatch") { $env:REQUESTED_CHANNEL } else { "production" }
+          if ($channel -eq "test") {
+            "PDV_BUILD_CHANNEL=test" >> $env:GITHUB_ENV
+            "PDV_SERVER_URL=http://localhost:18080" >> $env:GITHUB_ENV
+            Write-Host "Instalador de TESTE: exige tunel SSH aberto em localhost:18080"
+          } elseif ($channel -eq "production") {
+            if ($env:PUBLISHED_URL -notmatch '^https://') { throw "Configure PDV_SERVER_URL como HTTPS nas variaveis Actions" }
+            "PDV_BUILD_CHANNEL=production" >> $env:GITHUB_ENV
+            "PDV_SERVER_URL=$env:PUBLISHED_URL" >> $env:GITHUB_ENV
+            Write-Host "Instalador de PRODUCAO: servidor HTTPS configurado"
+          } else {
+            throw "Canal invalido"
+          }
+      - name: Instalar dependencias do aplicativo desktop
         working-directory: desktop
-        run: yarn install
+        run: npm install --no-audit --no-fund
       - name: Gerar instalador
         working-directory: desktop
-        env:
-          # Defina em Settings → Secrets and variables → Actions → Variables (endereço publicado do sistema)
-          PDV_SERVER_URL: ${{ vars.PDV_SERVER_URL }}
-        run: yarn dist
+        run: npm run dist
+      - name: Conferir executavel gerado
+        shell: pwsh
+        run: |
+          $file = "desktop/dist/Apollo-PDV-Setup.exe"
+          if (-not (Test-Path $file)) { throw "Instalador nao encontrado" }
+          Get-FileHash $file -Algorithm SHA256 | Format-List
       - uses: actions/upload-artifact@v4
         with:
-          name: Apollo-PDV-Setup
+          name: Apollo-PDV-Setup-${{ inputs.channel || 'production' }}
           path: desktop/dist/Apollo-PDV-Setup.exe
           if-no-files-found: error
+          retention-days: 14
