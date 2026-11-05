@@ -13,6 +13,7 @@ load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
 from lib.db import client, db, ensure_indexes  # noqa: E402
+from lib.csrf import CsrfOriginMiddleware  # noqa: E402
 from routers import auth, catalog, config, drive, fiado, finance, operations, production, public, reports, serverbackup, system, tables  # noqa: E402
 
 
@@ -40,10 +41,14 @@ async def root():
 for r in (auth, catalog, tables, operations, reports, public, fiado, config, production, drive, system, finance, serverbackup):
     api_router.include_router(r.router)
 
+app.add_middleware(CsrfOriginMiddleware)
+
+# Do not use wildcard origins with credentialed CORS.
+_allowed_origins = [o.strip() for o in os.environ.get('CORS_ORIGINS', '').split(',') if o.strip() and o.strip() != '*']
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_credentials=bool(_allowed_origins),
+    allow_origins=_allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
