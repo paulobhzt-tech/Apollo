@@ -22,3 +22,7 @@ def test_missing_origin_requires_fetch_metadata():
 
 def test_sibling_subdomain_blocked():
     assert not origin_allowed("https://other.example.com", "pdv.example.com", "same-site")
+
+
+def test_scheme_downgrade_blocked():
+    assert not origin_allowed("http://192.168.0.10:8001", "192.168.0.10:8001", "same-origin", "https")
