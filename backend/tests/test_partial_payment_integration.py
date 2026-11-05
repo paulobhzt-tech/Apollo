@@ -71,7 +71,7 @@ async def test_partial_payment_replay_and_cash_reconciliation(scenario):
         await db.cash_sessions.delete_one({"id": cash_id})
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_concurrent_partial_payments_cannot_oversell(scenario):
     table, order = scenario
     cash_id = "cash-" + uuid.uuid4().hex
