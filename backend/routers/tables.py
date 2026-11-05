@@ -185,7 +185,7 @@ async def transfer(id: str, body: TransferIn, _: dict = Depends(require(*STAFF))
 
 
 @router.post("/tables/{id}/pay", response_model=SaleResult)
-async def pay_table(id: str, body: PayIn, _: dict = Depends(require(*STAFF))):
+async def pay_table(id: str, body: PayIn, _: dict = Depends(require("caixa"))):
     t = await get_table(id)
     order = await db.orders.find_one({"id": t.get("order_id")}, {"_id": 0}) if t.get("order_id") else None
     if not order:
