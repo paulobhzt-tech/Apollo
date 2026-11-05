@@ -140,7 +140,7 @@ def apply_verified_payment(db, payment, *, today=None):
             db.commit()
             return False
         if centavos(payment.get("transaction_amount", -1)) != cents:
-            logging.warning("Pix aprovado ignorado: valor nao confere")
+            logging.warning("Pix aprovado ignorado: valor nao confere (recebido=%s esperado=%s)", centavos(payment.get("transaction_amount", -1)), cents)
             db.commit()
             return False
         license_row = db.execute("SELECT due_date,status FROM licenses WHERE id=?", (license_id,)).fetchone()
