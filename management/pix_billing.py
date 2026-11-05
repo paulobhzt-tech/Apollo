@@ -85,16 +85,18 @@ def create_pix(db, license_id, payer_email, token, *, transport=urlopen, today=N
         raise ValueError("Cobranca Pix automatica disponivel apenas para plano mensal; outros planos exigem preco proprio")
     existing = db.execute("""SELECT id, payment_id, qr_code, ticket_url FROM pix_invoices
        WHERE license_id=? AND status IN ('creating','pending')""", (license_id,)).fetchone()
+    if existing and existing[1]:
+        return dict(zip(("invoice_id","payment_id","qr_code","ticket_url"), existing))
     if existing:
-        if existing[1]:
-            return dict(zip(("invoice_id","payment_id","qr_code","ticket_url"), existing))
-        raise RuntimeError("Cobranca em preparacao. Confira o status antes de repetir")
-    invoice_id = "PIX-" + secrets.token_hex(12).upper()
-    created = datetime.now(timezone.utc).isoformat()
-    # Save a durable idempotency key before external API call.
-    db.execute("INSERT INTO pix_invoices(id,license_id,amount_cents,created_at,period_days) VALUES(?,?,?,?,?)",
-               (invoice_id, license_id, cents, created, days))
-    db.commit()
+        # Retry with the SAME durable idempotency key if a request timed out.
+        # Do not create another charge for this license.
+        invoice_id = existing[0]
+    else:
+        invoice_id = "PIX-" + secrets.token_hex(12).upper()
+        created = datetime.now(timezone.utc).isoformat()
+        db.execute("INSERT INTO pix_invoices(id,license_id,amount_cents,created_at,period_days) VALUES(?,?,?,?,?)",
+                   (invoice_id, license_id, cents, created, days))
+        db.commit()
     payload = {
         "transaction_amount": float(Decimal(cents) / 100),
         "description": f"Apollo PDV - {plan} - {name}"[:255],
