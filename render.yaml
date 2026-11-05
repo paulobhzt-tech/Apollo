@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: apollo-pdv
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/
+    envVars:
+      - key: MONGO_URL
+        sync: false
+      - key: DB_NAME
+        value: apollo_pdv
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: CORS_ORIGINS
+        value: ""
+      - key: PIN_SALT
+        generateValue: true
+      - key: WEBHOOK_CRON_SECRET
+        generateValue: true
+      - key: SERVE_FRONTEND_DIR
+        value: /app/web
