@@ -22,7 +22,7 @@ jobs:
         env:
           MONGO_URL: mongodb://127.0.0.1:27017
           DB_NAME: apollo_ci
-        run: pytest -q -n 0 tests/test_csrf_origin.py tests/test_auth_security.py
+        run: pytest -q -n 0 tests/test_csrf_origin.py tests/test_auth_security.py tests/test_demo_guard.py
   frontend:
     runs-on: ubuntu-latest
     steps:
