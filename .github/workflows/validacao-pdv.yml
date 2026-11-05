@@ -16,7 +16,7 @@ jobs:
       - name: Instalar dependencias para testes isolados
         run: python -m pip install pytest pytest-xdist pytest-asyncio httpx fastapi starlette motor pymongo python-dotenv bcrypt cryptography
       - name: Verificar sintaxe Python de todo backend
-        run: python -m compileall -q backend local-server/gerar-certificado.py
+        run: python -m compileall -q backend management local-server/gerar-certificado.py
       - name: Testar protecao CSRF e autenticacao
         working-directory: backend
         env:
