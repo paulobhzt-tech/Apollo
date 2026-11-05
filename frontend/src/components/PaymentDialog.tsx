@@ -211,10 +211,10 @@ function PaymentBody({ subtotal, title, defaultService = 0, partialMode = false,
               <Checkbox checked={receipt} onCheckedChange={(v) => { setReceipt(!!v); setReceiptPref(!!v); }} data-testid="payment-simple-receipt-checkbox" />
               Imprimir cupom simples (não fiscal)
             </label>
-            <label className="flex items-center gap-2 text-sm text-zinc-300">
+            {!partialMode && <label className="flex items-center gap-2 text-sm text-zinc-300">
               <Checkbox checked={emit} onCheckedChange={(v) => setEmit(!!v)} data-testid="payment-emit-invoice-checkbox" />
               Emitir nota fiscal (simulada)
-            </label>
+            </label>}
             {emit && (
               <div className="flex gap-2">
                 {(["nfce", "nfe"] as const).map((d) => (
