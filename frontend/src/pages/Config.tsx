@@ -138,7 +138,7 @@ function Company() {
 }
 
 function CompanyForm({ init }: { init: GeneralSettings }) {
-  const [f, setF] = useState<GeneralSettings>({ ...{ company_name: "", trade_name: "", cnpj: "", ie: "", city: "", receipt_footer: "", alert_phone: "", pix_key: "", pix_holder: "", phone: "", address: "" }, ...init });
+  const [f, setF] = useState<GeneralSettings>({ ...{ company_name: "", trade_name: "", logo_url: "", cnpj: "", ie: "", city: "", receipt_footer: "", alert_phone: "", pix_key: "", pix_holder: "", phone: "", address: "" }, ...init });
   const save = useMutation({
     mutationFn: () => apiPut<GeneralSettings>("/settings/general", f),
     onSuccess: () => { toast.success("Configurações salvas"); void queryClient.invalidateQueries({ queryKey: ["settings-general"] }); },
@@ -150,15 +150,16 @@ function CompanyForm({ init }: { init: GeneralSettings }) {
   return (
     <Panel title="Dados da empresa (aparecem no cupom, pré-conta e nota) e PIX">
       <div className="grid gap-3 sm:grid-cols-2">
-        {field("trade_name", "Nome no cupom (nome fantasia)", "Ex.: Espeteria Churras Buguer")}
-        {field("company_name", "Razão social", "Espeteria Churras Buguer LTDA")}
+        {field("trade_name", "Nome do estabelecimento", "Nome do seu restaurante")
+        {field("logo_url", "URL HTTPS da logomarca (opcional)", "https://exemplo.com/logo.png")}}
+        {field("company_name", "Razão social", "Razão social do estabelecimento")}
         {field("cnpj", "CNPJ", "00.000.000/0001-00")}
         {field("ie", "Inscrição estadual", "Isento ou número")}
         {field("city", "Cidade / UF", "Belo Horizonte/MG")}
         {field("receipt_footer", "Mensagem no rodapé do cupom", "Obrigado pela preferência!")}
         {field("alert_phone", "Seu WhatsApp para lembretes de contas", "(31) 99999-0000")}
         {field("pix_key", "Chave PIX", "CNPJ, e-mail, telefone ou aleatória")}
-        {field("pix_holder", "Nome do recebedor", "Espeteria Churras Buguer")}
+        {field("pix_holder", "Nome do recebedor", "Nome do recebedor")}
         {field("phone", "Telefone / WhatsApp da loja", "(11) 99999-0000")}
         {field("address", "Endereço", "Rua…")}
       </div>
