@@ -1,4 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Pdv from "@/pages/Pdv";
@@ -30,9 +32,26 @@ function Home() {
   return me.role === "admin" || me.role === "caixa" ? <Dashboard /> : <Navigate to={homeFor(me.role)} replace />;
 }
 
+function DemoNotice() {
+  const { data } = useQuery({
+    queryKey: ["demo-status"],
+    queryFn: () => apiGet<{ demo: boolean }>("/demo-status"),
+    retry: false,
+    staleTime: 60000,
+  });
+  if (!data?.demo) return null;
+  return (
+    <div role="status" className="relative z-50 bg-amber-500 px-4 py-2 text-center text-sm font-semibold text-black" data-testid="demo-notice">
+      DEMONSTRAÇÃO APOLLO — DADOS FICTÍCIOS · NÃO USE PARA VENDAS REAIS
+    </div>
+  );
+}
+
 // One <Route> per page in src/pages; BrowserRouter already wraps this in main.tsx.
 export default function App() {
   return (
+    <>
+    <DemoNotice />
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
@@ -61,5 +80,6 @@ export default function App() {
       <Route path="/pedir" element={<PedirDelivery />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }
