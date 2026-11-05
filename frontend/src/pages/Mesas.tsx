@@ -472,6 +472,8 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
 function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string; items: Order["items"]; open: boolean; onClose: () => void }) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [preview, setPreview] = useState<{ subtotal: number; remaining_subtotal: number } | null>(null);
+  const [payOpen, setPayOpen] = useState(false);
+  const [clientRef, setClientRef] = useState(() => uid());
   const available = items.filter((i) => !i.cancelled);
   const calculation = useMutation({
     mutationFn: () => apiPost<{ subtotal: number; remaining_subtotal: number }>(
@@ -479,7 +481,22 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
     onSuccess: setPreview,
     onError: (e) => toast.error(errMsg(e)),
   });
+  const payment = useMutation({
+    mutationFn: (p: PayIn) => apiPost<SaleResult>(`/tables/${tableId}/partial-bill/pay`, {
+      quantities: Object.fromEntries(Object.entries(quantities).filter(([, qty]) => qty > 0)),
+      payment: { ...p, emit_invoice: false, discount: 0, service_pct: 0 },
+      client_ref: clientRef,
+    }),
+    onSuccess: (result) => {
+      toast.success(`Pagamento parcial registrado: ${brl(result.order.total)}`);
+      if (getReceiptPref()) void printSimpleReceipt(result.order);
+      setPayOpen(false); setPreview(null); setQuantities({}); setClientRef(uid());
+      invalidateTables(); onClose();
+    },
+    onError: (e) => toast.error(errMsg(e)),
+  });
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-h-[85vh] overflow-y-auto border-white/10 bg-elevated sm:max-w-lg">
         <DialogHeader><DialogTitle>Divisão da conta por itens</DialogTitle></DialogHeader>
@@ -498,9 +515,12 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
         {preview && <div className="rounded-xl border border-white/10 p-3 text-sm">
           <p>Selecionado: <strong>{brl(preview.subtotal)}</strong></p>
           <p>Restante na mesa: <strong>{brl(preview.remaining_subtotal)}</strong></p>
-          <p className="mt-2 text-amber-300">Prévia de divisão. O recebimento parcial ainda não está habilitado; nenhum pagamento foi lançado.</p>
+          <p className="mt-2 text-amber-300">Pagamento parcial não fiscal. Descontos, taxa de serviço e fiado não são permitidos nesta operação.</p>
+          <Button className="mt-3 w-full" onClick={() => setPayOpen(true)}>Receber itens selecionados</Button>
         </div>}
       </DialogContent>
     </Dialog>
+    <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} title="Recebimento parcial (não fiscal)" pending={payment.isPending} onConfirm={(p) => payment.mutate(p)} />
+    </>
   );
 }
