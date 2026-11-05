@@ -9,6 +9,9 @@ const front = path.resolve(root, "..", "frontend");
 const out = path.join(root, "web");
 
 const url = process.env.PDV_SERVER_URL;
+if (!url || !/^https:\/\/[^\s/]+(?:\/[^\s]*)?$/.test(url)) {
+  throw new Error("Configure PDV_SERVER_URL com a URL HTTPS real do servidor (Render ou outro).");
+}
 if (url) {
   const f = path.join(root, "config.default.json");
   const cfg = JSON.parse(fs.readFileSync(f, "utf8"));
