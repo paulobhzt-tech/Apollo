@@ -89,6 +89,17 @@ class BillingTests(unittest.TestCase):
         self.assertEqual(reconcile(self.db,"token",transport=self.fake_api),0)
         self.assertEqual(self.db.execute("SELECT status FROM licenses").fetchone()[0],"cancelled")
 
+    def test_timeout_retries_using_identical_idempotency_key(self):
+        def timeout(req, timeout=0):
+            raise TimeoutError("simulated network timeout")
+        with self.assertRaises(RuntimeError):
+            create_pix(self.db,"APL-TEST","customer@example.com","test-token",transport=timeout)
+        original = self.db.execute("SELECT id,status FROM pix_invoices").fetchone()
+        self.assertEqual(original[1], "creating")
+        result = create_pix(self.db,"APL-TEST","customer@example.com","test-token",transport=self.fake_api)
+        self.assertEqual(result["invoice_id"], original[0])
+        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM pix_invoices").fetchone()[0], 1)
+
     def test_api_does_not_allow_host_override(self):
         with self.assertRaises(ValueError):
             api("GET","https://evil.com/v1/payments/123","token")
