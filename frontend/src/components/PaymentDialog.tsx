@@ -25,6 +25,7 @@ interface Props {
   subtotal: number;
   title: string;
   defaultService?: number;
+  partialMode?: boolean;
   pending?: boolean;
   onConfirm: (p: PayIn) => void;
 }
@@ -39,14 +40,14 @@ export default function PaymentDialog(props: Props) {
   );
 }
 
-function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }: Props) {
+function PaymentBody({ subtotal, title, defaultService = 0, partialMode = false, pending, onConfirm }: Props) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [method, setMethod] = useState<PayMethod>("dinheiro");
   const cfg = usePayMethods();
   const METHODS = useMemo(() => {
     const list = cfg.data ?? ORDER.map((k, i) => ({ key: k, name: PAY_LABEL[k], active: true, sort: i }));
-    return list.filter((m) => m.active).sort((a, b) => a.sort - b.sort).map((m) => ({ m: m.key, label: m.name, icon: ICONS[m.key] ?? Ticket }));
-  }, [cfg.data]);
+    return list.filter((m) => m.active && (!partialMode || m.key !== "fiado")).sort((a, b) => a.sort - b.sort).map((m) => ({ m: m.key, label: m.name, icon: ICONS[m.key] ?? Ticket }));
+  }, [cfg.data, partialMode]);
   const [amount, setAmount] = useState("");
   const [brand, setBrand] = useState<CardBrand | null>(null);
   const isCard = method === "credito" || method === "debito";
@@ -56,7 +57,7 @@ function PaymentBody({ subtotal, title, defaultService = 0, pending, onConfirm }
   const [discount, setDiscount] = useState("");
   const [service, setService] = useState(defaultService > 0);
   const [splitN, setSplitN] = useState("1");
-  const [emit, setEmit] = useState(true);
+  const [emit, setEmit] = useState(!partialMode);
   const [receipt, setReceipt] = useState(getReceiptPref);
   const [docType, setDocType] = useState<"nfce" | "nfe">("nfce");
   const [cpf, setCpf] = useState("");
