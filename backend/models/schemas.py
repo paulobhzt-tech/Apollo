@@ -685,6 +685,7 @@ class PrinterIn(BaseModel):
 class GeneralSettings(BaseModel):
     company_name: str = ""  # razão social
     trade_name: str = ""  # nome fantasia
+    logo_url: str = ""  # HTTPS image, optional
     cnpj: str = ""
     ie: str = ""
     city: str = ""
