@@ -1,6 +1,7 @@
 """DESTRUCTIVE demo seed. Restricted to opt-in, demo/test DBs only."""
 import asyncio
 import random
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from lib.auth import secure_hash_pin
@@ -29,10 +30,21 @@ async def main() -> None:
     await ensure_indexes()
     now = datetime.now(timezone.utc)
 
+    # Random PINs per reset: never publish predictable demo credentials.
+    used = set()
+    def demo_pin():
+        while True:
+            pin = f"{secrets.randbelow(1000000):06d}"
+            if pin not in used:
+                used.add(pin)
+                return pin
+
     emps = [
-        ("Marina Costa", "admin", "1234", 0), ("Rafael Operador", "caixa", "0000", 0),
-        ("Lucas Garçom", "garcom", "1111", 5), ("Juliana Garçonete", "garcom", "3333", 5),
-        ("Chef Paulo", "cozinha", "2222", 0),
+        ("Marina Costa", "admin", demo_pin(), 0),
+        ("Rafael Operador", "caixa", demo_pin(), 0),
+        ("Lucas Garçom", "garcom", demo_pin(), 5),
+        ("Juliana Garçonete", "garcom", demo_pin(), 5),
+        ("Chef Paulo", "cozinha", demo_pin(), 0),
     ]
     emp_docs = []
     for name, role, pin, comm in emps:
@@ -189,7 +201,11 @@ async def main() -> None:
         await db.expenses.insert_one(Expense(description=desc, category=cat, amount=amt, date=month_start).model_dump())
     from seed_extras import main as extras
     await extras()
-    print(f"Seed OK: {len(emp_docs)} funcionários, {len(prods)} produtos, {len(orders)} pedidos históricos")
+    # Display access codes once on the trusted operator terminal; never commit or share.
+    print(f"Seed OK: {len(emp_docs)} funcionários, {len(prods)} produtos, {len(orders)} pedidos fictícios")
+    print("PINs demonstrativos (anote em local seguro; mudam a cada reset):")
+    for name, role, pin, _ in emps:
+        print(f"  {name} ({role}): {pin}")
 
 
 if __name__ == "__main__":
