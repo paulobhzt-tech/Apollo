@@ -234,6 +234,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [transferTo, setTransferTo] = useState("");
   const [preBill, setPreBill] = useState(false);
+  const [partialOpen, setPartialOpen] = useState(false);
   const [grouped, setGrouped] = useState(true);
   const [removing, setRemoving] = useState<GroupedItem | null>(null);
 
@@ -419,10 +420,11 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                     <Button variant="outline" onClick={() => setPreBill(true)} disabled={!items.some((i) => !i.cancelled)} data-testid="request-bill-button">
                       <Receipt className="size-4" /> Pré-conta
                     </Button>
-                    <Button variant="secondary" onClick={() => setPayOpen(true)} disabled={!items.some((i) => !i.cancelled)} data-testid="close-table-button">
+                    <Button variant="secondary" onClick={() => setPayOpen(true)} disabled={!items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "")} data-testid="close-table-button">
                       Fechar conta
                     </Button>
                   </div>
+                  {["admin", "caixa"].includes(me?.role ?? "") && <Button className="mt-2 w-full" variant="outline" disabled={!items.some((i) => !i.cancelled)} onClick={() => setPartialOpen(true)}>Dividir conta por itens</Button>}
                   <div className="mt-3 flex gap-2">
                     <Select value={transferTo} onValueChange={(v: string) => setTransferTo(v)}>
                       <SelectTrigger className="flex-1" data-testid="transfer-select"><SelectValue placeholder="Transferir para…">{(v) => v ? (() => { const x = tables.find((t) => t.id === v); return x ? tableLabel(x) : ""; })() : "Transferir para…"}</SelectValue></SelectTrigger>
@@ -458,10 +460,47 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
         <PreBillDialog table={table} order={o} open={preBill} onClose={() => setPreBill(false)}
           onPrinted={() => { if (table.status !== "conta") status.mutate("conta"); setPreBill(false); }} />
       )}
+      {table && <PartialBillDialog tableId={table.id} items={items} open={partialOpen} onClose={() => setPartialOpen(false)} />}
       <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} defaultService={10}
         title={`Fechamento · ${table ? tableLabel(table) : ""}`} pending={pay.isPending} onConfirm={(p) => pay.mutate(p)} />
       <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />
       <OptionsDialog product={optFor} onClose={() => setOptFor(null)} onConfirm={push} />
     </>
+  );
+}
+
+function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string; items: Order["items"]; open: boolean; onClose: () => void }) {
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [preview, setPreview] = useState<{ subtotal: number; remaining_subtotal: number } | null>(null);
+  const available = items.filter((i) => !i.cancelled);
+  const calculation = useMutation({
+    mutationFn: () => apiPost<{ subtotal: number; remaining_subtotal: number }>(
+      `/tables/${tableId}/partial-bill/preview`, { quantities }),
+    onSuccess: setPreview,
+    onError: (e) => toast.error(errMsg(e)),
+  });
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto border-white/10 bg-elevated sm:max-w-lg">
+        <DialogHeader><DialogTitle>Divisão da conta por itens</DialogTitle></DialogHeader>
+        <p className="text-sm text-zinc-400">Selecione a quantidade que cada cliente deseja pagar.</p>
+        <div className="space-y-2">
+          {available.map((item) => (
+            <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-panel p-3">
+              <span className="text-sm">{item.name} · {brl(item.unit_price)} (até {item.qty})</span>
+              <Input className="w-20" type="number" min={0} max={item.qty} value={quantities[item.id] ?? 0}
+                onChange={(e) => { setQuantities((old) => ({ ...old, [item.id]: Math.max(0, Math.min(item.qty, Number(e.target.value) || 0)) })); setPreview(null); }} />
+            </div>
+          ))}
+        </div>
+        <Button disabled={calculation.isPending || !Object.values(quantities).some((v) => v > 0)}
+          onClick={() => calculation.mutate()}>Calcular divisão</Button>
+        {preview && <div className="rounded-xl border border-white/10 p-3 text-sm">
+          <p>Selecionado: <strong>{brl(preview.subtotal)}</strong></p>
+          <p>Restante na mesa: <strong>{brl(preview.remaining_subtotal)}</strong></p>
+          <p className="mt-2 text-amber-300">Prévia de divisão. O recebimento parcial ainda não está habilitado; nenhum pagamento foi lançado.</p>
+        </div>}
+      </DialogContent>
+    </Dialog>
   );
 }
