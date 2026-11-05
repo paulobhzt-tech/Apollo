@@ -34,8 +34,10 @@ def verify_pin(pin: str, stored: str) -> bool:
 
 async def create_session(employee_id: str) -> str:
     token = secrets.token_urlsafe(32)
+    digest = hashlib.sha256(token.encode()).hexdigest()
     await db.sessions.insert_one({
-        "token_hash": hashlib.sha256(token.encode()).hexdigest(),
+        "token": digest,
+        "token_hash": digest,
         "employee_id": employee_id,
         "expires_at": datetime.now(timezone.utc) + timedelta(hours=SESSION_HOURS),
     })
