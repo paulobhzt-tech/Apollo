@@ -270,6 +270,8 @@ async def cash_move(body: CashMoveIn, user: dict = Depends(require("caixa"))):
     s = await current_cash()
     if not s:
         raise HTTPException(400, "Nenhum caixa aberto")
+    if body.type == "sangria" and len(body.note.strip()) < 3:
+        raise HTTPException(400, "Informe o motivo da sangria (mínimo de 3 caracteres)")
     if body.type == "sangria" and body.amount > (await cash_summary(dict(s)))["expected_cash"]:
         raise HTTPException(400, "Sangria maior que o saldo em dinheiro")
     m = CashMovement(type=body.type, amount=body.amount, note=body.note, by_name=user["name"]).model_dump()
