@@ -7,13 +7,13 @@ import argparse
 from pathlib import Path
 import re
 
-from .provision import generate
+from .provision import SLUG, generate
 
 BCRYPT_HASH = re.compile(r"^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$")
 
 
 def prepare_demo(base: Path, slug: str, domain: str) -> Path:
-    if not slug.startswith("demo-"):
+    if not SLUG.fullmatch(slug) or not slug.startswith("demo-"):
         raise ValueError("Demonstrações precisam de slug iniciado por demo-")
     tenant = generate(slug, domain, base)
     compose_path = tenant / "compose.yaml"
