@@ -3,7 +3,7 @@
 ## O que funciona nesta etapa
 - O Apollo tem nome do estabelecimento e logo HTTPS configuráveis na tela **Configurações → Empresa & PIX**.
 - O login exibe essa marca em vez de um nome fixo da Espeteria.
-- Banco novo inicia sem produtos e sem funcionários de demonstração. **Não rode `backend/seed.py` em produção**: esse script apaga coleções.
+- Banco novo inicia sem produtos e sem funcionários de demonstração. O script `backend/seed.py` foi protegido: recusa bancos comerciais e exige tanto um nome iniciado por `apollo_demo_` ou `apollo_test_` quanto a autorização explícita `APOLLO_ALLOW_DEMO_RESET=RESET_DEMO_DATA`. Esse script apaga coleções e deve ser usado somente com dados descartáveis.
 - O primeiro administrador é criado por terminal autorizado: `docker compose exec apollo python first_run.py`. O PIN não fica em código ou em arquivos de exemplo.
 - Um registro local administrativo permite acompanhar clientes, plano, valor e vencimento; não existe integração com cobrança nem bloqueio automático.
 
