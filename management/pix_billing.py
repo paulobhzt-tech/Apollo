@@ -9,6 +9,7 @@ import argparse
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 import json
+import logging
 import os
 from pathlib import Path
 import secrets
@@ -130,9 +131,16 @@ def apply_verified_payment(db, payment, *, today=None):
             db.commit()
             return False
         invoice_id, license_id, cents, _, days = row
-        if (payment.get("external_reference") != invoice_id or
-                payment.get("currency_id") != "BRL" or
-                centavos(payment.get("transaction_amount", -1)) != cents):
+        if payment.get("external_reference") != invoice_id:
+            logging.warning("Pix aprovado ignorado: referencia nao confere")
+            db.commit()
+            return False
+        if payment.get("currency_id") != "BRL":
+            logging.warning("Pix aprovado ignorado: moeda incorreta")
+            db.commit()
+            return False
+        if centavos(payment.get("transaction_amount", -1)) != cents:
+            logging.warning("Pix aprovado ignorado: valor nao confere")
             db.commit()
             return False
         license_row = db.execute("SELECT due_date,status FROM licenses WHERE id=?", (license_id,)).fetchone()
