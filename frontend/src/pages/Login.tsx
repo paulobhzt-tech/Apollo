@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Delete, Flame, ShieldCheck } from "lucide-react";
@@ -17,12 +17,20 @@ export default function Login() {
   const nav = useNavigate();
   const [pin, setPin] = useState("");
   const [selected, setSelected] = useState<Profile | null>(null);
+  const [rememberOperator, setRememberOperator] = useState(() => localStorage.getItem("apollo-remember-operator") === "true");
+  useEffect(() => {
+    if (!rememberOperator || !profiles.data?.length) return;
+    const id = localStorage.getItem("apollo-last-operator-id");
+    const remembered = profiles.data.find((p) => p.id === id);
+    if (remembered) setSelected(remembered);
+  }, [rememberOperator, profiles.data]);
   const branding = useQuery({ queryKey: ["branding"], queryFn: () => apiGet<{trade_name: string; logo_url: string}>("/branding"), retry: false });
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: () => apiGet<Profile[]>("/auth/profiles"), retry: false });
 
   const login = useMutation({
     mutationFn: (p: string) => apiPost<Employee>("/auth/login", { pin: p }),
     onSuccess: (emp) => {
+      if (rememberOperator && selected) localStorage.setItem("apollo-last-operator-id", selected.id);
       beginSession();
       queryClient.setQueryData(["me"], emp);
       toast.success(`Bem-vindo(a), ${emp.name}`);
@@ -93,6 +101,7 @@ export default function Login() {
             <Key onClick={() => press("0")} testid="pin-digit-0">0</Key>
             <Key onClick={() => setPin(pin.slice(0, -1))} testid="pin-backspace" muted><Delete className="mx-auto size-5" /></Key>
           </div>
+          <label className="mt-5 flex cursor-pointer items-center gap-2 text-sm text-zinc-400"><input type="checkbox" checked={rememberOperator} onChange={(e) => { const value = e.target.checked; setRememberOperator(value); localStorage.setItem("apollo-remember-operator", String(value)); if (!value) localStorage.removeItem("apollo-last-operator-id"); }} /> Lembrar meu usuário neste dispositivo (não salva PIN)</label>
           <button
             type="button"
             onClick={() => submit()}
