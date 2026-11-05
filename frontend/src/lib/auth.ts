@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiGet, ApiError } from "./api";
+import { apiGet } from "./api";
 import { isDesktop, kv } from "./desktop";
 import type { Employee, Role } from "./types";
 
@@ -10,9 +10,8 @@ async function fetchMe(): Promise<Employee> {
     if (isDesktop()) kv.set(ME_KEY, JSON.stringify(me));
     return me;
   } catch (e) {
-    // desktop app without internet: keep the last operator of this computer so counter sales can continue offline
-    const cached = isDesktop() && !(e instanceof ApiError) ? kv.get(ME_KEY) : null;
-    if (cached) return JSON.parse(cached) as Employee;
+    // Do not grant access just because this computer remembers an operator.
+    // An offline PIN verification flow is required before allowing offline access.
     throw e;
   }
 }
