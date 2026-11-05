@@ -1,5 +1,6 @@
 """Origin verification for cookie-authenticated state-changing API requests."""
 from urllib.parse import urlsplit
+import os
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
@@ -39,7 +40,10 @@ class CsrfOriginMiddleware(BaseHTTPMiddleware):
             host = request.headers.get("host", "")
             has_session = bool(request.cookies.get("pdv_session"))
             # Login endpoints also reject explicitly hostile Origins.
-            if (has_session or origin is not None) and not origin_allowed(origin, host, site, request.url.scheme):
+            configured = urlsplit(os.environ.get("APP_URL", ""))
+            scheme = (configured.scheme if configured.netloc.lower() == host.lower()
+                      else ("https" if request.url.scheme == "https" else None))
+            if (has_session or origin is not None) and not origin_allowed(origin, host, site, scheme):
                 return JSONResponse(
                     {"detail": "Origem não autorizada para esta operação"},
                     status_code=403,
