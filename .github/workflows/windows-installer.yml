@@ -45,6 +45,12 @@ jobs:
       - name: Instalar dependencias do aplicativo desktop
         working-directory: desktop
         run: npm install --no-audit --no-fund
+      - name: Verificar sintaxe dos scripts desktop
+        working-directory: desktop
+        run: |
+          node --check scripts/build-web.js
+          node --check main.js
+          node --check preload.js
       - name: Gerar instalador
         working-directory: desktop
         run: npm run dist
