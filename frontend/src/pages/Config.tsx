@@ -178,7 +178,7 @@ function Backup({ flash }: { flash: string | null }) {
       const blob = await r.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `backup-espeteria-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-")}.json`;
+      a.download = `backup-apollo-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-")}.json`;
       a.click();
       URL.revokeObjectURL(a.href);
       toast.success("Backup baixado. Agora envie o arquivo para o seu Google Drive.");
