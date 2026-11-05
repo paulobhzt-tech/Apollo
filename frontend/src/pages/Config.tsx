@@ -150,8 +150,8 @@ function CompanyForm({ init }: { init: GeneralSettings }) {
   return (
     <Panel title="Dados da empresa (aparecem no cupom, pré-conta e nota) e PIX">
       <div className="grid gap-3 sm:grid-cols-2">
-        {field("trade_name", "Nome do estabelecimento", "Nome do seu restaurante")
-        {field("logo_url", "URL HTTPS da logomarca (opcional)", "https://exemplo.com/logo.png")}}
+        {field("trade_name", "Nome do estabelecimento", "Nome do seu restaurante")}
+        {field("logo_url", "URL HTTPS da logomarca (opcional)", "https://exemplo.com/logo.png")}
         {field("company_name", "Razão social", "Razão social do estabelecimento")}
         {field("cnpj", "CNPJ", "00.000.000/0001-00")}
         {field("ie", "Inscrição estadual", "Isento ou número")}
