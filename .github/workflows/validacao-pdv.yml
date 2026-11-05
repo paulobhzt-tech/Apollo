@@ -62,3 +62,15 @@ jobs:
           python local-server/gerar-certificado.py "$env:RUNNER_TEMP/tls" "192.168.10.10"
           if ($LASTEXITCODE -ne 0) { exit 1 }
           python -c "from cryptography import x509; from pathlib import Path; import ipaddress; p=Path(r'$env:RUNNER_TEMP/tls/server.crt'); c=x509.load_pem_x509_certificate(p.read_bytes()); print(c.subject); assert ipaddress.ip_address('192.168.10.10') in c.extensions.get_extension_for_class(x509.SubjectAlternativeName).value.get_values_for_type(x509.IPAddress)"
+  vps-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar sintaxe do backup da VPS
+        run: bash -n deploy/vps/backup-mongo.sh
+      - name: Verificar configuracao Docker Compose da VPS
+        working-directory: deploy/vps
+        run: |
+          cp .env.example .env
+          docker compose --env-file .env config --quiet
+          ! docker compose --env-file .env config | grep -E '^    ports:.*27017'
