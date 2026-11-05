@@ -1,0 +1,63 @@
+name: apollo-pdv
+
+services:
+  mongo:
+    image: mongo:7.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:?Defina MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?Defina MONGO_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+
+  apollo:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URL: ${MONGO_URL:?Defina MONGO_URL}
+      DB_NAME: apollo_pdv
+      APP_URL: https://${APOLLO_DOMAIN:?Defina APOLLO_DOMAIN}
+      COOKIE_SECURE: "true"
+      CORS_ORIGINS: ""
+      WEBHOOK_CRON_SECRET: ${WEBHOOK_CRON_SECRET:?Defina WEBHOOK_CRON_SECRET}
+      SERVE_FRONTEND_DIR: /app/web
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - apollo
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      APOLLO_DOMAIN: ${APOLLO_DOMAIN:?Defina APOLLO_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  internal:
+
+volumes:
+  mongo_data:
+  caddy_data:
+  caddy_config:
