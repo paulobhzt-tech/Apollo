@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from lib.auth import cancel_authorizer, current_user, require
-from lib.db import db
-from lib.orders import (build_items, create_ticket, finalize_payment, free_table, move_stock, new_order, now,
+from lib.db import client, db
+from lib.orders import (build_items, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods,
                         refresh_totals)
-from models.schemas import (AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, PayIn, SaleResult, Table, TableIn,
+from models.schemas import (AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, OrderItem, PayIn, SaleResult, Table, TableIn,
                             TableStatusIn, TableUpdate, TransferIn, table_label)
 
 router = APIRouter()
@@ -216,6 +216,87 @@ async def preview_partial_bill(id: str, body: PartialBillIn, _: dict = Depends(r
     return {"table_id": id, "order_id": order["id"], "items": chosen,
             "subtotal": subtotal, "remaining_subtotal": remaining,
             "message": "Prévia apenas: nenhum pagamento foi registrado"}
+
+
+class PartialPaymentIn(PartialBillIn):
+    payment: PayIn
+    client_ref: str = Field(min_length=6, max_length=120)
+
+
+@router.post("/tables/{id}/partial-bill/pay", response_model=SaleResult)
+async def pay_partial_bill(id: str, body: PartialPaymentIn, _: dict = Depends(require("caixa"))):
+    """Atomically move selected units to a separate paid order; never deduct stock twice.
+
+    Requires MongoDB replica-set transactions. Standalone databases fail closed.
+    """
+    if body.payment.emit_invoice:
+        raise HTTPException(400, "Emissão fiscal parcial ainda não habilitada. Use comprovante não fiscal.")
+    if body.payment.fiado_customer_id or any(p.method == "fiado" for p in body.payment.payments):
+        raise HTTPException(400, "Fiado não está habilitado no pagamento parcial")
+    if body.payment.discount or body.payment.service_pct:
+        raise HTTPException(400, "Desconto e taxa de serviço ainda não disponíveis no pagamento parcial")
+    await validate_methods([p.method for p in body.payment.payments])
+    if any(p.method in ("credito", "debito") and not p.brand for p in body.payment.payments):
+        raise HTTPException(400, "Informe a bandeira do cartão")
+    cash = await current_cash()
+    if not cash:
+        raise HTTPException(400, "Abra o caixa para receber pagamentos")
+    # Allocate the sequence before the transaction: a skipped number is preferable
+    # to a non-transactional counter update inside a financial transaction.
+    number = await next_seq("order")
+    from pymongo.errors import PyMongoError
+    try:
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                previous = await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0}, session=session)
+                if previous:
+                    return {"order": previous, "invoice": None}
+                table = await db.tables.find_one({"id": id}, session=session)
+                if not table or not table.get("order_id"):
+                    raise HTTPException(400, "Mesa sem comanda aberta")
+                order = await db.orders.find_one({"id": table["order_id"], "status": "aberto"}, session=session)
+                if not order:
+                    raise HTTPException(409, "Comanda foi alterada ou fechada")
+                chosen = []
+                remaining = []
+                for item in order["items"]:
+                    qty = body.quantities.get(item["id"], 0)
+                    if isinstance(qty, bool) or qty < 0 or qty > (0 if item.get("cancelled") else item["qty"]):
+                        raise HTTPException(400, f"Quantidade inválida: {item['name']}")
+                    if qty:
+                        chosen.append({**item, "qty": qty})
+                    if item["qty"] > qty:
+                        remaining.append({**item, "qty": item["qty"] - qty})
+                if not chosen or any(k not in {i["id"] for i in order["items"]} for k in body.quantities):
+                    raise HTTPException(400, "Selecione itens válidos")
+                subtotal = round(sum(i["qty"] * i["unit_price"] for i in chosen), 2)
+                paid = round(sum(p.amount for p in body.payment.payments), 2)
+                change = round(paid - subtotal, 2)
+                if change < -0.009:
+                    raise HTTPException(400, "Pagamento insuficiente")
+                if change > sum(p.amount for p in body.payment.payments if p.method == "dinheiro") + 0.009:
+                    raise HTTPException(400, "Troco somente em dinheiro")
+                # The separate order has no table_id: it must not release the open table.
+                receipt = Order(number=number, channel="mesa", source="mesa",
+                    table_number=table["number"], table_label=table_label(table),
+                    items=[OrderItem(**i) for i in chosen], status="pago",
+                    subtotal=subtotal, total=subtotal, payments=body.payment.payments,
+                    change=max(0, change), paid_at=now(), cash_session_id=cash["id"],
+                    client_ref=body.client_ref, waiter_id=order.get("waiter_id"),
+                    waiter_name=order.get("waiter_name", ""),
+                    cmv=round(sum(i["qty"] * i.get("unit_cost", 0) for i in chosen), 2)).model_dump()
+                receipt["parent_order_id"] = order["id"]
+                await db.orders.insert_one(dict(receipt), session=session)
+                remaining_sub = round(sum(i["qty"] * i["unit_price"] for i in remaining if not i.get("cancelled")), 2)
+                result = await db.orders.update_one({"id": order["id"], "status": "aberto"},
+                    {"$set": {"items": remaining, "subtotal": remaining_sub, "total": remaining_sub}}, session=session)
+                if result.modified_count != 1:
+                    raise HTTPException(409, "Comanda alterada. Refaça a divisão.")
+                await db.tables.update_one({"id": id, "order_id": order["id"]},
+                    {"$set": {"total": remaining_sub}}, session=session)
+                return {"order": receipt, "invoice": None}
+    except PyMongoError as exc:
+        raise HTTPException(503, "Pagamento parcial exige MongoDB com transações habilitadas; nenhuma cobrança foi registrada") from exc
 
 
 @router.post("/tables/{id}/pay", response_model=SaleResult)
