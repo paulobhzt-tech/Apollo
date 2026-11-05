@@ -3,6 +3,8 @@ import asyncio
 import uuid
 
 import pytest
+
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 from fastapi import HTTPException
 
 from lib.db import db
@@ -24,7 +26,6 @@ def scenario():
     return table, order
 
 
-@pytest.mark.asyncio
 async def test_partial_payment_replay_and_cash_reconciliation(scenario):
     table, order = scenario
     cash_id = "cash-" + uuid.uuid4().hex
