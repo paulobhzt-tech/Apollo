@@ -15,6 +15,21 @@
 4. Acesse o login, entre com o PIN criado e registre nome, razão social, logomarca, PIX e dados fiscais em Configurações.
 5. Cadastre funcionários, mesas, produtos, impressoras e valide vendas de teste antes de liberar operações reais.
 
+## Painel administrativo privado (já implementado)
+O painel web está em `management/panel.py`. Ele oferece cadastro de restaurantes, listagem de planos, status, vencimentos, valor mensal e **registro manual** de pagamentos. É uma aplicação **separada** do PDV e usa banco SQLite administrativo próprio.
+
+No computador que terá o painel (Python 3.11+ instalado):
+
+```powershell
+$env:APOLLO_ADMIN_PASSWORD = Read-Host "Senha forte do painel (minimo 16 caracteres)"
+$env:APOLLO_LICENSE_DB = "$HOME\\apollo-admin\\licencas.sqlite3"
+python -m management.panel
+```
+
+Abra `http://127.0.0.1:8787` no mesmo computador. Usuário: `admin`; senha: a que você acabou de definir. **Não exponha a porta 8787 na internet, não use proxy público para esse painel e não coloque a senha no GitHub**. Para usá-lo em uma VPS remota, execute o painel no servidor privado e acesse somente com túnel SSH (`ssh -L 8787:127.0.0.1:8787 usuario@IP-DA-VPS`) — SSH com credenciais individuais e acesso restrito.
+
+Os registros manuais não cobram por Pix, cartão ou boleto, não renovam vencimentos automaticamente, não criam instâncias do cliente e não bloqueiam seu caixa. É um painel administrativo inicial, **não** uma plataforma SaaS pronta.
+
 ## Controle de mensalidades (cadastro administrativo local)
 O script `management/licenses.py` exige somente Python 3.11+ e SQLite, e foi feito para rodar **somente no computador do proprietário**, fora da aplicação pública:
 
@@ -34,7 +49,7 @@ O modelo seguro recomendado é **uma instância de aplicação e um banco isolad
 A VPS NVMe 2 tem capacidade limitada. Meça RAM, CPU, disco e operações reais antes de prometer atendimento simultâneo a diversos estabelecimentos. Para escalar, use infraestrutura separada ou uma arquitetura multitenant projetada e auditada.
 
 ## Etapas ainda pendentes antes de vender
-- Painel web protegido do proprietário para cadastro e gestão de clientes.
+- Painel web protegido do proprietário: primeira versão administrativa pronta; endurecimento, backup, observabilidade e autenticação forte ainda pendentes.
 - Provisionamento automático de novas instâncias e bancos isolados.
 - Serviço de licenciamento por instância, renovações e notificações.
 - Gateway de pagamentos e emissão fiscal conforme regras aplicáveis.
