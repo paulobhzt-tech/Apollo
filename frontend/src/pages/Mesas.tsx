@@ -484,7 +484,7 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
   const payment = useMutation({
     mutationFn: (p: PayIn) => apiPost<SaleResult>(`/tables/${tableId}/partial-bill/pay`, {
       quantities: Object.fromEntries(Object.entries(quantities).filter(([, qty]) => qty > 0)),
-      payment: { ...p, emit_invoice: false, discount: 0, service_pct: 0 },
+      payment: { ...p, emit_invoice: false },
       client_ref: clientRef,
     }),
     onSuccess: (result) => {
@@ -515,12 +515,12 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
         {preview && <div className="rounded-xl border border-white/10 p-3 text-sm">
           <p>Selecionado: <strong>{brl(preview.subtotal)}</strong></p>
           <p>Restante na mesa: <strong>{brl(preview.remaining_subtotal)}</strong></p>
-          <p className="mt-2 text-amber-300">Pagamento parcial não fiscal. Descontos, taxa de serviço e fiado não são permitidos nesta operação.</p>
+          <p className="mt-2 text-amber-300">Pagamento parcial não fiscal. Descontos e taxa de serviço disponíveis; fiado não habilitado.</p>
           <Button className="mt-3 w-full" onClick={() => setPayOpen(true)}>Receber itens selecionados</Button>
         </div>}
       </DialogContent>
     </Dialog>
-    <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} title="Recebimento parcial (não fiscal)" pending={payment.isPending} onConfirm={(p) => payment.mutate(p)} />
+    <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} defaultService={10} partialMode title="Recebimento parcial (não fiscal)" pending={payment.isPending} onConfirm={(p) => payment.mutate(p)} />
     </>
   );
 }
