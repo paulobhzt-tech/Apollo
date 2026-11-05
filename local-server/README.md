@@ -1,18 +1,28 @@
-# Apollo PDV — Servidor local na loja (IP fixo)
+# Apollo PDV — servidor local seguro (HTTPS)
 
-Use quando a loja precisa funcionar **sem internet** com vários aparelhos (caixas, garçons, cozinha) na rede Wi-Fi.
+Use para operar vários caixas, garçons e cozinha na mesma rede da loja, inclusive sem internet externa.
 
-1. Escolha um PC que fique sempre ligado. No roteador, reserve um **IP fixo** para ele (ex.: `192.168.0.10`).
-2. Copie a pasta do projeto para esse PC e rode, como Administrador:
+## Instalação Windows
+
+1. Escolha um computador Windows 10/11 que permanecerá ligado e reserve um **IP IPv4 fixo** para ele no roteador.
+2. No computador servidor, execute o PowerShell como administrador:
    `powershell -ExecutionPolicy Bypass -File local-server\instalar-servidor.ps1`
-   - Instala Python, MongoDB e o servidor (porta **8001**), inicia junto com o Windows e libera o firewall.
-   - Agenda o **backup local automático** todo dia às 03:00 (fica no próprio servidor, em Configurações → Backup).
-3. Primeiro acesso: `local-server\criar-admin.ps1 -Nome "Paulo" -Pin 1234`
-   ou restaure um backup da nuvem em Configurações → Backup.
-4. Nos caixas (app Apollo PDV): **Configurações → Sistema → Adicionar servidor** `192.168.0.10:8001` → **Usar**.
-5. Celulares: abra `http://192.168.0.10:8001` no navegador (Wi-Fi da loja).
+3. O script cria uma autoridade certificadora exclusiva da loja e emite um certificado TLS para o IP identificado, `localhost` e `127.0.0.1`. O servidor passa a atender em **https://IP-LOCAL:8001** com cookies `Secure`.
+4. O próprio PC servidor confia na autoridade local. Nos outros PCs e celulares, o administrador deve instalar **apenas** `C:\ApolloPDV\security\apollo-local-ca.crt` na lista de autoridades confiáveis, seguindo a política de segurança do aparelho. Não ignore alertas de certificado. Alguns celulares exigem habilitar manualmente a confiança no certificado.
+5. Configure o aplicativo Apollo PDV e os navegadores dos celulares para usar `https://IP-LOCAL:8001` (não HTTP). Teste em cada equipamento.
+6. Crie um administrador com PIN exclusivo usando `local-server\criar-admin.ps1` ou restaure um backup autorizado.
 
-Observações
-- O servidor local tem banco próprio, separado do sistema publicado na nuvem. Leve os dados com backup/restauração.
-- O backup no Google Drive também funciona no servidor local (precisa de internet e das credenciais do Google).
-- Configurações do servidor ficam em `C:\ApolloPDV\backend\.env` (`COOKIE_SECURE=false` porque a rede local usa http).
+## Segurança e manutenção
+
+- **Nunca distribua** `C:\ApolloPDV\security\server.key`. O instalador restringe o acesso a essa chave ao SYSTEM e administradores.
+- A autoridade local assinou o certificado do servidor. Instale sua chave pública **somente em dispositivos da loja**. Não instale em dispositivos não gerenciados.
+- A alteração do IP fixo exige um novo certificado, nova verificação e possivelmente nova confiança nos dispositivos.
+- O banco de dados local é separado do banco da nuvem. Faça backup antes de atualizar ou reinstalar.
+- A instalação migra `COOKIE_SECURE`, `APP_URL` e `CORS_ORIGINS` do arquivo `C:\ApolloPDV\backend\.env`, sem substituir as demais credenciais.
+- O agendamento de backup consulta a API local por HTTPS em `https://localhost:8001`.
+- Operações autenticadas que alteram dados devem partir da mesma origem do PDV. Requisições de outros sites são bloqueadas, inclusive se um cookie estiver presente.
+- O servidor local precisa ter sua conectividade e certificados validados nos aparelhos reais antes de ser usado no caixa.
+
+## Observações
+
+O aplicativo desktop que opera contra a nuvem continua usando o endereço publicado. O funcionamento sem rede externa de todos os dispositivos requer o servidor local Windows ligado e a rede Wi-Fi funcionando.
