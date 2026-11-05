@@ -1,9 +1,10 @@
-"""Idempotent demo seed: `cd /app/backend && python seed.py` (wipes and rebuilds app collections)."""
+"""DESTRUCTIVE demo seed. Restricted to opt-in, demo/test DBs only."""
 import asyncio
 import random
 from datetime import datetime, timedelta, timezone
 
-from lib.auth import hash_pin
+from lib.auth import secure_hash_pin
+from lib.demo_guard import assert_demo_seed_allowed
 from lib.db import db, ensure_indexes
 from lib.orders import MARKET_FEES, TZ
 from models.schemas import (CashSession, Category, Employee, Expense, Ingredient, KitchenTicket, KitchenItem, Order,
@@ -22,6 +23,7 @@ COLLS = ["fiado_customers", "customer_moves", "settings", "employees", "sessions
 
 
 async def main() -> None:
+    assert_demo_seed_allowed()
     for c in COLLS:
         await db[c].drop()
     await ensure_indexes()
@@ -36,7 +38,7 @@ async def main() -> None:
     for name, role, pin, comm in emps:
         e = Employee(name=name, role=role, commission_pct=comm, can_cancel=role == "admin", phone="(11) 98888-0000").model_dump()
         emp_docs.append(e)
-        await db.employees.insert_one({**e, "pin_hash": hash_pin(pin)})
+        await db.employees.insert_one({**e, "pin_hash": secure_hash_pin(pin)})
     waiters = [e for e in emp_docs if e["role"] == "garcom"]
 
     ing_specs = [
