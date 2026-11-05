@@ -52,7 +52,7 @@ async def current_user(request: Request) -> dict:
     s = await db.sessions.find_one({"$or": [{"token_hash": digest}, {"token": token}]})
     if not s or s["expires_at"] < datetime.now(timezone.utc):
         raise HTTPException(401, "Sessão expirada")
-    emp = await db.employees.find_one({"id": s["employee_id"], "active": True}, {"_id": 0, "pin_hash": 0})
+    emp = await db.employees.find_one({"id": s["employee_id"], "active": True}, {"_id": 0, "pin_hash": 0, "password_hash": 0})
     if not emp:
         raise HTTPException(401, "Funcionário inativo")
     return emp
