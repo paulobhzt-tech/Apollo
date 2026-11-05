@@ -39,6 +39,8 @@ class EmployeeIn(BaseModel):
     phone: str = ""
     commission_pct: float = Field(default=0, ge=0, le=100)
     pin: str = Field(pattern=r"^\d{4,6}$")
+    username: Optional[str] = Field(default=None, min_length=3, max_length=40, pattern=r"^[a-zA-Z0-9._-]+$")
+    password: Optional[str] = Field(default=None, min_length=8, max_length=128)
     can_cancel: bool = False
     active: bool = True
 
@@ -49,12 +51,16 @@ class EmployeeUpdate(BaseModel):
     phone: Optional[str] = None
     commission_pct: Optional[float] = Field(default=None, ge=0, le=100)
     pin: Optional[str] = Field(default=None, pattern=r"^\d{4,6}$")
+    username: Optional[str] = Field(default=None, min_length=3, max_length=40, pattern=r"^[a-zA-Z0-9._-]+$")
+    password: Optional[str] = Field(default=None, min_length=8, max_length=128)
     active: Optional[bool] = None
     can_cancel: Optional[bool] = None
 
 
 class LoginIn(BaseModel):
-    pin: str = Field(pattern=r"^\d{4,6}$")
+    pin: Optional[str] = Field(default=None, pattern=r"^\d{4,6}$")
+    username: Optional[str] = None
+    password: Optional[str] = None
 
 
 class Profile(BaseModel):
