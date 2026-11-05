@@ -70,7 +70,7 @@ async def cancel_authorizer(user: dict, manager_pin: str | None) -> str:
     if user["role"] == "admin" or user.get("can_cancel"):
         return user["name"]
     if manager_pin:
-        m = await db.employees.find_one({"pin_hash": hash_pin(manager_pin), "active": True})
+        m = await find_employee_by_pin(manager_pin)
         if m and (m["role"] == "admin" or m.get("can_cancel")):
             return m["name"]
         raise HTTPException(403, "PIN de gerente inválido ou sem autorização")
@@ -82,3 +82,26 @@ async def require_cancel(user: dict = Depends(current_user)) -> dict:
     if user["role"] != "admin" and not user.get("can_cancel"):
         raise HTTPException(403, "Sem autorização para cancelar ou estornar. Solicite ao administrador.")
     return user
+
+
+async def find_employee_by_pin(pin: str, active_only: bool = True) -> dict | None:
+    query = {"active": True} if active_only else {}
+    legacy = await db.employees.find_one({**query, "pin_hash": hash_pin(pin)}, {"_id": 0})
+    if legacy:
+        new_hash = secure_hash_pin(pin)
+        await db.employees.update_one({"id": legacy["id"], "pin_hash": legacy["pin_hash"]}, {"$set": {"pin_hash": new_hash}})
+        return {**legacy, "pin_hash": new_hash}
+    async for emp in db.employees.find(query, {"_id": 0}):
+        if verify_pin(pin, emp.get("pin_hash", "")):
+            return emp
+    return None
+
+
+async def pin_in_use(pin: str, exclude_id: str | None = None) -> bool:
+    legacy = await db.employees.find_one({"pin_hash": hash_pin(pin)}, {"id": 1})
+    if legacy and legacy.get("id") != exclude_id:
+        return True
+    async for emp in db.employees.find({}, {"id": 1, "pin_hash": 1}):
+        if emp.get("id") != exclude_id and verify_pin(pin, emp.get("pin_hash", "")):
+            return True
+    return False
