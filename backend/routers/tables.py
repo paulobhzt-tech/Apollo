@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 
 from lib.auth import cancel_authorizer, current_user, require
 from lib.db import db
@@ -184,6 +185,37 @@ async def transfer(id: str, body: TransferIn, _: dict = Depends(require(*STAFF))
     await db.tables.update_one({"id": dst["id"]}, {"$set": keep})
     await free_table(src["id"])
     return await get_table(dst["id"])
+
+
+class PartialBillIn(BaseModel):
+    """Item quantities to include in a separate bill preview."""
+    quantities: dict[str, int] = Field(min_length=1)
+
+
+@router.post("/tables/{id}/partial-bill/preview")
+async def preview_partial_bill(id: str, body: PartialBillIn, _: dict = Depends(require("caixa"))):
+    """Read-only preview. Does not receive money, alter stock or close the table."""
+    t = await get_table(id)
+    if not t.get("order_id"):
+        raise HTTPException(400, "Mesa sem comanda aberta")
+    order = await db.orders.find_one({"id": t["order_id"], "status": "aberto"}, {"_id": 0})
+    if not order:
+        raise HTTPException(400, "Comanda não está aberta")
+    available = {i["id"]: i for i in order["items"] if not i.get("cancelled")}
+    chosen = []
+    for item_id, qty in body.quantities.items():
+        item = available.get(item_id)
+        if not item:
+            raise HTTPException(400, f"Item indisponível: {item_id}")
+        if isinstance(qty, bool) or qty <= 0 or qty > item["qty"]:
+            raise HTTPException(400, f"Quantidade inválida para {item['name']}")
+        chosen.append({"item_id": item_id, "name": item["name"], "qty": qty,
+                       "unit_price": item["unit_price"], "total": round(qty * item["unit_price"], 2)})
+    subtotal = round(sum(i["total"] for i in chosen), 2)
+    remaining = round(sum(i["qty"] * i["unit_price"] for i in available.values()) - subtotal, 2)
+    return {"table_id": id, "order_id": order["id"], "items": chosen,
+            "subtotal": subtotal, "remaining_subtotal": remaining,
+            "message": "Prévia apenas: nenhum pagamento foi registrado"}
 
 
 @router.post("/tables/{id}/pay", response_model=SaleResult)
