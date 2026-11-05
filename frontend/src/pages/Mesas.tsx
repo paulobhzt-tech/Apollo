@@ -475,7 +475,7 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
   const available = items.filter((i) => !i.cancelled);
   const calculation = useMutation({
     mutationFn: () => apiPost<{ subtotal: number; remaining_subtotal: number }>(
-      `/tables/${tableId}/partial-bill/preview`, { quantities }),
+      `/tables/${tableId}/partial-bill/preview`, { quantities: Object.fromEntries(Object.entries(quantities).filter(([, qty]) => qty > 0)) }),
     onSuccess: setPreview,
     onError: (e) => toast.error(errMsg(e)),
   });
