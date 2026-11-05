@@ -33,6 +33,11 @@ app = FastAPI(lifespan=lifespan)
 api_router = APIRouter(prefix="/api")
 
 
+@api_router.get("/demo-status")
+async def demo_status():
+    return {"demo": os.environ.get("APOLLO_DEMO_MODE") == "true"}
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Apollo PDV API"}
