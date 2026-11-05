@@ -79,6 +79,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Testar painel comercial (autenticacao, CSRF, pagamentos)
-        run: python -m unittest management.test_panel management.test_provision -v
+        run: python -m unittest management.test_panel management.test_provision management.test_backup_tenants -v
       - name: Compilar modulos administrativos
         run: python -m compileall -q management
