@@ -15,7 +15,7 @@ from routers.tables import get_or_open_order, get_table
 from models.schemas import CallIn, OkOut, PublicDeliveryIn, PublicMenu, PublicOrderIn, PublicOrderStatus, PublicTable, table_label
 
 router = APIRouter(prefix="/public")
-RESTAURANT = os.environ.get("RESTAURANT_NAME", "Espeteria Churras Buguer")
+RESTAURANT = os.environ.get("RESTAURANT_NAME", "Espeteria Churras Burguer")
 
 
 @router.get("/menu", response_model=PublicMenu)
