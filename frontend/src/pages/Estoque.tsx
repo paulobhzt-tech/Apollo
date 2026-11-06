@@ -22,12 +22,13 @@ const MOVE_LABEL: Record<StockMove["type"], string> = { entrada: "Entrada", said
 const inv = () => { void queryClient.invalidateQueries({ queryKey: ["ingredients"] }); void queryClient.invalidateQueries({ queryKey: ["stock-moves"] }); };
 
 type ProductionBatch = {
-  id: string; ingredient_id: string; ingredient_name: string; kg: number; units: number;
+  id: string; production_type?: "espetinho" | "porcao"; ingredient_id: string; ingredient_name: string; kg: number; units: number;
   purchase_cost: number; extra_cost: number; total_cost: number; cost_per_unit: number;
   units_per_kg: number; note: string; created_at: string;
 };
 
 function ProductionBatchForm({ ingredients, onSaved }: { ingredients: Ingredient[]; onSaved: () => void }) {
+  const [productionType, setProductionType] = useState<"espetinho" | "porcao">("espetinho");
   const [ingredientId, setIngredientId] = useState("");
   const [kg, setKg] = useState("20");
   const [units, setUnits] = useState("180");
@@ -41,28 +42,29 @@ function ProductionBatchForm({ ingredients, onSaved }: { ingredients: Ingredient
     Number.isFinite(total) && num(purchaseCost) >= 0 && num(extraCost) >= 0;
   const save = useMutation({
     mutationFn: () => apiPost<ProductionBatch>("/production/batches", {
-      ingredient_id: ingredientId, kg: num(kg), units: count,
+      production_type: productionType, ingredient_id: ingredientId, kg: num(kg), units: count,
       purchase_cost: num(purchaseCost), extra_cost: num(extraCost), note,
     }),
     onSuccess: () => { toast.success("Lote registrado"); onSaved(); setPurchaseCost(""); setNote(""); },
     onError: (e) => toast.error(errMsg(e)),
   });
   return <div className="space-y-3 rounded-2xl border border-white/10 bg-panel p-4" data-testid="production-batch-form">
-    <h3 className="font-semibold text-white">Produção por lote · kg para unidades</h3>
+    <h3 className="font-semibold text-white">Produção por lote · espetinhos e porções</h3>
+    <div><Label>Tipo de produção</Label><Select value={productionType} onValueChange={(v) => setProductionType(v as "espetinho" | "porcao")}><SelectTrigger data-testid="batch-production-type"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="espetinho">Espetinhos</SelectItem><SelectItem value="porcao">Porções</SelectItem></SelectContent></Select></div>
     <p className="text-xs text-zinc-400">Registre a produção e calcule o custo por unidade. Este registro não movimenta o estoque automaticamente.</p>
     <Select value={ingredientId} onValueChange={setIngredientId}><SelectTrigger data-testid="batch-ingredient"><SelectValue placeholder="Selecione o insumo em kg" /></SelectTrigger><SelectContent>
       {ingredients.filter((i) => i.unit === "kg").map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}
     </SelectContent></Select>
     <div className="grid grid-cols-2 gap-3">
       <div><Label>Quilos utilizados</Label><Input value={kg} onChange={(e) => setKg(e.target.value)} inputMode="decimal" placeholder="20" /></div>
-      <div><Label>Unidades produzidas</Label><Input value={units} onChange={(e) => setUnits(e.target.value)} inputMode="numeric" placeholder="180" /></div>
-      <div><Label>Valor pago pela carne (R$)</Label><Input value={purchaseCost} onChange={(e) => setPurchaseCost(e.target.value)} inputMode="decimal" placeholder="Ex.: 600,00" /></div>
+      <div><Label>{productionType === "porcao" ? "Porções produzidas" : "Espetinhos produzidos"}</Label><Input value={units} onChange={(e) => setUnits(e.target.value)} inputMode="numeric" placeholder="180" /></div>
+      <div><Label>Valor pago pelo insumo (R$)</Label><Input value={purchaseCost} onChange={(e) => setPurchaseCost(e.target.value)} inputMode="decimal" placeholder="Ex.: 600,00" /></div>
       <div><Label>Outros custos (R$)</Label><Input value={extraCost} onChange={(e) => setExtraCost(e.target.value)} inputMode="decimal" placeholder="0,00" /></div>
     </div>
     <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Observações do lote (opcional)" />
     <div className="grid grid-cols-3 gap-2 text-sm"><div>Rendimento<br/><strong>{num(kg) > 0 && count > 0 ? (count / num(kg)).toFixed(2) : "0"} un./kg</strong></div>
       <div>Custo total<br/><strong>{Number.isFinite(total) ? brl(total) : "—"}</strong></div>
-      <div>Custo por unidade<br/><strong>{count > 0 && Number.isFinite(total) ? brl(total / count) : "—"}</strong></div></div>
+      <div>{productionType === "porcao" ? "Custo por porção" : "Custo por espetinho"}<br/><strong>{count > 0 && Number.isFinite(total) ? brl(total / count) : "—"}</strong></div></div>
     <Button disabled={!valid || save.isPending} onClick={() => save.mutate()} data-testid="batch-save">Registrar produção</Button>
   </div>;
 }
@@ -130,7 +132,7 @@ export default function Estoque() {
             </Table>
           </div>
         </TabsContent>
-        <TabsContent value="producao" className="mt-4 space-y-4"><ProductionBatchForm ingredients={list} onSaved={() => { void batches.refetch(); void ings.refetch(); }} /><div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Insumo</TableHead><TableHead>Kg</TableHead><TableHead>Unidades</TableHead><TableHead>Rendimento</TableHead><TableHead>Custo total</TableHead><TableHead>Custo/un.</TableHead></TableRow></TableHeader><TableBody>{(batches.data ?? []).map((b) => <TableRow key={b.id}><TableCell>{fmtDateTime(b.created_at)}</TableCell><TableCell>{b.ingredient_name}</TableCell><TableCell>{b.kg}</TableCell><TableCell>{b.units}</TableCell><TableCell>{b.units_per_kg.toFixed(2)}</TableCell><TableCell>{brl(b.total_cost)}</TableCell><TableCell>{brl(b.cost_per_unit)}</TableCell></TableRow>)}</TableBody></Table></div></TabsContent>
+        <TabsContent value="producao" className="mt-4 space-y-4"><ProductionBatchForm ingredients={list} onSaved={() => { void batches.refetch(); void ings.refetch(); }} /><div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Insumo</TableHead><TableHead>Tipo</TableHead><TableHead>Kg</TableHead><TableHead>Unidades</TableHead><TableHead>Rendimento</TableHead><TableHead>Custo total</TableHead><TableHead>Custo/un.</TableHead></TableRow></TableHeader><TableBody>{(batches.data ?? []).map((b) => <TableRow key={b.id}><TableCell>{fmtDateTime(b.created_at)}</TableCell><TableCell>{b.ingredient_name}</TableCell><TableCell>{b.production_type === "porcao" ? "Porções" : "Espetinhos"}</TableCell><TableCell>{b.kg}</TableCell><TableCell>{b.units}</TableCell><TableCell>{b.units_per_kg.toFixed(2)}</TableCell><TableCell>{brl(b.total_cost)}</TableCell><TableCell>{brl(b.cost_per_unit)}</TableCell></TableRow>)}</TableBody></Table></div></TabsContent>
         <TabsContent value="movs" className="mt-4">
           <div className="rounded-2xl border border-white/5 bg-panel">
             <Table>
