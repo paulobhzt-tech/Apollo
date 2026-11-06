@@ -320,6 +320,7 @@ class KitchenItem(BaseModel):
     name: str
     qty: int
     notes: str = ""
+    customer_name: str = ""
     station: Station = "cozinha"
     options: list[str] = []
     print_ticket: bool = True
