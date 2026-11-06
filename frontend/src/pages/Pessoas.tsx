@@ -61,19 +61,19 @@ function Clientes() {
     onSuccess: () => { toast.success("Cliente descadastrado"); void queryClient.invalidateQueries({ queryKey: ["customers"] }); },
     onError: (e) => toast.error(errMsg(e)),
   });
-  const list = (q.data ?? []).filter((c) => match(search, c.name, c.phone, c.cpf, c.email));
+  const list = (q.data ?? []).filter((c) => match(search, c.name, c.phone, c.cpf, c.cnpj || "", c.email));
   return (
     <>
       <Toolbar search={search} setSearch={setSearch} onNew={() => setEditing("new")} label="Novo cliente" testid="customer" />
       <div className="overflow-hidden rounded-2xl border border-white/5 bg-panel">
         <Table>
-          <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Contato</TableHead><TableHead>CPF</TableHead><TableHead className="text-right">Limite fiado</TableHead><TableHead className="text-right">Deve</TableHead><TableHead /></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Contato</TableHead><TableHead>CPF / CNPJ</TableHead><TableHead className="text-right">Limite fiado</TableHead><TableHead className="text-right">Deve</TableHead><TableHead /></TableRow></TableHeader>
           <TableBody>
             {list.map((c) => (
               <TableRow key={c.id} data-testid={`customer-row-${c.id}`}>
                 <TableCell><p className="font-medium text-white">{c.name}</p>{c.address && <p className="text-xs text-zinc-500">{c.address}</p>}</TableCell>
                 <TableCell className="text-zinc-300">{c.phone || "—"}{c.email && <span className="block text-xs text-zinc-500">{c.email}</span>}</TableCell>
-                <TableCell className="font-mono text-xs text-zinc-400">{c.cpf || "—"}</TableCell>
+                <TableCell className="font-mono text-xs text-zinc-400">{c.cpf || c.cnpj || "—"}</TableCell>
                 <TableCell className="text-right font-mono text-zinc-400">{c.credit_limit ? brl(c.credit_limit) : "—"}</TableCell>
                 <TableCell className={cn("text-right font-mono", c.balance > 0.009 ? "text-red-300" : "text-zinc-500")}>{brl(c.balance)}</TableCell>
                 <TableCell className="text-right">
@@ -96,10 +96,10 @@ function Clientes() {
 }
 
 function CustomerForm({ c, onClose }: { c: FiadoCustomer | null; onClose: () => void }) {
-  const [f, setF] = useState({ name: c?.name ?? "", phone: c?.phone ?? "", cpf: c?.cpf ?? "", email: c?.email ?? "", address: c?.address ?? "", notes: c?.notes ?? "", limit: c?.credit_limit ? String(c.credit_limit) : "" });
+  const [f, setF] = useState({ name: c?.name ?? "", phone: c?.phone ?? "", cpf: c?.cpf ?? "", cnpj: c?.cnpj ?? "", email: c?.email ?? "", address: c?.address ?? "", notes: c?.notes ?? "", limit: c?.credit_limit ? String(c.credit_limit) : "" });
   const save = useMutation({
     mutationFn: () => {
-      const body: FiadoCustomerIn = { name: f.name, phone: f.phone, cpf: f.cpf, email: f.email, address: f.address, notes: f.notes, credit_limit: num(f.limit) };
+      const body: FiadoCustomerIn = { name: f.name, phone: f.phone, cpf: f.cpf, cnpj: f.cnpj, email: f.email, address: f.address, notes: f.notes, credit_limit: num(f.limit) };
       return c ? apiPut<FiadoCustomer>(`/customers/${c.id}`, body) : apiPost<FiadoCustomer>("/customers", body);
     },
     onSuccess: () => { toast.success(c ? "Cliente atualizado" : "Cliente cadastrado"); void queryClient.invalidateQueries({ queryKey: ["customers"] }); onClose(); },
@@ -116,6 +116,7 @@ function CustomerForm({ c, onClose }: { c: FiadoCustomer | null; onClose: () => 
         {field("name", "Nome", "Nome do cliente", true)}
         {field("phone", "Telefone / WhatsApp", "(31) 99999-0000")}
         {field("cpf", "CPF", "000.000.000-00")}
+        {field("cnpj", "CNPJ", "00.000.000/0000-00")}
         {field("email", "E-mail")}
         {field("limit", "Limite de fiado (R$)", "0 = sem limite")}
         {field("address", "Endereço", "Rua, número, bairro", true)}
@@ -128,7 +129,7 @@ function CustomerForm({ c, onClose }: { c: FiadoCustomer | null; onClose: () => 
 }
 
 /* ---------------- Fornecedores ---------------- */
-const EMPTY_S: SupplierIn = { name: "", doc: "", phone: "", email: "", contact: "", address: "", supplies: "", notes: "" };
+const EMPTY_S: SupplierIn = { name: "", doc: "", cpf: "", cnpj: "", phone: "", email: "", contact: "", address: "", supplies: "", notes: "" };
 
 function Fornecedores() {
   const { data: me } = useMe();
@@ -142,7 +143,7 @@ function Fornecedores() {
     onSuccess: () => { toast.success("Fornecedor descadastrado"); void queryClient.invalidateQueries({ queryKey: ["suppliers"] }); },
     onError: (e) => toast.error(errMsg(e)),
   });
-  const list = (q.data ?? []).filter((s) => match(search, s.name, s.phone, s.doc, s.supplies, s.contact));
+  const list = (q.data ?? []).filter((s) => match(search, s.name, s.phone, s.doc, s.cpf || "", s.cnpj || "", s.supplies, s.contact));
   return (
     <>
       <Toolbar search={search} setSearch={setSearch} onNew={() => setEditing("new")} label="Novo fornecedor" testid="supplier" canCreate={isAdmin} />
@@ -155,7 +156,7 @@ function Fornecedores() {
                 <TableCell><p className="font-medium text-white">{s.name}</p>{s.address && <p className="text-xs text-zinc-500">{s.address}</p>}</TableCell>
                 <TableCell className="text-zinc-300">{s.supplies || "—"}</TableCell>
                 <TableCell className="text-zinc-300">{s.contact && <span className="block">{s.contact}</span>}{s.phone || "—"}{s.email && <span className="block text-xs text-zinc-500">{s.email}</span>}</TableCell>
-                <TableCell className="font-mono text-xs text-zinc-400">{s.doc || "—"}</TableCell>
+                <TableCell className="font-mono text-xs text-zinc-400">{s.cpf || s.cnpj || s.doc || "—"}</TableCell>
                 <TableCell className="text-right">
                   {isAdmin && <>
                     <Button size="sm" variant="outline" onClick={() => setBillFor(s)} data-testid={`supplier-bill-${s.id}`}><Receipt className="size-3.5" /> Lançar conta</Button>
@@ -184,7 +185,7 @@ function Fornecedores() {
 }
 
 function SupplierForm({ s, onClose }: { s: Supplier | null; onClose: () => void }) {
-  const [f, setF] = useState<SupplierIn>(s ? { name: s.name, doc: s.doc, phone: s.phone, email: s.email, contact: s.contact, address: s.address, supplies: s.supplies, notes: s.notes } : EMPTY_S);
+  const [f, setF] = useState<SupplierIn>(s ? { name: s.name, doc: s.doc, cpf: s.cpf || "", cnpj: s.cnpj || "", phone: s.phone, email: s.email, contact: s.contact, address: s.address, supplies: s.supplies, notes: s.notes } : EMPTY_S);
   const save = useMutation({
     mutationFn: () => (s ? apiPut<Supplier>(`/suppliers/${s.id}`, f) : apiPost<Supplier>("/suppliers", f)),
     onSuccess: () => { toast.success(s ? "Fornecedor atualizado" : "Fornecedor cadastrado"); void queryClient.invalidateQueries({ queryKey: ["suppliers"] }); onClose(); },
@@ -199,7 +200,8 @@ function SupplierForm({ s, onClose }: { s: Supplier | null; onClose: () => void 
       <DialogHeader><DialogTitle className="font-heading text-white">{s ? `Editar ${s.name}` : "Novo fornecedor"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 sm:grid-cols-2">
         {field("name", "Nome / razão social", "Ex.: Frigorífico Boi Bom", true)}
-        {field("doc", "CNPJ ou CPF")}
+        {field("cpf", "CPF", "000.000.000-00")}
+        {field("cnpj", "CNPJ", "00.000.000/0000-00")}
         {field("supplies", "O que fornece", "Carnes, bebidas, carvão…")}
         {field("contact", "Pessoa de contato")}
         {field("phone", "Telefone / WhatsApp")}
