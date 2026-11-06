@@ -31,6 +31,7 @@ function beep() {
 export default function Kds() {
   const [station, setStation] = useState<Station | "all">("cozinha");
   const [sound, setSound] = useState(true);
+  const [onlyLate, setOnlyLate] = useState(false);
   const [, tick] = useState(0);
   const tickets = useQuery({ queryKey: ["kds"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets"), refetchInterval: 5000 });
   const seen = useRef<Set<string> | null>(null);
@@ -50,13 +51,16 @@ export default function Kds() {
 
   const move = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => apiPatch<KitchenTicket>(`/kds/tickets/${id}`, { status }),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["kds"] }),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["kds"] }); void queryClient.invalidateQueries({ queryKey: ["waiter-ready-tickets"] }); },
     onError: (e) => toast.error(errMsg(e)),
   });
 
   const list = (tickets.isError ? [] : tickets.data ?? [])
     .map((t) => ({ ...t, items: t.items.filter((i) => station === "all" || i.station === station) }))
-    .filter((t) => t.items.length);
+    .filter((t) => t.items.length && (!onlyLate || (t.status !== "pronto" && minutesSince(t.created_at) >= 15)));
+  const waiting = list.filter((t) => t.status === "novo").length;
+  const preparing = list.filter((t) => t.status === "preparo").length;
+  const delayed = list.filter((t) => t.status !== "pronto" && minutesSince(t.created_at) >= 15).length;
 
   return (
     <AppShell roles={["cozinha", "garcom", "caixa"]}>
@@ -73,6 +77,7 @@ export default function Kds() {
           <Button variant="outline" size="icon" onClick={() => setSound(!sound)} data-testid="kds-sound-toggle">{sound ? <Volume2 /> : <VolumeX />}</Button>
         </>
       } />
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm" data-testid="kds-summary"><span>Novos: <strong>{waiting}</strong></span><span>Em preparo: <strong>{preparing}</strong></span><span className={delayed ? "font-semibold text-amber-300" : ""}>Atrasados (15min+): <strong>{delayed}</strong></span><Button size="sm" variant={onlyLate ? "default" : "outline"} onClick={() => setOnlyLate((v) => !v)} data-testid="kds-late-filter">{onlyLate ? "Mostrar todos" : "Ver atrasados"}</Button><Button size="sm" variant="outline" onClick={() => void tickets.refetch()}>Atualizar</Button></div>
       <div className="grid gap-4 lg:grid-cols-3">
         {COLS.map((c) => {
           const col = list.filter((t) => t.status === c.key);
