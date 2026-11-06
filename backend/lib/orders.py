@@ -224,7 +224,7 @@ async def finalize_payment(order: dict, pay: PayIn) -> tuple[dict, dict | None]:
 async def free_table(table_id: str) -> None:
     await db.tables.update_one({"id": table_id}, {"$set": {
         "status": "livre", "customer_name": "", "people": 0, "waiter_id": None, "waiter_name": "",
-        "order_id": None, "opened_at": None, "call": "", "total": 0,
+        "order_id": None, "opened_at": None, "call": "", "total": 0, "customers": [],
     }, "$unset": {"split_request": ""}})
 
 
