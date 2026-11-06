@@ -3,6 +3,7 @@ from datetime import timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from pymongo.errors import DuplicateKeyError
 
 from lib.auth import cancel_authorizer, current_user, require
 from lib.db import db
@@ -261,7 +262,10 @@ async def cash_open(body: CashOpenIn, user: dict = Depends(require("caixa"))):
     if await current_cash():
         raise HTTPException(400, "Já existe um caixa aberto")
     s = CashSession(opened_by_name=user["name"], opening_amount=body.opening_amount).model_dump()
-    await db.cash_sessions.insert_one(dict(s))
+    try:
+        await db.cash_sessions.insert_one(dict(s))
+    except DuplicateKeyError:
+        raise HTTPException(409, "Já existe um caixa aberto") from None
     return s
 
 
@@ -275,8 +279,10 @@ async def cash_move(body: CashMoveIn, user: dict = Depends(require("caixa"))):
     if body.type == "sangria" and body.amount > (await cash_summary(dict(s)))["expected_cash"]:
         raise HTTPException(400, "Sangria maior que o saldo em dinheiro")
     m = CashMovement(type=body.type, amount=body.amount, note=body.note, by_name=user["name"]).model_dump()
-    await db.cash_sessions.update_one({"id": s["id"]}, {"$push": {"movements": m}})
-    return await cash_summary(await current_cash())
+    result = await db.cash_sessions.update_one({"id": s["id"], "status": "aberto"}, {"$push": {"movements": m}})
+    if not result.modified_count:
+        raise HTTPException(409, "O caixa foi fechado durante a operação")
+    return await cash_summary(await db.cash_sessions.find_one({"id": s["id"]}, {"_id": 0}))
 
 
 @router.post("/cash/close", response_model=CashSession)
@@ -288,5 +294,7 @@ async def cash_close(body: CashCloseIn, user: dict = Depends(require("caixa"))):
     s = await cash_summary(s)
     upd = {k: s[k] for k in ("totals_by_method", "sales_count", "sales_total", "expected_cash", "difference", "counted_amount")}
     upd.update(status="fechado", closed_at=now(), closed_by_name=user["name"])
-    await db.cash_sessions.update_one({"id": s["id"]}, {"$set": upd})
+    result = await db.cash_sessions.update_one({"id": s["id"], "status": "aberto"}, {"$set": upd})
+    if not result.modified_count:
+        raise HTTPException(409, "O caixa já foi fechado por outro operador")
     return await db.cash_sessions.find_one({"id": s["id"]}, {"_id": 0})
