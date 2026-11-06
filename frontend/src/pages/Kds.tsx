@@ -29,7 +29,7 @@ function beep() {
 }
 
 export default function Kds() {
-  const [station, setStation] = useState<Station | "all">("all");
+  const [station, setStation] = useState<Station | "all">("cozinha");
   const [sound, setSound] = useState(true);
   const [, tick] = useState(0);
   const tickets = useQuery({ queryKey: ["kds"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets"), refetchInterval: 5000 });
@@ -40,13 +40,13 @@ export default function Kds() {
   useEffect(() => { const t = setInterval(() => tick((x) => x + 1), 30000); return () => clearInterval(t); }, []);
   useEffect(() => {
     if (!tickets.data) return;
-    const ids = new Set(tickets.data.filter((t) => t.status === "novo").map((t) => t.id));
+    const ids = new Set(tickets.data.filter((t) => t.status === "novo" && (station === "all" || t.items.some(i => i.station === station))).map((t) => t.id));
     if (seen.current) {
       const fresh = [...ids].filter((id) => !seen.current!.has(id));
-      if (fresh.length) { toast.info(`${fresh.length} novo(s) pedido(s) na cozinha`); if (sound) beep(); }
+      if (fresh.length) { toast.info(`${fresh.length} novo(s) pedido(s) em ${station === "all" ? "todos os ambientes" : (envs.data?.find(e => e.key === station)?.name ?? station)}`); if (sound) beep(); }
     }
     seen.current = ids;
-  }, [tickets.data, sound]);
+  }, [tickets.data, sound, station, envs.data]);
 
   const move = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => apiPatch<KitchenTicket>(`/kds/tickets/${id}`, { status }),
@@ -60,7 +60,7 @@ export default function Kds() {
 
   return (
     <AppShell roles={["cozinha", "garcom", "caixa"]}>
-      <PageHeader title="Monitor de Preparo (KDS)" subtitle="Atualiza automaticamente · <15min verde · 15-25 amarelo · >25 vermelho" actions={
+      <PageHeader title="Cozinha e Bar (KDS)" subtitle="Atualiza automaticamente · <15min verde · 15-25 amarelo · >25 vermelho" actions={
         <>
           <div className="flex flex-wrap gap-1 rounded-xl border border-white/8 p-1">
             {STATIONS.map((s) => (
@@ -96,19 +96,21 @@ export default function Kds() {
                       </div>
                       <p className="text-[11px] text-zinc-500">
                         <span className="mr-1 inline-block size-2 rounded-full" style={{ background: SOURCE_COLOR[t.source] }} />
-                        #{t.order_number} · {fmtTime(t.created_at)}
+                        #{t.order_number} · {fmtTime(t.created_at)} · {envs.data?.find(e => e.key === t.items[0]?.station)?.name ?? t.items[0]?.station ?? "Produção"}
                       </p>
                       <ul className="mt-2 space-y-1">
                         {t.items.map((i, idx) => (
                           <li key={idx} className="text-sm">
                             <span className="font-mono text-primary">{i.qty}x</span> <span className="text-zinc-100">{i.name}</span>
                             {i.options?.map((o) => <p key={o} className="ml-6 text-xs font-semibold text-sky-300" data-testid="kds-item-option">▸ {o}</p>)}
+                            {i.customer_name && <p className="ml-6 text-xs text-zinc-400">Cliente: {i.customer_name}</p>}
                             {i.notes && <p className="ml-6 rounded bg-amber-400/10 px-1.5 text-xs font-medium text-amber-300">⚠ {i.notes}</p>}
                           </li>
                         ))}
                       </ul>
                       {c.next && (
-                        <Button size="sm" className="mt-3 w-full" variant={c.key === "pronto" ? "outline" : "default"} disabled={move.isPending}
+                        <Button size="sm" className="mt-3 w-full" variant={c.key === "pronto" ? "outline" : "default"} disabled={move.isPending || (station !== "all" && t.items.some(i => i.station !== station))}
+                          title={station !== "all" && t.items.some(i => i.station !== station) ? "Pedido antigo com setores misturados: gerencie em Todos os ambientes" : undefined}
                           onClick={() => move.mutate({ id: t.id, status: c.next! })} data-testid={`kds-advance-${t.order_number}`}>
                           {c.action}
                         </Button>
