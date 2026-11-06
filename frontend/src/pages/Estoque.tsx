@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowDownToLine, Plus } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, ClipboardList, Plus } from "lucide-react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,9 @@ export default function Estoque() {
   const [editing, setEditing] = useState<Ingredient | "new" | null>(null);
   const [moving, setMoving] = useState<Ingredient | null>(null);
   const list = ings.data ?? [];
-  const low = list.filter((i) => i.stock <= i.min_stock);
+  const low = list.filter((i) => i.min_stock > 0 && i.stock <= i.min_stock).sort((a, b) => a.stock / a.min_stock - b.stock / b.min_stock);
+  const shopping = low.map((i) => ({ ...i, suggested: Math.max(0, i.min_stock * 2 - i.stock) }));
+  const shoppingText = shopping.map((i) => `${i.name}: comprar ${i.suggested.toFixed(2)} ${i.unit} (atual ${i.stock.toFixed(2)}, mínimo ${i.min_stock.toFixed(2)})`).join("\\n");
   const value = list.reduce((s, i) => s + Math.max(0, i.stock) * i.cost_per_unit, 0);
   const isAdmin = me?.role === "admin";
 
@@ -41,6 +43,14 @@ export default function Estoque() {
         <div className="rounded-2xl border border-white/5 bg-panel p-4"><p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Valor em estoque</p><p className="mt-1 font-mono text-2xl text-white" data-testid="stock-value">{brl(value)}</p></div>
         <div className="rounded-2xl border border-red-400/20 bg-red-400/5 p-4"><p className="text-[11px] uppercase tracking-[0.15em] text-red-300">Reposição urgente</p><p className="mt-1 font-mono text-2xl text-red-200" data-testid="stock-low-count">{low.length}</p></div>
       </div>
+      {shopping.length > 0 && <div className="mb-4 rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4" data-testid="stock-shopping-list">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-200"><ClipboardList className="size-4" /> Lista de compras sugerida ({shopping.length})</h3>
+          <Button size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(shoppingText).then(() => toast.success("Lista copiada")).catch(() => toast.error("Não foi possível copiar a lista"))} data-testid="stock-copy-shopping">Copiar lista</Button>
+        </div>
+        <p className="mb-2 text-xs text-zinc-400">Sugestão: repor até o dobro do estoque mínimo. Ajuste a quantidade antes de comprar.</p>
+        <ul className="space-y-1 text-sm">{shopping.map((i) => <li key={i.id} className="flex flex-wrap justify-between gap-2"><span>{i.name}</span><span className="font-mono text-amber-200">Comprar {i.suggested.toFixed(2)} {i.unit}</span></li>)}</ul>
+      </div>}
       <Tabs defaultValue="insumos">
         <TabsList><TabsTrigger value="insumos" data-testid="tab-insumos">Insumos</TabsTrigger><TabsTrigger value="movs" data-testid="tab-movimentacoes">Movimentações</TabsTrigger></TabsList>
         <TabsContent value="insumos" className="mt-4">
@@ -49,7 +59,7 @@ export default function Estoque() {
               <TableHeader><TableRow><TableHead>Insumo</TableHead><TableHead className="text-right">Estoque</TableHead><TableHead className="text-right">Mínimo</TableHead><TableHead className="text-right">Custo/un</TableHead><TableHead /></TableRow></TableHeader>
               <TableBody>
                 {list.map((i) => {
-                  const isLow = i.stock <= i.min_stock;
+                  const isLow = i.min_stock > 0 && i.stock <= i.min_stock;
                   return (
                     <TableRow key={i.id} data-testid={`ingredient-row-${i.id}`}>
                       <TableCell className="font-medium text-white">
