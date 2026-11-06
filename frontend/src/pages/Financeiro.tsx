@@ -108,6 +108,43 @@ function CashflowPanel({ start, end }: { start: string; end: string }) {
 
 
 
+
+type SalesTrends = {
+  previous_start: string; previous_end: string;
+  current_revenue: number; previous_revenue: number; revenue_change_pct: number | null;
+  current_orders: number; previous_orders: number; current_average_ticket: number; previous_average_ticket: number;
+  products: { product_id: string; name: string; current_qty: number; previous_qty: number; delta_qty: number; change_pct: number | null }[];
+  alerts: { level: string; title: string; detail: string }[]; note: string;
+};
+function SalesTrendsPanel({ start, end }: { start: string; end: string }) {
+  const q = useQuery({ queryKey: ["sales-trends", start, end], queryFn: () => apiGet<SalesTrends>(`/reports/sales-trends?start=${start}&end=${end}`), enabled: !!start && !!end && start <= end });
+  return <section className="mb-5 space-y-3" data-testid="sales-trends">
+    <h2 className="text-xl font-semibold">Análise de tendências 2.0</h2>
+    {q.isError && <p role="alert" className="text-red-400">{errMsg(q.error)}</p>}
+    {q.data && <>
+      <p className="text-xs text-zinc-400">Comparação com {q.data.previous_start} a {q.data.previous_end}</p>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Vendas atuais" value={brl(q.data.current_revenue)} />
+        <Stat label="Vendas anteriores" value={brl(q.data.previous_revenue)} />
+        <Stat label="Variação de vendas" value={q.data.revenue_change_pct === null ? "Sem base" : `${q.data.revenue_change_pct > 0 ? "+" : ""}${q.data.revenue_change_pct}%`} />
+        <Stat label="Ticket médio atual" value={brl(q.data.current_average_ticket)} />
+      </div>
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Panel title="Alertas e observações">
+          <ul className="space-y-2 text-sm">{q.data.alerts.map((a, i) => <li key={i} className="rounded-lg border border-white/10 p-3"><strong>{a.title}</strong><p className="mt-1 text-zinc-400">{a.detail}</p></li>)}
+          {!q.data.alerts.length && <li className="text-zinc-400">Sem alertas relevantes.</li>}</ul>
+        </Panel>
+        <Panel title="Produtos em alta e em queda">
+          <div className="max-h-80 overflow-auto"><table className="w-full text-sm"><thead><tr className="text-left text-zinc-400"><th className="p-2">Produto</th><th className="p-2">Antes</th><th className="p-2">Agora</th><th className="p-2">Variação</th></tr></thead><tbody>
+            {q.data.products.map(p => <tr key={p.product_id} className="border-t border-white/10"><td className="p-2">{p.name}</td><td className="p-2">{p.previous_qty}</td><td className="p-2">{p.current_qty}</td><td className="p-2">{p.delta_qty > 0 ? "+" : ""}{p.delta_qty}</td></tr>)}
+          </tbody></table>{!q.data.products.length && <p className="p-3 text-zinc-400">Nenhuma venda de produto nos períodos.</p>}</div>
+        </Panel>
+      </div>
+      <p className="text-xs text-zinc-400">{q.data.note}</p>
+    </>}
+  </section>;
+}
+
 type StockForecast = {
   days: number; observed_revenue: number; average_daily_revenue: number; projected_next_7_days: number; paid_days: number;
   restock_suggestions: { ingredient_id: string; name: string; unit: string; stock: number; daily_usage: number; suggested_purchase: number; days_cover: number | null }[];
@@ -313,6 +350,7 @@ export default function Financeiro() {
           </ul>
         </Panel>
       </div>
+      <SalesTrendsPanel start={start} end={end} />
       <SalesStockForecastPanel />
       <IntelligentInsightsPanel start={start} end={end} />
       <CashflowPanel start={start} end={end} />
