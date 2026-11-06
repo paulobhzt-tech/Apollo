@@ -87,6 +87,47 @@ async def build_items(items_in: list[OrderItemIn]) -> list[OrderItem]:
     return out
 
 
+async def allocate_lots_fefo(ingredient_id: str, qty: float, note: str, by_name: str) -> None:
+    """Consume dated purchase lots in earliest-expiry-first order.
+
+    Legacy inventory without lots is left unallocated. Expired lots are never
+    consumed; when tracked stock exists but usable stock is insufficient,
+    fail closed rather than consuming expired inventory.
+    """
+    from datetime import date
+    from fastapi import HTTPException
+
+    lots = await db.purchases.find(
+        {"ingredient_id": ingredient_id, "remaining_qty": {"$gt": 0}},
+        {"_id": 0}).to_list(5000)
+    if not lots:
+        return
+    today = date.today().isoformat()
+    usable = sorted(
+        [p for p in lots if not p.get("expiry_date") or p["expiry_date"] >= today],
+        key=lambda p: (p.get("expiry_date") or "9999-12-31", p["created_at"]))
+    # Legacy stock may have existed before lot tracking was introduced.
+    ing = await db.ingredients.find_one({"id": ingredient_id}, {"_id": 0, "stock": 1})
+    legacy_qty = max(0, round(float(ing.get("stock", 0)) - sum(float(p["remaining_qty"]) for p in lots), 4))
+    if sum(float(p["remaining_qty"]) for p in usable) + legacy_qty + 0.00001 < qty:
+        raise HTTPException(409, "Estoque disponível insuficiente: lote vencido ou quantidade indisponível")
+    remaining = max(0, qty - legacy_qty)
+    for p in usable:
+        if remaining <= 0.00001:
+            break
+        take = min(remaining, float(p["remaining_qty"]))
+        result = await db.purchases.update_one(
+            {"id": p["id"], "remaining_qty": {"$gte": take}},
+            {"$inc": {"remaining_qty": -take}})
+        if not result.modified_count:
+            raise HTTPException(409, "Lote alterado por outra operação. Tente novamente")
+        await db.lot_consumptions.insert_one({
+            "ingredient_id": ingredient_id, "purchase_id": p["id"],
+            "lot_number": p.get("lot_number", ""), "qty": take,
+            "note": note, "by_name": by_name, "created_at": now()})
+        remaining = round(remaining - take, 4)
+
+
 async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int = -1) -> None:
     """Consume or return recipe ingredients for sold/cancelled items.
 
@@ -116,6 +157,8 @@ async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int 
         delta = float((Decimal(sign) * amount).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP))
         if not delta:
             continue
+        if sign < 0:
+            await allocate_lots_fefo(ing_id, abs(delta), note, by_name)
         await db.ingredients.update_one(
             {"id": ing_id},
             {"$inc": {"stock": delta}, "$set": {"updated_at": now()}},
