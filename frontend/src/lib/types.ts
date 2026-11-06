@@ -74,7 +74,9 @@ export interface StockMove {
   id: string;
   ingredient_id: string;
   ingredient_name: string;
-  type: "entrada" | "saida" | "ajuste" | "venda" | "estorno";
+  type: "entrada" | "saida" | "ajuste" | "venda" | "estorno" | "perda";
+  reason?: string;
+  cost_total?: number;
   qty: number;
   note: string;
   by_name: string;
