@@ -126,6 +126,36 @@ function PurchasePanel({ ingredients, onSaved }: { ingredients: Ingredient[]; on
   </div>;
 }
 
+type InventoryCount = { id: string; ingredient_id: string; counted_qty: number; previous_qty: number; difference: number; note: string; created_at: string };
+function InventoryPanel({ ingredients, onSaved }: { ingredients: Ingredient[]; onSaved: () => void }) {
+  const counts = useQuery({ queryKey: ["inventory-counts"], queryFn: () => apiGet<InventoryCount[]>("/inventory/counts") });
+  const [ingredientId, setIngredientId] = useState("");
+  const [qty, setQty] = useState("");
+  const [note, setNote] = useState("");
+  const current = ingredients.find((i) => i.id === ingredientId);
+  const counted = Number(qty.replace(",", "."));
+  const save = useMutation({
+    mutationFn: () => apiPost<InventoryCount>("/inventory/counts", { ingredient_id: ingredientId, counted_qty: counted, note }),
+    onSuccess: () => { toast.success("Inventário registrado"); setQty(""); setNote(""); void counts.refetch(); onSaved(); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
+  return <div className="space-y-4">
+    <div className="rounded-2xl border border-white/5 bg-panel p-4 space-y-3">
+      <h3 className="font-semibold">Conferência física do estoque</h3>
+      <p className="text-xs text-amber-200">Ajusta o estoque total do insumo. A conciliação de saldos por lote deve ser feita separadamente.</p>
+      <Select value={ingredientId} onValueChange={setIngredientId}><SelectTrigger><SelectValue placeholder="Selecione o insumo" /></SelectTrigger><SelectContent>{ingredients.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent></Select>
+      {current && <p className="text-sm">Estoque registrado: {current.stock} {current.unit}</p>}
+      <div><Label>Quantidade contada fisicamente</Label><Input value={qty} onChange={(e) => setQty(e.target.value)} inputMode="decimal" /></div>
+      <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Motivo / observação" />
+      {current && Number.isFinite(counted) && qty.trim() && <p className="text-sm">Diferença: {(counted - current.stock).toFixed(3)} {current.unit}</p>}
+      <Button disabled={!ingredientId || !qty.trim() || !Number.isFinite(counted) || counted < 0 || save.isPending} onClick={() => save.mutate()}>Registrar contagem</Button>
+    </div>
+    <div className="rounded-2xl border border-white/5 bg-panel p-4"><h3 className="mb-2 font-semibold">Histórico de inventário</h3>
+      {(counts.data ?? []).map((i) => <p key={i.id} className="border-b border-white/5 py-2 text-sm">{fmtDateTime(i.created_at)} · {ingredients.find((x) => x.id === i.ingredient_id)?.name ?? i.ingredient_id}: {i.previous_qty} → {i.counted_qty} (diferença {i.difference})</p>)}
+    </div>
+  </div>;
+}
+
 export default function Estoque() {
   const { data: me } = useMe();
   const ings = useQuery({ queryKey: ["ingredients"], queryFn: () => apiGet<Ingredient[]>("/ingredients"), refetchInterval: 15000 });
@@ -162,7 +192,7 @@ export default function Estoque() {
       </div>}
       <div className="mb-4 rounded-2xl border border-white/5 bg-panel p-4"><p className="text-xs text-zinc-400">Prejuízo por perdas (últimas 300 movimentações)</p><p className="font-mono text-xl text-red-300">{brl(lossTotal)}</p><p className="text-xs text-zinc-500">{losses.length} ocorrências</p></div>
       <Tabs defaultValue="insumos">
-        <TabsList><TabsTrigger value="insumos" data-testid="tab-insumos">Insumos</TabsTrigger><TabsTrigger value="movs" data-testid="tab-movimentacoes">Movimentações</TabsTrigger><TabsTrigger value="producao" data-testid="tab-producao">Produção por lote</TabsTrigger><TabsTrigger value="compras" data-testid="tab-compras">Compras e validade</TabsTrigger></TabsList>
+        <TabsList><TabsTrigger value="insumos" data-testid="tab-insumos">Insumos</TabsTrigger><TabsTrigger value="movs" data-testid="tab-movimentacoes">Movimentações</TabsTrigger><TabsTrigger value="producao" data-testid="tab-producao">Produção por lote</TabsTrigger><TabsTrigger value="compras" data-testid="tab-compras">Compras e validade</TabsTrigger><TabsTrigger value="inventario" data-testid="tab-inventario">Inventário</TabsTrigger></TabsList>
         <TabsContent value="insumos" className="mt-4">
           <div className="rounded-2xl border border-white/5 bg-panel">
             <Table>
@@ -190,6 +220,7 @@ export default function Estoque() {
             </Table>
           </div>
         </TabsContent>
+        <TabsContent value="inventario" className="mt-4"><InventoryPanel ingredients={list} onSaved={inv} /></TabsContent>
         <TabsContent value="compras" className="mt-4"><PurchasePanel ingredients={list} onSaved={inv} /></TabsContent>
         <TabsContent value="producao" className="mt-4 space-y-4"><ProductionBatchForm ingredients={list} products={products.data ?? []} onSaved={() => { void batches.refetch(); void ings.refetch(); void products.refetch(); }} /><div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Insumo</TableHead><TableHead>Tipo</TableHead><TableHead>Kg</TableHead><TableHead>Unidades</TableHead><TableHead>Rendimento</TableHead><TableHead>Custo total</TableHead><TableHead>Custo/un.</TableHead></TableRow></TableHeader><TableBody>{(batches.data ?? []).map((b) => <TableRow key={b.id}><TableCell>{fmtDateTime(b.created_at)}</TableCell><TableCell>{b.ingredient_name}</TableCell><TableCell>{b.production_type === "porcao" ? "Porções" : "Espetinhos"}</TableCell><TableCell>{b.kg}</TableCell><TableCell>{b.units}</TableCell><TableCell>{b.units_per_kg.toFixed(2)}</TableCell><TableCell>{brl(b.total_cost)}</TableCell><TableCell>{brl(b.cost_per_unit)}</TableCell></TableRow>)}</TableBody></Table></div></TabsContent>
         <TabsContent value="movs" className="mt-4">
