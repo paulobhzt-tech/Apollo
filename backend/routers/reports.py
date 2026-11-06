@@ -203,6 +203,48 @@ async def financial_forecast(months: int = 3, _: dict = Depends(require())):
             "note": "Projecoes estimadas pela media dos meses anteriores. Contas futuras sao exibidas separadamente, sem deducao dupla. Valores dependem de vendas, custos e despesas registrados."}
 
 
+
+@router.get("/reports/product-profit")
+async def product_profit(start: Optional[str] = None, end: Optional[str] = None, _: dict = Depends(require())):
+    """Gross product contribution from paid sales; excludes overhead, taxes and fees."""
+    end = end or local_today()
+    start = start or end[:8] + "01"
+    try:
+        s, _ = day_bounds(start)
+        _, e = day_bounds(end)
+    except ValueError:
+        raise HTTPException(400, "Datas inválidas (use AAAA-MM-DD)")
+    if s >= e:
+        raise HTTPException(400, "Data inicial deve ser anterior à final")
+    grouped: dict[str, dict] = {}
+    for order in await paid_between(s, e):
+        for item in order.get("items", []):
+            if item.get("cancelled"):
+                continue
+            qty = float(item.get("qty", 0))
+            if qty <= 0:
+                continue
+            pid = item.get("product_id") or item.get("name", "")
+            row = grouped.setdefault(pid, {"product_id": pid, "name": item.get("name", ""),
+                                            "qty": 0.0, "revenue": 0.0, "cost": 0.0})
+            row["qty"] += qty
+            row["revenue"] += qty * float(item.get("unit_price", 0))
+            row["cost"] += qty * float(item.get("unit_cost", 0))
+    rows = []
+    for row in grouped.values():
+        revenue = round(row["revenue"], 2)
+        cost = round(row["cost"], 2)
+        profit = round(revenue - cost, 2)
+        rows.append({**row, "qty": round(row["qty"], 3), "revenue": revenue, "cost": cost,
+                     "profit": profit, "margin_pct": round(profit / revenue * 100, 1) if revenue else 0})
+    rows.sort(key=lambda row: (-row["profit"], row["name"]))
+    return {"start": start, "end": end, "products": rows,
+            "revenue": round(sum(row["revenue"] for row in rows), 2),
+            "cost": round(sum(row["cost"] for row in rows), 2),
+            "profit": round(sum(row["profit"] for row in rows), 2),
+            "note": "Margem bruta estimada com custo registrado na venda; não inclui descontos, taxas, impostos e despesas."}
+
+
 @router.get("/reports/options", response_model=list[OptionRank])
 async def option_ranking(start: Optional[str] = None, end: Optional[str] = None, _: dict = Depends(require())):
     end = end or local_today()
