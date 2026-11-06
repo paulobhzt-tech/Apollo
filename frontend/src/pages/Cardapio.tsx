@@ -25,6 +25,11 @@ export default function Cardapio() {
     mutationFn: (items: OrderItemIn[]) => apiPost<PublicTable>(`/public/tables/${tableId}/order`, { items }),
     onError: (e) => toast.error(errMsg(e)),
   });
+  const splitRequest = useMutation({
+    mutationFn: (quantities: Record<string, number>) => apiPost<{ message: string }>(`/public/tables/${tableId}/split-request`, { quantities }),
+    onSuccess: (result) => toast.success(result.message),
+    onError: (error) => toast.error(errMsg(error)),
+  });
   const call = useMutation({
     mutationFn: (type: "garcom" | "conta") => apiPost<OkOut>(`/public/tables/${tableId}/call`, { type }),
     onSuccess: (r) => toast.success(r.message),
@@ -77,6 +82,11 @@ export default function Cardapio() {
                 })}
                 <p className="mt-3 font-semibold text-emerald-300">Itens selecionados: {brl((t.items ?? []).reduce((sum, item, index) => sum + Math.min(item.qty, splitQty[item.id || String(index)] ?? 0) * item.unit_price, 0))}</p>
                 <p className="mt-1 text-xs text-zinc-400">A seleção não reserva itens e não registra pagamento.</p>
+                <Button type="button" className="mt-3 w-full" disabled={splitRequest.isPending || !(t.items ?? []).some((item, index) => (splitQty[item.id || String(index)] ?? 0) > 0 && !!item.id)}
+                  onClick={() => splitRequest.mutate(Object.fromEntries((t.items ?? []).filter((item, index) => !!item.id && (splitQty[item.id || String(index)] ?? 0) > 0).map(item => [item.id!, Math.min(item.qty, splitQty[item.id!] ?? 0)])))}
+                  data-testid="public-send-split-request">
+                  {splitRequest.isPending ? "Enviando…" : "Enviar divisão ao caixa"}
+                </Button>
               </div>
               <Button type="button" className="mt-3" variant="outline" disabled={call.isPending} onClick={() => call.mutate("conta")} data-testid="public-split-request-cashier">Solicitar fechamento ao caixa</Button>
             </section>
