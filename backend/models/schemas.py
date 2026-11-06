@@ -181,7 +181,8 @@ class IngredientIn(BaseModel):
 
 class StockMoveIn(BaseModel):
     ingredient_id: str
-    type: Literal["entrada", "saida", "ajuste"]
+    type: Literal["entrada", "saida", "ajuste", "perda"]
+    reason: Literal["vencimento", "quebra", "desperdicio", "outro"] | None = None
     qty: float
     note: str = ""
 
@@ -190,7 +191,9 @@ class StockMove(BaseModel):
     id: str = Field(default_factory=_id)
     ingredient_id: str
     ingredient_name: str
-    type: Literal["entrada", "saida", "ajuste", "venda", "estorno"]
+    type: Literal["entrada", "saida", "ajuste", "venda", "estorno", "perda"]
+    reason: str = ""
+    cost_total: float = 0
     qty: float
     note: str = ""
     by_name: str = ""
