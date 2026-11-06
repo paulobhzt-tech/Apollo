@@ -60,7 +60,7 @@ async def dashboard(_: dict = Depends(require("caixa"))):
         agg = await db.orders.aggregate([{"$match": {"status": "pago", "paid_at": {"$gte": s, "$lt": e}}},
                                          {"$group": {"_id": None, "t": {"$sum": "$total"}}}]).to_list(1)
         last7.append({"name": day[8:10] + "/" + day[5:7], "value": round(agg[0]["t"], 2) if agg else 0})
-    low = await db.ingredients.find({"$expr": {"$lte": ["$stock", "$min_stock"]}}, {"_id": 0}).to_list(100)
+    low = await db.ingredients.find({"min_stock": {"$gt": 0}, "$expr": {"$lte": ["$stock", "$min_stock"]}}, {"_id": 0}).to_list(100)
     return {
         "date": today, "revenue_today": revenue, "orders_today": len(orders),
         "avg_ticket": round(revenue / len(orders), 2) if orders else 0,
