@@ -182,6 +182,7 @@ class IngredientIn(BaseModel):
 
 
 class ProductionBatchIn(BaseModel):
+    production_type: Literal["espetinho", "porcao"] = "espetinho"
     ingredient_id: str
     kg: float = Field(gt=0)
     units: int = Field(gt=0)
