@@ -201,6 +201,45 @@ async def cashflow(start: Optional[str] = None, end: Optional[str] = None, _: di
     return summarize_cashflow(orders, bills, expenses, start, end)
 
 
+def employee_sales_summary(orders: list[dict], employees: list[dict]) -> list[dict]:
+    """Sales and estimated commissions based exclusively on paid table orders."""
+    by_id = {emp["id"]: {"employee_id": emp["id"], "name": emp["name"],
+              "commission_pct": float(emp.get("commission_pct") or 0),
+              "sales": 0.0, "orders": 0} for emp in employees if emp.get("role") == "garcom"}
+    for order in orders:
+        if order.get("status") != "pago" or order.get("channel") != "mesa":
+            continue
+        row = by_id.get(order.get("waiter_id"))
+        if row is None:
+            continue
+        row["sales"] += float(order.get("total") or 0)
+        row["orders"] += 1
+    for row in by_id.values():
+        row["sales"] = round(row["sales"], 2)
+        row["average_ticket"] = round(row["sales"] / row["orders"], 2) if row["orders"] else 0
+        row["estimated_commission"] = round(row["sales"] * row["commission_pct"] / 100, 2)
+    return sorted(by_id.values(), key=lambda row: (-row["sales"], row["name"]))
+
+
+@router.get("/reports/employee-performance")
+async def employee_performance(start: Optional[str] = None, end: Optional[str] = None, _: dict = Depends(require())):
+    end = end or local_today()
+    start = start or end[:8] + "01"
+    try:
+        s, _ = day_bounds(start)
+        _, e = day_bounds(end)
+        if date.fromisoformat(end) < date.fromisoformat(start) or (date.fromisoformat(end) - date.fromisoformat(start)).days > 366:
+            raise ValueError("Período inválido")
+    except ValueError:
+        raise HTTPException(400, "Período inválido (máximo de 366 dias)")
+    employees = await db.employees.find({"role": "garcom"}, {"_id": 0, "id": 1, "name": 1, "role": 1, "commission_pct": 1}).to_list(500)
+    rows = employee_sales_summary(await paid_between(s, e), employees)
+    return {"start": start, "end": end, "employees": rows,
+            "total_sales": round(sum(row["sales"] for row in rows), 2),
+            "total_estimated_commission": round(sum(row["estimated_commission"] for row in rows), 2),
+            "note": "Comissões estimadas sobre o total de pedidos de mesa pagos atribuídos ao garçom. Não são folha de pagamento nem consideram estornos posteriores, rateios, taxas ou metas individuais."}
+
+
 @router.get("/reports/forecast")
 async def financial_forecast(months: int = 3, _: dict = Depends(require())):
     """Estimativas com base em meses completos; não são garantia de resultado."""
