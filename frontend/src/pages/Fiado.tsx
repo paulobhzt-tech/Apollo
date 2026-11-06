@@ -88,9 +88,9 @@ export default function Fiado() {
 }
 
 function CustomerForm({ onClose }: { onClose: () => void }) {
-  const [f, setF] = useState({ name: "", phone: "", cpf: "", limit: "" });
+  const [f, setF] = useState({ name: "", phone: "", cpf: "", cnpj: "", limit: "" });
   const m = useMutation({
-    mutationFn: () => apiPost<FiadoCustomer>("/customers", { name: f.name, phone: f.phone, cpf: f.cpf, credit_limit: num(f.limit) } satisfies FiadoCustomerIn),
+    mutationFn: () => apiPost<FiadoCustomer>("/customers", { name: f.name, phone: f.phone, cpf: f.cpf, cnpj: f.cnpj, credit_limit: num(f.limit) } satisfies FiadoCustomerIn),
     onSuccess: () => { toast.success("Cliente cadastrado"); inv(); onClose(); },
     onError: (e) => toast.error(errMsg(e)),
   });
@@ -100,6 +100,7 @@ function CustomerForm({ onClose }: { onClose: () => void }) {
       <Input placeholder="Nome" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} data-testid="fiado-name-input" />
       <Input placeholder="Telefone" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} data-testid="fiado-phone-input" />
       <Input placeholder="CPF (opcional)" value={f.cpf} onChange={(e) => setF({ ...f, cpf: e.target.value })} data-testid="fiado-cpf-input" />
+      <Input placeholder="CNPJ (opcional)" value={f.cnpj} onChange={(e) => setF({ ...f, cnpj: e.target.value })} data-testid="fiado-cnpj-input" />
       <div><Label className="text-xs text-zinc-400">Limite de crédito (R$, 0 = sem limite)</Label>
         <Input value={f.limit} inputMode="decimal" onChange={(e) => setF({ ...f, limit: e.target.value })} className="mt-1 font-mono" data-testid="fiado-limit-input" /></div>
       <Button disabled={f.name.trim().length < 2 || m.isPending} onClick={() => m.mutate()} data-testid="fiado-save-customer">Salvar</Button>
