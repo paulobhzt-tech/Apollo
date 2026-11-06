@@ -15,6 +15,57 @@ import type { CardFees, Dre, Expense, ExpenseCat, OptionRank } from "@/lib/types
 import { cn } from "@/lib/utils";
 import { CHART_COLORS, Empty, Panel, tooltipStyle } from "./Dashboard";
 
+type Forecast = {
+  historical_months: number;
+  average_monthly_profit: number;
+  average_monthly_expenses: number;
+  average_monthly_revenue: number;
+  average_profit_margin_pct: number;
+  forecast: { month: string; projected_revenue: number; projected_profit: number; projected_expenses: number; scheduled_payables: number }[];
+  note: string;
+};
+
+function ForecastPanel() {
+  const [months, setMonths] = useState("3");
+  const q = useQuery({ queryKey: ["forecast", months], queryFn: () => apiGet<Forecast>(`/reports/forecast?months=${months}`) });
+  const d = q.data;
+  return (
+    <section className="mt-5 space-y-3" data-testid="financial-forecast">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold">Projeção de lucro e gastos</h2>
+        <label className="flex items-center gap-2 text-sm text-zinc-400">Histórico
+          <Select value={months} onValueChange={setMonths}>
+            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>{["3", "6", "12"].map(n => <SelectItem key={n} value={n}>{n} meses</SelectItem>)}</SelectContent>
+          </Select>
+        </label>
+      </div>
+      {q.isError && <p role="alert" className="text-red-400">{errMsg(q.error)}</p>}
+      {d && <>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Stat label="Lucro médio mensal" value={brl(d.average_monthly_profit)} testid="forecast-profit" />
+          <Stat label="Gastos médios mensais" value={brl(d.average_monthly_expenses)} testid="forecast-expenses" />
+          <Stat label="Receita média mensal" value={brl(d.average_monthly_revenue)} testid="forecast-revenue" />
+          <Stat label="Margem média estimada" value={`${d.average_profit_margin_pct}%`} testid="forecast-margin" />
+        </div>
+        <Panel title="Próximos meses (estimativa)">
+          <div className="overflow-x-auto"><Table><TableHeader><TableRow>
+            <TableHead>Mês</TableHead><TableHead className="text-right">Receita</TableHead><TableHead className="text-right">Gastos</TableHead><TableHead className="text-right">Lucro</TableHead><TableHead className="text-right">Contas previstas</TableHead>
+          </TableRow></TableHeader><TableBody>
+            {d.forecast.map(m => <TableRow key={m.month}><TableCell>{m.month}</TableCell>
+              <TableCell className="text-right">{brl(m.projected_revenue)}</TableCell>
+              <TableCell className="text-right">{brl(m.projected_expenses)}</TableCell>
+              <TableCell className="text-right">{brl(m.projected_profit)}</TableCell>
+              <TableCell className="text-right">{brl(m.scheduled_payables)}</TableCell>
+            </TableRow>)}
+          </TableBody></Table></div>
+          <p className="mt-3 text-xs text-zinc-400">{d.note}</p>
+        </Panel>
+      </>}
+    </section>
+  );
+}
+
 const EXP_LABEL: Record<ExpenseCat, string> = {
   aluguel: "Aluguel", salarios: "Salários", energia: "Energia", agua: "Água", marketing: "Marketing", manutencao: "Manutenção", impostos: "Impostos", outros: "Outros",
 };
@@ -109,6 +160,7 @@ export default function Financeiro() {
           </ul>
         </Panel>
       </div>
+      <ForecastPanel />
       <Despesas />
     </AppShell>
   );
