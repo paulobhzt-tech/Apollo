@@ -34,14 +34,14 @@ function ExecutivePanel() {
     {q.isError && <p role="alert" className="text-red-400">Não foi possível carregar o resumo executivo.</p>}
     {q.data && <>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Faturamento do período" value={brl(q.data.revenue)} />
-        <Stat label="Saldo indicativo" value={brl(q.data.indicative_balance)} />
-        <Stat label="Despesas lançadas" value={brl(q.data.recorded_expenses)} />
-        <Stat label="CMV registrado" value={brl(q.data.recorded_cmv)} />
-        <Stat label="Pedidos pagos" value={String(q.data.paid_orders)} />
-        <Stat label="Ticket médio" value={brl(q.data.average_ticket)} />
-        <Stat label="Estoque crítico" value={String(q.data.critical_stock_count)} />
-        <Stat label="Funcionários ativos" value={String(q.data.active_employees)} />
+        <Stat testid="executive-metric-1" label="Faturamento do período" value={brl(q.data.revenue)} />
+        <Stat testid="executive-metric-2" label="Saldo indicativo" value={brl(q.data.indicative_balance)} />
+        <Stat testid="executive-metric-3" label="Despesas lançadas" value={brl(q.data.recorded_expenses)} />
+        <Stat testid="executive-metric-4" label="CMV registrado" value={brl(q.data.recorded_cmv)} />
+        <Stat testid="executive-metric-5" label="Pedidos pagos" value={String(q.data.paid_orders)} />
+        <Stat testid="executive-metric-6" label="Ticket médio" value={brl(q.data.average_ticket)} />
+        <Stat testid="executive-metric-7" label="Estoque crítico" value={String(q.data.critical_stock_count)} />
+        <Stat testid="executive-metric-8" label="Funcionários ativos" value={String(q.data.active_employees)} />
       </div>
       <Panel title="Alertas gerenciais"><ul className="space-y-2 text-sm">{q.data.alerts.map((a, i) => <li key={i} className="rounded-lg border border-white/10 p-3"><strong>{a.title}</strong><p className="text-zinc-400">{a.detail}</p></li>)}{!q.data.alerts.length && <li className="text-zinc-400">Nenhum alerta nas verificações disponíveis.</li>}</ul></Panel>
       <p className="text-xs text-zinc-400">{q.data.note}</p>
