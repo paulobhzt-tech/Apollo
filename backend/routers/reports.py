@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta, timezone
+import calendar
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -145,6 +146,61 @@ async def dre(start: Optional[str] = None, end: Optional[str] = None, _: dict = 
         "top_products": top_products(orders, 10), "commission_list": commission_list,
         "other_revenue": other_revenue, "bills_paid": round(bills_paid, 2),
     }
+
+
+@router.get("/reports/forecast")
+async def financial_forecast(months: int = 3, _: dict = Depends(require())):
+    """Estimativas com base em meses completos; não são garantia de resultado."""
+    if not 1 <= months <= 12:
+        raise HTTPException(400, "Informe entre 1 e 12 meses de histórico")
+    today = date.fromisoformat(local_today())
+
+    def month_shift(y: int, m: int, delta: int) -> tuple[int, int]:
+        index = y * 12 + m - 1 + delta
+        return index // 12, index % 12 + 1
+
+    history = []
+    for offset in range(-months, 0):
+        year, month = month_shift(today.year, today.month, offset)
+        first = date(year, month, 1)
+        last = date(year, month, calendar.monthrange(year, month)[1])
+        # Reuse the same DRE calculation as the finance report.
+        result = await dre(start=first.isoformat(), end=last.isoformat(), _=_)
+        history.append({"month": first.strftime("%Y-%m"),
+                        "revenue": result["net_revenue"] + result["other_revenue"],
+                        "profit": result["net_profit"],
+                        "expenses": result["expenses"] + result["commissions"],
+                        "margin_pct": result["margin_pct"]})
+    avg = lambda key: round(sum(x[key] for x in history) / len(history), 2)
+    avg_revenue = avg("revenue")
+    avg_profit = avg("profit")
+    avg_expenses = avg("expenses")
+    future = []
+    for offset in range(0, 3):
+        year, month = month_shift(today.year, today.month, offset)
+        first = date(year, month, 1)
+        last = date(year, month, calendar.monthrange(year, month)[1])
+        start_date = max(first, today).isoformat()
+        # Future obligations are displayed separately to avoid counting them twice
+        # in the historical expense baseline.
+        upcoming = await db.bills.find({"kind": "pagar", "status": "aberto",
+            "due_date": {"$gte": start_date, "$lte": last.isoformat()}},
+            {"_id": 0, "amount": 1}).to_list(10000)
+        scheduled = round(sum(b["amount"] for b in upcoming), 2)
+        future.append({"month": first.strftime("%Y-%m"),
+                       "projected_revenue": avg_revenue,
+                       "projected_profit": avg_profit,
+                       "projected_expenses": avg_expenses,
+                       "scheduled_payables": scheduled})
+    return {"basis": "media_simples_meses_fechados",
+            "historical_months": months,
+            "history": history,
+            "average_monthly_profit": avg_profit,
+            "average_monthly_expenses": avg_expenses,
+            "average_monthly_revenue": avg_revenue,
+            "average_profit_margin_pct": round(avg_profit / avg_revenue * 100, 1) if avg_revenue else 0,
+            "forecast": future,
+            "note": "Projecoes estimadas pela media dos meses anteriores. Contas futuras sao exibidas separadamente, sem deducao dupla. Valores dependem de vendas, custos e despesas registrados."}
 
 
 @router.get("/reports/options", response_model=list[OptionRank])
