@@ -192,6 +192,22 @@ async def transfer(id: str, body: TransferIn, _: dict = Depends(require(*STAFF))
     return await get_table(dst["id"])
 
 
+@router.get("/tables/{id}/split-request")
+async def cashier_split_request(id: str, _: dict = Depends(require("caixa"))):
+    t = await get_table(id)
+    request = t.get("split_request")
+    if not request or request.get("order_id") != t.get("order_id"):
+        return {"request": None}
+    return {"request": request}
+
+
+@router.delete("/tables/{id}/split-request", response_model=OkOut)
+async def clear_split_request(id: str, _: dict = Depends(require("caixa"))):
+    await get_table(id)
+    await db.tables.update_one({"id": id}, {"$unset": {"split_request": ""}})
+    return OkOut(message="Solicitação de divisão removida")
+
+
 class PartialBillIn(BaseModel):
     """Item quantities to include in a separate bill preview."""
     quantities: dict[str, int] = Field(min_length=1)
