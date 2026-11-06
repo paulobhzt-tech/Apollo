@@ -305,6 +305,68 @@ async def intelligent_insights(start: Optional[str] = None, end: Optional[str] =
     return {"start": start, "end": end, **build_business_insights(orders, expenses, products)}
 
 
+def predict_sales_and_stock(orders: list[dict], products: list[dict], ingredients: list[dict], days: int = 28) -> dict:
+    """Historical daily-rate baseline, not a machine-learning prediction."""
+    daily = {}
+    sold = {}
+    product_map = {p["id"]: p for p in products}
+    demand = {}
+    for order in orders:
+        if order.get("status") != "pago":
+            continue
+        timestamp = order.get("paid_at")
+        if timestamp is None:
+            continue
+        day = timestamp.astimezone(TZ).date().isoformat()
+        daily[day] = daily.get(day, 0) + float(order.get("total") or 0)
+        for item in order.get("items", []):
+            if item.get("cancelled") or float(item.get("qty") or 0) <= 0:
+                continue
+            pid = item.get("product_id")
+            if pid not in product_map:
+                continue
+            sold[pid] = sold.get(pid, 0) + float(item["qty"])
+    for pid, qty in sold.items():
+        for component in product_map[pid].get("recipe", []):
+            ingredient_id = component.get("ingredient_id")
+            if ingredient_id:
+                demand[ingredient_id] = demand.get(ingredient_id, 0) + qty * float(component.get("qty") or 0)
+    total = round(sum(daily.values()), 2)
+    average = total / days
+    suggestions = []
+    for ing in ingredients:
+        used = demand.get(ing["id"], 0)
+        per_day = used / days
+        stock = float(ing.get("stock") or 0)
+        minimum = float(ing.get("min_stock") or 0)
+        suggested = max(0, per_day * 7 + minimum - stock)
+        if suggested > 0 and (per_day > 0 or stock < minimum):
+            suggestions.append({"ingredient_id": ing["id"], "name": ing["name"], "unit": ing.get("unit", ""),
+                                "stock": round(stock, 2), "daily_usage": round(per_day, 3),
+                                "suggested_purchase": round(suggested, 2),
+                                "days_cover": round(stock / per_day, 1) if per_day > 0 else None})
+    suggestions.sort(key=lambda row: (row["days_cover"] is None, row["days_cover"] if row["days_cover"] is not None else 99999))
+    return {"observed_revenue": total, "average_daily_revenue": round(average, 2),
+            "projected_next_7_days": round(average * 7, 2), "paid_days": len(daily),
+            "restock_suggestions": suggestions[:30],
+            "method": "media_diaria_historica",
+            "note": "Estimativas por média de dias corridos e consumo das fichas técnicas. Não consideram sazonalidade, compras já solicitadas, perdas, produção, entregas futuras ou alterações de demanda."}
+
+
+@router.get("/reports/sales-stock-forecast")
+async def sales_stock_forecast(days: int = 28, _: dict = Depends(require())):
+    if days < 7 or days > 90:
+        raise HTTPException(400, "Informe entre 7 e 90 dias")
+    today = date.fromisoformat(local_today())
+    start = (today - timedelta(days=days)).isoformat()
+    s, _ = day_bounds(start)
+    _, e = day_bounds((today - timedelta(days=1)).isoformat())
+    orders = await paid_between(s, e)
+    products = await db.products.find({"active": True}, {"_id": 0, "id": 1, "recipe": 1}).to_list(5000)
+    ingredients = await db.ingredients.find({}, {"_id": 0, "id": 1, "name": 1, "unit": 1, "stock": 1, "min_stock": 1}).to_list(5000)
+    return {"days": days, **predict_sales_and_stock(orders, products, ingredients, days)}
+
+
 @router.get("/reports/forecast")
 async def financial_forecast(months: int = 3, _: dict = Depends(require())):
     """Estimativas com base em meses completos; não são garantia de resultado."""
