@@ -30,7 +30,7 @@ export default function Estoque() {
   const list = ings.data ?? [];
   const low = list.filter((i) => i.min_stock > 0 && i.stock <= i.min_stock).sort((a, b) => a.stock / a.min_stock - b.stock / b.min_stock);
   const shopping = low.map((i) => ({ ...i, suggested: Math.max(0, i.min_stock * 2 - i.stock) }));
-  const shoppingText = shopping.map((i) => `${i.name}: comprar ${i.suggested.toFixed(2)} ${i.unit} (atual ${i.stock.toFixed(2)}, mínimo ${i.min_stock.toFixed(2)})`).join("\\n");
+  const shoppingText = shopping.map((i) => `${i.name}: comprar ${i.suggested.toFixed(2)} ${i.unit} (atual ${i.stock.toFixed(2)}, mínimo ${i.min_stock.toFixed(2)})`).join("\n");
   const value = list.reduce((s, i) => s + Math.max(0, i.stock) * i.cost_per_unit, 0);
   const isAdmin = me?.role === "admin";
 
