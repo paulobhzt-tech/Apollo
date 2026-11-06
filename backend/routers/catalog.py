@@ -6,7 +6,7 @@ from lib.auth import current_user, require
 from lib.db import db
 from lib.orders import ingredient_map, now, product_cost
 from models.schemas import (BulkDeleteIn, Category, CategoryIn, Ingredient, IngredientIn, OkOut, Product, ProductIn, Supplier, SupplierIn,
-                            StockMove, StockMoveIn, ProductionBatch, ProductionBatchIn, Purchase, PurchaseIn)
+                            StockMove, StockMoveIn, ProductionBatch, ProductionBatchIn, Purchase, PurchaseIn, InventoryCount, InventoryCountIn)
 
 router = APIRouter()
 
@@ -172,6 +172,7 @@ async def register_purchase(body: PurchaseIn, user: dict = Depends(require("caix
                         by_name=user["name"]).model_dump()
     await db.ingredients.update_one({"id": ing["id"]}, {"$inc": {"stock": qty},
                                     "$set": {"cost_per_unit": new_cost, "updated_at": now()}})
+    purchase['remaining_qty'] = qty
     await db.purchases.insert_one(dict(purchase))
     await db.stock_moves.insert_one(StockMove(
         ingredient_id=ing["id"], ingredient_name=ing["name"], type="entrada",
@@ -183,7 +184,7 @@ async def register_purchase(body: PurchaseIn, user: dict = Depends(require("caix
 @router.get("/purchases/expiry")
 async def purchase_expiry(_: dict = Depends(require("caixa"))):
     today = date.today()
-    purchases = await db.purchases.find({"expiry_date": {"$nin": [None, ""]}}, {"_id": 0}).to_list(5000)
+    purchases = await db.purchases.find({"expiry_date": {"$nin": [None, ""]}, "remaining_qty": {"$gt": 0}}, {"_id": 0}).to_list(5000)
     result = []
     for p in purchases:
         try:
@@ -193,6 +194,30 @@ async def purchase_expiry(_: dict = Depends(require("caixa"))):
         if days <= 7:
             result.append({**p, "days_to_expiry": days})
     return sorted(result, key=lambda p: p["days_to_expiry"])
+
+
+
+@router.get("/inventory/counts", response_model=list[InventoryCount])
+async def inventory_counts(_: dict = Depends(require("caixa"))):
+    return await db.inventory_counts.find({}, {"_id": 0}).sort("created_at", -1).to_list(300)
+
+
+@router.post("/inventory/counts", response_model=InventoryCount)
+async def register_inventory_count(body: InventoryCountIn, user: dict = Depends(require("caixa"))):
+    ing = await db.ingredients.find_one({"id": body.ingredient_id}, {"_id": 0})
+    if not ing:
+        raise HTTPException(404, "Insumo não encontrado")
+    counted = round(body.counted_qty, 4)
+    previous = round(float(ing["stock"]), 4)
+    diff = round(counted - previous, 4)
+    count = InventoryCount(**{**body.model_dump(), "counted_qty": counted},
+                           previous_qty=previous, difference=diff, by_name=user["name"]).model_dump()
+    await db.ingredients.update_one({"id": ing["id"]}, {"$set": {"stock": counted, "updated_at": now()}})
+    await db.inventory_counts.insert_one(dict(count))
+    await db.stock_moves.insert_one(StockMove(
+        ingredient_id=ing["id"], ingredient_name=ing["name"], type="ajuste",
+        qty=diff, note=f"Inventário {count['id'][:8]}: {body.note}", by_name=user["name"]).model_dump())
+    return count
 
 
 # ---------- ingredients / stock ----------
