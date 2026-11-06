@@ -54,6 +54,19 @@ jobs:
         run: |
           $response = Invoke-RestMethod -Uri "$env:PDV_SERVER_URL/api/" -TimeoutSec 15
           if ($response.message -ne "Apollo PDV API") { throw "Servidor nao respondeu com a API Apollo PDV" }
+      - name: Validar API de producao antes de empacotar
+        if: env.PDV_BUILD_CHANNEL == 'production'
+        shell: pwsh
+        run: |
+          $endpoint = "$env:PDV_SERVER_URL/api/"
+          try {
+            $response = Invoke-RestMethod -Uri $endpoint -Method Get -TimeoutSec 15
+          } catch {
+            throw "Servidor Apollo indisponivel em $endpoint. Instalador de producao cancelado: $_"
+          }
+          if ($response.message -ne "Apollo PDV API") {
+            throw "A URL configurada nao retornou a API Apollo. Instalador de producao cancelado."
+          }
       - name: Instalar dependencias do aplicativo desktop
         working-directory: desktop
         run: npm install --no-audit --no-fund
