@@ -184,6 +184,7 @@ class IngredientIn(BaseModel):
 class ProductionBatchIn(BaseModel):
     production_type: Literal["espetinho", "porcao"] = "espetinho"
     ingredient_id: str
+    product_id: Optional[str] = None  # optional finished product to update its manual cost
     kg: float = Field(gt=0)
     units: int = Field(gt=0)
     purchase_cost: float = Field(ge=0)
