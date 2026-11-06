@@ -57,6 +57,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/pdv" element={<Pdv />} />
       <Route path="/mesas" element={<Mesas />} />
+      <Route path="/comanda-mobile" element={<Mesas />} />
       <Route path="/cozinha" element={<Kds />} />
       <Route path="/delivery" element={<Delivery />} />
       <Route path="/caixa" element={<Caixa />} />
