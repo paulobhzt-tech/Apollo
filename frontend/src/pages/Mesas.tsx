@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRightLeft, Bell, Clock, Minus, Pencil, Plus, QrCode, Receipt, Send, Trash2, Users } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -19,7 +19,7 @@ import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, uid } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
-import type { Category, ChosenOption, Invoice, Order, PayIn, Product, SaleResult, Table, TableIn } from "@/lib/types";
+import type { Category, ChosenOption, Invoice, KitchenTicket, Order, PayIn, Product, SaleResult, Table, TableIn } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { groupItems } from "@/lib/group";
 import PreBillDialog from "@/components/PreBillDialog";
@@ -46,6 +46,8 @@ export default function Mesas() {
   const { data: me } = useMe();
   const mobileMode = useLocation().pathname === "/comanda-mobile";
   const tables = useQuery({ queryKey: ["tables"], queryFn: () => apiGet<Table[]>("/tables"), refetchInterval: 8000 });
+  const readyTickets = useQuery({ queryKey: ["waiter-ready-tickets"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets"), refetchInterval: 5000, enabled: mobileMode });
+  const ready = (readyTickets.data ?? []).filter(ticket => ticket.status === "pronto");
   const [selId, setSelId] = useState<string | null>(null);
   const [qrTable, setQrTable] = useState<Table | null>(null);
   const [kind, setKind] = useState<Kind>("mesa");
@@ -73,6 +75,13 @@ export default function Mesas() {
           )}
         </>
       } />
+      {mobileMode && ready.length > 0 && (
+        <div role="status" className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4" data-testid="mobile-ready-orders">
+          <p className="font-semibold text-emerald-300">Pedidos prontos para entregar ({ready.length})</p>
+          <ul className="mt-2 space-y-1 text-sm text-white">{ready.map(ticket => <li key={ticket.id}>#{ticket.order_number} · {ticket.label}</li>)}</ul>
+          <Link to="/cozinha" className="mt-3 inline-block text-sm font-semibold text-emerald-300 underline">Abrir monitor de preparo</Link>
+        </div>
+      )}
       <div className="mb-4 flex flex-wrap gap-3 text-xs">
         {Object.entries(STATUS).map(([k, s]) => (
           <span key={k} className="flex items-center gap-1.5 text-zinc-400"><span className={cn("size-2 rounded-full", s.dot)} />{s.label} ({counts[k] ?? 0})</span>
