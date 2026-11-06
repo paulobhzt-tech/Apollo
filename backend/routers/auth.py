@@ -1,5 +1,7 @@
 import os
 import bcrypt
+import secrets
+from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
 
 from lib.auth import (COOKIE, SESSION_HOURS, create_session, current_user, secure_hash_pin, require,
@@ -14,6 +16,51 @@ router = APIRouter()
 @router.get("/auth/profiles", response_model=list[Profile])
 async def profiles():
     return await db.employees.find({"active": True}, {"_id": 0, "id": 1, "name": 1, "role": 1}).sort("name", 1).to_list(200)
+
+
+class FirstAccessIn(BaseModel):
+    username: str
+    password: str
+
+
+@router.post("/auth/first-access", response_model=Employee)
+async def first_access(body: FirstAccessIn, response: Response, request: Request):
+    """One-time local-only bootstrap. Never expose predictable credentials publicly."""
+    if request.client is None or request.client.host not in ("127.0.0.1", "::1"):
+        raise HTTPException(403, "Primeiro acesso permitido apenas no computador servidor")
+    if body.username != "admin" or body.password != "admin":
+        raise HTTPException(401, "Credenciais iniciais inválidas")
+    if await db.employees.count_documents({}, limit=1):
+        raise HTTPException(409, "Administrador inicial já configurado")
+    pin = f"{secrets.randbelow(900000) + 100000:06d}"
+    emp = Employee(name="Administrador", role="admin", can_cancel=True).model_dump()
+    try:
+        await db.employees.insert_one({**emp, "username": "admin",
+            "password_hash": secure_hash_pin("admin"), "pin_hash": secure_hash_pin(pin),
+            "must_change_password": True})
+    except Exception:
+        raise HTTPException(409, "Não foi possível criar o administrador inicial")
+    token = await create_session(emp["id"])
+    response.set_cookie(COOKIE, token, httponly=True,
+        secure=os.environ.get("COOKIE_SECURE", "true").lower() != "false",
+        samesite="lax", max_age=SESSION_HOURS * 3600, path="/")
+    return emp
+
+
+class FirstPasswordChangeIn(BaseModel):
+    password: str = Field(min_length=12, max_length=128)
+
+
+@router.post("/auth/first-password", response_model=OkOut)
+async def first_password(body: FirstPasswordChangeIn, user: dict = Depends(current_user)):
+    if not user.get("must_change_password"):
+        raise HTTPException(409, "Troca inicial de senha não necessária")
+    if body.password.lower() in ("admin", "admin123", "123456789012"):
+        raise HTTPException(400, "Escolha uma senha diferente da inicial")
+    await db.employees.update_one({"id": user["id"], "must_change_password": True},
+        {"$set": {"password_hash": secure_hash_pin(body.password),
+                  "must_change_password": False}})
+    return OkOut(message="Senha inicial alterada")
 
 
 @router.post("/auth/login", response_model=Employee)
@@ -33,6 +80,8 @@ async def login(body: LoginIn, response: Response, request: Request):
     if not emp:
         await failed_login(request)
         raise HTTPException(401, "Credenciais inválidas")
+    if emp.get("must_change_password"):
+        raise HTTPException(403, "Troque a senha inicial no computador servidor antes de entrar")
     await successful_login(request)
     emp.pop("pin_hash", None)
     emp.pop("password_hash", None)
