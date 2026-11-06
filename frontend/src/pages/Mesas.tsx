@@ -243,7 +243,7 @@ export function QrDialog({ table, onClose }: { table: Table | null; onClose: () 
   );
 }
 
-interface Pending { key: string; product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number }
+interface Pending { key: string; product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number; customerName: string }
 
 function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table | null; onClose: () => void; onQr: (t: Table) => void; tables: Table[]; canDelete: boolean }) {
   const open = !!table;
@@ -275,7 +275,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
     onError: onErr,
   });
   const send = useMutation({
-    mutationFn: () => apiPost<Order>(`/tables/${table!.id}/items`, { items: pending.map((p) => ({ product_id: p.product.id, qty: p.qty, notes: p.notes, options: p.options })) }),
+    mutationFn: () => apiPost<Order>(`/tables/${table!.id}/items`, { items: pending.map((p) => ({ product_id: p.product.id, qty: p.qty, notes: p.notes, options: p.options, customer_name: p.customerName })) }),
     onSuccess: () => { toast.success("Itens enviados para a cozinha"); setPending([]); setAdding(false); invalidateTables(); },
     onError: onErr,
   });
@@ -325,7 +325,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
       const i = c.findIndex((l) => l.product.id === p.id && !l.notes && !l.options.length);
       if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
     }
-    return [...c, { key: uid(), product: p, qty: 1, notes: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
+    return [...c, { key: uid(), product: p, qty: 1, notes: "", customerName: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
   });
   const addPending = (p: Product) => (p.options?.length ? setOptFor(p) : push(p));
   const o = table?.order_id ? order.data ?? null : null;
@@ -433,6 +433,11 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                           <span className="w-5 text-center font-mono">{p.qty}</span>
                           <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.map((x, j) => (j === i ? { ...x, qty: x.qty + 1 } : x)))}><Plus /></Button>
                           <span className="flex-1 truncate">{p.product.name}{p.labels.length > 0 && <span className="block text-xs text-primary">{p.labels.join(" · ")}</span>}</span>
+                          <select aria-label="Cliente do pedido" value={p.customerName} onChange={e => setPending(old => old.map((line, j) => j === i ? { ...line, customerName: e.target.value } : line))}
+                            className="max-w-32 rounded-md border border-white/15 bg-panel px-2 py-1 text-xs" data-testid={`pending-customer-${i}`}>
+                            <option value="">Mesa inteira</option>
+                            {(table.customers ?? []).map(customer => <option key={customer} value={customer}>{customer}</option>)}
+                          </select>
                           <Input value={p.notes} placeholder="Obs." onChange={(e) => setPending((c) => c.map((x, j) => j === i ? { ...x, notes: e.target.value } : x))} className="h-7 w-28 text-xs" data-testid={`pending-notes-${i}`} />
                         </div>
                       ))}
