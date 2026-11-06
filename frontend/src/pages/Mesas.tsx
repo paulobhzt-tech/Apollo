@@ -374,6 +374,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                 </div>
               ) : (
                 <>
+                  <TableCustomers key={table.id + (table.order_id ?? "")} table={table} />
                   <div className="mt-5 flex items-center justify-between">
                     <span className="text-xs uppercase tracking-[0.15em] text-zinc-500">Itens · {items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)} un.</span>
                     <button type="button" onClick={() => setGrouped((g) => !g)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-300 transition-colors duration-150 hover:border-primary/50" data-testid="toggle-group-items">
@@ -581,4 +582,37 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
     <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} defaultService={10} partialMode title="Recebimento parcial (não fiscal)" pending={payment.isPending} onConfirm={(p) => payment.mutate(p)} />
     </>
   );
+}
+
+function TableCustomers({ table }: { table: Table }) {
+  const [draft, setDraft] = useState("");
+  const [names, setNames] = useState<string[]>(table.customers?.length ? table.customers : table.customer_name ? [table.customer_name] : []);
+  const save = useMutation({
+    mutationFn: (customers: string[]) => apiPut<Table>(`/tables/${table.id}/customers`, { customers }),
+    onSuccess: (updated) => { setNames(updated.customers ?? []); invalidateTables(); toast.success("Clientes da mesa atualizados"); },
+    onError: (error) => toast.error(errMsg(error)),
+  });
+  const add = () => {
+    const name = draft.trim();
+    if (!name || name.length > 80 || names.some(n => n.toLowerCase() === name.toLowerCase())) {
+      toast.error("Informe um nome válido, sem duplicar clientes"); return;
+    }
+    if (names.length >= 50) { toast.error("Limite de 50 clientes por mesa"); return; }
+    setNames(old => [...old, name]); setDraft("");
+  };
+  return <section className="mt-4 rounded-xl border border-white/10 bg-panel p-3" data-testid="table-customers">
+    <p className="flex items-center gap-2 text-sm font-semibold"><Users className="size-4" /> Clientes nesta mesa ({names.length})</p>
+    <div className="mt-2 flex flex-wrap gap-2">
+      {names.map((name, index) => <span key={index} className="flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs">
+        {name}<button type="button" aria-label={`Remover ${name}`} onClick={() => setNames(old => old.filter((_, i) => i !== index))} className="text-red-300">×</button>
+      </span>)}
+    </div>
+    <div className="mt-3 flex gap-2">
+      <Input value={draft} maxLength={80} placeholder="Nome do cliente" onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }} data-testid="table-customer-name" />
+      <Button type="button" variant="outline" onClick={add} disabled={!draft.trim()}>Adicionar</Button>
+    </div>
+    <Button className="mt-2 w-full" type="button" disabled={save.isPending} onClick={() => save.mutate(names)} data-testid="table-save-customers">Salvar clientes</Button>
+    <p className="mt-2 text-xs text-zinc-400">Todos compartilham a mesma mesa e comanda. A divisão de pagamentos continua disponível no caixa.</p>
+  </section>;
 }
