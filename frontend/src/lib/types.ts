@@ -156,7 +156,7 @@ export interface QuickSaleIn extends PayIn {
 }
 export interface SaleResult { order: Order; invoice: Invoice | null }
 
-export interface KitchenItem { name: string; qty: number; notes: string; station: Station; options: string[]; print_ticket: boolean }
+export interface KitchenItem { name: string; qty: number; notes: string; station: Station; options: string[]; print_ticket: boolean; customer_name?: string }
 export interface KitchenTicket {
   id: string;
   order_id: string;
