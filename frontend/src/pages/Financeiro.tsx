@@ -82,10 +82,10 @@ function CashflowPanel({ start, end }: { start: string; end: string }) {
       {q.isError && <p role="alert" className="text-red-400">{errMsg(q.error)}</p>}
       {q.data && <>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <Stat label="Vendas recebidas" value={brl(q.data.totals.sales)} />
-          <Stat label="Contas recebidas" value={brl(q.data.totals.receivables)} />
-          <Stat label="Contas pagas" value={brl(q.data.totals.payables)} />
-          <Stat label="Despesas lançadas" value={brl(q.data.totals.expenses)} />
+          <Stat testid="finance-metric-1" label="Vendas recebidas" value={brl(q.data.totals.sales)} />
+          <Stat testid="finance-metric-2" label="Contas recebidas" value={brl(q.data.totals.receivables)} />
+          <Stat testid="finance-metric-3" label="Contas pagas" value={brl(q.data.totals.payables)} />
+          <Stat testid="finance-metric-4" label="Despesas lançadas" value={brl(q.data.totals.expenses)} />
           <Stat label="Saldo estimado" value={brl(q.data.totals.balance)} testid="cashflow-balance" />
         </div>
         <Panel title="Movimentação diária">
@@ -124,10 +124,10 @@ function SalesTrendsPanel({ start, end }: { start: string; end: string }) {
     {q.data && <>
       <p className="text-xs text-zinc-400">Comparação com {q.data.previous_start} a {q.data.previous_end}</p>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Vendas atuais" value={brl(q.data.current_revenue)} />
-        <Stat label="Vendas anteriores" value={brl(q.data.previous_revenue)} />
+        <Stat testid="finance-metric-5" label="Vendas atuais" value={brl(q.data.current_revenue)} />
+        <Stat testid="finance-metric-6" label="Vendas anteriores" value={brl(q.data.previous_revenue)} />
         <Stat label="Variação de vendas" value={q.data.revenue_change_pct === null ? "Sem base" : `${q.data.revenue_change_pct > 0 ? "+" : ""}${q.data.revenue_change_pct}%`} />
-        <Stat label="Ticket médio atual" value={brl(q.data.current_average_ticket)} />
+        <Stat testid="finance-metric-7" label="Ticket médio atual" value={brl(q.data.current_average_ticket)} />
       </div>
       <div className="grid gap-3 lg:grid-cols-2">
         <Panel title="Alertas e observações">
@@ -161,9 +161,9 @@ function SalesStockForecastPanel() {
     {q.isError && <p role="alert" className="text-red-400">{errMsg(q.error)}</p>}
     {q.data && <>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <Stat label="Vendas no histórico" value={brl(q.data.observed_revenue)} />
-        <Stat label="Média diária" value={brl(q.data.average_daily_revenue)} />
-        <Stat label="Estimativa próximos 7 dias" value={brl(q.data.projected_next_7_days)} />
+        <Stat testid="finance-metric-8" label="Vendas no histórico" value={brl(q.data.observed_revenue)} />
+        <Stat testid="finance-metric-9" label="Média diária" value={brl(q.data.average_daily_revenue)} />
+        <Stat testid="finance-metric-10" label="Estimativa próximos 7 dias" value={brl(q.data.projected_next_7_days)} />
       </div>
       <Panel title="Sugestões de compra para 7 dias">
         <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-zinc-400"><th className="p-2">Ingrediente</th><th className="p-2">Estoque atual</th><th className="p-2">Consumo/dia</th><th className="p-2">Sugestão de compra</th></tr></thead><tbody>
@@ -189,10 +189,10 @@ function IntelligentInsightsPanel({ start, end }: { start: string; end: string }
     {q.isError && <p role="alert" className="text-red-400">{errMsg(q.error)}</p>}
     {q.data && <>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Vendas pagas" value={brl(q.data.revenue)} />
-        <Stat label="Ticket médio" value={brl(q.data.average_ticket)} />
-        <Stat label="Despesas lançadas" value={brl(q.data.operating_expenses)} />
-        <Stat label="Produtos sem vendas" value={String(q.data.unsold_count)} />
+        <Stat testid="finance-metric-11" label="Vendas pagas" value={brl(q.data.revenue)} />
+        <Stat testid="finance-metric-12" label="Ticket médio" value={brl(q.data.average_ticket)} />
+        <Stat testid="finance-metric-13" label="Despesas lançadas" value={brl(q.data.operating_expenses)} />
+        <Stat testid="finance-metric-14" label="Produtos sem vendas" value={String(q.data.unsold_count)} />
       </div>
       <div className="grid gap-3 lg:grid-cols-2">
         <Panel title="Oportunidades e alertas">
