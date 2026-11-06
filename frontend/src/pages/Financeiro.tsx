@@ -107,6 +107,37 @@ function CashflowPanel({ start, end }: { start: string; end: string }) {
 }
 
 
+
+type StockForecast = {
+  days: number; observed_revenue: number; average_daily_revenue: number; projected_next_7_days: number; paid_days: number;
+  restock_suggestions: { ingredient_id: string; name: string; unit: string; stock: number; daily_usage: number; suggested_purchase: number; days_cover: number | null }[];
+  note: string;
+};
+function SalesStockForecastPanel() {
+  const [days, setDays] = useState("28");
+  const q = useQuery({ queryKey: ["sales-stock-forecast", days], queryFn: () => apiGet<StockForecast>(`/reports/sales-stock-forecast?days=${days}`) });
+  return <section className="mb-5 space-y-3" data-testid="sales-stock-forecast">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h2 className="text-xl font-semibold">Previsão de vendas e reposição de estoque</h2>
+      <Select value={days} onValueChange={setDays}><SelectTrigger className="w-44"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="14">Últimos 14 dias</SelectItem><SelectItem value="28">Últimos 28 dias</SelectItem><SelectItem value="60">Últimos 60 dias</SelectItem></SelectContent></Select>
+    </div>
+    {q.isError && <p role="alert" className="text-red-400">{errMsg(q.error)}</p>}
+    {q.data && <>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <Stat label="Vendas no histórico" value={brl(q.data.observed_revenue)} />
+        <Stat label="Média diária" value={brl(q.data.average_daily_revenue)} />
+        <Stat label="Estimativa próximos 7 dias" value={brl(q.data.projected_next_7_days)} />
+      </div>
+      <Panel title="Sugestões de compra para 7 dias">
+        <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-zinc-400"><th className="p-2">Ingrediente</th><th className="p-2">Estoque atual</th><th className="p-2">Consumo/dia</th><th className="p-2">Sugestão de compra</th></tr></thead><tbody>
+          {q.data.restock_suggestions.map(row => <tr key={row.ingredient_id} className="border-t border-white/10"><td className="p-2">{row.name}</td><td className="p-2">{row.stock} {row.unit}</td><td className="p-2">{row.daily_usage} {row.unit}</td><td className="p-2 font-semibold">{row.suggested_purchase} {row.unit}</td></tr>)}
+        </tbody></table>{!q.data.restock_suggestions.length && <p className="p-3 text-zinc-400">Nenhuma reposição sugerida com os dados disponíveis.</p>}</div>
+      </Panel>
+      <p className="text-xs text-zinc-400">{q.data.note}</p>
+    </>}
+  </section>;
+}
+
 type IntelligentInsights = {
   revenue: number; operating_expenses: number; paid_orders: number; average_ticket: number;
   top_contribution: { product_id: string; name: string; qty: number; contribution: number; margin_pct: number }[];
@@ -282,6 +313,7 @@ export default function Financeiro() {
           </ul>
         </Panel>
       </div>
+      <SalesStockForecastPanel />
       <IntelligentInsightsPanel start={start} end={end} />
       <CashflowPanel start={start} end={end} />
       <ForecastPanel />
