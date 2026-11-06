@@ -88,25 +88,43 @@ async def build_items(items_in: list[OrderItemIn]) -> list[OrderItem]:
 
 
 async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int = -1) -> None:
-    """sign=-1 consumes ingredients (sale), +1 returns them (cancel)."""
+    """Consume or return recipe ingredients for sold/cancelled items.
+
+    Aggregate all quantities before writing, and use Decimal to avoid floating
+    point drift across combo products and repeated recipe components.
+    """
+    from decimal import Decimal, ROUND_HALF_UP
+
     ids = list({i.product_id for i in items} | {x for i in items for x in i.option_products})
     prods = {p["id"]: p for p in await db.products.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "recipe": 1}).to_list(500)}
-    agg: dict[str, float] = {}
+    agg: dict[str, Decimal] = {}
     for it in items:
-        for pid in [it.product_id, *it.option_products]:  # combo choices consume their own recipe
-            for r in prods.get(pid, {}).get("recipe", []):
-                agg[r["ingredient_id"]] = agg.get(r["ingredient_id"], 0) + r["qty"] * it.qty
+        if it.cancelled:
+            continue
+        for pid in [it.product_id, *it.option_products]:
+            for recipe in prods.get(pid, {}).get("recipe", []):
+                ingredient_id = recipe["ingredient_id"]
+                consumed = Decimal(str(recipe["qty"])) * it.qty
+                agg[ingredient_id] = agg.get(ingredient_id, Decimal(0)) + consumed
     if not agg:
         return
     ings = await ingredient_map()
     moves = []
-    for ing_id, q in agg.items():
+    for ing_id, amount in agg.items():
         if ing_id not in ings:
             continue
-        await db.ingredients.update_one({"id": ing_id}, {"$inc": {"stock": round(sign * q, 4)}, "$set": {"updated_at": now()}})
-        moves.append(StockMove(ingredient_id=ing_id, ingredient_name=ings[ing_id]["name"],
-                               type="venda" if sign < 0 else "estorno", qty=round(sign * q, 4),
-                               note=note, by_name=by_name).model_dump())
+        delta = float((Decimal(sign) * amount).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP))
+        if not delta:
+            continue
+        await db.ingredients.update_one(
+            {"id": ing_id},
+            {"$inc": {"stock": delta}, "$set": {"updated_at": now()}},
+        )
+        moves.append(StockMove(
+            ingredient_id=ing_id, ingredient_name=ings[ing_id]["name"],
+            type="venda" if sign < 0 else "estorno", qty=delta,
+            note=note, by_name=by_name,
+        ).model_dump())
     if moves:
         await db.stock_moves.insert_many(moves)
 
