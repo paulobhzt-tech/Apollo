@@ -161,6 +161,13 @@ async def add_items(id: str, body: AddItemsIn, user: dict = Depends(require(*STA
     t = await get_table(id)
     items = await build_items(body.items)
     order = await get_or_open_order(t, user)
+    customers = t.get("customers") or ([t["customer_name"]] if t.get("customer_name") else [])
+    for entry, item in zip(body.items, items):
+        guest = entry.customer_name.strip()
+        if guest and guest not in customers:
+            raise HTTPException(400, "Cliente não cadastrado nesta mesa")
+        item.customer_name = guest
+        item.ordered_by = user["name"]
     result = await db.orders.update_one(
         {"id": order["id"], "status": "aberto"},
         {"$push": {"items": {"$each": [i.model_dump() for i in items]}}},
