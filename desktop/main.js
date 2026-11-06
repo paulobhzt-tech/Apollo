@@ -82,7 +82,9 @@ function registerAppProtocol() {
 async function serverReachable() {
   try {
     const r = await net.fetch(cfg.serverUrl + "/api/", { method: "GET", cache: "no-store" });
-    return r.status < 500;
+    if (!r.ok || !(r.headers.get("content-type") || "").includes("application/json")) return false;
+    const payload = await r.json();
+    return payload && payload.message === "Apollo PDV API";
   } catch {
     return false;
   }
@@ -92,16 +94,23 @@ async function openBest() {
   const online = await serverReachable();
   const target = online ? cfg.serverUrl + "/pdv" : "pdv://app/pdv";
   mode = online ? "online" : "offline";
-  await win.loadURL(target).catch(() => win.loadURL("pdv://app/pdv"));
+  await win.loadURL(target).catch(() => {
+    mode = "offline";
+    return win.loadURL("pdv://app/pdv");
+  });
 }
 
 function watchConnection() {
   setInterval(async () => {
     if (!win || mode !== "offline") return;
     if (await serverReachable()) {
-      mode = "online";
       const route = new URL(win.webContents.getURL()).pathname || "/pdv";
-      win.loadURL(cfg.serverUrl + route); // the web app flushes the shared offline queue on load
+      try {
+        await win.loadURL(cfg.serverUrl + route);
+        mode = "online"; // stay offline if loading the remote app fails
+      } catch {
+        mode = "offline";
+      }
     }
   }, CHECK_MS);
 }
