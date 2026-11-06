@@ -78,6 +78,47 @@ async def dashboard(_: dict = Depends(require("caixa"))):
     }
 
 
+def executive_snapshot(orders: list[dict], expenses: list[dict], ingredients: list[dict], staff: list[dict]) -> dict:
+    paid = [o for o in orders if o.get("status") == "pago"]
+    revenue = round(sum(float(o.get("total") or 0) for o in paid), 2)
+    expense_total = round(sum(float(x.get("amount") or 0) for x in expenses), 2)
+    cmv = round(sum(float(o.get("cmv") or 0) for o in paid), 2)
+    critical = [i for i in ingredients if float(i.get("stock") or 0) <= float(i.get("min_stock") or 0) and float(i.get("min_stock") or 0) > 0]
+    active = sum(1 for e in staff if e.get("active", True))
+    alerts = []
+    if critical:
+        alerts.append({"severity": "warning", "title": "Estoque crítico", "detail": f"{len(critical)} ingrediente(s) no estoque mínimo ou abaixo."})
+    if expense_total > revenue and paid:
+        alerts.append({"severity": "warning", "title": "Despesas acima das vendas", "detail": "Despesas lançadas no período superam vendas pagas."})
+    if not paid:
+        alerts.append({"severity": "info", "title": "Sem vendas pagas", "detail": "Não há pedidos pagos no período."})
+    return {"revenue": revenue, "paid_orders": len(paid), "average_ticket": round(revenue / len(paid), 2) if paid else 0,
+            "recorded_expenses": expense_total, "recorded_cmv": cmv,
+            "indicative_balance": round(revenue - expense_total - cmv, 2),
+            "critical_stock_count": len(critical), "critical_stock": [{"id": i.get("id"), "name": i.get("name"), "stock": i.get("stock"), "min_stock": i.get("min_stock")} for i in critical[:10]],
+            "active_employees": active, "alerts": alerts,
+            "note": "Saldo indicativo = vendas pagas menos CMV registrado e despesas lançadas. Não é lucro contábil: exclui impostos, taxas, contas e comissões não lançadas; despesas podem duplicar custos."}
+
+
+@router.get("/reports/executive")
+async def executive_report(start: Optional[str] = None, end: Optional[str] = None, _: dict = Depends(require())):
+    end = end or local_today()
+    start = start or end[:8] + "01"
+    try:
+        first, last = date.fromisoformat(start), date.fromisoformat(end)
+        if first > last or (last - first).days > 90:
+            raise ValueError("intervalo")
+        begin, _ = day_bounds(start)
+        _, finish = day_bounds(end)
+    except ValueError:
+        raise HTTPException(400, "Período inválido (máximo de 90 dias)")
+    orders = await paid_between(begin, finish)
+    expenses = await db.expenses.find({"date": {"$gte": start, "$lte": end}}, {"_id": 0, "amount": 1}).to_list(10000)
+    ingredients = await db.ingredients.find({"min_stock": {"$gt": 0}}, {"_id": 0, "id": 1, "name": 1, "stock": 1, "min_stock": 1}).to_list(5000)
+    staff = await db.employees.find({}, {"_id": 0, "active": 1}).to_list(500)
+    return {"start": start, "end": end, **executive_snapshot(orders, expenses, ingredients, staff)}
+
+
 @router.get("/reports/dre", response_model=Dre)
 async def dre(start: Optional[str] = None, end: Optional[str] = None, _: dict = Depends(require())):
     end = end or local_today()
