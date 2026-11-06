@@ -284,6 +284,7 @@ async def preview_partial_bill(id: str, body: PartialBillIn, _: dict = Depends(r
 
 
 class PartialPaymentIn(PartialBillIn):
+    customer_name: str = Field(default="", max_length=80)
     payment: PayIn
     client_ref: str = Field(min_length=6, max_length=120)
 
@@ -332,6 +333,13 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, _: dict = Depends(re
                         remaining.append({**item, "qty": item["qty"] - qty})
                 if not chosen or any(k not in {i["id"] for i in order["items"]} for k in body.quantities):
                     raise HTTPException(400, "Selecione itens válidos")
+                guest = body.customer_name.strip()
+                if guest:
+                    known = table.get("customers") or []
+                    if guest not in known:
+                        raise HTTPException(400, "Cliente não cadastrado na mesa")
+                    if any(i.get("customer_name") not in ("", guest, None) for i in chosen):
+                        raise HTTPException(400, "Há itens de outro cliente na seleção")
                 subtotal = round(sum(i["qty"] * i["unit_price"] for i in chosen), 2)
                 if body.payment.discount > subtotal:
                     raise HTTPException(400, "Desconto maior que o valor dos itens selecionados")
@@ -347,6 +355,7 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, _: dict = Depends(re
                 receipt = Order(number=number, channel="mesa", source="mesa",
                     table_number=table["number"], table_label=table_label(table),
                     items=[OrderItem(**i) for i in chosen], status="pago",
+                    customer={"name": guest},
                     subtotal=subtotal, discount=body.payment.discount, service_fee=service_fee,
                     total=total, payments=body.payment.payments,
                     change=max(0, change), paid_at=now(), cash_session_id=cash["id"],
