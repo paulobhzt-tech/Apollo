@@ -49,6 +49,33 @@ function TimeClock() {
   </section>;
 }
 
+
+type StaffPerformance = {
+  employees: { employee_id: string; name: string; sales: number; orders: number; average_ticket: number; commission_pct: number; estimated_commission: number }[];
+  total_sales: number; total_estimated_commission: number; note: string;
+};
+
+function ProductivityPanel() {
+  const [start, setStart] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toLocaleDateString("en-CA"));
+  const [end, setEnd] = useState(() => new Date().toLocaleDateString("en-CA"));
+  const q = useQuery({ queryKey: ["employee-performance", start, end], queryFn: () => apiGet<StaffPerformance>(`/reports/employee-performance?start=${start}&end=${end}`), enabled: !!start && !!end && start <= end });
+  return <section className="mb-5 space-y-3 rounded-2xl border border-white/10 bg-panel p-4" data-testid="employee-productivity">
+    <h2 className="text-lg font-semibold">Produtividade e comissões estimadas</h2>
+    <div className="flex flex-wrap gap-2">
+      <Input type="date" aria-label="Início da produtividade" className="w-40" value={start} onChange={e => setStart(e.target.value)} />
+      <Input type="date" aria-label="Fim da produtividade" className="w-40" value={end} onChange={e => setEnd(e.target.value)} />
+    </div>
+    {q.isError && <p role="alert" className="text-red-400">{errMsg(q.error)}</p>}
+    {q.data && <>
+      <p className="text-sm">Vendas atribuídas: <strong>{q.data.total_sales.toLocaleString("pt-BR", {style:"currency",currency:"BRL"})}</strong> · Comissões estimadas: <strong>{q.data.total_estimated_commission.toLocaleString("pt-BR", {style:"currency",currency:"BRL"})}</strong></p>
+      <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-zinc-400"><th className="p-2">Garçom</th><th className="p-2">Pedidos</th><th className="p-2">Vendas</th><th className="p-2">Ticket médio</th><th className="p-2">Comissão estimada</th></tr></thead><tbody>
+        {q.data.employees.map(row => <tr key={row.employee_id} className="border-t border-white/10"><td className="p-2">{row.name}</td><td className="p-2">{row.orders}</td><td className="p-2">{row.sales.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</td><td className="p-2">{row.average_ticket.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</td><td className="p-2">{row.estimated_commission.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})} ({row.commission_pct}%)</td></tr>)}
+      </tbody></table></div>
+      <p className="text-xs text-zinc-400">{q.data.note}</p>
+    </>}
+  </section>;
+}
+
 export default function Funcionarios() {
   const q = useQuery({ queryKey: ["employees"], queryFn: () => apiGet<Employee[]>("/employees") });
   const [editing, setEditing] = useState<Employee | "new" | null>(null);
@@ -62,6 +89,7 @@ export default function Funcionarios() {
       <PageHeader title="Funcionários" subtitle="Cadastro, perfis de acesso por PIN e comissão de garçons"
         actions={<Button onClick={() => setEditing("new")} data-testid="new-employee-button"><Plus className="size-4" /> Novo funcionário</Button>} />
       <TimeClock />
+      <ProductivityPanel />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {(q.data ?? []).map((e) => (
           <article key={e.id} className="rounded-2xl border border-white/5 bg-panel p-4 transition-transform duration-200 hover:-translate-y-0.5" data-testid={`employee-card-${e.id}`}>
