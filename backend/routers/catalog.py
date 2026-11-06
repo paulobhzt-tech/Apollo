@@ -176,14 +176,33 @@ async def create_move(body: StockMoveIn, user: dict = Depends(require("caixa", "
     ing = await db.ingredients.find_one({"id": body.ingredient_id}, {"_id": 0})
     if not ing:
         raise HTTPException(404, "Insumo não encontrado")
-    if body.type == "ajuste":
-        delta = body.qty - ing["stock"]
+    if body.type == "perda":
+        if not body.reason:
+            raise HTTPException(400, "Informe o motivo da perda")
+        if not body.qty > 0 or not __import__("math").isfinite(body.qty):
+            raise HTTPException(400, "Quantidade da perda deve ser positiva e finita")
+        # Conditional atomic decrement prevents recording losses greater than the stock.
+        result = await db.ingredients.update_one(
+            {"id": ing["id"], "stock": {"$gte": body.qty}},
+            {"$inc": {"stock": -round(body.qty, 4)}, "$set": {"updated_at": now()}},
+        )
+        if not result.modified_count:
+            raise HTTPException(409, "Estoque insuficiente para registrar a perda")
+        delta = -round(body.qty, 4)
     else:
-        if body.qty <= 0:
-            raise HTTPException(400, "Quantidade deve ser maior que zero")
-        delta = body.qty if body.type == "entrada" else -body.qty
-    await db.ingredients.update_one({"id": ing["id"]}, {"$inc": {"stock": round(delta, 4)}, "$set": {"updated_at": now()}})
+        if not __import__("math").isfinite(body.qty):
+            raise HTTPException(400, "Quantidade inválida")
+        if body.type == "ajuste":
+            delta = body.qty - ing["stock"]
+        else:
+            if body.qty <= 0:
+                raise HTTPException(400, "Quantidade deve ser maior que zero")
+            delta = body.qty if body.type == "entrada" else -body.qty
+        await db.ingredients.update_one({"id": ing["id"]}, {"$inc": {"stock": round(delta, 4)}, "$set": {"updated_at": now()}})
     await db.stock_moves.insert_one(StockMove(
         ingredient_id=ing["id"], ingredient_name=ing["name"], type=body.type, qty=round(delta, 4),
-        note=body.note, by_name=user["name"]).model_dump())
+        note=body.note, by_name=user["name"],
+        reason=body.reason or "" if body.type == "perda" else "",
+        cost_total=round(abs(delta) * ing.get("cost_per_unit", 0), 2) if body.type == "perda" else 0,
+    ).model_dump())
     return await db.ingredients.find_one({"id": ing["id"]}, {"_id": 0})
