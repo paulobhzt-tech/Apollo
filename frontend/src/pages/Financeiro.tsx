@@ -106,6 +106,46 @@ function CashflowPanel({ start, end }: { start: string; end: string }) {
   );
 }
 
+
+type IntelligentInsights = {
+  revenue: number; operating_expenses: number; paid_orders: number; average_ticket: number;
+  top_contribution: { product_id: string; name: string; qty: number; contribution: number; margin_pct: number }[];
+  unsold_count: number; unsold_products: string[];
+  insights: { level: string; title: string; detail: string }[]; method: string; note: string;
+};
+
+function IntelligentInsightsPanel({ start, end }: { start: string; end: string }) {
+  const q = useQuery({ queryKey: ["intelligent-insights", start, end], queryFn: () => apiGet<IntelligentInsights>(`/reports/intelligent-insights?start=${start}&end=${end}`), enabled: !!start && !!end && start <= end });
+  return <section className="mb-5 space-y-3" data-testid="intelligent-insights">
+    <h2 className="text-xl font-semibold">Relatórios inteligentes — análise automática</h2>
+    {q.isError && <p role="alert" className="text-red-400">{errMsg(q.error)}</p>}
+    {q.data && <>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Vendas pagas" value={brl(q.data.revenue)} />
+        <Stat label="Ticket médio" value={brl(q.data.average_ticket)} />
+        <Stat label="Despesas lançadas" value={brl(q.data.operating_expenses)} />
+        <Stat label="Produtos sem vendas" value={String(q.data.unsold_count)} />
+      </div>
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Panel title="Oportunidades e alertas">
+          <ul className="space-y-3 text-sm">{q.data.insights.map((insight, index) => <li key={index} className="rounded-lg border border-white/10 p-3">
+            <p className="font-semibold">{insight.level === "warning" ? "Atenção: " : ""}{insight.title}</p>
+            <p className="mt-1 text-zinc-400">{insight.detail}</p>
+          </li>)}
+          {!q.data.insights.length && <li className="text-zinc-400">Nenhum alerta para o período.</li>}</ul>
+        </Panel>
+        <Panel title="Maior contribuição bruta por produto">
+          <ul className="space-y-2 text-sm">{q.data.top_contribution.map(p => <li key={p.product_id} className="flex justify-between gap-3">
+            <span>{p.name} <span className="text-zinc-500">({p.margin_pct}%)</span></span><strong>{brl(p.contribution)}</strong>
+          </li>)}
+          {!q.data.top_contribution.length && <li className="text-zinc-400">Sem vendas registradas.</li>}</ul>
+        </Panel>
+      </div>
+      <p className="text-xs text-zinc-400">{q.data.note}</p>
+    </>}
+  </section>;
+}
+
 const EXP_LABEL: Record<ExpenseCat, string> = {
   aluguel: "Aluguel", salarios: "Salários", energia: "Energia", agua: "Água", marketing: "Marketing", manutencao: "Manutenção", impostos: "Impostos", outros: "Outros",
 };
@@ -242,6 +282,7 @@ export default function Financeiro() {
           </ul>
         </Panel>
       </div>
+      <IntelligentInsightsPanel start={start} end={end} />
       <CashflowPanel start={start} end={end} />
       <ForecastPanel />
       <Despesas />
