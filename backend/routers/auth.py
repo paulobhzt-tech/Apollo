@@ -1,6 +1,7 @@
 import os
 import bcrypt
 import secrets
+from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
 
@@ -175,3 +176,69 @@ async def delete_employee(id: str, user: dict = Depends(require())):
         raise HTTPException(404, "Funcionário não encontrado")
     await db.sessions.delete_many({"employee_id": id})
     return OkOut()
+
+
+def worked_minutes(start: datetime, end: datetime) -> int:
+    """Whole elapsed minutes in UTC; reject invalid or reversed intervals."""
+    if start.tzinfo is None or end.tzinfo is None or end < start:
+        raise ValueError("Intervalo de ponto inválido")
+    return int((end - start).total_seconds() // 60)
+
+
+@router.get("/employees/time-clock/me")
+async def my_time_clock(user: dict = Depends(current_user)):
+    emp = await db.employees.find_one({"id": user["id"]}, {"_id": 0, "clock_in_at": 1})
+    return {"clocked_in": bool(emp and emp.get("clock_in_at")), "clock_in_at": emp.get("clock_in_at") if emp else None}
+
+
+@router.post("/employees/time-clock/in")
+async def clock_in(user: dict = Depends(current_user)):
+    timestamp = datetime.now(timezone.utc)
+    res = await db.employees.update_one(
+        {"id": user["id"], "active": True, "clock_in_at": {"$exists": False}},
+        {"$set": {"clock_in_at": timestamp}})
+    if not res.modified_count:
+        raise HTTPException(409, "Ponto já aberto ou funcionário inativo")
+    return {"clocked_in": True, "clock_in_at": timestamp}
+
+
+@router.post("/employees/time-clock/out")
+async def clock_out(user: dict = Depends(current_user)):
+    from pymongo import ReturnDocument
+    emp = await db.employees.find_one_and_update(
+        {"id": user["id"], "clock_in_at": {"$exists": True}},
+        {"$unset": {"clock_in_at": ""}},
+        projection={"_id": 0, "id": 1, "name": 1, "clock_in_at": 1},
+        return_document=ReturnDocument.BEFORE)
+    if not emp:
+        raise HTTPException(409, "Nenhum ponto aberto")
+    timestamp = datetime.now(timezone.utc)
+    minutes = worked_minutes(emp["clock_in_at"], timestamp)
+    record = {"employee_id": user["id"], "employee_name": emp["name"],
+              "clock_in_at": emp["clock_in_at"], "clock_out_at": timestamp, "minutes": minutes}
+    await db.employee_time_entries.insert_one(dict(record))
+    return {"clocked_in": False, "entry": record}
+
+
+@router.get("/employees/time-clock/report")
+async def time_clock_report(start: str, end: str, _: dict = Depends(require())):
+    from datetime import date
+    try:
+        first, last = date.fromisoformat(start), date.fromisoformat(end)
+    except ValueError:
+        raise HTTPException(400, "Datas inválidas")
+    if first > last or (last - first).days > 366:
+        raise HTTPException(400, "Período inválido ou superior a 366 dias")
+    from lib.orders import day_bounds
+    begin, _ = day_bounds(start)
+    _, finish = day_bounds(end)
+    entries = await db.employee_time_entries.find(
+        {"clock_out_at": {"$gte": begin, "$lt": finish}}, {"_id": 0}).sort("clock_out_at", -1).to_list(10000)
+    totals = {}
+    for entry in entries:
+        key = entry["employee_id"]
+        row = totals.setdefault(key, {"employee_id": key, "employee_name": entry["employee_name"], "minutes": 0, "shifts": 0})
+        row["minutes"] += entry["minutes"]
+        row["shifts"] += 1
+    return {"entries": entries, "totals": sorted(totals.values(), key=lambda x: x["employee_name"]),
+            "note": "Registro operacional de turnos completos; não calcula horas extras, intervalos ou folha de pagamento."}
