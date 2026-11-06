@@ -73,7 +73,7 @@ function ProductionBatchForm({ ingredients, products, onSaved }: { ingredients: 
 
 type Purchase = {
   id: string; supplier_id: string; supplier_name: string; ingredient_id: string; ingredient_name: string;
-  qty: number; unit: Unit; unit_cost: number; total_cost: number; expiry_date?: string | null;
+  qty: number; remaining_qty?: number; unit: Unit; unit_cost: number; total_cost: number; expiry_date?: string | null;
   lot_number: string; note: string; created_at: string;
 };
 type ExpiryPurchase = Purchase & { days_to_expiry: number };
