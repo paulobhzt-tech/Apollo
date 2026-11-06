@@ -14,7 +14,7 @@ import { apiGet, apiPost, apiPut } from "@/lib/api";
 import { brl, errMsg, fmtDateTime } from "@/lib/format";
 import { useMe } from "@/lib/auth";
 import { queryClient } from "@/lib/queryClient";
-import type { Ingredient, IngredientIn, StockMove, Unit, Product } from "@/lib/types";
+import type { Ingredient, IngredientIn, StockMove, Unit, Product, Supplier } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const UNITS: Unit[] = ["kg", "g", "L", "ml", "un"];
@@ -71,6 +71,61 @@ function ProductionBatchForm({ ingredients, products, onSaved }: { ingredients: 
   </div>;
 }
 
+type Purchase = {
+  id: string; supplier_id: string; supplier_name: string; ingredient_id: string; ingredient_name: string;
+  qty: number; unit: Unit; unit_cost: number; total_cost: number; expiry_date?: string | null;
+  lot_number: string; note: string; created_at: string;
+};
+type ExpiryPurchase = Purchase & { days_to_expiry: number };
+
+function PurchasePanel({ ingredients, onSaved }: { ingredients: Ingredient[]; onSaved: () => void }) {
+  const suppliers = useQuery({ queryKey: ["suppliers"], queryFn: () => apiGet<Supplier[]>("/suppliers") });
+  const purchases = useQuery({ queryKey: ["purchases"], queryFn: () => apiGet<Purchase[]>("/purchases") });
+  const expiry = useQuery({ queryKey: ["purchase-expiry"], queryFn: () => apiGet<ExpiryPurchase[]>("/purchases/expiry") });
+  const [supplierId, setSupplierId] = useState("");
+  const [ingredientId, setIngredientId] = useState("");
+  const [qty, setQty] = useState("");
+  const [unitCost, setUnitCost] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [lotNumber, setLotNumber] = useState("");
+  const [note, setNote] = useState("");
+  const number = (s: string) => Number(s.replace(",", "."));
+  const amount = number(qty) * number(unitCost);
+  const valid = !!supplierId && !!ingredientId && number(qty) > 0 && number(unitCost) >= 0 &&
+    Number.isFinite(amount) && unitCost.trim() !== "";
+  const save = useMutation({
+    mutationFn: () => apiPost<Purchase>("/purchases", {
+      supplier_id: supplierId, ingredient_id: ingredientId, qty: number(qty),
+      unit_cost: number(unitCost), expiry_date: expiryDate || null, lot_number: lotNumber, note,
+    }),
+    onSuccess: () => { toast.success("Compra registrada e estoque atualizado"); setQty(""); setUnitCost(""); setLotNumber(""); setNote(""); setExpiryDate(""); void purchases.refetch(); void expiry.refetch(); onSaved(); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
+  const selected = ingredients.find((i) => i.id === ingredientId);
+  return <div className="space-y-4">
+    <div className="rounded-2xl border border-white/5 bg-panel p-4 space-y-3">
+      <h3 className="font-semibold text-white">Registrar compra de insumos</h3>
+      <p className="text-xs text-zinc-400">A compra acrescenta a quantidade ao estoque e atualiza o custo médio ponderado do insumo. Não registre a mesma entrada novamente em Movimentações.</p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div><Label>Fornecedor</Label><Select value={supplierId} onValueChange={setSupplierId}><SelectTrigger data-testid="purchase-supplier"><SelectValue placeholder="Selecione fornecedor" /></SelectTrigger><SelectContent>{(suppliers.data ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
+        <div><Label>Insumo</Label><Select value={ingredientId} onValueChange={setIngredientId}><SelectTrigger data-testid="purchase-ingredient"><SelectValue placeholder="Selecione insumo" /></SelectTrigger><SelectContent>{ingredients.map((i) => <SelectItem key={i.id} value={i.id}>{i.name} ({i.unit})</SelectItem>)}</SelectContent></Select></div>
+        <div><Label>Quantidade {selected ? "(" + selected.unit + ")" : ""}</Label><Input inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="20" /></div>
+        <div><Label>Preço por {selected?.unit ?? "unidade"} (R$)</Label><Input inputMode="decimal" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} placeholder="32,00" /></div>
+        <div><Label>Validade do lote</Label><Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} /></div>
+        <div><Label>Número do lote</Label><Input value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} placeholder="Opcional" /></div>
+      </div>
+      <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Observações / nota fiscal (opcional)" />
+      <div className="flex items-center justify-between"><span className="text-sm">Custo total: <strong>{Number.isFinite(amount) ? brl(amount) : "—"}</strong></span><Button disabled={!valid || save.isPending} onClick={() => save.mutate()} data-testid="purchase-save">Registrar compra</Button></div>
+    </div>
+    <div className="rounded-2xl border border-amber-400/20 bg-panel p-4">
+      <h3 className="mb-2 font-semibold text-amber-200">Validades próximas (até 7 dias) e vencidas</h3>
+      <p className="mb-3 text-xs text-zinc-400">Avisos por data de compra: não representam saldo disponível do lote, pois a saída por lote ainda não é rastreada.</p>
+      {(expiry.data ?? []).length === 0 ? <p className="text-sm text-zinc-400">Nenhum lote com alerta.</p> : <ul className="space-y-2 text-sm">{(expiry.data ?? []).map((p) => <li key={p.id} className="flex flex-wrap justify-between gap-2"><span>{p.ingredient_name} · {p.supplier_name} · lote {p.lot_number || "não informado"}</span><strong className={p.days_to_expiry < 0 ? "text-red-300" : "text-amber-200"}>{p.days_to_expiry < 0 ? "Vencido" : p.days_to_expiry === 0 ? "Vence hoje" : "Vence em " + p.days_to_expiry + " dias"} ({p.expiry_date})</strong></li>)}</ul>}
+    </div>
+    <div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Fornecedor</TableHead><TableHead>Insumo</TableHead><TableHead>Qtd.</TableHead><TableHead>Custo un.</TableHead><TableHead>Total</TableHead><TableHead>Validade</TableHead></TableRow></TableHeader><TableBody>{(purchases.data ?? []).map((p) => <TableRow key={p.id}><TableCell>{fmtDateTime(p.created_at)}</TableCell><TableCell>{p.supplier_name}</TableCell><TableCell>{p.ingredient_name}</TableCell><TableCell>{p.qty} {p.unit}</TableCell><TableCell>{brl(p.unit_cost)}</TableCell><TableCell>{brl(p.total_cost)}</TableCell><TableCell>{p.expiry_date || "—"}</TableCell></TableRow>)}</TableBody></Table></div>
+  </div>;
+}
+
 export default function Estoque() {
   const { data: me } = useMe();
   const ings = useQuery({ queryKey: ["ingredients"], queryFn: () => apiGet<Ingredient[]>("/ingredients"), refetchInterval: 15000 });
@@ -107,7 +162,7 @@ export default function Estoque() {
       </div>}
       <div className="mb-4 rounded-2xl border border-white/5 bg-panel p-4"><p className="text-xs text-zinc-400">Prejuízo por perdas (últimas 300 movimentações)</p><p className="font-mono text-xl text-red-300">{brl(lossTotal)}</p><p className="text-xs text-zinc-500">{losses.length} ocorrências</p></div>
       <Tabs defaultValue="insumos">
-        <TabsList><TabsTrigger value="insumos" data-testid="tab-insumos">Insumos</TabsTrigger><TabsTrigger value="movs" data-testid="tab-movimentacoes">Movimentações</TabsTrigger><TabsTrigger value="producao" data-testid="tab-producao">Produção por lote</TabsTrigger></TabsList>
+        <TabsList><TabsTrigger value="insumos" data-testid="tab-insumos">Insumos</TabsTrigger><TabsTrigger value="movs" data-testid="tab-movimentacoes">Movimentações</TabsTrigger><TabsTrigger value="producao" data-testid="tab-producao">Produção por lote</TabsTrigger><TabsTrigger value="compras" data-testid="tab-compras">Compras e validade</TabsTrigger></TabsList>
         <TabsContent value="insumos" className="mt-4">
           <div className="rounded-2xl border border-white/5 bg-panel">
             <Table>
@@ -135,6 +190,7 @@ export default function Estoque() {
             </Table>
           </div>
         </TabsContent>
+        <TabsContent value="compras" className="mt-4"><PurchasePanel ingredients={list} onSaved={inv} /></TabsContent>
         <TabsContent value="producao" className="mt-4 space-y-4"><ProductionBatchForm ingredients={list} products={products.data ?? []} onSaved={() => { void batches.refetch(); void ings.refetch(); void products.refetch(); }} /><div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Insumo</TableHead><TableHead>Tipo</TableHead><TableHead>Kg</TableHead><TableHead>Unidades</TableHead><TableHead>Rendimento</TableHead><TableHead>Custo total</TableHead><TableHead>Custo/un.</TableHead></TableRow></TableHeader><TableBody>{(batches.data ?? []).map((b) => <TableRow key={b.id}><TableCell>{fmtDateTime(b.created_at)}</TableCell><TableCell>{b.ingredient_name}</TableCell><TableCell>{b.production_type === "porcao" ? "Porções" : "Espetinhos"}</TableCell><TableCell>{b.kg}</TableCell><TableCell>{b.units}</TableCell><TableCell>{b.units_per_kg.toFixed(2)}</TableCell><TableCell>{brl(b.total_cost)}</TableCell><TableCell>{brl(b.cost_per_unit)}</TableCell></TableRow>)}</TableBody></Table></div></TabsContent>
         <TabsContent value="movs" className="mt-4">
           <div className="rounded-2xl border border-white/5 bg-panel">
