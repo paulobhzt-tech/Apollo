@@ -219,6 +219,8 @@ class OrderItem(BaseModel):
     print_ticket: bool = True
     cancelled: bool = False
     cancel_reason: str = ""
+    customer_name: str = ""
+    ordered_by: str = ""
 
 
 class OrderItemIn(BaseModel):
@@ -226,6 +228,7 @@ class OrderItemIn(BaseModel):
     qty: int = Field(ge=1, le=99)
     notes: str = ""
     options: list[ChosenOption] = []
+    customer_name: str = Field(default="", max_length=80)
 
 
 CardBrand = Literal["visa", "mastercard", "elo"]
