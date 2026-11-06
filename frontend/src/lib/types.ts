@@ -177,6 +177,7 @@ export interface Table {
   status: "livre" | "ocupada" | "conta" | "reservada";
   customer_name: string;
   people: number;
+  customers?: string[];
   waiter_id: string | null;
   waiter_name: string;
   order_id: string | null;
