@@ -77,6 +77,7 @@ export default function Financeiro() {
   const [end, setEnd] = useState(isoLocal(now));
   const dre = useQuery({ queryKey: ["dre", start, end], queryFn: () => apiGet<Dre>(`/reports/dre?start=${start}&end=${end}`) });
   const d = dre.isError ? undefined : dre.data;
+  const intelligence = useQuery({ queryKey: ["sales-intelligence", start, end], queryFn: () => apiGet<{ top: { product_id: string; name: string; qty: number; revenue: number }[]; least: { product_id: string; name: string; qty: number; revenue: number }[]; unsold: { id: string; name: string }[]; note: string }>(`/reports/sales-intelligence?start=${start}&end=${end}`) });
   const productProfit = useQuery({ queryKey: ["product-profit", start, end], queryFn: () => apiGet<{ products: { product_id: string; name: string; qty: number; revenue: number; cost: number; profit: number; margin_pct: number }[]; profit: number; revenue: number; cost: number; note: string }>(`/reports/product-profit?start=${start}&end=${end}`) });
   const preset = (days: number) => { const s = new Date(); s.setDate(s.getDate() - days + 1); setStart(isoLocal(s)); setEnd(isoLocal(new Date())); };
 
@@ -91,6 +92,17 @@ export default function Financeiro() {
         </>
       } />
       {dre.isError && <p className="mb-4 text-sm text-red-400">{errMsg(dre.error)}</p>}
+      <section className="mb-5 space-y-3" data-testid="sales-intelligence">
+        <h2 className="text-lg font-semibold text-white">Inteligência de vendas</h2>
+        {intelligence.isError && <p role="alert" className="text-red-400">{errMsg(intelligence.error)}</p>}
+        {intelligence.data && <div className="grid gap-3 lg:grid-cols-3">
+          {([{ title: "Mais vendidos", rows: intelligence.data.top }, { title: "Menos vendidos", rows: intelligence.data.least }] as const).map((group) => (
+            <Panel key={group.title} title={group.title}><ul className="space-y-2 text-sm">{group.rows.map((p) => <li key={p.product_id} className="flex justify-between gap-2"><span>{p.name}</span><span className="font-mono">{p.qty} un.</span></li>)}{!group.rows.length && <li className="text-zinc-400">Sem vendas no período</li>}</ul></Panel>
+          ))}
+          <Panel title="Sem vendas no período"><ul className="max-h-64 space-y-2 overflow-auto text-sm">{intelligence.data.unsold.map((p) => <li key={p.id}>{p.name}</li>)}{!intelligence.data.unsold.length && <li className="text-zinc-400">Nenhum produto ativo sem vendas</li>}</ul></Panel>
+          <p className="text-xs text-zinc-400 lg:col-span-3">{intelligence.data.note}</p>
+        </div>}
+      </section>
       <section className="mb-5 space-y-3" data-testid="product-profit-report">
         <h2 className="text-lg font-semibold text-white">Rentabilidade por produto</h2>
         {productProfit.isError && <p role="alert" className="text-red-400">{errMsg(productProfit.error)}</p>}
