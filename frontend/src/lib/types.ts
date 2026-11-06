@@ -96,6 +96,8 @@ export interface OrderItem {
   print_ticket: boolean;
   cancelled: boolean;
   cancel_reason: string;
+  customer_name?: string;
+  ordered_by?: string;
 }
 export interface OrderItemIn { product_id: string; qty: number; notes: string; options?: ChosenOption[] }
 export type CardBrand = "visa" | "mastercard" | "elo";
