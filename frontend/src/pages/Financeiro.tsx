@@ -126,7 +126,7 @@ function SalesTrendsPanel({ start, end }: { start: string; end: string }) {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat testid="finance-metric-5" label="Vendas atuais" value={brl(q.data.current_revenue)} />
         <Stat testid="finance-metric-6" label="Vendas anteriores" value={brl(q.data.previous_revenue)} />
-        <Stat label="Variação de vendas" value={q.data.revenue_change_pct === null ? "Sem base" : `${q.data.revenue_change_pct > 0 ? "+" : ""}${q.data.revenue_change_pct}%`} />
+        <Stat testid="finance-revenue-change" label="Variação de vendas" value={q.data.revenue_change_pct === null ? "Sem base" : `${q.data.revenue_change_pct > 0 ? "+" : ""}${q.data.revenue_change_pct}%`} />
         <Stat testid="finance-metric-7" label="Ticket médio atual" value={brl(q.data.current_average_ticket)} />
       </div>
       <div className="grid gap-3 lg:grid-cols-2">
