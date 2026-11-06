@@ -26,7 +26,12 @@ async def menu():
 @router.get("/tables/{id}", response_model=PublicTable)
 async def public_table(id: str):
     t = await get_table(id)
-    return {"id": t["id"], "number": t["number"], "label": table_label(t), "status": t["status"], "total": t.get("total", 0)}
+    order = await db.orders.find_one({"table_id": id, "status": "aberto"}, {"_id": 0, "items": 1})
+    consumed = [{"name": item.get("name", ""), "qty": item.get("qty", 0),
+                 "unit_price": item.get("unit_price", 0)}
+                for item in (order or {}).get("items", []) if not item.get("cancelled")]
+    return {"id": t["id"], "number": t["number"], "label": table_label(t),
+            "status": t["status"], "total": t.get("total", 0), "items": consumed}
 
 
 @router.post("/tables/{id}/order", response_model=PublicTable)
