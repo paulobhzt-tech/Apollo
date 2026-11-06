@@ -367,6 +367,82 @@ async def sales_stock_forecast(days: int = 28, _: dict = Depends(require())):
     return {"days": days, **predict_sales_and_stock(orders, products, ingredients, days)}
 
 
+def compare_sales_trends(current: list[dict], previous: list[dict], min_orders: int = 3) -> dict:
+    """Equal-length paid-sales comparisons with explicit small-sample warnings."""
+    def summarize(orders: list[dict]) -> tuple[float, int, dict]:
+        revenue = 0.0
+        count = 0
+        products = {}
+        for order in orders:
+            if order.get("status") != "pago":
+                continue
+            count += 1
+            revenue += float(order.get("total") or 0)
+            for item in order.get("items", []):
+                if item.get("cancelled") or float(item.get("qty") or 0) <= 0:
+                    continue
+                key = str(item.get("product_id") or item.get("name") or "")
+                if not key:
+                    continue
+                row = products.setdefault(key, {"product_id": key, "name": item.get("name") or "Produto", "qty": 0.0})
+                row["qty"] += float(item["qty"])
+        return round(revenue, 2), count, products
+
+    revenue, count, now_products = summarize(current)
+    prev_revenue, prev_count, old_products = summarize(previous)
+    change_pct = round((revenue - prev_revenue) / prev_revenue * 100, 1) if prev_revenue > 0 else None
+    alerts = []
+    if count < min_orders or prev_count < min_orders:
+        alerts.append({"level": "info", "title": "Amostra pequena",
+                       "detail": "Um dos períodos tem poucas vendas pagas; interprete tendências com cautela."})
+    if change_pct is not None and change_pct <= -15 and count >= min_orders and prev_count >= min_orders:
+        alerts.append({"level": "warning", "title": "Queda de faturamento",
+                       "detail": f"As vendas pagas caíram {abs(change_pct):.1f}% em relação ao período anterior equivalente."})
+    elif change_pct is not None and change_pct >= 15 and count >= min_orders and prev_count >= min_orders:
+        alerts.append({"level": "info", "title": "Crescimento de faturamento",
+                       "detail": f"As vendas pagas cresceram {change_pct:.1f}% em relação ao período anterior equivalente."})
+    trends = []
+    for key in set(now_products) | set(old_products):
+        now = now_products.get(key, {})
+        old = old_products.get(key, {})
+        new_qty, old_qty = now.get("qty", 0), old.get("qty", 0)
+        delta = new_qty - old_qty
+        trends.append({"product_id": key, "name": now.get("name") or old.get("name"),
+                       "current_qty": round(new_qty, 2), "previous_qty": round(old_qty, 2),
+                       "delta_qty": round(delta, 2),
+                       "change_pct": round(delta / old_qty * 100, 1) if old_qty else None})
+    trends.sort(key=lambda p: (-abs(p["delta_qty"]), p["name"]))
+    return {"current_revenue": revenue, "previous_revenue": prev_revenue,
+            "revenue_change_pct": change_pct, "current_orders": count, "previous_orders": prev_count,
+            "current_average_ticket": round(revenue / count, 2) if count else 0,
+            "previous_average_ticket": round(prev_revenue / prev_count, 2) if prev_count else 0,
+            "products": trends[:30], "alerts": alerts,
+            "note": "Comparação descritiva de períodos de mesma duração, sem ajuste por sazonalidade, feriados, dias da semana ou inflação. Não é previsão por IA."}
+
+
+@router.get("/reports/sales-trends")
+async def sales_trends(start: Optional[str] = None, end: Optional[str] = None, _: dict = Depends(require())):
+    end = end or local_today()
+    start = start or end[:8] + "01"
+    try:
+        first, last = date.fromisoformat(start), date.fromisoformat(end)
+        days = (last - first).days + 1
+        if not 1 <= days <= 90:
+            raise ValueError("intervalo")
+        begin, _ = day_bounds(start)
+        _, finish = day_bounds(end)
+        prior_first = first - timedelta(days=days)
+        prior_last = first - timedelta(days=1)
+        prior_begin, _ = day_bounds(prior_first.isoformat())
+        _, prior_finish = day_bounds(prior_last.isoformat())
+    except ValueError:
+        raise HTTPException(400, "Período inválido (1 a 90 dias)")
+    current = await paid_between(begin, finish)
+    previous = await paid_between(prior_begin, prior_finish)
+    return {"start": start, "end": end, "previous_start": prior_first.isoformat(),
+            "previous_end": prior_last.isoformat(), **compare_sales_trends(current, previous)}
+
+
 @router.get("/reports/forecast")
 async def financial_forecast(months: int = 3, _: dict = Depends(require())):
     """Estimativas com base em meses completos; não são garantia de resultado."""
