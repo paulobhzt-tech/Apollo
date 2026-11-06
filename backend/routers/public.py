@@ -28,7 +28,7 @@ async def menu():
 async def public_table(id: str):
     t = await get_table(id)
     order = await db.orders.find_one({"id": t.get("order_id"), "status": "aberto"}, {"_id": 0, "items": 1}) if t.get("order_id") else None
-    consumed = [{"name": item.get("name", ""), "qty": item.get("qty", 0),
+    consumed = [{"id": item.get("id", ""), "name": item.get("name", ""), "qty": item.get("qty", 0),
                  "unit_price": item.get("unit_price", 0)}
                 for item in (order or {}).get("items", []) if not item.get("cancelled")]
     return {"id": t["id"], "number": t["number"], "label": table_label(t),
