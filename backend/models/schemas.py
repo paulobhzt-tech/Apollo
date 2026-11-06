@@ -591,7 +591,7 @@ class SimulateIn(BaseModel):
 
 
 class PublicOrderIn(BaseModel):
-    items: list[OrderItemIn] = Field(min_length=1)
+    items: list[OrderItemIn] = Field(min_length=1, max_length=50)
 
 
 class PublicDeliveryIn(BaseModel):
