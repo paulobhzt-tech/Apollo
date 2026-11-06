@@ -18,7 +18,7 @@ import type { Ingredient, IngredientIn, StockMove, Unit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const UNITS: Unit[] = ["kg", "g", "L", "ml", "un"];
-const MOVE_LABEL: Record<StockMove["type"], string> = { entrada: "Entrada", saida: "Saída", ajuste: "Ajuste/Inventário", venda: "Baixa por venda", estorno: "Estorno" };
+const MOVE_LABEL: Record<StockMove["type"], string> = { entrada: "Entrada", saida: "Saída", ajuste: "Ajuste/Inventário", venda: "Baixa por venda", estorno: "Estorno", perda: "Perda / Descarte" };
 const inv = () => { void queryClient.invalidateQueries({ queryKey: ["ingredients"] }); void queryClient.invalidateQueries({ queryKey: ["stock-moves"] }); };
 
 export default function Estoque() {
@@ -31,6 +31,8 @@ export default function Estoque() {
   const low = list.filter((i) => i.min_stock > 0 && i.stock <= i.min_stock).sort((a, b) => a.stock / a.min_stock - b.stock / b.min_stock);
   const shopping = low.map((i) => ({ ...i, suggested: Math.max(0, i.min_stock * 2 - i.stock) }));
   const shoppingText = shopping.map((i) => `${i.name}: comprar ${i.suggested.toFixed(2)} ${i.unit} (atual ${i.stock.toFixed(2)}, mínimo ${i.min_stock.toFixed(2)})`).join("\n");
+  const losses = (moves.data ?? []).filter((m) => m.type === "perda");
+  const lossTotal = losses.reduce((sum, m) => sum + (m.cost_total ?? 0), 0);
   const value = list.reduce((s, i) => s + Math.max(0, i.stock) * i.cost_per_unit, 0);
   const isAdmin = me?.role === "admin";
 
@@ -51,6 +53,7 @@ export default function Estoque() {
         <p className="mb-2 text-xs text-zinc-400">Sugestão: repor até o dobro do estoque mínimo. Ajuste a quantidade antes de comprar.</p>
         <ul className="space-y-1 text-sm">{shopping.map((i) => <li key={i.id} className="flex flex-wrap justify-between gap-2"><span>{i.name}</span><span className="font-mono text-amber-200">Comprar {i.suggested.toFixed(2)} {i.unit}</span></li>)}</ul>
       </div>}
+      <div className="mb-4 rounded-2xl border border-white/5 bg-panel p-4"><p className="text-xs text-zinc-400">Prejuízo por perdas (últimas 300 movimentações)</p><p className="font-mono text-xl text-red-300">{brl(lossTotal)}</p><p className="text-xs text-zinc-500">{losses.length} ocorrências</p></div>
       <Tabs defaultValue="insumos">
         <TabsList><TabsTrigger value="insumos" data-testid="tab-insumos">Insumos</TabsTrigger><TabsTrigger value="movs" data-testid="tab-movimentacoes">Movimentações</TabsTrigger></TabsList>
         <TabsContent value="insumos" className="mt-4">
@@ -90,7 +93,7 @@ export default function Estoque() {
                     <TableCell className="text-white">{m.ingredient_name}</TableCell>
                     <TableCell className="text-zinc-300">{MOVE_LABEL[m.type]}</TableCell>
                     <TableCell className={cn("text-right font-mono", m.qty < 0 ? "text-red-300" : "text-emerald-300")}>{m.qty > 0 ? "+" : ""}{m.qty}</TableCell>
-                    <TableCell className="text-xs text-zinc-500">{m.note} {m.by_name && `· ${m.by_name}`}</TableCell>
+                    <TableCell className="text-xs text-zinc-500">{m.reason && `${m.reason} · `}{m.note} {m.by_name && `· ${m.by_name}`}{m.type === "perda" && ` · ${brl(m.cost_total ?? 0)}`}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
