@@ -27,6 +27,8 @@ class Employee(BaseModel):
     name: str
     role: Role
     phone: str = ""
+    cpf: str = ""
+    cnpj: str = ""
     commission_pct: float = 0
     can_cancel: bool = False
     active: bool = True
@@ -37,6 +39,8 @@ class EmployeeIn(BaseModel):
     name: str = Field(min_length=2)
     role: Role
     phone: str = ""
+    cpf: str = ""
+    cnpj: str = ""
     commission_pct: float = Field(default=0, ge=0, le=100)
     pin: str = Field(pattern=r"^\d{4,6}$")
     username: Optional[str] = Field(default=None, min_length=3, max_length=40, pattern=r"^[a-zA-Z0-9._-]+$")
@@ -49,6 +53,8 @@ class EmployeeUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=2)
     role: Optional[Role] = None
     phone: Optional[str] = None
+    cpf: Optional[str] = None
+    cnpj: Optional[str] = None
     commission_pct: Optional[float] = Field(default=None, ge=0, le=100)
     pin: Optional[str] = Field(default=None, pattern=r"^\d{4,6}$")
     username: Optional[str] = Field(default=None, min_length=3, max_length=40, pattern=r"^[a-zA-Z0-9._-]+$")
@@ -596,6 +602,7 @@ class FiadoCustomer(BaseModel):
     name: str
     phone: str = ""
     cpf: str = ""
+    cnpj: str = ""
     email: str = ""
     address: str = ""
     notes: str = ""
@@ -608,6 +615,7 @@ class FiadoCustomerIn(BaseModel):
     name: str = Field(min_length=2)
     phone: str = ""
     cpf: str = ""
+    cnpj: str = ""
     email: str = ""
     address: str = ""
     notes: str = ""
@@ -617,7 +625,9 @@ class FiadoCustomerIn(BaseModel):
 class Supplier(BaseModel):
     id: str = Field(default_factory=_id)
     name: str
-    doc: str = ""  # CNPJ ou CPF
+    doc: str = ""  # campo legado
+    cpf: str = ""
+    cnpj: str = ""
     phone: str = ""
     email: str = ""
     contact: str = ""
@@ -630,6 +640,8 @@ class Supplier(BaseModel):
 class SupplierIn(BaseModel):
     name: str = Field(min_length=2)
     doc: str = ""
+    cpf: str = ""
+    cnpj: str = ""
     phone: str = ""
     email: str = ""
     contact: str = ""
