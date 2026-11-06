@@ -1,5 +1,6 @@
 import BillAlertsPanel from "@/components/BillAlerts";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowRight } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -10,6 +11,43 @@ import type { Dashboard as D } from "@/lib/types";
 
 export const CHART_COLORS = ["#F97316", "#38BDF8", "#34D399", "#FBBF24", "#A78BFA", "#F472B6", "#94A3B8"];
 export const tooltipStyle = { background: "#181C2B", border: "1px solid rgba(255,255,255,.1)", borderRadius: 12, color: "#fff" };
+
+
+type Executive = {
+  revenue: number; paid_orders: number; average_ticket: number; recorded_expenses: number;
+  recorded_cmv: number; indicative_balance: number; critical_stock_count: number;
+  active_employees: number; alerts: { severity: string; title: string; detail: string }[];
+  note: string;
+};
+function ExecutivePanel() {
+  const [days, setDays] = useState(30);
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(start.getDate() - days + 1);
+  const fmt = (d: Date) => [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
+  const q = useQuery({ queryKey: ["executive-report", days], queryFn: () => apiGet<Executive>(`/reports/executive?start=${fmt(start)}&end=${fmt(end)}`), refetchInterval: 60000 });
+  return <section className="mb-5 space-y-3" data-testid="executive-panel">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h2 className="text-xl font-semibold">Painel Executivo Apollo 3.0</h2>
+      <div className="flex gap-2"><button className="rounded-lg border border-white/20 px-3 py-1 text-sm" onClick={() => setDays(7)} aria-pressed={days === 7}>7 dias</button><button className="rounded-lg border border-white/20 px-3 py-1 text-sm" onClick={() => setDays(30)} aria-pressed={days === 30}>30 dias</button></div>
+    </div>
+    {q.isError && <p role="alert" className="text-red-400">Não foi possível carregar o resumo executivo.</p>}
+    {q.data && <>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Faturamento do período" value={brl(q.data.revenue)} />
+        <Stat label="Saldo indicativo" value={brl(q.data.indicative_balance)} />
+        <Stat label="Despesas lançadas" value={brl(q.data.recorded_expenses)} />
+        <Stat label="CMV registrado" value={brl(q.data.recorded_cmv)} />
+        <Stat label="Pedidos pagos" value={String(q.data.paid_orders)} />
+        <Stat label="Ticket médio" value={brl(q.data.average_ticket)} />
+        <Stat label="Estoque crítico" value={String(q.data.critical_stock_count)} />
+        <Stat label="Funcionários ativos" value={String(q.data.active_employees)} />
+      </div>
+      <Panel title="Alertas gerenciais"><ul className="space-y-2 text-sm">{q.data.alerts.map((a, i) => <li key={i} className="rounded-lg border border-white/10 p-3"><strong>{a.title}</strong><p className="text-zinc-400">{a.detail}</p></li>)}{!q.data.alerts.length && <li className="text-zinc-400">Nenhum alerta nas verificações disponíveis.</li>}</ul></Panel>
+      <p className="text-xs text-zinc-400">{q.data.note}</p>
+    </>}
+  </section>;
+}
 
 export default function Dashboard() {
   const { data, isError } = useQuery({ queryKey: ["dashboard"], queryFn: () => apiGet<D>("/reports/dashboard"), refetchInterval: 20000 });
@@ -24,6 +62,7 @@ export default function Dashboard() {
         </Link>
       )}
       <BillAlertsPanel />
+      <ExecutivePanel />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Faturamento hoje" value={brl(d?.revenue_today ?? 0)} testid="stat-revenue" accent="text-primary" />
         <Stat label="Pedidos pagos" value={String(d?.orders_today ?? 0)} hint={`Ticket médio ${brl(d?.avg_ticket ?? 0)}`} testid="stat-orders" />
