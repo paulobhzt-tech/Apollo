@@ -13,6 +13,8 @@ export interface Employee {
   name: string;
   role: Role;
   phone: string;
+  cpf: string;
+  cnpj: string;
   commission_pct: number;
   can_cancel: boolean;
   active: boolean;
@@ -24,6 +26,8 @@ export interface EmployeeIn {
   name: string;
   role: Role;
   phone: string;
+  cpf: string;
+  cnpj: string;
   commission_pct: number;
   pin?: string;
   can_cancel: boolean;
@@ -282,9 +286,9 @@ export interface PublicOrderStatus {
   items: OrderItem[];
   created_at: string;
 }
-export interface FiadoCustomer { id: string; name: string; phone: string; cpf: string; email: string; address: string; notes: string; credit_limit: number; balance: number; created_at: string }
-export type FiadoCustomerIn = Pick<FiadoCustomer, "name" | "phone" | "cpf" | "credit_limit"> & Partial<Pick<FiadoCustomer, "email" | "address" | "notes">>;
-export interface Supplier { id: string; name: string; doc: string; phone: string; email: string; contact: string; address: string; supplies: string; notes: string; created_at: string }
+export interface FiadoCustomer { id: string; name: string; phone: string; cpf: string; cnpj: string; email: string; address: string; notes: string; credit_limit: number; balance: number; created_at: string }
+export type FiadoCustomerIn = Pick<FiadoCustomer, "name" | "phone" | "cpf" | "cnpj" | "credit_limit"> & Partial<Pick<FiadoCustomer, "email" | "address" | "notes">>;
+export interface Supplier { id: string; name: string; doc: string; cpf: string; cnpj: string; phone: string; email: string; contact: string; address: string; supplies: string; notes: string; created_at: string }
 export type SupplierIn = Omit<Supplier, "id" | "created_at">;
 export interface BulkDeleteIn { ids: string[] }
 export interface CustomerMove {
