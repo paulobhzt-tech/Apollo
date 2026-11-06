@@ -2,6 +2,7 @@
 import os
 
 from fastapi import APIRouter, HTTPException
+from pymongo.errors import DuplicateKeyError
 
 from lib.db import db
 from lib.orders import build_items, create_ticket, move_stock, refresh_totals
@@ -26,7 +27,7 @@ async def menu():
 @router.get("/tables/{id}", response_model=PublicTable)
 async def public_table(id: str):
     t = await get_table(id)
-    order = await db.orders.find_one({"table_id": id, "status": "aberto"}, {"_id": 0, "items": 1})
+    order = await db.orders.find_one({"id": t.get("order_id"), "status": "aberto"}, {"_id": 0, "items": 1}) if t.get("order_id") else None
     consumed = [{"name": item.get("name", ""), "qty": item.get("qty", 0),
                  "unit_price": item.get("unit_price", 0)}
                 for item in (order or {}).get("items", []) if not item.get("cancelled")]
@@ -41,7 +42,9 @@ async def public_table_order(id: str, body: PublicOrderIn):
         raise HTTPException(400, "Mesa reservada. Chame um garçom.")
     items = await build_items(body.items)
     order = await get_or_open_order(t, None, source="cardapio")
-    await db.orders.update_one({"id": order["id"]}, {"$push": {"items": {"$each": [i.model_dump() for i in items]}}})
+    updated = await db.orders.update_one({"id": order["id"], "status": "aberto"}, {"$push": {"items": {"$each": [i.model_dump() for i in items]}}})
+    if updated.modified_count != 1:
+        raise HTTPException(409, "A comanda foi fechada. Atualize a mesa e tente novamente.")
     await create_ticket(order, items)
     await move_stock(items, "Cardápio QR", f"{table_label(t)} · QR")
     o = await refresh_totals(order["id"])
@@ -62,17 +65,27 @@ async def public_delivery(body: PublicDeliveryIn):
         raise HTTPException(400, "Informe nome, telefone e endereço completos")
     items = await build_items(body.items)
     o = await create_delivery_order("site", items, c.model_dump(), pay_on_delivery=body.payment_method)
-    # Store customer contact after successful checkout without modifying existing balances.
-    from models.schemas import FiadoCustomer
-    phone_digits = "".join(ch for ch in c.phone if ch.isdigit())
-    customer = FiadoCustomer(name=c.name.strip(), phone=c.phone.strip(),
-                             address=c.address.strip(), cpf=c.cpf or "").model_dump()
-    if phone_digits:
-        await db.fiado_customers.update_one(
-            {"phone_digits": phone_digits},
-            {"$setOnInsert": {**customer, "phone_digits": phone_digits}},
-            upsert=True,
-        )
+    # Never let a CRM failure make a successfully created order look unsuccessful.
+    try:
+        from models.schemas import FiadoCustomer
+        phone_digits = "".join(ch for ch in c.phone if ch.isdigit())
+        if phone_digits:
+            existing = await db.fiado_customers.find_one({
+                "$or": [{"phone_digits": phone_digits}, {"phone": c.phone.strip()}]
+            }, {"_id": 1})
+            if not existing:
+                customer = FiadoCustomer(name=c.name.strip(), phone=c.phone.strip(),
+                                         address=c.address.strip(), cpf=c.cpf or "").model_dump()
+                await db.fiado_customers.update_one(
+                    {"phone_digits": phone_digits},
+                    {"$setOnInsert": {**customer, "phone_digits": phone_digits}},
+                    upsert=True,
+                )
+    except DuplicateKeyError:
+        pass  # Another request registered this customer concurrently.
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("Delivery order created but customer registration failed")
     return o
 
 
