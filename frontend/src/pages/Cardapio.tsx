@@ -14,7 +14,7 @@ export default function Cardapio() {
   const { tableId = "" } = useParams();
   const [cartOpen, setCartOpen] = useState(false);
   const [showConsumed, setShowConsumed] = useState(false);
-  const table = useQuery({ queryKey: ["public-table", tableId], queryFn: () => apiGet<PublicTable>(`/public/tables/${tableId}`), refetchInterval: 15000 });
+  const table = useQuery({ queryKey: ["public-table", tableId], queryFn: () => apiGet<PublicTable>(`/public/tables/${tableId}`), refetchInterval: showConsumed ? 5000 : 15000 });
   const t = table.isError ? undefined : table.data;
   const order = useMutation({
     mutationFn: (items: OrderItemIn[]) => apiPost<PublicTable>(`/public/tables/${tableId}/order`, { items }),
