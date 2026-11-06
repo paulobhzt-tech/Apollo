@@ -151,18 +151,37 @@ async def kds_tickets(_: dict = Depends(current_user)):
     return await db.kitchen_tickets.find(q, {"_id": 0}).sort("created_at", 1).to_list(300)
 
 
+KDS_TRANSITIONS = {"novo": "preparo", "preparo": "pronto", "pronto": "entregue"}
+
+
+def kds_transition_allowed(current: str, target: str) -> bool:
+    """Only forward production steps are allowed; retries are idempotent."""
+    return current == target or KDS_TRANSITIONS.get(current) == target
+
+
 @router.patch("/kds/tickets/{id}", response_model=KitchenTicket)
 async def kds_update(id: str, body: TicketStatusIn, _: dict = Depends(require("cozinha", "garcom", "caixa"))):
-    t = await db.kitchen_tickets.find_one_and_update(
-        {"id": id}, {"$set": {"status": body.status, "updated_at": now()}}, projection={"_id": 0}, return_document=True)
-    if not t:
+    ticket = await db.kitchen_tickets.find_one({"id": id}, {"_id": 0})
+    if not ticket:
         raise HTTPException(404, "Ticket não encontrado")
+    previous = ticket["status"]
+    if previous == body.status:
+        return ticket
+    if not kds_transition_allowed(previous, body.status):
+        raise HTTPException(409, "Etapa inválida: atualize os pedidos antes de continuar")
+    timestamp = now()
+    t = await db.kitchen_tickets.find_one_and_update(
+        {"id": id, "status": previous},
+        {"$set": {"status": body.status, "updated_at": timestamp},
+         "$push": {"status_history": {"from": previous, "to": body.status, "at": timestamp}}},
+        projection={"_id": 0}, return_document=True)
+    if not t:
+        raise HTTPException(409, "Pedido atualizado por outro operador. Atualize a cozinha.")
     if body.status == "pronto":
         o = await db.orders.find_one({"id": t["order_id"]}, {"_id": 0, "channel": 1, "delivery_status": 1})
         if o and o["channel"] == "delivery" and o.get("delivery_status") in ("aceito", "preparo"):
             await db.orders.update_one({"id": t["order_id"]}, {"$set": {"delivery_status": "preparo"}})
     return t
-
 
 # ---------- Delivery ----------
 NAMES = ["Ana Souza", "Bruno Lima", "Carla Mendes", "Diego Rocha", "Eduarda Alves", "Felipe Castro", "Gabriela Nunes"]
