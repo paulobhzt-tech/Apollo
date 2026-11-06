@@ -14,6 +14,8 @@ export default function Cardapio() {
   const { tableId = "" } = useParams();
   const [cartOpen, setCartOpen] = useState(false);
   const [showConsumed, setShowConsumed] = useState(false);
+  const [showSplit, setShowSplit] = useState(false);
+  const [splitPeople, setSplitPeople] = useState(2);
   const [showPreparation, setShowPreparation] = useState(false);
   const preparation = useQuery({ queryKey: ["public-preparation", tableId], queryFn: () => apiGet<{ tickets: { id: string; status: "novo" | "preparo" | "pronto" | "entregue"; items: { name: string; qty: number; station: string }[] }[] }>(`/public/tables/${tableId}/preparo`), enabled: showPreparation && !!tableId, refetchInterval: 5000 });
   const table = useQuery({ queryKey: ["public-table", tableId], queryFn: () => apiGet<PublicTable>(`/public/tables/${tableId}`), refetchInterval: showConsumed ? 5000 : 15000 });
@@ -43,8 +45,24 @@ export default function Cardapio() {
               <Button variant="outline" size="sm" onClick={() => call.mutate("garcom")} data-testid="public-call-waiter"><Bell className="size-4" /> Chamar garçom</Button>
               <Button variant="outline" size="sm" onClick={() => setCartOpen(true)} data-testid="public-order-table"><ShoppingCart className="size-4" /> Pedir pela mesa</Button>
               <Button variant="outline" size="sm" onClick={() => { setShowConsumed(!showConsumed); void table.refetch(); }} data-testid="public-view-consumed"><ListChecks className="size-4" /> Ver o que consumiu</Button>
+              <Button variant="outline" size="sm" onClick={() => setShowSplit(!showSplit)} data-testid="public-split-bill"><Receipt className="size-4" /> Dividir conta</Button>
               <Button variant="outline" size="sm" onClick={() => call.mutate("conta")} data-testid="public-request-bill"><Receipt className="size-4" /> Pedir a conta</Button>
             </div>
+          )}
+          {t && showSplit && (
+            <section className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4" data-testid="public-split-preview">
+              <p className="font-semibold text-white">Simular divisão da conta</p>
+              <p className="mt-1 text-sm text-zinc-400">Divisão igual entre pessoas. Apenas simulação: o caixa confirma os valores e recebe o pagamento.</p>
+              <div className="mt-3 flex items-center gap-3">
+                <Button type="button" variant="outline" size="sm" disabled={splitPeople <= 2} onClick={() => setSplitPeople(n => Math.max(2, n - 1))} aria-label="Diminuir pessoas">−</Button>
+                <span className="min-w-24 text-center font-medium">{splitPeople} pessoas</span>
+                <Button type="button" variant="outline" size="sm" disabled={splitPeople >= 30} onClick={() => setSplitPeople(n => Math.min(30, n + 1))} aria-label="Aumentar pessoas">+</Button>
+              </div>
+              <p className="mt-3 text-sm">Total da mesa: <strong>{brl(t.total)}</strong></p>
+              <p className="mt-1 text-lg font-semibold text-emerald-300">Por pessoa: {brl(Math.floor(Math.round(t.total * 100) / splitPeople) / 100)}</p>
+              <p className="mt-1 text-xs text-zinc-400">O valor é uma referência. Centavos restantes e descontos são acertados no caixa.</p>
+              <Button type="button" className="mt-3" variant="outline" disabled={call.isPending} onClick={() => call.mutate("conta")} data-testid="public-split-request-cashier">Solicitar fechamento ao caixa</Button>
+            </section>
           )}
           {t && showPreparation && (
             <section className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4" data-testid="public-preparation-status">
