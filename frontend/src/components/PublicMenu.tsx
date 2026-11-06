@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Flame, Minus, Plus, ShoppingBag } from "lucide-react";
+import { Flame, Heart, Minus, Plus, Search, ShoppingBag } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,9 +21,18 @@ export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOp
 }) {
   const menu = useQuery({ queryKey: ["public-menu"], queryFn: () => apiGet<Menu>("/public/menu") });
   const [cat, setCat] = useState("all");
+  const [search, setSearch] = useState("");
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [cart, setCart] = useState<CartLine[]>([]);
   const data = menu.isError ? undefined : menu.data;
-  const prods = useMemo(() => (data?.products ?? []).filter((p) => cat === "all" || p.category_id === cat), [data, cat]);
+  const prods = useMemo(() => (data?.products ?? []).filter((p) => {
+    if (cat !== "all" && p.category_id !== cat) return false;
+    if (favoritesOnly && !favorites.includes(p.id)) return false;
+    const q = search.trim().toLocaleLowerCase("pt-BR");
+    return !q || `${p.name} ${p.description ?? ""}`.toLocaleLowerCase("pt-BR").includes(q);
+  }), [data, cat, search, favoritesOnly, favorites]);
+  const toggleFavorite = (id: string) => setFavorites((current) => current.includes(id) ? current.filter((x) => x !== id) : [...current, id]);
   const total = Math.round(cart.reduce((s, l) => s + l.qty * (l.product.price + l.extra), 0) * 100) / 100;
   const count = cart.reduce((s, l) => s + l.qty, 0);
   const [optFor, setOptFor] = useState<Product | null>(null);
@@ -58,14 +67,19 @@ export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOp
           ))}
         </div>
       </nav>
+      <div className="mx-auto flex max-w-3xl flex-wrap gap-2 px-5 pt-4">
+        <div className="relative min-w-48 flex-1"><Search className="absolute left-3 top-3 size-4 text-zinc-400" /><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar pratos, bebidas e ingredientes..." aria-label="Buscar no cardápio" className="pl-9" data-testid="public-menu-search" /></div>
+        <Button variant={favoritesOnly ? "default" : "outline"} onClick={() => setFavoritesOnly((v) => !v)} data-testid="public-favorites-filter"><Heart className="size-4" /> Favoritos ({favorites.length})</Button>
+      </div>
       <main className="mx-auto max-w-3xl space-y-3 px-5 py-5">
         {menu.isError && <p className="py-10 text-center text-sm text-zinc-500">Cardápio indisponível no momento.</p>}
+        {!menu.isLoading && !menu.isError && prods.length === 0 && <p className="py-10 text-center text-sm text-zinc-400" data-testid="public-menu-no-results">Nenhum produto encontrado. Tente outra busca ou categoria.</p>}
         {prods.map((p) => {
           const inCart = cart.filter((l) => l.product.id === p.id).reduce((t, l) => t + l.qty, 0);
           return (
             <article key={p.id} className="flex gap-4 rounded-2xl border border-white/5 bg-[#141722] p-3 animate-rise" data-testid={`public-product-${p.code || p.id}`}>
               <div className="min-w-0 flex-1">
-                <h3 className="font-heading text-base font-semibold text-white">{p.name}</h3>
+                <div className="flex items-start justify-between gap-2"><h3 className="font-heading text-base font-semibold text-white">{p.name}</h3><button type="button" aria-label={favorites.includes(p.id) ? `Remover ${p.name} dos favoritos` : `Favoritar ${p.name}`} aria-pressed={favorites.includes(p.id)} onClick={() => toggleFavorite(p.id)} className="rounded-lg p-1 text-rose-300" data-testid={`public-favorite-${p.code || p.id}`}><Heart className={cn("size-5", favorites.includes(p.id) && "fill-current")} /></button></div>
                 <p className="mt-1 line-clamp-2 text-xs text-zinc-400">{p.description}</p>
                 <p className="mt-2 font-mono text-primary">{brl(p.price)}</p>
               </div>
