@@ -32,6 +32,7 @@ export const NAV: NavItem[] = [
   { to: "/", label: "Painel", icon: "LayoutDashboard", roles: ["admin", "caixa"], group: "Operação" },
   { to: "/pdv", label: "PDV / Caixa", icon: "ShoppingCart", roles: ["admin", "caixa"], group: "Operação" },
   { to: "/mesas", label: "Mesas & Comandas", icon: "Armchair", roles: ["admin", "caixa", "garcom"], group: "Operação" },
+  { to: "/comanda-mobile", label: "Comanda Mobile", icon: "Smartphone", roles: ["admin", "caixa", "garcom"], group: "Operação" },
   { to: "/cozinha", label: "Cozinha (KDS)", icon: "ChefHat", roles: ["admin", "caixa", "garcom", "cozinha"], group: "Operação" },
   { to: "/impressao", label: "Central de Impressão", icon: "Printer", roles: ["admin", "caixa", "cozinha", "garcom"], group: "Operação" },
   { to: "/delivery", label: "Delivery", icon: "Bike", roles: ["admin", "caixa"], group: "Operação" },
@@ -53,4 +54,4 @@ export const NAV: NavItem[] = [
 ];
 
 export const homeFor = (role: Role) =>
-  role === "garcom" ? "/mesas" : role === "cozinha" ? "/cozinha" : role === "caixa" ? "/pdv" : "/";
+  role === "garcom" ? "/comanda-mobile" : role === "cozinha" ? "/cozinha" : role === "caixa" ? "/pdv" : "/";
