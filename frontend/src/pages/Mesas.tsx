@@ -322,7 +322,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   const [optFor, setOptFor] = useState<Product | null>(null);
   const push = (p: Product, picked?: Picked) => setPending((c) => {
     if (!picked) {
-      const i = c.findIndex((l) => l.product.id === p.id && !l.notes && !l.options.length);
+      const i = c.findIndex((l) => l.product.id === p.id && !l.notes && !l.options.length && !l.customerName);
       if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
     }
     return [...c, { key: uid(), product: p, qty: 1, notes: "", customerName: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
@@ -390,6 +390,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                             <p className="truncate text-white">{g.name}</p>
                             {g.options.length > 0 && <p className="truncate text-xs text-primary">{g.options.join(" · ")}</p>}
                             {g.notes.length > 0 && <p className="truncate text-xs text-amber-300">{g.notes.join(" · ")}</p>}
+                            <p className="text-xs text-zinc-400">Cliente: {g.customer_name || "Mesa inteira"}{g.ordered_by ? ` · Lançado por: ${g.ordered_by}` : ""}</p>
                           </div>
                           <span className="font-mono text-xs text-zinc-500">{brl(g.unit_price)}</span>
                           <span className="font-mono text-zinc-200">{brl(g.total)}</span>
@@ -408,6 +409,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                           <p className="truncate text-white">{i.name}</p>
                           {i.options?.length > 0 && <p className="truncate text-xs text-primary">{i.options.join(" · ")}</p>}
                           {(i.notes || i.cancel_reason) && <p className="truncate text-xs text-amber-300">{i.cancel_reason || i.notes}</p>}
+                          <p className="text-xs text-zinc-400">Cliente: {i.customer_name || "Mesa inteira"}{i.ordered_by ? ` · Lançado por: ${i.ordered_by}` : ""}</p>
                         </div>
                         <span className="font-mono text-zinc-200">{brl(i.qty * i.unit_price)}</span>
                         {!i.cancelled && (
@@ -427,13 +429,14 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                   {adding ? (
                     <div className="mt-4 space-y-3 rounded-2xl border border-primary/20 bg-panel p-3">
                       <ProductGrid products={products.data ?? []} categories={categories.data ?? []} onAdd={addPending} compact />
+                      <p className="text-xs text-zinc-400">Selecione quem pediu cada item. O funcionário que lançou o pedido será registrado automaticamente.</p>
                       {pending.map((p, i) => (
                         <div key={p.key} className="flex items-center gap-2 text-sm" data-testid={`pending-line-${i}`}>
                           <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.flatMap((x, j) => j !== i ? [x] : x.qty <= 1 ? [] : [{ ...x, qty: x.qty - 1 }]))}><Minus /></Button>
                           <span className="w-5 text-center font-mono">{p.qty}</span>
                           <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.map((x, j) => (j === i ? { ...x, qty: x.qty + 1 } : x)))}><Plus /></Button>
                           <span className="flex-1 truncate">{p.product.name}{p.labels.length > 0 && <span className="block text-xs text-primary">{p.labels.join(" · ")}</span>}</span>
-                          <select aria-label="Cliente do pedido" value={p.customerName} onChange={e => setPending(old => old.map((line, j) => j === i ? { ...line, customerName: e.target.value } : line))}
+                          <select aria-label="Cliente responsável pelo item" value={p.customerName} onChange={e => setPending(old => old.map((line, j) => j === i ? { ...line, customerName: e.target.value } : line))}
                             className="max-w-32 rounded-md border border-white/15 bg-panel px-2 py-1 text-xs" data-testid={`pending-customer-${i}`}>
                             <option value="">Mesa inteira</option>
                             {(table.customers ?? []).map(customer => <option key={customer} value={customer}>{customer}</option>)}
