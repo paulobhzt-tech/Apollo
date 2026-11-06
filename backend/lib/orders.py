@@ -87,6 +87,14 @@ async def build_items(items_in: list[OrderItemIn]) -> list[OrderItem]:
     return out
 
 
+def fefo_usable_lots(lots: list[dict], today: str) -> list[dict]:
+    """Return non-expired lots ordered by earliest expiry, then purchase time."""
+    return sorted(
+        [p for p in lots if not p.get("expiry_date") or p["expiry_date"] >= today],
+        key=lambda p: (p.get("expiry_date") or "9999-12-31", p["created_at"]),
+    )
+
+
 async def allocate_lots_fefo(ingredient_id: str, qty: float, note: str, by_name: str) -> None:
     """Consume dated purchase lots in earliest-expiry-first order.
 
@@ -103,9 +111,7 @@ async def allocate_lots_fefo(ingredient_id: str, qty: float, note: str, by_name:
     if not lots:
         return
     today = date.today().isoformat()
-    usable = sorted(
-        [p for p in lots if not p.get("expiry_date") or p["expiry_date"] >= today],
-        key=lambda p: (p.get("expiry_date") or "9999-12-31", p["created_at"]))
+    usable = fefo_usable_lots(lots, today)
     # Legacy stock may have existed before lot tracking was introduced.
     ing = await db.ingredients.find_one({"id": ingredient_id}, {"_id": 0, "stock": 1})
     legacy_qty = max(0, round(float(ing.get("stock", 0)) - sum(float(p["remaining_qty"]) for p in lots), 4))
