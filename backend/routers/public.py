@@ -2,6 +2,9 @@
 import os
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+from datetime import datetime, timezone
+from uuid import uuid4
 from pymongo.errors import DuplicateKeyError
 
 from lib.db import db
@@ -54,6 +57,38 @@ async def public_table_preparation(id: str):
                    for item in ticket.get("items", [])]}
         for ticket in tickets
     ]}
+
+
+class SplitRequestIn(BaseModel):
+    quantities: dict[str, int] = Field(min_length=1, max_length=100)
+
+
+@router.post("/tables/{id}/split-request")
+async def request_table_split(id: str, body: SplitRequestIn):
+    """Customer requests a read-only item split; only staff can accept payment."""
+    t = await get_table(id)
+    if not t.get("order_id"):
+        raise HTTPException(400, "Mesa sem comanda aberta")
+    order = await db.orders.find_one({"id": t["order_id"], "status": "aberto"},
+                                     {"_id": 0, "items": 1, "id": 1})
+    if not order:
+        raise HTTPException(409, "Comanda não está aberta")
+    available = {i["id"]: i for i in order["items"] if not i.get("cancelled")}
+    chosen = []
+    for item_id, qty in body.quantities.items():
+        item = available.get(item_id)
+        if not item or isinstance(qty, bool) or qty <= 0 or qty > item["qty"]:
+            raise HTTPException(400, "Seleção inválida. Atualize o consumo e tente novamente.")
+        chosen.append({"item_id": item_id, "name": item["name"], "qty": qty,
+                       "unit_price": item["unit_price"]})
+    # Replace any pending customer request for the same table/order.
+    request = {"id": str(uuid4()), "table_id": id, "order_id": order["id"],
+               "quantities": body.quantities, "items": chosen,
+               "subtotal": round(sum(i["qty"] * i["unit_price"] for i in chosen), 2),
+               "created_at": datetime.now(timezone.utc)}
+    await db.tables.update_one({"id": id, "order_id": order["id"]},
+                               {"$set": {"split_request": request, "call": "conta"}})
+    return {"message": "Solicitação enviada ao caixa para conferência", "subtotal": request["subtotal"]}
 
 
 @router.post("/tables/{id}/order", response_model=PublicTable)
