@@ -361,6 +361,7 @@ class Table(BaseModel):
     status: Literal["livre", "ocupada", "conta", "reservada"] = "livre"
     customer_name: str = ""
     people: int = 0
+    customers: list[str] = Field(default_factory=list)
     waiter_id: Optional[str] = None
     waiter_name: str = ""
     order_id: Optional[str] = None
