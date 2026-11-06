@@ -192,6 +192,22 @@ async def transfer(id: str, body: TransferIn, _: dict = Depends(require(*STAFF))
     return await get_table(dst["id"])
 
 
+@router.get("/tables/split-requests/pending")
+async def pending_split_requests(_: dict = Depends(require("caixa"))):
+    """Cashier dashboard: pending requests for currently open table orders."""
+    tables = await db.tables.find(
+        {"split_request": {"$exists": True}, "order_id": {"$ne": None}},
+        {"_id": 0, "id": 1, "number": 1, "name": 1, "kind": 1,
+         "order_id": 1, "split_request": 1},
+    ).to_list(500)
+    return [{"table_id": t["id"], "number": t["number"],
+             "kind": t.get("kind", "mesa"),
+             "subtotal": t["split_request"].get("subtotal", 0),
+             "created_at": t["split_request"].get("created_at")}
+            for t in tables
+            if t["split_request"].get("order_id") == t.get("order_id")]
+
+
 @router.get("/tables/{id}/split-request")
 async def cashier_split_request(id: str, _: dict = Depends(require("caixa"))):
     t = await get_table(id)
@@ -317,7 +333,7 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, _: dict = Depends(re
                 if result.modified_count != 1:
                     raise HTTPException(409, "Comanda alterada. Refaça a divisão.")
                 await db.tables.update_one({"id": id, "order_id": order["id"]},
-                    {"$set": {"total": remaining_sub}}, session=session)
+                    {"$set": {"total": remaining_sub}, "$unset": {"split_request": ""}}, session=session)
                 return {"order": receipt, "invoice": None}
     except PyMongoError as exc:
         raise HTTPException(503, "Pagamento parcial exige MongoDB com transações habilitadas; nenhuma cobrança foi registrada") from exc
