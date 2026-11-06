@@ -168,12 +168,15 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
   const [costStr, setCostStr] = useState(editing === "new" || !editing.cost_price ? "" : String(editing.cost_price));
   const [ingId, setIngId] = useState("");
   const [qty, setQty] = useState("");
+  const [targetMargin, setTargetMargin] = useState("60");
   const ingMap = Object.fromEntries(ings.map((i) => [i.id, i]));
   const recipeCost = f.recipe.reduce((s, r) => s + (ingMap[r.ingredient_id]?.cost_per_unit ?? 0) * r.qty, 0);
   const manualCost = Number(costStr.replace(",", ".")) || 0;
   const cost = manualCost > 0 ? manualCost : recipeCost;
   const price = Number(priceStr.replace(",", ".")) || 0;
   const margin = price ? ((price - cost) / price) * 100 : 0;
+  const desiredMargin = Number(targetMargin.replace(",", "."));
+  const suggestedPrice = cost > 0 && Number.isFinite(desiredMargin) && desiredMargin >= 0 && desiredMargin < 100 ? cost / (1 - desiredMargin / 100) : 0;
 
   const save = useMutation({
     mutationFn: (b: ProductIn) => editing === "new" ? apiPost<Product>("/products", b) : apiPut<Product>(`/products/${editing.id}`, b),
@@ -270,8 +273,11 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
         <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/5 pt-3 text-center">
           <div><p className="text-[10px] uppercase text-zinc-500">{manualCost > 0 ? "Custo (manual)" : "CMV ficha"}</p><p className="font-mono text-white" data-testid="recipe-cost">{brl(cost)}</p></div>
           <div><p className="text-[10px] uppercase text-zinc-500">Margem</p><p className={cn("font-mono", margin >= 65 ? "text-emerald-300" : "text-amber-300")} data-testid="recipe-margin">{margin.toFixed(1)}%</p></div>
-          <div><p className="text-[10px] uppercase text-zinc-500">Preço sugerido (CMV 30%)</p><p className="font-mono text-primary">{brl(cost / 0.3)}</p></div>
+          <div><p className="text-[10px] uppercase text-zinc-500">Preço sugerido</p><p className="font-mono text-primary" data-testid="suggested-price">{brl(suggestedPrice)}</p></div>
         </div>
+        <div className="mt-3 flex flex-wrap items-end gap-2"><div><Label>Margem bruta desejada (%)</Label><Input className="mt-1 w-28" inputMode="decimal" value={targetMargin} onChange={(e) => setTargetMargin(e.target.value)} data-testid="target-margin" /></div><Button type="button" variant="outline" disabled={!suggestedPrice || suggestedPrice > 1000000} onClick={() => setPriceStr(suggestedPrice.toFixed(2))} data-testid="apply-suggested-price">Aplicar preço sugerido</Button></div>
+        {cost > 0 && price > 0 && margin < desiredMargin && <p className="mt-2 text-xs text-amber-300" role="status">Atenção: margem atual de {margin.toFixed(1)}% abaixo da meta de {desiredMargin}%.</p>}
+        <p className="mt-2 text-xs text-zinc-400">Custo calculado pela ficha técnica e preços atuais dos insumos, salvo quando houver custo manual. Margem bruta não inclui impostos, taxas e despesas fixas.</p>
       </div>
       <Button className="mt-2" disabled={!f.name.trim() || !f.category_id || save.isPending} onClick={() => save.mutate({ ...f, price, cost_price: manualCost, options: f.options.filter((g) => g.name.trim() && g.choices.length) })} data-testid="product-save-button">Salvar produto</Button>
     </>
