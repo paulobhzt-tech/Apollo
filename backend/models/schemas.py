@@ -682,6 +682,26 @@ class SupplierIn(BaseModel):
     notes: str = ""
 
 
+class PurchaseIn(BaseModel):
+    supplier_id: str
+    ingredient_id: str
+    qty: float = Field(gt=0, allow_inf_nan=False)
+    unit_cost: float = Field(ge=0, allow_inf_nan=False)
+    expiry_date: Optional[str] = None  # ISO YYYY-MM-DD
+    lot_number: str = ""
+    note: str = ""
+
+
+class Purchase(PurchaseIn):
+    id: str = Field(default_factory=_id)
+    supplier_name: str = ""
+    ingredient_name: str = ""
+    unit: Unit = "kg"
+    total_cost: float = 0
+    by_name: str = ""
+    created_at: datetime = Field(default_factory=_now)
+
+
 class BulkDeleteIn(BaseModel):
     ids: list[str] = Field(min_length=1)
 
