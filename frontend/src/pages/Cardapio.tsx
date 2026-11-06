@@ -16,6 +16,7 @@ export default function Cardapio() {
   const [showConsumed, setShowConsumed] = useState(false);
   const [showSplit, setShowSplit] = useState(false);
   const [splitPeople, setSplitPeople] = useState(2);
+  const [splitQty, setSplitQty] = useState<Record<string, number>>({});
   const [showPreparation, setShowPreparation] = useState(false);
   const preparation = useQuery({ queryKey: ["public-preparation", tableId], queryFn: () => apiGet<{ tickets: { id: string; status: "novo" | "preparo" | "pronto" | "entregue"; items: { name: string; qty: number; station: string }[] }[] }>(`/public/tables/${tableId}/preparo`), enabled: showPreparation && !!tableId, refetchInterval: 5000 });
   const table = useQuery({ queryKey: ["public-table", tableId], queryFn: () => apiGet<PublicTable>(`/public/tables/${tableId}`), refetchInterval: showConsumed ? 5000 : 15000 });
@@ -61,6 +62,22 @@ export default function Cardapio() {
               <p className="mt-3 text-sm">Total da mesa: <strong>{brl(t.total)}</strong></p>
               <p className="mt-1 text-lg font-semibold text-emerald-300">Por pessoa: {brl(Math.floor(Math.round(t.total * 100) / splitPeople) / 100)}</p>
               <p className="mt-1 text-xs text-zinc-400">O valor é uma referência. Centavos restantes e descontos são acertados no caixa.</p>
+              <div className="mt-4 border-t border-white/10 pt-3" data-testid="public-item-split">
+                <p className="font-semibold text-white">Ou selecione itens para uma conta separada</p>
+                <p className="mt-1 text-xs text-zinc-400">Prévia dos itens selecionados. O caixa confirma a divisão e o pagamento.</p>
+                {(t.items ?? []).map((item, index) => {
+                  const key = item.id || String(index);
+                  const qty = Math.min(item.qty, splitQty[key] ?? 0);
+                  return <div key={key} className="mt-3 flex items-center justify-between gap-2 text-sm">
+                    <span className="flex-1">{item.name} · {brl(item.unit_price)}</span>
+                    <Button type="button" size="sm" variant="outline" disabled={qty <= 0} onClick={() => setSplitQty(old => ({ ...old, [key]: Math.max(0, qty - 1) }))}>−</Button>
+                    <span className="w-12 text-center">{qty}/{item.qty}</span>
+                    <Button type="button" size="sm" variant="outline" disabled={qty >= item.qty} onClick={() => setSplitQty(old => ({ ...old, [key]: Math.min(item.qty, qty + 1) }))}>+</Button>
+                  </div>;
+                })}
+                <p className="mt-3 font-semibold text-emerald-300">Itens selecionados: {brl((t.items ?? []).reduce((sum, item, index) => sum + Math.min(item.qty, splitQty[item.id || String(index)] ?? 0) * item.unit_price, 0))}</p>
+                <p className="mt-1 text-xs text-zinc-400">A seleção não reserva itens e não registra pagamento.</p>
+              </div>
               <Button type="button" className="mt-3" variant="outline" disabled={call.isPending} onClick={() => call.mutate("conta")} data-testid="public-split-request-cashier">Solicitar fechamento ao caixa</Button>
             </section>
           )}
