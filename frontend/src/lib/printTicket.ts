@@ -11,6 +11,7 @@ export function ticketHtml(t: KitchenTicket, station: string, envLabel: string, 
   const rows = items.map((i) => `
     <div class="it"><b>${i.qty}x ${esc(i.name)}</b>
       ${i.options.map((o) => `<div class="op">&gt; ${esc(o)}</div>`).join("")}
+      ${i.customer_name ? `<div class="op">Cliente: ${esc(i.customer_name)}</div>` : ""}
       ${i.notes ? `<div class="ob">OBS: ${esc(i.notes)}</div>` : ""}
     </div>`).join("");
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(envLabel)} #${t.order_number}</title><style>
@@ -23,7 +24,7 @@ export function ticketHtml(t: KitchenTicket, station: string, envLabel: string, 
     .op { font-size: 13px; padding-left: 10px; font-weight: bold; }
     .ob { font-size: 13px; padding-left: 10px; text-decoration: underline; }
   </style></head><body><h1>${esc(envLabel)}</h1><h2>${esc(t.label)}</h2>
-  <div class="meta">Pedido #${t.order_number} · ${time}</div>${rows}<p style="text-align:center;font-size:11px">Espeteria Churras Buguer</p></body></html>`;
+  <div class="meta">Pedido #${t.order_number} · ${time}</div>${rows}<p style="text-align:center;font-size:11px">Apollo PDV</p></body></html>`;
 }
 
 /** Desktop app: silent print straight to the chosen Windows printer. Browser: hidden iframe (print dialog unless --kiosk-printing). */
