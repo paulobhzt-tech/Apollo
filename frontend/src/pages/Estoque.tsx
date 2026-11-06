@@ -14,7 +14,7 @@ import { apiGet, apiPost, apiPut } from "@/lib/api";
 import { brl, errMsg, fmtDateTime } from "@/lib/format";
 import { useMe } from "@/lib/auth";
 import { queryClient } from "@/lib/queryClient";
-import type { Ingredient, IngredientIn, StockMove, Unit } from "@/lib/types";
+import type { Ingredient, IngredientIn, StockMove, Unit, Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const UNITS: Unit[] = ["kg", "g", "L", "ml", "un"];
@@ -22,14 +22,15 @@ const MOVE_LABEL: Record<StockMove["type"], string> = { entrada: "Entrada", said
 const inv = () => { void queryClient.invalidateQueries({ queryKey: ["ingredients"] }); void queryClient.invalidateQueries({ queryKey: ["stock-moves"] }); };
 
 type ProductionBatch = {
-  id: string; production_type?: "espetinho" | "porcao"; ingredient_id: string; ingredient_name: string; kg: number; units: number;
+  id: string; production_type?: "espetinho" | "porcao"; ingredient_id: string; product_id?: string; ingredient_name: string; kg: number; units: number;
   purchase_cost: number; extra_cost: number; total_cost: number; cost_per_unit: number;
   units_per_kg: number; note: string; created_at: string;
 };
 
-function ProductionBatchForm({ ingredients, onSaved }: { ingredients: Ingredient[]; onSaved: () => void }) {
+function ProductionBatchForm({ ingredients, products, onSaved }: { ingredients: Ingredient[]; products: Product[]; onSaved: () => void }) {
   const [productionType, setProductionType] = useState<"espetinho" | "porcao">("espetinho");
   const [ingredientId, setIngredientId] = useState("");
+  const [productId, setProductId] = useState("none");
   const [kg, setKg] = useState("20");
   const [units, setUnits] = useState("180");
   const [purchaseCost, setPurchaseCost] = useState("");
@@ -42,7 +43,7 @@ function ProductionBatchForm({ ingredients, onSaved }: { ingredients: Ingredient
     Number.isFinite(total) && num(purchaseCost) >= 0 && num(extraCost) >= 0;
   const save = useMutation({
     mutationFn: () => apiPost<ProductionBatch>("/production/batches", {
-      production_type: productionType, ingredient_id: ingredientId, kg: num(kg), units: count,
+      production_type: productionType, ingredient_id: ingredientId, product_id: productId === "none" ? null : productId, kg: num(kg), units: count,
       purchase_cost: num(purchaseCost), extra_cost: num(extraCost), note,
     }),
     onSuccess: () => { toast.success("Lote registrado"); onSaved(); setPurchaseCost(""); setNote(""); },
@@ -55,6 +56,7 @@ function ProductionBatchForm({ ingredients, onSaved }: { ingredients: Ingredient
     <Select value={ingredientId} onValueChange={setIngredientId}><SelectTrigger data-testid="batch-ingredient"><SelectValue placeholder="Selecione o insumo em kg" /></SelectTrigger><SelectContent>
       {ingredients.filter((i) => i.unit === "kg").map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}
     </SelectContent></Select>
+    <div><Label>Produto de venda (opcional: atualizar custo da ficha)</Label><Select value={productId} onValueChange={setProductId}><SelectTrigger data-testid="batch-product"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Não atualizar custo de produto</SelectItem>{products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select><p className="mt-1 text-xs text-zinc-400">Ao vincular, o custo unitário calculado substitui o custo manual do produto. Inclua todos os custos do lote para evitar subestimar o preço.</p></div>
     <div className="grid grid-cols-2 gap-3">
       <div><Label>Quilos utilizados</Label><Input value={kg} onChange={(e) => setKg(e.target.value)} inputMode="decimal" placeholder="20" /></div>
       <div><Label>{productionType === "porcao" ? "Porções produzidas" : "Espetinhos produzidos"}</Label><Input value={units} onChange={(e) => setUnits(e.target.value)} inputMode="numeric" placeholder="180" /></div>
@@ -74,6 +76,7 @@ export default function Estoque() {
   const ings = useQuery({ queryKey: ["ingredients"], queryFn: () => apiGet<Ingredient[]>("/ingredients"), refetchInterval: 15000 });
   const moves = useQuery({ queryKey: ["stock-moves"], queryFn: () => apiGet<StockMove[]>("/stock/moves") });
   const batches = useQuery({ queryKey: ["production-batches"], queryFn: () => apiGet<ProductionBatch[]>("/production/batches") });
+  const products = useQuery({ queryKey: ["products"], queryFn: () => apiGet<Product[]>("/products") });
   const [editing, setEditing] = useState<Ingredient | "new" | null>(null);
   const [moving, setMoving] = useState<Ingredient | null>(null);
   const list = ings.data ?? [];
@@ -132,7 +135,7 @@ export default function Estoque() {
             </Table>
           </div>
         </TabsContent>
-        <TabsContent value="producao" className="mt-4 space-y-4"><ProductionBatchForm ingredients={list} onSaved={() => { void batches.refetch(); void ings.refetch(); }} /><div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Insumo</TableHead><TableHead>Tipo</TableHead><TableHead>Kg</TableHead><TableHead>Unidades</TableHead><TableHead>Rendimento</TableHead><TableHead>Custo total</TableHead><TableHead>Custo/un.</TableHead></TableRow></TableHeader><TableBody>{(batches.data ?? []).map((b) => <TableRow key={b.id}><TableCell>{fmtDateTime(b.created_at)}</TableCell><TableCell>{b.ingredient_name}</TableCell><TableCell>{b.production_type === "porcao" ? "Porções" : "Espetinhos"}</TableCell><TableCell>{b.kg}</TableCell><TableCell>{b.units}</TableCell><TableCell>{b.units_per_kg.toFixed(2)}</TableCell><TableCell>{brl(b.total_cost)}</TableCell><TableCell>{brl(b.cost_per_unit)}</TableCell></TableRow>)}</TableBody></Table></div></TabsContent>
+        <TabsContent value="producao" className="mt-4 space-y-4"><ProductionBatchForm ingredients={list} products={products.data ?? []} onSaved={() => { void batches.refetch(); void ings.refetch(); void products.refetch(); }} /><div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Insumo</TableHead><TableHead>Tipo</TableHead><TableHead>Kg</TableHead><TableHead>Unidades</TableHead><TableHead>Rendimento</TableHead><TableHead>Custo total</TableHead><TableHead>Custo/un.</TableHead></TableRow></TableHeader><TableBody>{(batches.data ?? []).map((b) => <TableRow key={b.id}><TableCell>{fmtDateTime(b.created_at)}</TableCell><TableCell>{b.ingredient_name}</TableCell><TableCell>{b.production_type === "porcao" ? "Porções" : "Espetinhos"}</TableCell><TableCell>{b.kg}</TableCell><TableCell>{b.units}</TableCell><TableCell>{b.units_per_kg.toFixed(2)}</TableCell><TableCell>{brl(b.total_cost)}</TableCell><TableCell>{brl(b.cost_per_unit)}</TableCell></TableRow>)}</TableBody></Table></div></TabsContent>
         <TabsContent value="movs" className="mt-4">
           <div className="rounded-2xl border border-white/5 bg-panel">
             <Table>
