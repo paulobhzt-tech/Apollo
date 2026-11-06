@@ -3,7 +3,7 @@ name: Apollo - Bateria de testes
 on:
   workflow_dispatch:
   push:
-    branches: [main, master]
+    branches: ["**"]
   pull_request:
 
 jobs:
@@ -12,6 +12,9 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    env:
+      MONGO_URL: mongodb://127.0.0.1:27017
+      DB_NAME: apollo_ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -19,10 +22,41 @@ jobs:
           python-version: '3.11'
       - name: Verificar sintaxe Python
         run: python -m compileall -q .
-      - name: Instalar dependencias do backend
-        run: pip install -r requirements.txt
-      - name: Executar testes automatizados
-        run: python -m pytest -q
+      - name: Instalar dependencias (incluindo indice Emergent)
+        run: python -m pip install -r requirements.txt --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
+      - name: Testes isolados de autenticacao, CSRF e protecao de dados
+        run: python -m pytest -q -n 0 tests/test_auth_security.py tests/test_csrf_origin.py tests/test_demo_guard.py
+
+  pagamentos:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      MONGO_URL: mongodb://127.0.0.1:27017/?replicaSet=rs0
+      DB_NAME: apollo_partial_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Instalar dependencias (incluindo indice Emergent)
+        run: python -m pip install -r requirements.txt --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
+      - name: Criar MongoDB de testes com transacoes
+        run: |
+          docker run -d --name apollo-test-mongo -p 127.0.0.1:27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+          for i in $(seq 1 40); do
+            if docker exec apollo-test-mongo mongosh --quiet --eval 'db.adminCommand({ping:1})' >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          docker exec apollo-test-mongo mongosh --quiet --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"localhost:27017"}]})'
+          for i in $(seq 1 40); do
+            if docker exec apollo-test-mongo mongosh --quiet --eval 'db.hello().isWritablePrimary' | grep -q true; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - name: Testar pagamentos parciais e concorrencia
+        run: python -m pytest -q -n 0 tests/test_partial_payment_integration.py
 
   frontend:
     runs-on: ubuntu-latest
@@ -33,13 +67,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - name: Instalar dependencias
-        run: npm install --no-audit --no-fund
+          node-version: '22'
+      - name: Instalar dependencias com Yarn (gerenciador do projeto)
+        run: yarn install --non-interactive
       - name: Verificar tipos TypeScript
-        run: npm run typecheck
+        run: yarn typecheck
       - name: Compilar interface
-        run: npm run build
+        run: yarn build
 
   desktop:
     runs-on: ubuntu-latest
@@ -50,7 +84,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Verificar sintaxe Electron
         run: |
           node --check main.js
