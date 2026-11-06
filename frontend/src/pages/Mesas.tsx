@@ -56,11 +56,22 @@ export default function Mesas() {
   const readyTickets = useQuery({ queryKey: ["waiter-ready-tickets"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets"), refetchInterval: 5000, enabled: mobileMode });
   const ready = (readyTickets.data ?? []).filter(ticket => ticket.status === "pronto");
   const [selId, setSelId] = useState<string | null>(null);
+  const [mobileSearch, setMobileSearch] = useState("");
+  const [mobileFilter, setMobileFilter] = useState<"todas" | "minhas" | "ocupadas" | "livres">("todas");
   const [qrTable, setQrTable] = useState<Table | null>(null);
   const [kind, setKind] = useState<Kind>("mesa");
   const [creating, setCreating] = useState(false);
   const all = tables.isError ? [] : tables.data ?? [];
-  const list = all.filter((t) => t.kind === kind);
+  const list = all.filter((t) => {
+    if (t.kind !== kind) return false;
+    if (!mobileMode) return true;
+    const term = mobileSearch.trim().toLocaleLowerCase("pt-BR");
+    if (term && ![String(t.number), t.name ?? "", t.customer_name ?? ""].some((v) => v.toLocaleLowerCase("pt-BR").includes(term))) return false;
+    if (mobileFilter === "minhas" && t.waiter_id !== me?.id) return false;
+    if (mobileFilter === "ocupadas" && t.status !== "ocupada" && t.status !== "conta") return false;
+    if (mobileFilter === "livres" && t.status !== "livre") return false;
+    return true;
+  });
   const sel = all.find((t) => t.id === selId) ?? null;
   const counts = list.reduce<Record<string, number>>((a, t) => ({ ...a, [t.status]: (a[t.status] ?? 0) + 1 }), {});
   const canCreate = me?.role === "admin" || me?.role === "caixa";
@@ -101,6 +112,11 @@ export default function Mesas() {
           <Link to="/cozinha" className="mt-3 inline-block text-sm font-semibold text-emerald-300 underline">Abrir monitor de preparo</Link>
         </div>
       )}
+      {mobileMode && <div className="mb-4 space-y-3 rounded-2xl border border-white/10 bg-white/5 p-3" data-testid="mobile-quick-filter">
+        <div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold">Atendimento rápido</p><Button size="sm" variant="outline" onClick={() => { void tables.refetch(); void readyTickets.refetch(); }}>Atualizar</Button></div>
+        <Input aria-label="Buscar mesa, comanda ou cliente" placeholder="Buscar número, mesa ou cliente..." value={mobileSearch} onChange={(e) => setMobileSearch(e.target.value)} data-testid="mobile-table-search" />
+        <div className="flex flex-wrap gap-2">{([["todas", "Todas"], ["minhas", "Minhas mesas"], ["ocupadas", "Em atendimento"], ["livres", "Livres"]] as const).map(([value, label]) => <Button key={value} size="sm" variant={mobileFilter === value ? "default" : "outline"} onClick={() => setMobileFilter(value)}>{label}</Button>)}</div>
+      </div>}
       <div className="mb-4 flex flex-wrap gap-3 text-xs">
         {Object.entries(STATUS).map(([k, s]) => (
           <span key={k} className="flex items-center gap-1.5 text-zinc-400"><span className={cn("size-2 rounded-full", s.dot)} />{s.label} ({counts[k] ?? 0})</span>
@@ -109,7 +125,7 @@ export default function Mesas() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6" data-testid="tables-grid">
         {list.length === 0 && (
           <p className="col-span-full py-12 text-center text-sm text-zinc-500" data-testid="tables-empty">
-            Nenhuma {kind} cadastrada.{canCreate && " Clique em “Nova " + kind + "” para criar."}
+            {mobileMode ? "Nenhuma mesa ou comanda corresponde aos filtros." : `Nenhuma ${kind} cadastrada.`}{!mobileMode && canCreate && " Clique em “Nova " + kind + "” para criar."}
           </p>
         )}
         {list.map((t) => (
