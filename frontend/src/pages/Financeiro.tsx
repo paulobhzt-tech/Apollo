@@ -77,6 +77,7 @@ export default function Financeiro() {
   const [end, setEnd] = useState(isoLocal(now));
   const dre = useQuery({ queryKey: ["dre", start, end], queryFn: () => apiGet<Dre>(`/reports/dre?start=${start}&end=${end}`) });
   const d = dre.isError ? undefined : dre.data;
+  const productProfit = useQuery({ queryKey: ["product-profit", start, end], queryFn: () => apiGet<{ products: { product_id: string; name: string; qty: number; revenue: number; cost: number; profit: number; margin_pct: number }[]; profit: number; revenue: number; cost: number; note: string }>(`/reports/product-profit?start=${start}&end=${end}`) });
   const preset = (days: number) => { const s = new Date(); s.setDate(s.getDate() - days + 1); setStart(isoLocal(s)); setEnd(isoLocal(new Date())); };
 
   return (
@@ -90,6 +91,35 @@ export default function Financeiro() {
         </>
       } />
       {dre.isError && <p className="mb-4 text-sm text-red-400">{errMsg(dre.error)}</p>}
+      <section className="mb-5 space-y-3" data-testid="product-profit-report">
+        <h2 className="text-lg font-semibold text-white">Rentabilidade por produto</h2>
+        {productProfit.isError && <p role="alert" className="text-red-400">{errMsg(productProfit.error)}</p>}
+        {productProfit.data && <>
+          <div className="grid grid-cols-3 gap-3">
+            <Stat label="Receita dos itens" value={brl(productProfit.data.revenue)} />
+            <Stat label="Custo dos itens" value={brl(productProfit.data.cost)} />
+            <Stat label="Margem bruta em R$" value={brl(productProfit.data.profit)} />
+          </div>
+          <Panel title="Produtos mais rentáveis">
+            <div className="overflow-x-auto"><Table><TableHeader><TableRow>
+              <TableHead>Produto</TableHead><TableHead className="text-right">Qtd.</TableHead>
+              <TableHead className="text-right">Receita</TableHead><TableHead className="text-right">Custo</TableHead>
+              <TableHead className="text-right">Lucro bruto</TableHead><TableHead className="text-right">Margem</TableHead>
+            </TableRow></TableHeader><TableBody>
+              {productProfit.data.products.map((p) => <TableRow key={p.product_id}>
+                <TableCell>{p.name}</TableCell><TableCell className="text-right">{p.qty}</TableCell>
+                <TableCell className="text-right">{brl(p.revenue)}</TableCell>
+                <TableCell className="text-right">{brl(p.cost)}</TableCell>
+                <TableCell className="text-right">{brl(p.profit)}</TableCell>
+                <TableCell className="text-right">{p.margin_pct}%</TableCell>
+              </TableRow>)}
+            </TableBody></Table></div>
+            {!productProfit.data.products.length && <p className="text-sm text-zinc-400">Nenhuma venda paga no período.</p>}
+            <p className="mt-3 text-xs text-zinc-400">{productProfit.data.note}</p>
+          </Panel>
+        </>}
+      </section>
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Receita bruta" value={brl(d?.gross_revenue ?? 0)} hint={`${d?.orders ?? 0} pedidos`} testid="dre-gross" />
         <Stat label="CMV" value={brl(d?.cmv ?? 0)} hint={d?.gross_revenue ? `${((d.cmv / d.gross_revenue) * 100).toFixed(1)}% da receita` : undefined} testid="dre-cmv" />
