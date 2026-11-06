@@ -19,6 +19,8 @@ export default function Login() {
   const [mode, setMode] = useState<"password" | "pin">("password");
   const [username, setUsername] = useState(() => localStorage.getItem("apollo-login-username") || "");
   const [password, setPassword] = useState("");
+  const [help, setHelp] = useState<"register" | "forgot" | null>(null);
+  const [registerAfterLogin, setRegisterAfterLogin] = useState(false);
   const [selected, setSelected] = useState<Profile | null>(null);
   const [rememberOperator, setRememberOperator] = useState(() => localStorage.getItem("apollo-remember-operator") === "true");
   const branding = useQuery({ queryKey: ["branding"], queryFn: () => apiGet<{trade_name: string; logo_url: string}>("/branding"), retry: false });
@@ -39,7 +41,11 @@ export default function Login() {
       beginSession();
       queryClient.setQueryData(["me"], emp);
       toast.success(`Bem-vindo(a), ${emp.name}`);
-      nav(homeFor(emp.role), { replace: true });
+      if (registerAfterLogin && emp.role === "admin") nav("/funcionarios", { replace: true });
+      else {
+        if (registerAfterLogin) toast.info("Somente administradores podem cadastrar usuários.");
+        nav(homeFor(emp.role), { replace: true });
+      }
     },
     onError: (e) => {
       toast.error(errMsg(e));
@@ -110,6 +116,20 @@ export default function Login() {
             <Key onClick={() => setPin(pin.slice(0, -1))} testid="pin-backspace" muted><Delete className="mx-auto size-5" /></Key>
           </div>
           </>}
+          <div className="mt-4 flex flex-wrap justify-between gap-3 text-sm">
+            <button type="button" onClick={() => setHelp("register")} className="text-primary hover:underline" data-testid="register-user-link">Cadastrar usuário</button>
+            <button type="button" onClick={() => setHelp("forgot")} className="text-zinc-300 hover:underline" data-testid="forgot-password-link">Esqueceu a senha?</button>
+          </div>
+          {help && <div role="dialog" aria-label={help === "register" ? "Cadastrar usuário" : "Recuperar acesso"} className="mt-4 rounded-xl border border-white/15 bg-elevated p-4 text-sm text-zinc-300">
+            <p className="font-semibold text-white">{help === "register" ? "Cadastro de usuários" : "Esqueceu a senha?"}</p>
+            <p className="mt-2">{help === "register"
+              ? "Por segurança, somente um administrador pode cadastrar usuários. Entre com uma conta de administrador para abrir o cadastro de funcionários."
+              : "Solicite ao administrador do Apollo a redefinição da sua senha na tela Funcionários > Editar. Se você é o único administrador, procure o suporte responsável pela instalação. Não compartilhe seu PIN ou senha."}</p>
+            <div className="mt-3 flex gap-3">
+              {help === "register" && <button type="button" className="rounded-lg bg-primary px-3 py-2 font-medium text-white" onClick={() => { setRegisterAfterLogin(true); setMode("password"); setHelp(null); }}>Entrar como administrador</button>}
+              <button type="button" className="rounded-lg border border-white/20 px-3 py-2" onClick={() => setHelp(null)}>Fechar</button>
+            </div>
+          </div>}
           <label className="mt-5 flex cursor-pointer items-center gap-2 text-sm text-zinc-400"><input type="checkbox" checked={rememberOperator} onChange={(e) => { const value = e.target.checked; setRememberOperator(value); localStorage.setItem("apollo-remember-operator", String(value)); if (!value) localStorage.removeItem("apollo-last-operator-id"); }} /> Lembrar meu usuário neste dispositivo (não salva PIN)</label>
           {mode === "pin" && <button
             type="button"
