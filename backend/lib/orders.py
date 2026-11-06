@@ -128,6 +128,30 @@ async def allocate_lots_fefo(ingredient_id: str, qty: float, note: str, by_name:
         remaining = round(remaining - take, 4)
 
 
+async def restore_lots(ingredient_id: str, qty: float, note: str, by_name: str) -> None:
+    """Restore quantities to the original lots, using the sale's audit trail.
+
+    A cancellation must supply the original sale's note as the reference.
+    If no matching consumption exists, this leaves lot balances unchanged.
+    """
+    records = await db.lot_consumptions.find(
+        {"ingredient_id": ingredient_id, "note": note, "restored": {"$ne": True}},
+        {}).sort("created_at", -1).to_list(5000)
+    remaining = qty
+    for record in records:
+        if remaining <= 0.00001:
+            break
+        take = min(remaining, float(record["qty"]))
+        result = await db.lot_consumptions.update_one(
+            {"_id": record.get("_id"), "restored": {"$ne": True}},
+            {"$set": {"restored": True, "restored_at": now(), "restored_by": by_name}})
+        if result.modified_count:
+            await db.purchases.update_one(
+                {"id": record["purchase_id"]},
+                {"$inc": {"remaining_qty": take}})
+            remaining = round(remaining - take, 4)
+
+
 async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int = -1) -> None:
     """Consume or return recipe ingredients for sold/cancelled items.
 
@@ -159,10 +183,15 @@ async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int 
             continue
         if sign < 0:
             await allocate_lots_fefo(ing_id, abs(delta), note, by_name)
-        await db.ingredients.update_one(
-            {"id": ing_id},
+        else:
+            await restore_lots(ing_id, abs(delta), note, by_name)
+        result = await db.ingredients.update_one(
+            {"id": ing_id, **({"stock": {"$gte": abs(delta)}} if sign < 0 else {})},
             {"$inc": {"stock": delta}, "$set": {"updated_at": now()}},
         )
+        if sign < 0 and not result.modified_count:
+            from fastapi import HTTPException
+            raise HTTPException(409, "Estoque insuficiente para a venda")
         moves.append(StockMove(
             ingredient_id=ing_id, ingredient_name=ings[ing_id]["name"],
             type="venda" if sign < 0 else "estorno", qty=delta,
