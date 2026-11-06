@@ -46,6 +46,13 @@ export default function Mesas() {
   const { data: me } = useMe();
   const mobileMode = useLocation().pathname === "/comanda-mobile";
   const tables = useQuery({ queryKey: ["tables"], queryFn: () => apiGet<Table[]>("/tables"), refetchInterval: 8000 });
+  const splitAlerts = useQuery({
+    queryKey: ["pending-split-requests"],
+    queryFn: () => apiGet<{ table_id: string; number: number; kind: string; subtotal: number }[]>("/tables/split-requests/pending"),
+    enabled: me?.role === "admin" || me?.role === "caixa",
+    refetchInterval: 8000,
+  });
+  const pendingSplits = splitAlerts.data ?? [];
   const readyTickets = useQuery({ queryKey: ["waiter-ready-tickets"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets"), refetchInterval: 5000, enabled: mobileMode });
   const ready = (readyTickets.data ?? []).filter(ticket => ticket.status === "pronto");
   const [selId, setSelId] = useState<string | null>(null);
@@ -75,6 +82,18 @@ export default function Mesas() {
           )}
         </>
       } />
+      {pendingSplits.length > 0 && (
+        <div role="status" className="mb-4 rounded-xl border border-amber-400/40 bg-amber-400/10 p-4" data-testid="pending-qr-splits">
+          <p className="font-semibold text-amber-200">Divisões de conta aguardando o caixa ({pendingSplits.length})</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {pendingSplits.map(request => <Button key={request.table_id} variant="outline" size="sm"
+              onClick={() => { setKind(request.kind === "comanda" ? "comanda" : "mesa"); setSelId(request.table_id); }}>
+              {request.kind === "comanda" ? "Comanda" : "Mesa"} {request.number} · {brl(request.subtotal)}
+            </Button>)}
+          </div>
+          <p className="mt-2 text-xs text-zinc-400">Abra a mesa e selecione “Dividir conta por itens” para conferir a solicitação.</p>
+        </div>
+      )}
       {mobileMode && ready.length > 0 && (
         <div role="status" className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4" data-testid="mobile-ready-orders">
           <p className="font-semibold text-emerald-300">Pedidos prontos para entregar ({ready.length})</p>
@@ -521,7 +540,7 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
       toast.success(`Pagamento parcial registrado: ${brl(result.order.total)}`);
       if (getReceiptPref()) void printSimpleReceipt(result.order);
       setPayOpen(false); setPreview(null); setQuantities({}); setClientRef(uid());
-      invalidateTables(); onClose();
+      invalidateTables(); void queryClient.invalidateQueries({ queryKey: ["pending-split-requests"] }); onClose();
     },
     onError: (e) => toast.error(errMsg(e)),
   });
