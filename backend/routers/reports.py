@@ -148,6 +148,59 @@ async def dre(start: Optional[str] = None, end: Optional[str] = None, _: dict = 
     }
 
 
+def summarize_cashflow(orders: list[dict], bills: list[dict], expenses: list[dict], start: str, end: str) -> dict:
+    """Operational cash-flow estimate by payment/settlement date, not an accounting bank reconciliation."""
+    days: dict[str, dict] = {}
+    def day(key: str) -> dict:
+        return days.setdefault(key, {"date": key, "sales": 0.0, "receivables": 0.0, "payables": 0.0, "expenses": 0.0})
+    for order in orders:
+        paid_at = order.get("paid_at")
+        if not paid_at:
+            continue
+        key = paid_at.astimezone(TZ).date().isoformat()
+        if start <= key <= end:
+            # Fiado is a receivable, not cash collected on the sale date.
+            amount = sum(float(p.get("amount", 0)) for p in order.get("payments", []) if p.get("method") != "fiado")
+            day(key)["sales"] += amount
+    for bill in bills:
+        key = bill.get("paid_date") or ""
+        if not start <= key <= end:
+            continue
+        field = "receivables" if bill.get("kind") == "receber" else "payables"
+        day(key)[field] += float(bill.get("paid_amount", 0))
+    for expense in expenses:
+        key = expense.get("date") or ""
+        if start <= key <= end:
+            day(key)["expenses"] += float(expense.get("amount", 0))
+    rows = []
+    for row in sorted(days.values(), key=lambda r: r["date"]):
+        rounded = {k: round(v, 2) if k != "date" else v for k, v in row.items()}
+        rounded["balance"] = round(row["sales"] + row["receivables"] - row["payables"] - row["expenses"], 2)
+        rows.append(rounded)
+    totals = {k: round(sum(row[k] for row in rows), 2) for k in ("sales", "receivables", "payables", "expenses", "balance")}
+    return {"start": start, "end": end, "days": rows, "totals": totals,
+            "note": "Fluxo operacional estimado: vendas recebidas (exceto fiado), contas baixadas e despesas lançadas. Não concilia extratos bancários, estornos ou recebimentos de fiado; despesas duplicadas em contas e lançamentos podem ser contadas duas vezes."}
+
+
+@router.get("/reports/cashflow")
+async def cashflow(start: Optional[str] = None, end: Optional[str] = None, _: dict = Depends(require("caixa"))):
+    end = end or local_today()
+    start = start or end[:8] + "01"
+    try:
+        s, _ = day_bounds(start)
+        _, e = day_bounds(end)
+    except ValueError:
+        raise HTTPException(400, "Datas inválidas (use AAAA-MM-DD)")
+    if s >= e:
+        raise HTTPException(400, "Data inicial deve ser anterior à final")
+    if (date.fromisoformat(end) - date.fromisoformat(start)).days > 366:
+        raise HTTPException(400, "Período máximo de 366 dias")
+    orders = await paid_between(s, e)
+    bills = await db.bills.find({"status": "pago", "paid_date": {"$gte": start, "$lte": end}}, {"_id": 0}).to_list(10000)
+    expenses = await db.expenses.find({"date": {"$gte": start, "$lte": end}}, {"_id": 0}).to_list(10000)
+    return summarize_cashflow(orders, bills, expenses, start, end)
+
+
 @router.get("/reports/forecast")
 async def financial_forecast(months: int = 3, _: dict = Depends(require())):
     """Estimativas com base em meses completos; não são garantia de resultado."""
