@@ -694,10 +694,25 @@ class PurchaseIn(BaseModel):
 
 class Purchase(PurchaseIn):
     id: str = Field(default_factory=_id)
+    remaining_qty: float = 0
     supplier_name: str = ""
     ingredient_name: str = ""
     unit: Unit = "kg"
     total_cost: float = 0
+    by_name: str = ""
+    created_at: datetime = Field(default_factory=_now)
+
+
+class InventoryCountIn(BaseModel):
+    ingredient_id: str
+    counted_qty: float = Field(ge=0, allow_inf_nan=False)
+    note: str = ""
+
+
+class InventoryCount(InventoryCountIn):
+    id: str = Field(default_factory=_id)
+    previous_qty: float = 0
+    difference: float = 0
     by_name: str = ""
     created_at: datetime = Field(default_factory=_now)
 
