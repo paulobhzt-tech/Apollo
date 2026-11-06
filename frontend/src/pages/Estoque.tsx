@@ -149,11 +149,12 @@ function IngredientForm({ editing, onClose }: { editing: Ingredient | "new"; onC
 }
 
 function MoveDialog({ ing, onClose }: { ing: Ingredient | null; onClose: () => void }) {
-  const [type, setType] = useState<"entrada" | "saida" | "ajuste">("entrada");
+  const [type, setType] = useState<"entrada" | "saida" | "ajuste" | "perda">("entrada");
   const [qty, setQty] = useState("");
+  const [reason, setReason] = useState("desperdicio");
   const [note, setNote] = useState("");
   const save = useMutation({
-    mutationFn: () => apiPost<Ingredient>("/stock/moves", { ingredient_id: ing!.id, type, qty: Number(qty.replace(",", ".")), note }),
+    mutationFn: () => apiPost<Ingredient>("/stock/moves", { ingredient_id: ing!.id, type, qty: Number(qty.replace(",", ".")), note, ...(type === "perda" ? { reason } : {}) }),
     onSuccess: (i) => { toast.success(`${i.name}: ${i.stock.toFixed(2)} ${i.unit}`); inv(); setQty(""); setNote(""); onClose(); },
     onError: (e) => toast.error(errMsg(e)),
   });
@@ -162,11 +163,12 @@ function MoveDialog({ ing, onClose }: { ing: Ingredient | null; onClose: () => v
       <DialogContent className="border-white/10 bg-elevated" data-testid="stock-move-dialog">
         <DialogHeader><DialogTitle className="font-heading text-white">Movimentar · {ing?.name}</DialogTitle></DialogHeader>
         <p className="text-sm text-zinc-400">Atual: <span className="font-mono text-white">{ing?.stock.toFixed(2)} {ing?.unit}</span></p>
-        <div className="grid grid-cols-3 gap-2">
-          {(["entrada", "saida", "ajuste"] as const).map((t) => (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {(["entrada", "saida", "ajuste", "perda"] as const).map((t) => (
             <Button key={t} variant={type === t ? "default" : "outline"} onClick={() => setType(t)} data-testid={`stock-move-type-${t}`}>{MOVE_LABEL[t].split("/")[0]}</Button>
           ))}
         </div>
+        {type === "perda" && <div><Label>Motivo da perda</Label><Select value={reason} onValueChange={setReason}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="vencimento">Vencimento</SelectItem><SelectItem value="quebra">Quebra</SelectItem><SelectItem value="desperdicio">Desperdício</SelectItem><SelectItem value="outro">Outro</SelectItem></SelectContent></Select><p className="mt-2 text-xs text-red-300">Prejuízo estimado: {brl(Math.max(0, Number(qty.replace(",", ".")) || 0) * (ing?.cost_per_unit ?? 0))}</p></div>}
         <Input placeholder={type === "ajuste" ? "Novo saldo contado" : "Quantidade"} value={qty} inputMode="decimal" onChange={(e) => setQty(e.target.value)} className="font-mono" data-testid="stock-move-qty-input" />
         <Input placeholder="Observação (NF fornecedor, perda…)" value={note} onChange={(e) => setNote(e.target.value)} data-testid="stock-move-note-input" />
         <Button disabled={!qty || save.isPending} onClick={() => save.mutate()} data-testid="stock-move-save-button">Confirmar</Button>
