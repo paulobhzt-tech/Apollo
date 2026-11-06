@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRightLeft, Bell, Clock, Minus, Pencil, Plus, QrCode, Receipt, Send, Trash2, Users } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -43,6 +44,7 @@ const invalidateTables = () => {
 
 export default function Mesas() {
   const { data: me } = useMe();
+  const mobileMode = useLocation().pathname === "/comanda-mobile";
   const tables = useQuery({ queryKey: ["tables"], queryFn: () => apiGet<Table[]>("/tables"), refetchInterval: 8000 });
   const [selId, setSelId] = useState<string | null>(null);
   const [qrTable, setQrTable] = useState<Table | null>(null);
@@ -56,7 +58,7 @@ export default function Mesas() {
 
   return (
     <AppShell roles={["caixa", "garcom"]}>
-      <PageHeader title="Mesas & Comandas" subtitle="Toque em uma mesa ou comanda para lançar itens no celular ou tablet" actions={
+      <PageHeader title={mobileMode ? "Comanda Mobile" : "Mesas & Comandas"} subtitle={mobileMode ? "Atendimento do garçom · selecione a mesa para lançar pedidos e acompanhar o consumo" : "Toque em uma mesa ou comanda para lançar itens no celular ou tablet"} actions={
         <>
           <div className="flex gap-1 rounded-xl border border-white/8 p-1">
             {(["mesa", "comanda"] as const).map((k) => (
