@@ -55,6 +55,8 @@ async def current_user(request: Request) -> dict:
     emp = await db.employees.find_one({"id": s["employee_id"], "active": True}, {"_id": 0, "pin_hash": 0, "password_hash": 0})
     if not emp:
         raise HTTPException(401, "Funcionário inativo")
+    if emp.get("must_change_password") and request.url.path not in ("/auth/first-password", "/api/auth/first-password", "/auth/logout", "/api/auth/logout"):
+        raise HTTPException(403, "É obrigatório alterar a senha inicial antes de usar o PDV")
     return emp
 
 
