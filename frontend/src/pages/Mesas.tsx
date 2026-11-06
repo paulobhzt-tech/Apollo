@@ -510,6 +510,13 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
 
 function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string; items: Order["items"]; open: boolean; onClose: () => void }) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [selectedCustomer, setSelectedCustomer] = useState("");
+  const customers = [...new Set(items.map(i => i.customer_name?.trim()).filter((name): name is string => !!name))].sort();
+  const selectCustomer = (name: string) => {
+    setSelectedCustomer(name);
+    setQuantities(name ? Object.fromEntries(items.filter(i => !i.cancelled && i.customer_name === name).map(i => [i.id, i.qty])) : {});
+    setPreview(null);
+  };
   const [preview, setPreview] = useState<{ subtotal: number; remaining_subtotal: number } | null>(null);
   const [payOpen, setPayOpen] = useState(false);
   const [clientRef, setClientRef] = useState(() => uid());
@@ -544,11 +551,12 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
       quantities: Object.fromEntries(Object.entries(quantities).filter(([, qty]) => qty > 0)),
       payment: { ...p, emit_invoice: false },
       client_ref: clientRef,
+      customer_name: selectedCustomer,
     }),
     onSuccess: (result) => {
       toast.success(`Pagamento parcial registrado: ${brl(result.order.total)}`);
       if (getReceiptPref()) void printSimpleReceipt(result.order);
-      setPayOpen(false); setPreview(null); setQuantities({}); setClientRef(uid());
+      setPayOpen(false); setPreview(null); setQuantities({}); setSelectedCustomer(""); setClientRef(uid());
       invalidateTables(); void queryClient.invalidateQueries({ queryKey: ["pending-split-requests"] }); onClose();
     },
     onError: (e) => toast.error(errMsg(e)),
@@ -558,7 +566,15 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-h-[85vh] overflow-y-auto border-white/10 bg-elevated sm:max-w-lg">
         <DialogHeader><DialogTitle>Divisão da conta por itens</DialogTitle></DialogHeader>
-        <p className="text-sm text-zinc-400">Selecione a quantidade que cada cliente deseja pagar.</p>
+        <p className="text-sm text-zinc-400">Selecione um cliente para carregar automaticamente os itens dele. Confira os itens compartilhados antes de receber.</p>
+        <div className="space-y-1">
+          <Label htmlFor="partial-bill-customer">Cliente responsável pelo pagamento</Label>
+          <select id="partial-bill-customer" value={selectedCustomer} onChange={e => selectCustomer(e.target.value)}
+            className="w-full rounded-md border border-white/15 bg-panel p-3 text-sm" data-testid="partial-bill-customer">
+            <option value="">Seleção manual / itens compartilhados</option>
+            {customers.map(name => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </div>
         {request.data?.request && <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3" data-testid="cashier-qr-split-request">
           <p className="text-sm font-semibold text-amber-200">Divisão solicitada pelo QR Code</p>
           <p className="mt-1 text-sm">Valor informado pelo cliente: {brl(request.data.request.subtotal)}</p>
@@ -571,8 +587,8 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
         <div className="space-y-2">
           {available.map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-panel p-3">
-              <span className="text-sm">{item.name} · {brl(item.unit_price)} (até {item.qty})</span>
-              <Input className="w-20" type="number" min={0} max={item.qty} value={quantities[item.id] ?? 0}
+              <span className="text-sm">{item.name} · {brl(item.unit_price)} (até {item.qty})<span className="block text-xs text-zinc-400">{item.customer_name || "Mesa inteira"}</span></span>
+              <Input className="w-20" type="number" min={0} max={item.qty} disabled={!!selectedCustomer && !!item.customer_name && item.customer_name !== selectedCustomer} value={quantities[item.id] ?? 0}
                 onChange={(e) => { setQuantities((old) => ({ ...old, [item.id]: Math.max(0, Math.min(item.qty, Number(e.target.value) || 0)) })); setPreview(null); }} />
             </div>
           ))}
