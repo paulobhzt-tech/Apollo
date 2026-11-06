@@ -276,7 +276,7 @@ export interface PublicDeliveryIn {
   payment_method: "dinheiro" | "credito" | "debito" | "pix";
   change_for: number;
 }
-export interface PublicTable { id: string; number: number; label: string; status: string; total: number; items: { name: string; qty: number; unit_price: number }[] }
+export interface PublicTable { id: string; number: number; label: string; status: string; total: number; items: { id?: string; name: string; qty: number; unit_price: number }[] }
 export interface TableIn { number: number; kind: "mesa" | "comanda"; name: string; seats: number }
 export interface PublicOrderStatus {
   id: string;
