@@ -108,9 +108,9 @@ export default function Financeiro() {
         {productProfit.isError && <p role="alert" className="text-red-400">{errMsg(productProfit.error)}</p>}
         {productProfit.data && <>
           <div className="grid grid-cols-3 gap-3">
-            <Stat label="Receita dos itens" value={brl(productProfit.data.revenue)} />
-            <Stat label="Custo dos itens" value={brl(productProfit.data.cost)} />
-            <Stat label="Margem bruta em R$" value={brl(productProfit.data.profit)} />
+            <Stat label="Receita dos itens" value={brl(productProfit.data.revenue)} testid="product-profit-revenue" />
+            <Stat label="Custo dos itens" value={brl(productProfit.data.cost)} testid="product-profit-cost" />
+            <Stat label="Margem bruta em R$" value={brl(productProfit.data.profit)} testid="product-profit-gross" />
           </div>
           <Panel title="Produtos mais rentáveis">
             <div className="overflow-x-auto"><Table><TableHeader><TableRow>
