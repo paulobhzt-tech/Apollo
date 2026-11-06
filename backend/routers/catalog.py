@@ -4,7 +4,7 @@ from lib.auth import current_user, require
 from lib.db import db
 from lib.orders import ingredient_map, now, product_cost
 from models.schemas import (BulkDeleteIn, Category, CategoryIn, Ingredient, IngredientIn, OkOut, Product, ProductIn, Supplier, SupplierIn,
-                            StockMove, StockMoveIn)
+                            StockMove, StockMoveIn, ProductionBatch, ProductionBatchIn)
 
 router = APIRouter()
 
@@ -164,6 +164,32 @@ async def delete_ingredient(id: str, _: dict = Depends(require())):
         raise HTTPException(400, "Insumo usado em ficha técnica de produto")
     await db.ingredients.delete_one({"id": id})
     return OkOut()
+
+
+@router.get("/production/batches", response_model=list[ProductionBatch])
+async def production_batches(_: dict = Depends(require("caixa", "cozinha"))):
+    return await db.production_batches.find({}, {"_id": 0}).sort("created_at", -1).to_list(300)
+
+
+@router.post("/production/batches", response_model=ProductionBatch)
+async def create_production_batch(body: ProductionBatchIn, user: dict = Depends(require("caixa", "cozinha"))):
+    import math
+    if not all(math.isfinite(v) for v in (body.kg, body.purchase_cost, body.extra_cost)):
+        raise HTTPException(400, "Valores de produção inválidos")
+    ing = await db.ingredients.find_one({"id": body.ingredient_id}, {"_id": 0})
+    if not ing or ing.get("unit") != "kg":
+        raise HTTPException(400, "Selecione um insumo cadastrado em kg")
+    total = round(body.purchase_cost + body.extra_cost, 2)
+    batch = ProductionBatch(**body.model_dump(), ingredient_name=ing["name"],
+                            units_per_kg=round(body.units / body.kg, 4),
+                            total_cost=total, cost_per_unit=round(total / body.units, 4),
+                            by_name=user["name"]).model_dump()
+    await db.production_batches.insert_one(dict(batch))
+    # Store the most recent yield for production estimates; inventory quantities
+    # are not changed because purchase/production stock entries are separate.
+    await db.ingredients.update_one({"id": ing["id"]}, {"$set": {
+        "units_per_kg": batch["units_per_kg"], "updated_at": now()}})
+    return batch
 
 
 @router.get("/stock/moves", response_model=list[StockMove])
