@@ -168,6 +168,7 @@ class Ingredient(BaseModel):
     stock: float = 0
     min_stock: float = 0
     cost_per_unit: float = 0
+    units_per_kg: float = 0  # production yield: finished units from 1 kg
     updated_at: datetime = Field(default_factory=_now)
 
 
@@ -177,6 +178,7 @@ class IngredientIn(BaseModel):
     stock: float = 0
     min_stock: float = Field(default=0, ge=0)
     cost_per_unit: float = Field(default=0, ge=0)
+    units_per_kg: float = Field(default=0, ge=0)
 
 
 class StockMoveIn(BaseModel):
