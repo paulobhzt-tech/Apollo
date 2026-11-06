@@ -55,6 +55,7 @@ export default function Mesas() {
   const pendingSplits = splitAlerts.data ?? [];
   const readyTickets = useQuery({ queryKey: ["waiter-ready-tickets"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets"), refetchInterval: 5000, enabled: mobileMode });
   const ready = (readyTickets.data ?? []).filter(ticket => ticket.status === "pronto");
+  const myReady = ready.filter((ticket) => (tables.data ?? []).some((t) => t.order_id === ticket.order_id && t.waiter_id === me?.id));
   const [selId, setSelId] = useState<string | null>(null);
   const [mobileSearch, setMobileSearch] = useState("");
   const [mobileFilter, setMobileFilter] = useState<"todas" | "minhas" | "ocupadas" | "livres">("todas");
@@ -107,7 +108,7 @@ export default function Mesas() {
       )}
       {mobileMode && ready.length > 0 && (
         <div role="status" className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4" data-testid="mobile-ready-orders">
-          <p className="font-semibold text-emerald-300">Pedidos prontos para entregar ({ready.length})</p>
+          <p className="font-semibold text-emerald-300">Pedidos prontos para entregar ({ready.length}){myReady.length > 0 && ` · ${myReady.length} de suas mesas`}</p>
           <ul className="mt-2 space-y-1 text-sm text-white">{ready.map(ticket => <li key={ticket.id}>#{ticket.order_number} · {ticket.label}</li>)}</ul>
           <Link to="/cozinha" className="mt-3 inline-block text-sm font-semibold text-emerald-300 underline">Abrir monitor de preparo</Link>
         </div>
