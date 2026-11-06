@@ -26,7 +26,7 @@ export default function Impressao() {
   const [cfg, setCfg] = useState<DeviceCfg>(loadCfg);
   const [log, setLog] = useState<{ id: string; text: string; at: string }[]>([]);
   const busy = useRef(false);
-  const autoKeys = cfg.stations.filter((k) => envs.data?.find((e) => e.key === k)?.auto_print !== false);
+  const autoKeys = cfg.stations.filter((k) => envs.data?.find((e) => e.key === k)?.auto_print !== false && printers.data?.some((p) => p.active && p.purpose === k && (isDesktop() ? !!p.device_name : true)));
 
   useEffect(() => { localStorage.setItem(LS, JSON.stringify(cfg)); }, [cfg]);
 
@@ -41,6 +41,8 @@ export default function Impressao() {
 
   const printOne = async (t: KitchenTicket, station: string) => {
     const pr = printerFor(station);
+    if (!pr) throw new Error(`Cadastre uma impressora ativa para ${envName(envs.data, station)}`);
+    if (isDesktop() && !pr.device_name) throw new Error(`Selecione a impressora Windows para ${envName(envs.data, station)}`);
     await printHtml(ticketHtml(t, station, envName(envs.data, station), pr?.paper), pr?.copies ?? 1, pr);
     await apiPost<KitchenTicket>(`/kds/tickets/${t.id}/printed`, { station });
     setLog((l) => [{ id: `${t.id}-${station}-${Date.now()}`, text: `${envName(envs.data, station)} · ${t.label} (#${t.order_number})${pr ? ` → ${pr.name}` : ""}`, at: new Date().toISOString() }, ...l].slice(0, 30));
@@ -58,7 +60,7 @@ export default function Impressao() {
           const pending = [...new Set(t.items.filter((i) => keys.includes(i.station) && i.print_ticket !== false).map((i) => i.station))].filter((s) => !t.printed.includes(s));
           for (const s of pending) await print(t, s);
         }
-      } catch (err) { console.error("Auto print failed:", err); toast.error("Falha ao imprimir um ticket"); }
+      } catch (err) { console.error("Auto print failed:", err); toast.error(err instanceof Error ? err.message : "Falha ao imprimir um ticket"); }
       finally { busy.current = false; void queryClient.invalidateQueries({ queryKey: ["print-queue"] }); void queryClient.invalidateQueries({ queryKey: ["print-recent"] }); }
     })();
   }, [queue.data, cfg.auto]);
@@ -69,7 +71,7 @@ export default function Impressao() {
     <AppShell roles={["caixa", "cozinha", "garcom"]}>
       <PageHeader title="Central de Impressão" subtitle="Deixe esta tela aberta no computador ligado à impressora: cada pedido novo sai impresso no ambiente certo"
         actions={
-          <Button onClick={() => setCfg((c) => ({ ...c, auto: !c.auto }))} disabled={!cfg.stations.length} variant={cfg.auto ? "outline" : "default"} data-testid="print-auto-toggle">
+          <Button onClick={() => setCfg((c) => ({ ...c, auto: !c.auto }))} disabled={!cfg.auto && !autoKeys.length} variant={cfg.auto ? "outline" : "default"} data-testid="print-auto-toggle">
             {cfg.auto ? <><Pause className="size-4" /> Pausar impressão automática</> : <><Play className="size-4" /> Ligar impressão automática</>}
           </Button>
         } />
@@ -84,7 +86,7 @@ export default function Impressao() {
                     <Checkbox checked={cfg.stations.includes(e.key)} onCheckedChange={() => toggleStation(e.key)} data-testid={`print-env-checkbox-${e.key}`} />
                     <span className="flex-1">
                       <span className="block text-sm text-white">{e.name}</span>
-                      <span className="block text-[11px] text-zinc-500">{pr ? `${pr.name} · ${pr.paper} · ${pr.copies} via(s)` : "Sem impressora cadastrada (usa 80mm)"}</span>
+                      <span className="block text-[11px] text-zinc-500">{pr ? `${pr.name} · ${pr.paper} · ${pr.copies} via(s)` : "Sem impressora cadastrada · impressão automática bloqueada"}</span>
                     </span>
                     {!e.auto_print && <Badge variant="outline">Só manual</Badge>}
                   </label>
@@ -97,6 +99,7 @@ export default function Impressao() {
             </div>
           </Panel>
           <Panel title="Impressão sem janela (recomendado)">
+            <p className="mb-2 text-xs text-amber-300">Cadastre uma impressora ativa para cada ambiente em Configurações → Impressoras. No Windows, selecione também o nome exato da impressora instalada. Sem essa configuração, a impressão automática fica bloqueada para evitar envio ao dispositivo errado.</p>
             <p className="text-xs leading-relaxed text-zinc-400">
               {isDesktop() ? "Aplicativo Apollo PDV: os tickets saem direto na impressora do Windows escolhida em Configurações → Impressoras, sem janela." : <>Instale o aplicativo <b>Apollo PDV</b> para Windows para imprimir direto, ou defina a impressora térmica como padrão e abra o Chrome com a opção <code className="rounded bg-white/10 px-1 font-mono text-zinc-200">--kiosk-printing</code> no atalho.</>}
               Assim os tickets saem direto, sem a janela de confirmação. Para imprimir em várias impressoras, use um computador/tablet por ambiente ou um perfil do Chrome para cada impressora.
@@ -118,7 +121,7 @@ export default function Impressao() {
                   <div key={t.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-white/5 px-3 py-2" data-testid={`print-recent-${t.order_number}`}>
                     <span className="min-w-40 flex-1 text-sm text-white">{t.label} <span className="font-mono text-xs text-zinc-500">#{t.order_number} · {fmtTime(t.created_at)}</span></span>
                     {stations.map((s) => (
-                      <Button key={s} size="xs" variant={t.printed.includes(s) ? "outline" : "default"} onClick={() => void printOne(t, s).then(() => queryClient.invalidateQueries({ queryKey: ["print-recent"] }))}
+                      <Button key={s} size="xs" variant={t.printed.includes(s) ? "outline" : "default"} onClick={() => void printOne(t, s).then(() => queryClient.invalidateQueries({ queryKey: ["print-recent"] })).catch((err: unknown) => toast.error(err instanceof Error ? err.message : "Falha na impressão"))}
                         data-testid={`print-reprint-${t.order_number}-${s}`}>
                         <RotateCcw className="size-3" /> {envName(envs.data, s)}{t.printed.includes(s) ? " ✓" : ""}
                       </Button>
