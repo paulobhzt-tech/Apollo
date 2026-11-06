@@ -91,12 +91,16 @@ async def update_employee(id: str, body: EmployeeUpdate, user: dict = Depends(re
     password = data.pop("password", None)
     if username is not None:
         username = username.strip().lower()
+        if not username:
+            raise HTTPException(400, "O nome de usuário não pode ficar vazio")
         if await db.employees.find_one({"username": username, "id": {"$ne": id}}):
             raise HTTPException(400, "Usuário já cadastrado")
         data["username"] = username
     if password:
         existing = await db.employees.find_one({"id": id}, {"username": 1})
-        if not (username or (existing or {}).get("username")):
+        if not existing:
+            raise HTTPException(404, "Funcionário não encontrado")
+        if not (username or existing.get("username")):
             raise HTTPException(400, "Informe o nome de usuário antes de definir senha")
         data["password_hash"] = secure_hash_pin(password)
     if "pin" in data:
