@@ -67,6 +67,7 @@ export interface Ingredient {
   stock: number;
   min_stock: number;
   cost_per_unit: number;
+  units_per_kg?: number;
   updated_at: string;
 }
 export type IngredientIn = Omit<Ingredient, "id" | "updated_at">;
