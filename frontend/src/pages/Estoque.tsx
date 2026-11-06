@@ -129,6 +129,8 @@ function PurchasePanel({ ingredients, onSaved }: { ingredients: Ingredient[]; on
 type InventoryCount = { id: string; ingredient_id: string; counted_qty: number; previous_qty: number; difference: number; note: string; created_at: string };
 function InventoryPanel({ ingredients, onSaved }: { ingredients: Ingredient[]; onSaved: () => void }) {
   const counts = useQuery({ queryKey: ["inventory-counts"], queryFn: () => apiGet<InventoryCount[]>("/inventory/counts") });
+  const lots = useQuery({ queryKey: ["inventory-lots"], queryFn: () => apiGet<Purchase[]>("/inventory/lots") });
+  const [lotQty, setLotQty] = useState<Record<string, string>>({});
   const [ingredientId, setIngredientId] = useState("");
   const [qty, setQty] = useState("");
   const [note, setNote] = useState("");
@@ -139,6 +141,7 @@ function InventoryPanel({ ingredients, onSaved }: { ingredients: Ingredient[]; o
     onSuccess: () => { toast.success("Inventário registrado"); setQty(""); setNote(""); void counts.refetch(); onSaved(); },
     onError: (e) => toast.error(errMsg(e)),
   });
+  const countLot = useMutation({ mutationFn: ({ id, qty }: { id: string; qty: number }) => apiPost("/inventory/lots/count", { purchase_id: id, counted_qty: qty }), onSuccess: () => { toast.success("Lote conferido"); void lots.refetch(); onSaved(); }, onError: (e) => toast.error(errMsg(e)) });
   return <div className="space-y-4">
     <div className="rounded-2xl border border-white/5 bg-panel p-4 space-y-3">
       <h3 className="font-semibold">Conferência física do estoque</h3>
@@ -150,6 +153,7 @@ function InventoryPanel({ ingredients, onSaved }: { ingredients: Ingredient[]; o
       {current && Number.isFinite(counted) && qty.trim() && <p className="text-sm">Diferença: {(counted - current.stock).toFixed(3)} {current.unit}</p>}
       <Button disabled={!ingredientId || !qty.trim() || !Number.isFinite(counted) || counted < 0 || save.isPending} onClick={() => save.mutate()}>Registrar contagem</Button>
     </div>
+    <div className="rounded-2xl border border-white/5 bg-panel p-4 space-y-3"><h3 className="font-semibold">Conferência por lote</h3><p className="text-xs text-zinc-400">Informe o saldo físico de cada lote. A diferença ajusta também o estoque geral.</p>{(lots.data ?? []).map((lot) => <div key={lot.id} className="flex flex-wrap items-center gap-2 border-b border-white/5 pb-2 text-sm"><span className="min-w-44">{lot.ingredient_name} · {lot.lot_number || lot.id.slice(0, 8)} · saldo {lot.remaining_qty ?? 0} {lot.unit}</span><Input className="w-28" inputMode="decimal" placeholder="Contagem" value={lotQty[lot.id] ?? ""} onChange={(e) => setLotQty((prev) => ({ ...prev, [lot.id]: e.target.value }))} /><Button size="sm" variant="outline" disabled={countLot.isPending || !(lotQty[lot.id] ?? "").trim() || !Number.isFinite(Number((lotQty[lot.id] ?? "").replace(",", "."))) || Number((lotQty[lot.id] ?? "").replace(",", ".")) < 0} onClick={() => countLot.mutate({ id: lot.id, qty: Number((lotQty[lot.id] ?? "").replace(",", ".")) })}>Conferir lote</Button></div>)}</div>
     <div className="rounded-2xl border border-white/5 bg-panel p-4"><h3 className="mb-2 font-semibold">Histórico de inventário</h3>
       {(counts.data ?? []).map((i) => <p key={i.id} className="border-b border-white/5 py-2 text-sm">{fmtDateTime(i.created_at)} · {ingredients.find((x) => x.id === i.ingredient_id)?.name ?? i.ingredient_id}: {i.previous_qty} → {i.counted_qty} (diferença {i.difference})</p>)}
     </div>
