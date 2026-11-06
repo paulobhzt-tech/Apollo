@@ -57,6 +57,17 @@ async def public_delivery(body: PublicDeliveryIn):
         raise HTTPException(400, "Informe nome, telefone e endereço completos")
     items = await build_items(body.items)
     o = await create_delivery_order("site", items, c.model_dump(), pay_on_delivery=body.payment_method)
+    # Store customer contact after successful checkout without modifying existing balances.
+    from models.schemas import FiadoCustomer
+    phone_digits = "".join(ch for ch in c.phone if ch.isdigit())
+    customer = FiadoCustomer(name=c.name.strip(), phone=c.phone.strip(),
+                             address=c.address.strip(), cpf=c.cpf or "").model_dump()
+    if phone_digits:
+        await db.fiado_customers.update_one(
+            {"phone_digits": phone_digits},
+            {"$setOnInsert": {**customer, "phone_digits": phone_digits}},
+            upsert=True,
+        )
     return o
 
 
