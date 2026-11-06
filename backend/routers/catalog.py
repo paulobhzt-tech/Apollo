@@ -166,7 +166,7 @@ async def register_purchase(body: PurchaseIn, user: dict = Depends(require("caix
     old_stock = max(0, float(ing.get("stock", 0)))
     old_cost = max(0, float(ing.get("cost_per_unit", 0)))
     new_cost = round((old_stock * old_cost + qty * body.unit_cost) / (old_stock + qty), 4)
-    purchase = Purchase(**body.model_dump(), qty=qty, supplier_name=supplier["name"],
+    purchase = Purchase(**{**body.model_dump(), "qty": qty}, supplier_name=supplier["name"],
                         ingredient_name=ing["name"], unit=ing["unit"],
                         total_cost=round(qty * body.unit_cost, 2),
                         by_name=user["name"]).model_dump()
