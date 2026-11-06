@@ -204,6 +204,38 @@ async def financial_forecast(months: int = 3, _: dict = Depends(require())):
 
 
 
+@router.get("/reports/sales-intelligence")
+async def sales_intelligence(start: Optional[str] = None, end: Optional[str] = None, _: dict = Depends(require())):
+    """Rank paid sales by units and highlight products without sales in the period."""
+    end = end or local_today()
+    start = start or end[:8] + "01"
+    try:
+        s, _ = day_bounds(start)
+        _, e = day_bounds(end)
+    except ValueError:
+        raise HTTPException(400, "Datas inválidas (use AAAA-MM-DD)")
+    if s >= e:
+        raise HTTPException(400, "Data inicial deve ser anterior à final")
+    products = await db.products.find({"active": True}, {"_id": 0, "id": 1, "name": 1}).to_list(5000)
+    grouped: dict[str, dict] = {}
+    for order in await paid_between(s, e):
+        for item in order.get("items", []):
+            if item.get("cancelled"):
+                continue
+            pid = item.get("product_id") or item.get("name", "")
+            row = grouped.setdefault(pid, {"product_id": pid, "name": item.get("name", ""), "qty": 0, "revenue": 0.0})
+            row["qty"] += item.get("qty", 0)
+            row["revenue"] += item.get("qty", 0) * item.get("unit_price", 0)
+    ranked = sorted(grouped.values(), key=lambda row: (-row["qty"], -row["revenue"]))
+    for row in ranked:
+        row["revenue"] = round(row["revenue"], 2)
+    unsold = [p for p in products if p["id"] not in grouped]
+    return {"start": start, "end": end, "top": ranked[:10],
+            "least": sorted(ranked, key=lambda row: (row["qty"], row["revenue"]))[:10],
+            "unsold": unsold, "active_products": len(products),
+            "note": "Ranking por quantidade em pedidos pagos. Produtos sem vendas consideram somente o cadastro ativo atual."}
+
+
 @router.get("/reports/product-profit")
 async def product_profit(start: Optional[str] = None, end: Optional[str] = None, _: dict = Depends(require())):
     """Gross product contribution from paid sales; excludes overhead, taxes and fees."""
