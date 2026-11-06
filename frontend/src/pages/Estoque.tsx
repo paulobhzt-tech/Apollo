@@ -67,6 +67,7 @@ export default function Estoque() {
                     <TableRow key={i.id} data-testid={`ingredient-row-${i.id}`}>
                       <TableCell className="font-medium text-white">
                         <span className="flex items-center gap-2">{isLow && <AlertTriangle className="size-4 text-red-400" />}{i.name}</span>
+                        {i.unit === "kg" && !!i.units_per_kg && <span className="text-xs text-zinc-400">Produção estimada: {Math.floor(Math.max(0, i.stock * i.units_per_kg))} un. ({i.units_per_kg} por kg)</span>}
                       </TableCell>
                       <TableCell className={cn("text-right font-mono", isLow ? "text-red-300" : "text-zinc-200")} data-testid={`ingredient-stock-${i.id}`}>{i.stock.toFixed(2)} {i.unit}</TableCell>
                       <TableCell className="text-right font-mono text-zinc-500">{i.min_stock} {i.unit}</TableCell>
@@ -118,8 +119,8 @@ function IngredientDialog({ editing, onClose }: { editing: Ingredient | "new" | 
 }
 
 function IngredientForm({ editing, onClose }: { editing: Ingredient | "new"; onClose: () => void }) {
-  const init = editing === "new" ? { name: "", unit: "kg" as Unit, stock: "0", min_stock: "0", cost_per_unit: "0" }
-    : { name: editing.name, unit: editing.unit, stock: String(editing.stock), min_stock: String(editing.min_stock), cost_per_unit: String(editing.cost_per_unit) };
+  const init = editing === "new" ? { name: "", unit: "kg" as Unit, stock: "0", min_stock: "0", cost_per_unit: "0", units_per_kg: "0" }
+    : { name: editing.name, unit: editing.unit, stock: String(editing.stock), min_stock: String(editing.min_stock), cost_per_unit: String(editing.cost_per_unit), units_per_kg: String(editing.units_per_kg ?? 0) };
   const [f, setF] = useState(init);
   const n = (s: string) => Number(s.replace(",", ".")) || 0;
   const save = useMutation({
@@ -141,9 +142,10 @@ function IngredientForm({ editing, onClose }: { editing: Ingredient | "new"; onC
         </div>
         <div><Label className="text-xs text-zinc-400">Custo por unidade (R$)</Label><Input value={f.cost_per_unit} onChange={(e) => setF({ ...f, cost_per_unit: e.target.value })} className="mt-1 font-mono" data-testid="ingredient-cost-input" /></div>
         <div><Label className="text-xs text-zinc-400">Estoque atual</Label><Input value={f.stock} onChange={(e) => setF({ ...f, stock: e.target.value })} className="mt-1 font-mono" data-testid="ingredient-stock-input" /></div>
+        {f.unit === "kg" && <div className="col-span-2"><Label className="text-xs text-zinc-400">Produção: quantas unidades rende 1 kg?</Label><Input value={f.units_per_kg} onChange={(e) => setF({ ...f, units_per_kg: e.target.value })} placeholder="Ex.: 10 espetinhos por kg" inputMode="decimal" className="mt-1 font-mono" data-testid="ingredient-yield-input" /><p className="mt-1 text-xs text-zinc-500">Estimativa: {Math.floor(Math.max(0, n(f.stock) * n(f.units_per_kg)))} unidades com o estoque atual. Não altera a baixa em kg da ficha técnica.</p></div>}
         <div><Label className="text-xs text-zinc-400">Estoque mínimo</Label><Input value={f.min_stock} onChange={(e) => setF({ ...f, min_stock: e.target.value })} className="mt-1 font-mono" data-testid="ingredient-min-input" /></div>
       </div>
-      <Button disabled={!f.name.trim() || save.isPending} onClick={() => save.mutate({ name: f.name, unit: f.unit, stock: n(f.stock), min_stock: n(f.min_stock), cost_per_unit: n(f.cost_per_unit) })} data-testid="ingredient-save-button">Salvar</Button>
+      <Button disabled={!f.name.trim() || save.isPending} onClick={() => save.mutate({ name: f.name, unit: f.unit, stock: n(f.stock), min_stock: n(f.min_stock), cost_per_unit: n(f.cost_per_unit), units_per_kg: f.unit === "kg" ? n(f.units_per_kg) : 0 })} data-testid="ingredient-save-button">Salvar</Button>
     </>
   );
 }
