@@ -240,6 +240,71 @@ async def employee_performance(start: Optional[str] = None, end: Optional[str] =
             "note": "Comissões estimadas sobre o total de pedidos de mesa pagos atribuídos ao garçom. Não são folha de pagamento nem consideram estornos posteriores, rateios, taxas ou metas individuais."}
 
 
+def build_business_insights(orders: list[dict], expenses: list[dict], products: list[dict]) -> dict:
+    """Explainable business rules over recorded data; no external AI or fabricated predictions."""
+    paid = [o for o in orders if o.get("status") == "pago"]
+    revenue = round(sum(float(o.get("total") or 0) for o in paid), 2)
+    spending = round(sum(float(e.get("amount") or 0) for e in expenses), 2)
+    grouped: dict[str, dict] = {}
+    for order in paid:
+        for item in order.get("items", []):
+            if item.get("cancelled"):
+                continue
+            qty = float(item.get("qty") or 0)
+            if qty <= 0:
+                continue
+            key = str(item.get("product_id") or item.get("name") or "")
+            row = grouped.setdefault(key, {"product_id": key, "name": item.get("name") or "Produto",
+                                            "qty": 0.0, "revenue": 0.0, "cost": 0.0})
+            row["qty"] += qty
+            row["revenue"] += qty * float(item.get("unit_price") or 0)
+            row["cost"] += qty * float(item.get("unit_cost") or 0)
+    rows = []
+    for row in grouped.values():
+        rev, cost = row["revenue"], row["cost"]
+        rows.append({**row, "revenue": round(rev, 2), "cost": round(cost, 2),
+                     "contribution": round(rev - cost, 2),
+                     "margin_pct": round((rev - cost) / rev * 100, 1) if rev > 0 else 0})
+    rows.sort(key=lambda row: (-row["contribution"], row["name"]))
+    sold_ids = set(grouped)
+    unsold = [p["name"] for p in products if p.get("active") and p.get("id") not in sold_ids]
+    suggestions = []
+    if not paid:
+        suggestions.append({"level": "info", "title": "Sem vendas pagas", "detail": "Não há vendas pagas no período para avaliar tendências."})
+    if spending > revenue and paid:
+        suggestions.append({"level": "warning", "title": "Despesas acima das vendas",
+                            "detail": "As despesas operacionais lançadas superam o total de vendas pagas no período. Confira lançamentos e outras receitas."})
+    if rows and rows[0]["contribution"] > 0:
+        suggestions.append({"level": "info", "title": "Produto com maior contribuição bruta",
+                            "detail": f"{rows[0]['name']} gerou contribuição bruta estimada de R$ {rows[0]['contribution']:.2f}, antes de descontos e despesas."})
+    if unsold:
+        suggestions.append({"level": "info", "title": "Produtos sem vendas",
+                            "detail": f"{len(unsold)} produto(s) ativo(s) não tiveram vendas registradas no período. Avalie divulgação e disponibilidade."})
+    return {"revenue": revenue, "operating_expenses": spending, "paid_orders": len(paid),
+            "average_ticket": round(revenue / len(paid), 2) if paid else 0,
+            "top_contribution": rows[:5], "unsold_products": unsold[:20], "unsold_count": len(unsold),
+            "insights": suggestions, "method": "regras_explicaveis",
+            "note": "Análise automática baseada em regras, não IA generativa. Margens usam custos registrados nos itens e não incluem descontos, impostos, taxas ou despesas; dados ausentes podem distorcer resultados."}
+
+
+@router.get("/reports/intelligent-insights")
+async def intelligent_insights(start: Optional[str] = None, end: Optional[str] = None, _: dict = Depends(require())):
+    end = end or local_today()
+    start = start or end[:8] + "01"
+    try:
+        first, last = date.fromisoformat(start), date.fromisoformat(end)
+        if first > last or (last - first).days > 366:
+            raise ValueError("intervalo")
+        s, _ = day_bounds(start)
+        _, e = day_bounds(end)
+    except ValueError:
+        raise HTTPException(400, "Período inválido (máximo de 366 dias)")
+    orders = await paid_between(s, e)
+    expenses = await db.expenses.find({"date": {"$gte": start, "$lte": end}}, {"_id": 0}).to_list(10000)
+    products = await db.products.find({"active": True}, {"_id": 0, "id": 1, "name": 1, "active": 1}).to_list(5000)
+    return {"start": start, "end": end, **build_business_insights(orders, expenses, products)}
+
+
 @router.get("/reports/forecast")
 async def financial_forecast(months: int = 3, _: dict = Depends(require())):
     """Estimativas com base em meses completos; não são garantia de resultado."""
