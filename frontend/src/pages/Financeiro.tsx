@@ -66,6 +66,46 @@ function ForecastPanel() {
   );
 }
 
+
+type Cashflow = {
+  start: string; end: string;
+  days: { date: string; sales: number; receivables: number; payables: number; expenses: number; balance: number }[];
+  totals: { sales: number; receivables: number; payables: number; expenses: number; balance: number };
+  note: string;
+};
+
+function CashflowPanel({ start, end }: { start: string; end: string }) {
+  const q = useQuery({ queryKey: ["cashflow", start, end], queryFn: () => apiGet<Cashflow>(`/reports/cashflow?start=${start}&end=${end}`), enabled: !!start && !!end && start <= end });
+  return (
+    <section className="mb-5 space-y-3" data-testid="financial-cashflow">
+      <h2 className="text-xl font-semibold">Fluxo de caixa operacional</h2>
+      {q.isError && <p role="alert" className="text-red-400">{errMsg(q.error)}</p>}
+      {q.data && <>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <Stat label="Vendas recebidas" value={brl(q.data.totals.sales)} />
+          <Stat label="Contas recebidas" value={brl(q.data.totals.receivables)} />
+          <Stat label="Contas pagas" value={brl(q.data.totals.payables)} />
+          <Stat label="Despesas lançadas" value={brl(q.data.totals.expenses)} />
+          <Stat label="Saldo estimado" value={brl(q.data.totals.balance)} testid="cashflow-balance" />
+        </div>
+        <Panel title="Movimentação diária">
+          <div className="max-h-80 overflow-auto"><Table><TableHeader><TableRow>
+            <TableHead>Data</TableHead><TableHead className="text-right">Entradas</TableHead><TableHead className="text-right">Saídas</TableHead><TableHead className="text-right">Saldo</TableHead>
+          </TableRow></TableHeader><TableBody>
+            {q.data.days.map(row => <TableRow key={row.date}><TableCell>{row.date}</TableCell>
+              <TableCell className="text-right">{brl(row.sales + row.receivables)}</TableCell>
+              <TableCell className="text-right">{brl(row.payables + row.expenses)}</TableCell>
+              <TableCell className="text-right">{brl(row.balance)}</TableCell>
+            </TableRow>)}
+            {!q.data.days.length && <TableRow><TableCell colSpan={4} className="text-center text-zinc-400">Sem movimentos registrados no período</TableCell></TableRow>}
+          </TableBody></Table></div>
+          <p className="mt-3 text-xs text-zinc-400">{q.data.note}</p>
+        </Panel>
+      </>}
+    </section>
+  );
+}
+
 const EXP_LABEL: Record<ExpenseCat, string> = {
   aluguel: "Aluguel", salarios: "Salários", energia: "Energia", agua: "Água", marketing: "Marketing", manutencao: "Manutenção", impostos: "Impostos", outros: "Outros",
 };
@@ -202,6 +242,7 @@ export default function Financeiro() {
           </ul>
         </Panel>
       </div>
+      <CashflowPanel start={start} end={end} />
       <ForecastPanel />
       <Despesas />
     </AppShell>
