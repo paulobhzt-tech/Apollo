@@ -586,6 +586,7 @@ class PublicTable(BaseModel):
     label: str = ""
     status: str
     total: float
+    items: list[dict] = []
 
 
 class PublicOrderStatus(BaseModel):
