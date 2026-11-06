@@ -179,12 +179,18 @@ async def create_production_batch(body: ProductionBatchIn, user: dict = Depends(
     ing = await db.ingredients.find_one({"id": body.ingredient_id}, {"_id": 0})
     if not ing or ing.get("unit") != "kg":
         raise HTTPException(400, "Selecione um insumo cadastrado em kg")
+    if body.product_id and not await db.products.find_one({"id": body.product_id}):
+        raise HTTPException(400, "Produto de venda não encontrado")
     total = round(body.purchase_cost + body.extra_cost, 2)
     batch = ProductionBatch(**body.model_dump(), ingredient_name=ing["name"],
                             units_per_kg=round(body.units / body.kg, 4),
                             total_cost=total, cost_per_unit=round(total / body.units, 4),
                             by_name=user["name"]).model_dump()
     await db.production_batches.insert_one(dict(batch))
+    if body.product_id:
+        # Explicit association updates product costing. It does not change stock:
+        # sales still deduct ingredients through the existing recipe.
+        await db.products.update_one({"id": body.product_id}, {"$set": {"cost_price": round(batch["cost_per_unit"], 2)}})
     # Store the most recent yield for production estimates; inventory quantities
     # are not changed because purchase/production stock entries are separate.
     await db.ingredients.update_one({"id": ing["id"]}, {"$set": {
