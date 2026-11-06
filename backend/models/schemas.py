@@ -703,6 +703,12 @@ class Purchase(PurchaseIn):
     created_at: datetime = Field(default_factory=_now)
 
 
+class LotCountIn(BaseModel):
+    purchase_id: str
+    counted_qty: float = Field(ge=0, allow_inf_nan=False)
+    note: str = ""
+
+
 class InventoryCountIn(BaseModel):
     ingredient_id: str
     counted_qty: float = Field(ge=0, allow_inf_nan=False)
