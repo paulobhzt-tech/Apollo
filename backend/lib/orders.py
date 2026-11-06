@@ -135,16 +135,19 @@ async def restore_lots(ingredient_id: str, qty: float, note: str, by_name: str) 
     If no matching consumption exists, this leaves lot balances unchanged.
     """
     records = await db.lot_consumptions.find(
-        {"ingredient_id": ingredient_id, "note": note, "restored": {"$ne": True}},
+        {"ingredient_id": ingredient_id, "note": note},
         {}).sort("created_at", -1).to_list(5000)
     remaining = qty
     for record in records:
         if remaining <= 0.00001:
             break
-        take = min(remaining, float(record["qty"]))
+        available = round(float(record["qty"]) - float(record.get("restored_qty", 0)), 4)
+        take = min(remaining, available)
+        if take <= 0:
+            continue
         result = await db.lot_consumptions.update_one(
-            {"_id": record.get("_id"), "restored": {"$ne": True}},
-            {"$set": {"restored": True, "restored_at": now(), "restored_by": by_name}})
+            {"_id": record["_id"], "restored_qty": record.get("restored_qty", 0)},
+            {"$inc": {"restored_qty": take}, "$set": {"restored_at": now(), "restored_by": by_name}})
         if result.modified_count:
             await db.purchases.update_one(
                 {"id": record["purchase_id"]},
