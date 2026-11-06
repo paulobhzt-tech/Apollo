@@ -181,6 +181,25 @@ class IngredientIn(BaseModel):
     units_per_kg: float = Field(default=0, ge=0)
 
 
+class ProductionBatchIn(BaseModel):
+    ingredient_id: str
+    kg: float = Field(gt=0)
+    units: int = Field(gt=0)
+    purchase_cost: float = Field(ge=0)
+    extra_cost: float = Field(default=0, ge=0)
+    note: str = ""
+
+
+class ProductionBatch(ProductionBatchIn):
+    id: str = Field(default_factory=_id)
+    ingredient_name: str = ""
+    units_per_kg: float = 0
+    total_cost: float = 0
+    cost_per_unit: float = 0
+    by_name: str = ""
+    created_at: datetime = Field(default_factory=_now)
+
+
 class StockMoveIn(BaseModel):
     ingredient_id: str
     type: Literal["entrada", "saida", "ajuste", "perda"]
