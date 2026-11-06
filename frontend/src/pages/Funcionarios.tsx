@@ -19,6 +19,36 @@ const ROLES: Role[] = ["admin", "caixa", "garcom", "cozinha"];
 const ROLE_COLOR: Record<Role, string> = { admin: "text-primary border-primary/30", caixa: "text-sky-300 border-sky-400/30", garcom: "text-amber-300 border-amber-400/30", cozinha: "text-emerald-300 border-emerald-400/30" };
 const inv = () => { void queryClient.invalidateQueries({ queryKey: ["employees"] }); void queryClient.invalidateQueries({ queryKey: ["profiles"] }); };
 
+
+type ClockState = { clocked_in: boolean; clock_in_at: string | null };
+type ClockReport = { totals: { employee_id: string; employee_name: string; minutes: number; shifts: number }[]; note: string };
+
+function TimeClock() {
+  const state = useQuery({ queryKey: ["my-time-clock"], queryFn: () => apiGet<ClockState>("/employees/time-clock/me") });
+  const [start, setStart] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toLocaleDateString("en-CA"));
+  const [end, setEnd] = useState(() => new Date().toLocaleDateString("en-CA"));
+  const report = useQuery({ queryKey: ["employee-time-report", start, end], queryFn: () => apiGet<ClockReport>(`/employees/time-clock/report?start=${start}&end=${end}`), enabled: !!start && !!end && start <= end });
+  const punch = useMutation({
+    mutationFn: (action: "in" | "out") => apiPost(`/employees/time-clock/${action}`, {}),
+    onSuccess: () => { toast.success("Ponto registrado"); void queryClient.invalidateQueries({ queryKey: ["my-time-clock"] }); void queryClient.invalidateQueries({ queryKey: ["employee-time-report"] }); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
+  return <section className="mb-5 space-y-3 rounded-2xl border border-white/10 bg-panel p-4" data-testid="employee-time-clock">
+    <h2 className="text-lg font-semibold">Ponto e turnos</h2>
+    <div className="flex flex-wrap items-center gap-3">
+      <span className="text-sm text-zinc-300">{state.data?.clocked_in ? "Turno em andamento" : "Sem turno aberto"}</span>
+      <Button disabled={punch.isPending || state.isLoading || state.isError} onClick={() => punch.mutate(state.data?.clocked_in ? "out" : "in")} data-testid="employee-clock-button">{state.data?.clocked_in ? "Registrar saída" : "Registrar entrada"}</Button>
+      {state.isError && <span className="text-sm text-red-400">{errMsg(state.error)}</span>}
+    </div>
+    <div className="flex flex-wrap items-center gap-2 text-sm"><span>Relatório:</span>
+      <Input type="date" aria-label="Início do relatório de ponto" className="w-40" value={start} onChange={e => setStart(e.target.value)} />
+      <Input type="date" aria-label="Fim do relatório de ponto" className="w-40" value={end} onChange={e => setEnd(e.target.value)} />
+    </div>
+    {report.isError && <p role="alert" className="text-red-400">{errMsg(report.error)}</p>}
+    {report.data && <><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-zinc-400"><th className="p-2">Funcionário</th><th className="p-2">Turnos</th><th className="p-2">Horas registradas</th></tr></thead><tbody>{report.data.totals.map(row => <tr key={row.employee_id} className="border-t border-white/10"><td className="p-2">{row.employee_name}</td><td className="p-2">{row.shifts}</td><td className="p-2">{(row.minutes / 60).toFixed(2)} h</td></tr>)}</tbody></table></div><p className="text-xs text-zinc-400">{report.data.note}</p></>}
+  </section>;
+}
+
 export default function Funcionarios() {
   const q = useQuery({ queryKey: ["employees"], queryFn: () => apiGet<Employee[]>("/employees") });
   const [editing, setEditing] = useState<Employee | "new" | null>(null);
@@ -31,6 +61,7 @@ export default function Funcionarios() {
     <AppShell roles={[]}>
       <PageHeader title="Funcionários" subtitle="Cadastro, perfis de acesso por PIN e comissão de garçons"
         actions={<Button onClick={() => setEditing("new")} data-testid="new-employee-button"><Plus className="size-4" /> Novo funcionário</Button>} />
+      <TimeClock />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {(q.data ?? []).map((e) => (
           <article key={e.id} className="rounded-2xl border border-white/5 bg-panel p-4 transition-transform duration-200 hover:-translate-y-0.5" data-testid={`employee-card-${e.id}`}>
