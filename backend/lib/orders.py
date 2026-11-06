@@ -122,11 +122,31 @@ def ticket_label(order: dict) -> str:
 
 
 async def create_ticket(order: dict, items: list[OrderItem]) -> None:
-    t = KitchenTicket(
-        order_id=order["id"], order_number=order["number"], label=ticket_label(order), source=order["source"],
-        items=[KitchenItem(name=i.name, qty=i.qty, notes=i.notes, station=i.station, options=i.options, print_ticket=i.print_ticket) for i in items],
-    )
-    await db.kitchen_tickets.insert_one(t.model_dump())
+    """Create an independent production ticket per station.
+
+    Each environment can advance its own ticket without accidentally marking
+    products from another environment ready or delivered.
+    """
+    by_station: dict[str, list[KitchenItem]] = {}
+    for item in items:
+        station = item.station or "cozinha"
+        by_station.setdefault(station, []).append(
+            KitchenItem(name=item.name, qty=item.qty, notes=item.notes,
+                        station=station, options=item.options,
+                        print_ticket=item.print_ticket,
+                        customer_name=item.customer_name)
+        )
+    if not by_station:
+        return
+    tickets = [
+        KitchenTicket(
+            order_id=order["id"], order_number=order["number"],
+            label=ticket_label(order), source=order["source"],
+            items=station_items,
+        ).model_dump()
+        for station_items in by_station.values()
+    ]
+    await db.kitchen_tickets.insert_many(tickets)
 
 
 def compute_subtotal(order: dict) -> float:
