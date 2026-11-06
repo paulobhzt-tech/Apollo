@@ -35,6 +35,27 @@ async def public_table(id: str):
             "status": t["status"], "total": t.get("total", 0), "items": consumed}
 
 
+@router.get("/tables/{id}/preparo")
+async def public_table_preparation(id: str):
+    """Show only preparation stages for the current table order, never other tables."""
+    t = await get_table(id)
+    if not t.get("order_id"):
+        return {"tickets": []}
+    cursor = db.kitchen_tickets.find(
+        {"order_id": t["order_id"]},
+        {"_id": 0, "id": 1, "status": 1, "items.name": 1,
+         "items.qty": 1, "items.station": 1, "created_at": 1},
+    ).sort("created_at", -1)
+    tickets = await cursor.to_list(100)
+    return {"tickets": [
+        {"id": ticket["id"], "status": ticket.get("status", "novo"),
+         "items": [{"name": item.get("name", ""), "qty": item.get("qty", 0),
+                    "station": item.get("station", "cozinha")}
+                   for item in ticket.get("items", [])]}
+        for ticket in tickets
+    ]}
+
+
 @router.post("/tables/{id}/order", response_model=PublicTable)
 async def public_table_order(id: str, body: PublicOrderIn):
     t = await get_table(id)
