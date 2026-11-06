@@ -485,6 +485,25 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
   const [preview, setPreview] = useState<{ subtotal: number; remaining_subtotal: number } | null>(null);
   const [payOpen, setPayOpen] = useState(false);
   const [clientRef, setClientRef] = useState(() => uid());
+  const request = useQuery({
+    queryKey: ["table-split-request", tableId],
+    queryFn: () => apiGet<{ request: { id: string; quantities: Record<string, number>; subtotal: number } | null }>(`/tables/${tableId}/split-request`),
+    enabled: open,
+    refetchInterval: 8000,
+  });
+  const dismiss = useMutation({
+    mutationFn: () => apiDelete(`/tables/${tableId}/split-request`),
+    onSuccess: () => { toast.success("Solicitação removida"); void request.refetch(); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
+  const importRequest = () => {
+    const q = request.data?.request?.quantities;
+    if (!q) return;
+    const valid = Object.fromEntries(items.filter(i => !i.cancelled && q[i.id] > 0).map(i => [i.id, Math.min(i.qty, q[i.id])]));
+    if (!Object.keys(valid).length) { toast.error("Itens não estão mais disponíveis"); return; }
+    setQuantities(valid); setPreview(null);
+    toast.info("Itens carregados. Confira e calcule antes de receber.");
+  };
   const available = items.filter((i) => !i.cancelled);
   const calculation = useMutation({
     mutationFn: () => apiPost<{ subtotal: number; remaining_subtotal: number }>(
@@ -512,6 +531,15 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
       <DialogContent className="max-h-[85vh] overflow-y-auto border-white/10 bg-elevated sm:max-w-lg">
         <DialogHeader><DialogTitle>Divisão da conta por itens</DialogTitle></DialogHeader>
         <p className="text-sm text-zinc-400">Selecione a quantidade que cada cliente deseja pagar.</p>
+        {request.data?.request && <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3" data-testid="cashier-qr-split-request">
+          <p className="text-sm font-semibold text-amber-200">Divisão solicitada pelo QR Code</p>
+          <p className="mt-1 text-sm">Valor informado pelo cliente: {brl(request.data.request.subtotal)}</p>
+          <p className="mt-1 text-xs text-zinc-400">Confira os itens e preços atuais antes de receber.</p>
+          <div className="mt-2 flex gap-2">
+            <Button size="sm" onClick={importRequest}>Carregar itens solicitados</Button>
+            <Button size="sm" variant="outline" disabled={dismiss.isPending} onClick={() => dismiss.mutate()}>Descartar</Button>
+          </div>
+        </div>}
         <div className="space-y-2">
           {available.map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-panel p-3">
