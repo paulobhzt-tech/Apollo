@@ -6,7 +6,7 @@ from lib.auth import current_user, require
 from lib.db import db
 from lib.orders import ingredient_map, now, product_cost
 from models.schemas import (BulkDeleteIn, Category, CategoryIn, Ingredient, IngredientIn, OkOut, Product, ProductIn, Supplier, SupplierIn,
-                            StockMove, StockMoveIn, ProductionBatch, ProductionBatchIn, Purchase, PurchaseIn, InventoryCount, InventoryCountIn)
+                            StockMove, StockMoveIn, ProductionBatch, ProductionBatchIn, Purchase, PurchaseIn, InventoryCount, InventoryCountIn, LotCountIn)
 
 router = APIRouter()
 
@@ -195,6 +195,41 @@ async def purchase_expiry(_: dict = Depends(require("caixa"))):
             result.append({**p, "days_to_expiry": days})
     return sorted(result, key=lambda p: p["days_to_expiry"])
 
+
+
+@router.get("/inventory/lots")
+async def inventory_lots(_: dict = Depends(require("caixa"))):
+    return await db.purchases.find({"remaining_qty": {"$exists": True}},
+                                   {"_id": 0}).sort("expiry_date", 1).to_list(5000)
+
+
+@router.post("/inventory/lots/count")
+async def count_purchase_lot(body: LotCountIn, user: dict = Depends(require("caixa"))):
+    purchase = await db.purchases.find_one({"id": body.purchase_id}, {"_id": 0})
+    if not purchase or "remaining_qty" not in purchase:
+        raise HTTPException(404, "Lote não encontrado")
+    counted = round(body.counted_qty, 4)
+    previous = round(float(purchase["remaining_qty"]), 4)
+    delta = round(counted - previous, 4)
+    result = await db.purchases.update_one(
+        {"id": body.purchase_id, "remaining_qty": purchase["remaining_qty"]},
+        {"$set": {"remaining_qty": counted}})
+    if not result.modified_count and delta != 0:
+        raise HTTPException(409, "Lote alterado durante a conferência")
+    await db.ingredients.update_one({"id": purchase["ingredient_id"]},
+                                    {"$inc": {"stock": delta}, "$set": {"updated_at": now()}})
+    await db.inventory_counts.insert_one({
+        "id": __import__("uuid").uuid4().hex, "ingredient_id": purchase["ingredient_id"],
+        "purchase_id": purchase["id"], "counted_qty": counted, "previous_qty": previous,
+        "difference": delta, "note": body.note, "by_name": user["name"], "created_at": now()})
+    return {"ok": True, "difference": delta, "remaining_qty": counted}
+
+
+@router.get("/inventory/lots/trace")
+async def lot_trace(note: str = "", _: dict = Depends(require("caixa"))):
+    if not note.strip():
+        raise HTTPException(400, "Informe a referência da venda ou produção")
+    return await db.lot_consumptions.find({"note": note}, {"_id": 0}).to_list(500)
 
 
 @router.get("/inventory/counts", response_model=list[InventoryCount])
