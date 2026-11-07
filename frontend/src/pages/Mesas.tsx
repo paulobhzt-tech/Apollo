@@ -554,6 +554,17 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                     </Select>
                     <Button variant="outline" disabled={!transferTo} onClick={() => transfer.mutate()} data-testid="transfer-button"><ArrowRightLeft className="size-4" /></Button>
                   </div>
+                  {(me?.role === "admin" || me?.role === "caixa") && <div className="mt-3 space-y-2 rounded-lg border border-white/10 p-3" data-testid="merge-tables-panel">
+                    <p className="text-xs text-zinc-300">Juntar contas — escolha a mesa que receberá todos os itens</p>
+                    <div className="flex gap-2">
+                      <Select value={mergeTo} onValueChange={(v: string) => setMergeTo(v)}>
+                        <SelectTrigger className="flex-1" data-testid="merge-select"><SelectValue placeholder="Mesa de destino">{(v) => v ? (() => { const x = tables.find(t => t.id === v); return x ? tableLabel(x) : ""; })() : "Mesa de destino"}</SelectValue></SelectTrigger>
+                        <SelectContent>{tables.filter(t => t.id !== table.id && !!t.order_id).map(t => <SelectItem key={t.id} value={t.id}>{tableLabel(t)}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <Button variant="outline" data-testid="merge-button" disabled={!mergeTo || merge.isPending} onClick={() => { const dst = tables.find(t => t.id === mergeTo); if (dst && window.confirm(`Juntar ${tableLabel(table)} em ${tableLabel(dst)}? Os itens serão transferidos e a mesa de origem será liberada.`)) merge.mutate(); }}>Juntar</Button>
+                    </div>
+                    <p className="text-xs text-zinc-500">Disponível para caixa e administrador. Requer banco de dados com transações.</p>
+                  </div>}
                   <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/5 pt-3">
                     <Button size="sm" variant="outline" disabled={status.isPending}
                       onClick={() => status.mutate(table.status === "conta" ? "ocupada" : "conta")} data-testid="table-toggle-status-button">
