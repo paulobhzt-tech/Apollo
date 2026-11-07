@@ -12,6 +12,7 @@ import Notas from "@/pages/Notas";
 import Produtos from "@/pages/Produtos";
 import Estoque from "@/pages/Estoque";
 import Financeiro from "@/pages/Financeiro";
+import MusicaAoVivo from "@/pages/MusicaAoVivo";
 import Funcionarios from "@/pages/Funcionarios";
 import QrCodes from "@/pages/QrCodes";
 import Cardapio from "@/pages/Cardapio";
@@ -75,6 +76,7 @@ export default function App() {
       <Route path="/produtos" element={<Produtos />} />
       <Route path="/estoque" element={<Estoque />} />
       <Route path="/financeiro" element={<Financeiro />} />
+      <Route path="/musica-ao-vivo" element={<MusicaAoVivo />} />
       <Route path="/funcionarios" element={<Funcionarios />} />
       <Route path="/qrcodes" element={<QrCodes />} />
       <Route path="/cardapio/:tableId" element={<Cardapio />} />
