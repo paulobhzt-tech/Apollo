@@ -6,10 +6,27 @@ const { app, BrowserWindow, ipcMain, net, protocol, safeStorage, shell, Menu } =
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const { autoUpdater } = require("electron-updater");
 
 const CHECK_MS = 15000;
 let win = null;
 let mode = "online";
+
+// Updates are delivered only through official published GitHub releases.
+// Test builds, unpackaged development and CI smoke runs never auto-update.
+function enableProductionUpdates() {
+  if (!app.isPackaged || cfg.testBuild === true || process.env.PDV_SMOKE) return;
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true; // Never restart an active sale.
+  autoUpdater.allowPrerelease = false;
+  autoUpdater.on("update-available", (info) => console.log("Apollo: atualizacao disponivel", info.version));
+  autoUpdater.on("update-downloaded", (info) => console.log("Apollo: atualizacao pronta para o proximo encerramento", info.version));
+  autoUpdater.on("error", (err) => console.error("Apollo: falha ao verificar atualizacoes", err.message));
+  const check = () => autoUpdater.checkForUpdates().catch((err) => console.error("Apollo: consulta de atualizacao falhou", err.message));
+  setTimeout(check, 30000);
+  setInterval(check, 6 * 60 * 60 * 1000);
+}
+
 
 // ---------- config (userData/config.json, editable without reinstalling) ----------
 const userDir = () => app.getPath("userData");
@@ -225,5 +242,6 @@ app.whenReady().then(() => {
   registerAppProtocol();
   createWindow();
   watchConnection();
+  enableProductionUpdates();
 });
 app.on("window-all-closed", () => app.quit());
