@@ -30,3 +30,9 @@ def test_quote_validation():
 def test_quote_rejects_nonfinite_price(invalid):
     with pytest.raises(ValueError):
         SupplierQuoteIn(supplier_id="s", ingredient_id="i", unit_price=invalid)
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf"), -1, 0])
+def test_comparison_rejects_invalid_quantities(invalid):
+    with pytest.raises(ValueError):
+        compare_quotes([], invalid)
