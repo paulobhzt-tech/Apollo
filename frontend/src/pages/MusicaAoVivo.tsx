@@ -32,10 +32,10 @@ export default function MusicaAoVivo() {
     <EventForm key={date + (data?.saved ? "saved" : "new")} data={data} onChange={(v) => { setValues(v); setDirty(true); }} save={mutation.mutate} saving={mutation.isPending} />
     {data && <div className="mt-5 space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Vendas pagas no dia" value={brl(revenue)} />
-        <Stat label="Meta para cobrir evento" value={brl(dirty ? target : data.target)} />
-        <Stat label="Falta vender" value={brl(preview?.remaining ?? 0)} />
-        <Stat label="Resultado estimado do evento" value={brl(preview?.event_result ?? 0)} />
+        <Stat testid="live-music-stat-1" label="Vendas pagas no dia" value={brl(revenue)} />
+        <Stat testid="live-music-stat-2" label="Meta para cobrir evento" value={brl(dirty ? target : data.target)} />
+        <Stat testid="live-music-stat-3" label="Falta vender" value={brl(preview?.remaining ?? 0)} />
+        <Stat testid="live-music-stat-4" label="Resultado estimado do evento" value={brl(preview?.event_result ?? 0)} />
       </div>
       <div className="rounded-xl border border-white/10 bg-white/5 p-4">
         <strong className={((preview?.event_result ?? 0) >= 0) ? "text-emerald-400" : "text-amber-300"}>{(preview?.event_result ?? 0) >= 0 ? "Meta atingida" : "Meta ainda não atingida"}</strong>
