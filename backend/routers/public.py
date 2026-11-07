@@ -17,13 +17,14 @@ from models.schemas import CallIn, OkOut, PublicDeliveryIn, PublicMenu, PublicOr
 router = APIRouter(prefix="/public")
 QR_WINDOW_SECONDS = 60
 QR_MAX_REQUESTS = 12
+QR_MAX_READS = 120
 
 
-async def limit_table_actions(request: Request, table_id: str) -> None:
+async def limit_table_actions(request: Request, table_id: str, *, read_only: bool = False) -> None:
     """Shared MongoDB rate limit per client and table, across application workers."""
     import hashlib
     ip = request.client.host if request.client else "unknown"
-    key = hashlib.sha256(f"{ip}:{table_id}".encode()).hexdigest()
+    key = hashlib.sha256(f"{ip}:{table_id}:{'read' if read_only else 'write'}".encode()).hexdigest()
     bucket = int(datetime.now(timezone.utc).timestamp()) // QR_WINDOW_SECONDS
     expires = datetime.now(timezone.utc) + timedelta(minutes=3)
     record = await db.public_qr_limits.find_one_and_update(
@@ -32,7 +33,7 @@ async def limit_table_actions(request: Request, table_id: str) -> None:
         upsert=True,
         return_document=True,
     )
-    if record["attempts"] > QR_MAX_REQUESTS:
+    if record["attempts"] > (QR_MAX_READS if read_only else QR_MAX_REQUESTS):
         raise HTTPException(429, "Muitas solicitações para esta mesa. Aguarde um minuto.")
 
 RESTAURANT = os.environ.get("RESTAURANT_NAME", "Espeteria Churras Burguer")
@@ -48,7 +49,8 @@ async def menu():
 
 
 @router.get("/tables/{id}", response_model=PublicTable)
-async def public_table(id: str):
+async def public_table(id: str, request: Request):
+    await limit_table_actions(request, id, read_only=True)
     t = await get_table(id)
     order = await db.orders.find_one({"id": t.get("order_id"), "status": "aberto"}, {"_id": 0, "items": 1}) if t.get("order_id") else None
     consumed = [{"id": item.get("id", ""), "name": item.get("name", ""), "qty": item.get("qty", 0),
@@ -59,8 +61,9 @@ async def public_table(id: str):
 
 
 @router.get("/tables/{id}/preparo")
-async def public_table_preparation(id: str):
+async def public_table_preparation(id: str, request: Request):
     """Show only preparation stages for the current table order, never other tables."""
+    await limit_table_actions(request, id, read_only=True)
     t = await get_table(id)
     if not t.get("order_id"):
         return {"tickets": []}
