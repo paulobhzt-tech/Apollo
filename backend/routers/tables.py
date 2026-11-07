@@ -251,6 +251,8 @@ async def merge_tables(id: str, body: MergeTablesIn, _: dict = Depends(require("
                     raise HTTPException(400, "Não é possível juntar comandas com pagamentos registrados")
                 source_items = source.get("items", [])
                 target_items = target.get("items", [])
+                if {i["id"] for i in target_items} & {i["id"] for i in source_items}:
+                    raise HTTPException(409, "Itens duplicados entre comandas; revise antes de juntar")
                 all_items = target_items + source_items
                 active = [i for i in all_items if not i.get("cancelled")]
                 subtotal = round(sum(float(i.get("qty", 0)) * float(i.get("unit_price", 0)) for i in active), 2)
@@ -264,7 +266,7 @@ async def merge_tables(id: str, body: MergeTablesIn, _: dict = Depends(require("
                     raise HTTPException(409, "Destino alterado durante a junção")
                 archived = await db.orders.update_one(
                     {"id": source["id"], "status": "aberto"},
-                    {"$set": {"status": "mesclado", "merged_into_order_id": target["id"],
+                    {"$set": {"status": "cancelado", "cancel_reason": "Conta reunida em outra mesa", "merged_into_order_id": target["id"],
                               "merged_at": now(), "items": [], "subtotal": 0, "total": 0, "cmv": 0}},
                     session=session)
                 if archived.modified_count != 1:
@@ -273,18 +275,22 @@ async def merge_tables(id: str, body: MergeTablesIn, _: dict = Depends(require("
                     {"order_id": source["id"]},
                     {"$set": {"order_id": target["id"], "table_id": dst["id"], "table_number": dst["number"]}},
                     session=session)
-                await db.tables.update_one(
+                updated_dst = await db.tables.update_one(
                     {"id": dst["id"], "order_id": target["id"]},
                     {"$set": {"total": subtotal, "customers": guests,
                               "people": max(1, int(src.get("people") or 1) + int(dst.get("people") or 1))}},
                     session=session)
-                await db.tables.update_one(
+                if updated_dst.modified_count != 1:
+                    raise HTTPException(409, "Mesa de destino alterada durante a junção")
+                updated_src = await db.tables.update_one(
                     {"id": src["id"], "order_id": source["id"]},
                     {"$set": {"status": "livre", "order_id": None, "total": 0,
                               "customer_name": "", "customers": [], "people": 0,
                               "waiter_id": None, "waiter_name": "", "opened_at": None, "call": ""},
                      "$unset": {"split_request": ""}},
                     session=session)
+                if updated_src.modified_count != 1:
+                    raise HTTPException(409, "Mesa de origem alterada durante a junção")
     except PyMongoError as exc:
         raise HTTPException(503, "Junção exige MongoDB com transações habilitadas; nenhuma mesa foi alterada") from exc
     return await get_table(body.target_table_id)
