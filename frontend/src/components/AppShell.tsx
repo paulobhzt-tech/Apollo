@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiGet } from "@/lib/api";
 import { Link, NavLink, Navigate, useLocation } from "react-router-dom";
 import {
   Armchair, Bike, Boxes, ChefHat, LayoutDashboard, LineChart, LogOut, Menu, QrCode, Receipt, ShoppingCart,
@@ -103,6 +105,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
   const [activeRibbon, setActiveRibbon] = useState<string | null>(null);
   const loc = useLocation();
   const { resolvedTheme, setTheme } = useTheme();
+  const backupChoice = useQuery({ queryKey: ["backup-destination"], queryFn: () => apiGet<{ destination: "pc" | "google_drive" | null }>("/settings/backup-destination"), enabled: me?.role === "admin", staleTime: 60000 });
 
   if (isLoading) return <div className="grid min-h-screen place-items-center text-zinc-500">Carregando…</div>;
   if (isError || !me) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
@@ -130,6 +133,11 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {me.role === "admin" && backupChoice.data && !backupChoice.data.destination && loc.pathname !== "/config" && (
+          <Link to="/config?tab=backup" className="bg-amber-500 px-4 py-2 text-center text-sm font-semibold text-black" data-testid="backup-setup-required">
+            Configuração obrigatória: escolha backup no Google Drive ou no PC em Configurações → Backup.
+          </Link>
+        )}
         <header className="sticky top-0 z-30 border-b border-white/10 bg-[#252527] text-white" data-testid="apollo-ribbon">
           <div className="flex min-h-10 items-center gap-2 border-b border-white/10 px-2 sm:px-4">
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)} data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
