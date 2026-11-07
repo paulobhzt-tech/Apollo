@@ -62,3 +62,17 @@ async def test_delete_bill_rejects_settled_record(monkeypatch):
         await finance.delete_bill("bill-1", {"role": "admin"})
     assert error.value.status_code == 409
     assert deleted.await_args.args[0] == {"id": "bill-1", "status": "aberto"}
+
+
+@pytest.mark.asyncio
+async def test_cancel_bill_records_audit_event(monkeypatch):
+    cancelled = {"id": "bill-1", "kind": "pagar", "status": "cancelado"}
+    update = AsyncMock(return_value=cancelled)
+    audit = AsyncMock()
+    monkeypatch.setattr(finance.db.bills, "find_one_and_update", update)
+    monkeypatch.setattr(finance, "audit_bill_change", audit)
+    actor = {"id": "admin-1", "name": "Admin", "role": "admin"}
+    result = await finance.cancel_bill("bill-1", actor)
+    assert result["status"] == "cancelado"
+    assert update.await_args.args[0] == {"id": "bill-1", "status": "aberto"}
+    audit.assert_awaited_once_with("cancelled", actor, cancelled)
