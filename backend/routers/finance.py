@@ -243,6 +243,11 @@ async def cancel_bill(id: str, _: dict = Depends(require())):
 
 @router.delete("/bills/{id}", response_model=OkOut)
 async def delete_bill(id: str, _: dict = Depends(require())):
-    if not (await db.bills.delete_one({"id": id})).deleted_count:
+    # Never erase settled financial records or their audit trail.
+    deleted = await db.bills.delete_one({"id": id, "status": "aberto"})
+    if deleted.deleted_count:
+        return OkOut(message="Conta apagada")
+    existing = await db.bills.find_one({"id": id}, {"_id": 0, "status": 1})
+    if not existing:
         raise HTTPException(404, "Conta não encontrada")
-    return OkOut(message="Conta apagada")
+    raise HTTPException(409, "Conta paga ou cancelada não pode ser apagada; preserve o histórico financeiro.")
