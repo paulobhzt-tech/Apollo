@@ -100,6 +100,7 @@ export function OfflineBadge() {
 export default function AppShell({ children, roles }: { children: ReactNode; roles?: Role[] }) {
   const { data: me, isLoading, isError } = useMe();
   const [open, setOpen] = useState(false);
+  const [activeRibbon, setActiveRibbon] = useState<string | null>(null);
   const loc = useLocation();
   const { resolvedTheme, setTheme } = useTheme();
 
@@ -129,24 +130,45 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex min-h-16 flex-wrap items-center gap-3 border-b border-white/5 bg-background/95 px-4 py-2 backdrop-blur-xl lg:px-6">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)} data-testid="mobile-menu-button">
-            <Menu className="size-5" />
-          </Button>
-          <div className="shrink-0"><Brand /></div>
-          <nav aria-label="Menu principal" className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto lg:flex">
-            {NAV.filter((item) => item.roles.includes(me.role)).map((item) => {
-              const Icon = ICONS[item.icon];
-              return <NavLink key={item.to} to={item.to} title={item.label} className={({ isActive }) => cn("flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors", isActive ? "bg-primary/15 text-primary" : "text-zinc-400 hover:bg-white/5 hover:text-white")}><Icon className="size-4" /><span>{item.label}</span></NavLink>;
+        <header className="sticky top-0 z-30 border-b border-white/10 bg-[#252527] text-white" data-testid="apollo-ribbon">
+          <div className="flex min-h-10 items-center gap-2 border-b border-white/10 px-2 sm:px-4">
+            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)} data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
+            <div className="mr-2 hidden shrink-0 sm:block"><Brand /></div>
+            <nav aria-label="Seções do sistema" className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto">
+              {([
+                ["PRINCIPAL", "Operação"], ["PRODUTOS", "Cadastros"], ["FINANCEIRO", "Financeiro"], ["RELATÓRIOS", "Relatórios"], ["CONFIGURAÇÕES", "Sistema"],
+              ] as const).map(([label, group]) => {
+                const selected = activeRibbon ? activeRibbon === group : NAV.some(n => n.group === group && n.to === loc.pathname) || (group === "Operação" && loc.pathname === "/");
+                return <button key={group} type="button" onClick={() => setActiveRibbon(group)}
+                  className={cn("shrink-0 px-3 py-3 text-[10px] font-medium transition-colors hover:bg-white/10 sm:text-xs", selected ? "bg-[#36363a] text-white" : "text-zinc-300")}
+                  aria-pressed={selected}>{label}</button>;
+              })}
+            </nav>
+            <button type="button" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              className="hidden shrink-0 items-center gap-2 text-xs text-zinc-200 hover:text-white sm:flex" data-testid="theme-toggle">
+              {resolvedTheme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
+              <span className="hidden xl:inline">Modo {resolvedTheme === "dark" ? "Escuro" : "Claro"}</span>
+            </button>
+            <OfflineBadge />
+            <button type="button" onClick={() => void endSession()} className="hidden shrink-0 items-center gap-1 text-xs text-zinc-200 hover:text-white lg:flex" title="Bloquear ou trocar operador">
+              <Users className="size-4" /><span className="max-w-32 truncate">{me.name}</span><LogOut className="size-3" />
+            </button>
+          </div>
+          <nav aria-label="Atalhos do sistema" className="flex min-h-20 items-stretch gap-1 overflow-x-auto bg-[#303034] px-2 py-1.5 sm:px-4">
+            {NAV.filter(n => n.roles.includes(me.role) && (
+              activeRibbon === "Relatórios" ? ["/vendas", "/financeiro"].includes(n.to) :
+              activeRibbon ? n.group === activeRibbon :
+              (NAV.find(item => item.to === loc.pathname)?.group ?? "Operação") === n.group
+            )).map(n => {
+              const Icon = ICONS[n.icon] ?? LayoutDashboard;
+              return <NavLink key={n.to} to={n.to} title={n.label} onClick={() => setActiveRibbon(null)}
+                className={({isActive}) => cn("flex min-w-20 max-w-28 shrink-0 flex-col items-center justify-center gap-1 rounded-sm px-2 py-2 text-center text-[11px] leading-tight transition-colors hover:bg-white/10",isActive ? "bg-[#414147] text-white" : "text-zinc-200")}>
+                <Icon className="size-6 text-[#e6b44d]" strokeWidth={1.8} /><span>{n.label}</span>
+              </NavLink>;
             })}
           </nav>
-          <div className="ml-auto flex items-center gap-3">
-            <button type="button" aria-label={resolvedTheme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"} title={resolvedTheme === "dark" ? "Tema claro" : "Tema escuro"} onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")} className="rounded-lg border border-border p-2 text-foreground hover:bg-accent" data-testid="theme-toggle">{resolvedTheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}</button>
-            <OfflineBadge />
-            <span className="hidden text-xs text-zinc-500 sm:inline" data-testid="header-user">{me.name}</span>
-          </div>
         </header>
-        <main className="flex-1 px-4 py-6 lg:px-8">
+        <main className="flex-1 px-3 py-4 lg:px-5">
           {allowed ? children : (
             <div className="mx-auto mt-20 max-w-md text-center" data-testid="no-permission">
               <h2 className="text-2xl font-semibold text-white">Acesso restrito</h2>
