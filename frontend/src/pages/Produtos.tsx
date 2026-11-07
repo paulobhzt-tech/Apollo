@@ -94,7 +94,7 @@ export default function Produtos() {
           <div className="rounded-2xl border border-white/5 bg-panel">
             <Table>
               <TableHeader>
-                <TableRow><TableHead className="w-8"><Checkbox checked={all.length > 0 && sel.length === all.length} onCheckedChange={(v) => setSel(v ? all.map((p) => p.id) : [])} data-testid="product-select-all" /></TableHead><TableHead>Produto</TableHead><TableHead>Categoria</TableHead><TableHead>Ambiente</TableHead><TableHead className="text-right">Preço</TableHead><TableHead className="text-right">Custo</TableHead><TableHead className="text-right">Margem</TableHead><TableHead /></TableRow>
+                <TableRow><TableHead className="w-8"><Checkbox checked={all.length > 0 && sel.length === all.length} onCheckedChange={(v) => setSel(v ? all.map((p) => p.id) : [])} data-testid="product-select-all" /></TableHead><TableHead>Cód. PDV</TableHead><TableHead>Produto</TableHead><TableHead>Categoria</TableHead><TableHead>Ambiente</TableHead><TableHead className="text-right">Preço</TableHead><TableHead className="text-right">Custo</TableHead><TableHead className="text-right">Margem</TableHead><TableHead>Status venda</TableHead><TableHead /></TableRow>
               </TableHeader>
               <TableBody>
                 {visible.map((p) => (
@@ -116,7 +116,7 @@ export default function Produtos() {
                     </TableCell>
                     <TableCell className="text-right font-mono">{brl(p.price)}</TableCell>
                     <TableCell className="text-right font-mono text-zinc-400">{brl(p.cost)}{p.cost_price > 0 && <span className="ml-1 text-[10px] text-zinc-500">manual</span>}</TableCell>
-                    <TableCell className={cn("text-right font-mono", p.margin_pct >= 65 ? "text-emerald-300" : p.margin_pct >= 45 ? "text-amber-300" : "text-red-300")}>{p.margin_pct}%</TableCell>
+                    <TableCell className={cn("text-right font-mono", p.margin_pct >= 65 ? "text-emerald-300" : p.margin_pct >= 45 ? "text-amber-300" : "text-red-300")}>{p.margin_pct}%</TableCell>\n                    <TableCell><span className={p.active ? "text-emerald-300" : "text-zinc-400"}>{p.active ? "● Ativo" : "○ Inativo"}</span></TableCell>
                     <TableCell className="text-right">
                       <Button size="icon-sm" variant="ghost" onClick={() => setEditing(p)} data-testid={`edit-product-${p.code || p.id}`}><Pencil /></Button>
                       <Button size="icon-sm" variant="ghost" onClick={() => window.confirm(`Apagar ${p.name}?`) && del.mutate(p.id)} data-testid={`delete-product-${p.code || p.id}`}><Trash2 /></Button>
