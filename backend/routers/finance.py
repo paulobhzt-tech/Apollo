@@ -187,22 +187,30 @@ async def update_bill(id: str, body: BillIn, _: dict = Depends(require())):
 
 @router.post("/bills/{id}/pay", response_model=Bill)
 async def pay_bill(id: str, body: BillPayIn, _: dict = Depends(require("caixa"))):
-    b = await db.bills.find_one({"id": id})
-    if not b:
+    """Atomically settle an open bill; a concurrent payment cannot settle it twice."""
+    updated = await db.bills.find_one_and_update(
+        {"id": id, "status": "aberto"},
+        {"$set": {"status": "pago", **body.model_dump()}},
+        projection={"_id": 0}, return_document=True,
+    )
+    if updated:
+        return updated
+    existing = await db.bills.find_one({"id": id}, {"_id": 0, "status": 1})
+    if not existing:
         raise HTTPException(404, "Conta não encontrada")
-    if b["status"] != "aberto":
-        raise HTTPException(400, "Conta já baixada ou cancelada")
-    return await db.bills.find_one_and_update({"id": id}, {"$set": {"status": "pago", **body.model_dump()}}, projection={"_id": 0}, return_document=True)
+    raise HTTPException(409, "Conta já baixada ou cancelada. Atualize a lista.")
 
 
 @router.post("/bills/{id}/reopen", response_model=Bill)
 async def reopen_bill(id: str, _: dict = Depends(require())):
-    b = await db.bills.find_one_and_update({"id": id, "status": {"$ne": "aberto"}},
-                                           {"$set": {"status": "aberto", "paid_date": None, "paid_amount": 0, "payment_method": ""}},
-                                           projection={"_id": 0}, return_document=True)
-    if not b:
-        raise HTTPException(400, "Conta não encontrada ou já está em aberto")
-    return b
+    updated = await db.bills.find_one_and_update(
+        {"id": id, "status": {"$in": ["pago", "cancelado"]}},
+        {"$set": {"status": "aberto", "paid_date": None, "paid_amount": 0, "payment_method": ""}},
+        projection={"_id": 0}, return_document=True,
+    )
+    if not updated:
+        raise HTTPException(409, "Conta inexistente ou já aberta. Atualize a lista.")
+    return updated
 
 
 @router.post("/bills/{id}/cancel", response_model=Bill)
