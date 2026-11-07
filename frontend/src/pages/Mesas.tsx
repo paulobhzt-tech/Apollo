@@ -387,9 +387,26 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   return (
     <>
       <Sheet open={open} onOpenChange={(v) => { if (!v) { onClose(); setAdding(false); setPending([]); } }}>
-        <SheetContent side="right" className="w-full overflow-y-auto border-white/5 bg-shell p-0 sm:max-w-xl" data-testid="table-sheet">
+        <SheetContent side="right" className="w-full overflow-y-auto border-white/10 bg-[#252527] p-0 sm:max-w-[96vw] xl:max-w-[1120px]" data-testid="table-sheet">
           {table && (
-            <div className="flex min-h-full flex-col p-5">
+            <div className="flex min-h-full flex-col">
+              <div className="flex items-center gap-3 border-b border-white/10 bg-[#202023] px-5 py-3 pr-12">
+                <span className="text-xl font-bold text-emerald-400">{table.number}</span>
+                <span className="rounded-sm bg-emerald-700 px-4 py-2 text-xs font-semibold text-white">{table.order_id ? "Em Aberto" : STATUS[table.status].label}</span>
+                <strong className="text-sm text-white">{table.kind === "mesa" ? "Mesa" : "Comanda"} {table.number}{o ? ` · Pedido #${o.number}` : ""}</strong>
+              </div>
+              <div className="grid flex-1 lg:grid-cols-[225px_minmax(0,1fr)]">
+                <aside className="flex flex-col gap-3 border-b border-white/10 bg-[#2d2d31] p-4 text-xs text-zinc-300 lg:min-h-[calc(100vh-7rem)] lg:border-b-0 lg:border-r">
+                  <div className="flex items-center gap-2"><Clock className="size-4 text-zinc-400" /> {table.opened_at ? `Iniciado em ${fmtTime(table.opened_at)}` : "Aguardando abertura"}</div>
+                  <div className="flex items-center gap-2"><Users className="size-4 text-zinc-400" /> {table.waiter_name ? `Criado por: ${table.waiter_name}` : "Atendimento"}</div>
+                  <div className="rounded border border-white/10 bg-[#252527] p-2 text-zinc-200">{table.customer_name || table.name || "Cliente não identificado"}</div>
+                  <div className="mt-auto flex flex-wrap gap-2 lg:flex-col">
+                    <Button variant="outline" size="sm" onClick={() => onQr(table)} data-testid="table-qr-button"><QrCode className="size-4" /> QR da mesa</Button>
+                    {table.order_id && <Button variant="outline" size="sm" onClick={() => setPreBill(true)}><Receipt className="size-4" /> Imprimir pré-conta</Button>}
+                    <Button variant="ghost" size="sm" onClick={onClose}>Voltar</Button>
+                  </div>
+                </aside>
+                <div className="min-w-0 p-4 lg:p-5">
               <div className="flex items-start justify-between pr-8">
                 <div>
                   <SheetTitle className="font-heading text-2xl text-white" data-testid="table-sheet-title">{tableLabel(table)}</SheetTitle>
@@ -399,7 +416,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                     {table.opened_at && ` · aberta ${fmtTime(table.opened_at)}`}
                   </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => onQr(table)} data-testid="table-qr-button"><QrCode className="size-4" /> QR</Button>
+                <span className="rounded border border-white/10 px-2 py-1 text-xs text-zinc-400">{o ? `Pedido #${o.number}` : "Sem pedido"}</span>
               </div>
               <RenameRow key={table.id + table.name} table={table} canDelete={canDelete} onDeleted={onClose} />
 
@@ -428,16 +445,16 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
               ) : (
                 <>
                   <TableCustomers key={table.id + (table.order_id ?? "")} table={table} />
-                  <div className="mt-5 flex items-center justify-between">
+                  <div className="mt-5 flex items-center justify-between border-b border-white/10 pb-2">
                     <span className="text-xs uppercase tracking-[0.15em] text-zinc-500">Itens · {items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)} un.</span>
                     <button type="button" onClick={() => setGrouped((g) => !g)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-300 transition-colors duration-150 hover:border-primary/50" data-testid="toggle-group-items">
                       {grouped ? "Ver item a item (cancelar)" : "Agrupar quantidades"}
                     </button>
                   </div>
                   {grouped ? (
-                    <div className="mt-2 space-y-2" data-testid="table-order-grouped">
+                    <div className="mt-2 space-y-0 divide-y divide-white/10 rounded-sm border border-white/10" data-testid="table-order-grouped">
                       {groupItems(items).map((g) => (
-                        <div key={g.key} className="flex items-center gap-3 rounded-xl bg-panel px-3 py-2.5 text-sm" data-testid="grouped-line">
+                        <div key={g.key} className="flex items-center gap-3 bg-[#28282b] px-3 py-3 text-sm" data-testid="grouped-line">
                           <span className="min-w-8 font-mono text-primary" data-testid="grouped-line-qty">{g.qty}x</span>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-white">{g.name}</p>
@@ -474,7 +491,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                     {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
                   </div>
                   )}
-                  <div className="mt-4 flex items-end justify-between border-t border-white/10 pt-3">
+                  <div className="mt-4 flex items-end justify-between border-y border-white/10 bg-[#29292c] px-3 py-4">
                     <span className="text-sm text-zinc-400">Subtotal (+10% serviço opcional)</span>
                     <span className="font-mono text-2xl text-white" data-testid="table-order-total">{brl(o?.total ?? table.total)}</span>
                   </div>
@@ -543,6 +560,8 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                   </div>
                 </>
               )}
+                </div>
+              </div>
             </div>
           )}
         </SheetContent>
