@@ -22,9 +22,8 @@ export default function MusicaAoVivo() {
   const valid = Number.isFinite(totalCosts) && Number(values.fee) >= 0 && Number(values.extra) >= 0 && Number(values.margin) > 0 && Number(values.margin) <= 100;
   const target = valid ? totalCosts / (Number(values.margin) / 100) : 0;
   const revenue = data?.revenue ?? 0;
-  const preview = dirty ? { target, remaining: Math.max(0, target - revenue), contribution: revenue * Number(margin) / 100, event_result: revenue * Number(margin) / 100 - totalCosts } : data;
-  const edit = (fn: () => void) => { fn(); setDirty(true); };
-  return <AppShell roles={["admin", "caixa"]}>
+  const preview = dirty ? { target, remaining: Math.max(0, target - revenue), contribution: revenue * Number(values.margin) / 100, event_result: revenue * Number(values.margin) / 100 - totalCosts } : data;
+  return <AppShell roles={["admin"]}>
     <PageHeader title="Música ao Vivo — Meta de Vendas" subtitle="Quanto o dia precisa vender para cobrir o cachê e os custos do evento" />
     <div className="mb-4 max-w-sm"><Label htmlFor="music-date">Data do evento</Label><Input id="music-date" type="date" value={date} onChange={e => { setDate(e.target.value); setDirty(false); }} /></div>
     {q.isError && <p role="alert" className="mb-4 text-red-400">Não foi possível carregar o evento e as vendas. Tente novamente.</p>}
