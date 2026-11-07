@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Bell, Receipt, ShoppingCart, ListChecks } from "lucide-react";
+import { Bell, Receipt, ShoppingCart, ListChecks, ChefHat } from "lucide-react";
 import { toast } from "sonner";
 import PublicMenu from "@/components/PublicMenu";
 import { Button } from "@/components/ui/button";
@@ -120,10 +120,11 @@ export default function Cardapio() {
         </>
       }
       renderCheckout={(_lines, items, total, clear) => (
-        <Button className="h-14 w-full text-base" disabled={!items.length || order.isPending || !t} data-testid="public-send-order"
+        <Button className="h-14 w-full text-base" disabled={!items.length || order.isPending || !t || t.status === "reservada" || t.status === "conta"} data-testid="public-send-order"
           onClick={() => order.mutate(items, {
             onSuccess: () => {
               toast.success("Pedido enviado para a cozinha!");
+              setShowPreparation(true);
               clear(); setCartOpen(false);
               void queryClient.invalidateQueries({ queryKey: ["public-table", tableId] });
               void queryClient.invalidateQueries({ queryKey: ["public-preparation", tableId] });
