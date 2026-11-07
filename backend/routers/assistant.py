@@ -75,11 +75,57 @@ async def monthly_expenses_response() -> dict:
             "metrics": metrics, "source": "despesas_lancadas_mes", "provider": "local"}
 
 
+def top_selling_products(orders: list[dict], limit: int = 5) -> list[dict]:
+    products: dict[str, dict] = {}
+    for order in orders:
+        for item in order.get("items", []):
+            if item.get("cancelled"):
+                continue
+            name = str(item.get("name") or "").strip()
+            if not name:
+                continue
+            qty = float(item.get("qty") or 0)
+            unit_price = float(item.get("unit_price") or 0)
+            if qty <= 0:
+                continue
+            entry = products.setdefault(name, {"name": name, "qty": 0.0, "revenue": 0.0})
+            entry["qty"] += qty
+            entry["revenue"] += qty * unit_price
+    return [
+        {"name": row["name"], "qty": round(row["qty"], 3), "revenue": round(row["revenue"], 2)}
+        for row in sorted(products.values(), key=lambda r: (-r["qty"], -r["revenue"], r["name"]))[:limit]
+    ]
+
+
+def format_top_products(items: list[dict], month: str) -> str:
+    if not items:
+        return f"Não há produtos vendidos em pedidos pagos registrados em {month}."
+    lines = [f"Produtos mais vendidos em {month}, por quantidade (pedidos pagos):"]
+    for index, item in enumerate(items, 1):
+        brl = f"R$ {item['revenue']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        lines.append(f"{index}. {item['name']}: {item['qty']:g} unidade(s), {brl}.")
+    lines.append("Valores de vendas não representam lucro; itens cancelados foram excluídos.")
+    return "\\n".join(lines)
+
+
+async def top_products_response() -> dict:
+    month = local_today()[:7]
+    start, _ = day_bounds(month + "-01")
+    _, end = day_bounds(local_today())
+    orders = await paid_between(start, end)
+    items = top_selling_products(orders)
+    return {"supported": True, "answer": format_top_products(items, month),
+            "metrics": {"month": month, "items": items, "partial_month": True},
+            "source": "produtos_pedidos_pagos_mes", "provider": "local"}
+
+
 @router.post("/assistant/ask")
 async def ask_assistant(payload: AssistantQuestion, _: dict = Depends(require("admin", "caixa"))):
     normalized = payload.question.casefold().strip()
     if ("despesa" in normalized or "gastei" in normalized or "gasto" in normalized) and ("mês" in normalized or "mes" in normalized):
         return await monthly_expenses_response()
+    if "produto" in normalized and ("mais vendido" in normalized or "mais vendid" in normalized):
+        return await top_products_response()
     sales_question = "venda" in normalized or "faturamento" in normalized or "faturei" in normalized
     if sales_question and "ontem" in normalized:
         yesterday = (date.fromisoformat(local_today()) - timedelta(days=1)).isoformat()
