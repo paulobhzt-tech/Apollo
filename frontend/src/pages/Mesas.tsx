@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowRightLeft, Bell, Clock, Minus, Pencil, Plus, QrCode, Receipt, RefreshCw, Send, Trash2, Users } from "lucide-react";
+import { ArrowRightLeft, Bell, Clock, Minus, Pencil, Plus, QrCode, Receipt, RefreshCw, Search, Send, Trash2, Users } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
@@ -319,6 +319,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   const [preBill, setPreBill] = useState(false);
   const [partialOpen, setPartialOpen] = useState(false);
   const [grouped, setGrouped] = useState(true);
+  const [productSearch, setProductSearch] = useState("");
   const [removing, setRemoving] = useState<GroupedItem | null>(null);
 
   const onErr = (e: unknown) => toast.error(errMsg(e));
@@ -383,6 +384,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   const addPending = (p: Product) => (p.options?.length ? setOptFor(p) : push(p));
   const o = table?.order_id ? order.data ?? null : null;
   const items = (o?.items ?? []);
+  const visibleProducts = (products.data ?? []).filter((p) => p.active && (!productSearch.trim() || [p.name, p.code, p.description].some((v) => v?.toLocaleLowerCase("pt-BR").includes(productSearch.trim().toLocaleLowerCase("pt-BR")))));
 
   return (
     <>
@@ -445,7 +447,8 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
               ) : (
                 <>
                   <TableCustomers key={table.id + (table.order_id ?? "")} table={table} />
-                  <div className="mt-5 flex items-center justify-between border-b border-white/10 pb-2">
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-2">
+                    <div className="flex items-center gap-2"><strong className="text-sm text-white">Itens do Pedido ({items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)})</strong></div>
                     <span className="text-xs uppercase tracking-[0.15em] text-zinc-500">Itens · {items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)} un.</span>
                     <button type="button" onClick={() => setGrouped((g) => !g)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-300 transition-colors duration-150 hover:border-primary/50" data-testid="toggle-group-items">
                       {grouped ? "Ver item a item (cancelar)" : "Agrupar quantidades"}
@@ -498,7 +501,9 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
 
                   {adding ? (
                     <div className="mt-4 space-y-3 rounded-2xl border border-primary/20 bg-panel p-3">
-                      <ProductGrid products={products.data ?? []} categories={categories.data ?? []} onAdd={addPending} compact />
+                      <label className="flex items-center gap-2 rounded-md border border-white/15 bg-[#242427] px-3"><Search className="size-4 text-zinc-400" /><Input autoFocus aria-label="Buscar produto na comanda" placeholder="Buscar produto por nome ou código..." value={productSearch} onChange={(e) => setProductSearch(e.target.value)} className="border-0 bg-transparent shadow-none" data-testid="table-product-search" /></label>
+                      <ProductGrid products={visibleProducts} categories={categories.data ?? []} onAdd={addPending} compact />
+                      {visibleProducts.length === 0 && <p className="text-xs text-amber-200">Nenhum produto encontrado. Confira o nome ou código.</p>}
                       <p className="text-xs text-zinc-400">Selecione quem pediu cada item. O funcionário que lançou o pedido será registrado automaticamente.</p>
                       {pending.map((p, i) => (
                         <div key={p.key} className="flex items-center gap-2 text-sm" data-testid={`pending-line-${i}`}>
@@ -522,15 +527,15 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                       </div>
                     </div>
                   ) : (
-                    <Button className="mt-4 h-12" onClick={() => setAdding(true)} data-testid="add-items-button"><Plus className="size-4" /> Adicionar itens</Button>
+                    <Button className="mt-4 h-12" onClick={() => { setProductSearch(""); setAdding(true); }} data-testid="add-items-button"><Plus className="size-4" /> Adicionar produtos</Button>
                   )}
 
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <Button variant="outline" onClick={() => setPreBill(true)} disabled={!items.some((i) => !i.cancelled)} data-testid="request-bill-button">
                       <Receipt className="size-4" /> Pré-conta
                     </Button>
-                    <Button variant="secondary" onClick={() => setPayOpen(true)} disabled={!items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "")} data-testid="close-table-button">
-                      Fechar conta
+                    <Button className="h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={!items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
+                      <Receipt className="size-4" /> PAGAMENTO
                     </Button>
                   </div>
                   {["admin", "caixa"].includes(me?.role ?? "") && <Button className="mt-2 w-full" variant="outline" disabled={!items.some((i) => !i.cancelled)} onClick={() => setPartialOpen(true)}>Dividir conta por itens</Button>}
