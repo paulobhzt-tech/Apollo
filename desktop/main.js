@@ -31,7 +31,7 @@ let cfg;
 function saveConfig() {
   fs.writeFileSync(path.join(userDir(), "config.json"), JSON.stringify(cfg, null, 2));
 }
-const cleanUrl = (u) => String(u).trim().replace(/\\/+$/, "");
+const cleanUrl = (u) => String(u).trim().replace(/\/+$/, "");
 function validServerUrl(value) {
   try {
     const u = new URL(value);
