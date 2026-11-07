@@ -1,5 +1,6 @@
 """Supplier quotation comparison for purchasing decisions (no stock mutation)."""
 from datetime import datetime, timezone
+from math import isfinite
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -22,7 +23,7 @@ class SupplierQuoteIn(BaseModel):
 
 def compare_quotes(quotes: list[dict], requested_qty: float) -> list[dict]:
     """Compare only quotations able to fulfil the requested quantity."""
-    if requested_qty <= 0:
+    if not isfinite(requested_qty) or not 0 < requested_qty <= 100000000:
         raise ValueError("Quantidade deve ser positiva")
     eligible = [q for q in quotes if float(q["minimum_qty"]) <= requested_qty]
     return sorted(
@@ -55,7 +56,6 @@ async def compare_supplier_quotes(
 ):
     if not ingredient_id.strip():
         raise HTTPException(400, "Informe o insumo")
-    from math import isfinite
     if not isfinite(qty) or not 0 < qty <= 100000000:
         raise HTTPException(400, "Quantidade inválida")
     quotes = await db.supplier_quotes.find(
