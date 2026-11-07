@@ -1,6 +1,7 @@
 import calendar
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
+from pydantic import BaseModel, Field
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -667,3 +668,41 @@ async def delete_expense(id: str, _: dict = Depends(require())):
 
 
 _ = timezone
+
+class LiveMusicIn(BaseModel):
+    date: date
+    artist: str = Field(min_length=1, max_length=160)
+    artist_fee: float = Field(ge=0, le=10000000)
+    extra_costs: float = Field(ge=0, le=10000000)
+    contribution_margin_pct: float = Field(gt=0, le=100)
+
+
+@router.get("/reports/live-music")
+async def live_music_report(event_date: str | None = None, _: dict = Depends(require("caixa"))):
+    event_day = event_date or local_today()
+    try:
+        date.fromisoformat(event_day)
+        start, end = day_bounds(event_day)
+    except ValueError:
+        raise HTTPException(400, "Data inválida")
+    saved = await db.live_music_events.find_one({"date": event_day}, {"_id": 0})
+    config = saved or {"date": event_day, "artist": "", "artist_fee": 0, "extra_costs": 0, "contribution_margin_pct": 40}
+    orders = await paid_between(start, end)
+    revenue = round(sum(float(o.get("total") or 0) for o in orders), 2)
+    margin = config["contribution_margin_pct"] / 100
+    costs = config["artist_fee"] + config["extra_costs"]
+    target = round(costs / margin, 2)
+    contribution = round(revenue * margin, 2)
+    return {**config, "saved": saved is not None, "revenue": revenue, "target": target,
+            "remaining": round(max(0, target - revenue), 2), "contribution": contribution,
+            "event_result": round(contribution - costs, 2), "reached": contribution >= costs}
+
+
+@router.put("/reports/live-music")
+async def save_live_music(payload: LiveMusicIn, _: dict = Depends(require("admin"))):
+    config = payload.model_dump(mode="json")
+    config["artist"] = config["artist"].strip()
+    if not config["artist"]:
+        raise HTTPException(400, "Informe o artista")
+    await db.live_music_events.update_one({"date": config["date"]}, {"$set": config}, upsert=True)
+    return {"ok": True}
