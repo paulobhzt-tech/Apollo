@@ -50,9 +50,36 @@ def format_yesterday_answer(data: dict) -> str:
             "Somente pedidos pagos; faturamento não representa lucro.")
 
 
+def monthly_expense_answer(month: str, expenses: list[dict]) -> dict:
+    total = round(sum(float(item.get("amount") or 0) for item in expenses), 2)
+    return {"month": month, "recorded_expenses": total, "entries": len(expenses),
+            "partial_month": month == local_today()[:7]}
+
+
+def format_monthly_expense_answer(data: dict) -> str:
+    brl = f"R$ {data['recorded_expenses']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    period = "em andamento" if data["partial_month"] else "encerrado"
+    return (f"Despesas lançadas em {data['month']} (mês {period}): {brl}; "
+            f"{data['entries']} lançamento(s). Valores registrados no Apollo; "
+            "não incluem despesas ainda não lançadas e não representam lucro.")
+
+
+async def monthly_expenses_response() -> dict:
+    month = local_today()[:7]
+    expenses = await db.expenses.find(
+        {"date": {"$gte": month + "-01", "$lt": month + "-32"}},
+        {"_id": 0, "amount": 1},
+    ).to_list(10000)
+    metrics = monthly_expense_answer(month, expenses)
+    return {"supported": True, "answer": format_monthly_expense_answer(metrics),
+            "metrics": metrics, "source": "despesas_lancadas_mes", "provider": "local"}
+
+
 @router.post("/assistant/ask")
 async def ask_assistant(payload: AssistantQuestion, _: dict = Depends(require("admin", "caixa"))):
     normalized = payload.question.casefold().strip()
+    if ("despesa" in normalized or "gastei" in normalized or "gasto" in normalized) and ("mês" in normalized or "mes" in normalized):
+        return await monthly_expenses_response()
     sales_question = "venda" in normalized or "faturamento" in normalized or "faturei" in normalized
     if sales_question and "ontem" in normalized:
         yesterday = (date.fromisoformat(local_today()) - timedelta(days=1)).isoformat()
