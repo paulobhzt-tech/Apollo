@@ -1,7 +1,7 @@
 import { getReceiptPref, printSimpleReceipt } from "@/lib/receipt";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Minus, Plus, ShoppingBag, Trash2, WifiOff } from "lucide-react";
+import { Minus, Plus, ShoppingBag, Trash2, WifiOff, ReceiptText } from "lucide-react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
 import ProductGrid from "@/components/ProductGrid";
@@ -31,16 +31,17 @@ export default function Pdv() {
 
   useEffect(() => { if (products.data) cacheMenu(products.data); }, [products.data]);
   const prodList = products.data ?? cachedMenu();
+  const itemCount = cart.reduce((sum, line) => sum + line.qty, 0);
   const subtotal = Math.round(cart.reduce((s, l) => s + l.qty * (l.product.price + l.extra), 0) * 100) / 100;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "F2" && cart.length) { e.preventDefault(); setPayOpen(true); }
-      if (e.key === "F4") { e.preventDefault(); setCart([]); }
+      if (e.key === "F2" && cart.length && !payOpen && !sale.isPending) { e.preventDefault(); setPayOpen(true); }
+      if (e.key === "F4" && !payOpen && !sale.isPending && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) { e.preventDefault(); setCart([]); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [cart.length]);
+  }, [cart.length, payOpen, sale.isPending]);
 
   const [optFor, setOptFor] = useState<Product | null>(null);
   const push = (p: Product, picked?: Picked) => setCart((c) => {
@@ -76,6 +77,7 @@ export default function Pdv() {
   });
 
   const confirm = (pay: PayIn) => {
+    if (!cart.length || sale.isPending) return;
     const payload: QuickSaleIn = {
       ...pay, client_ref: newClientRef(), customer_name: customer, send_to_kitchen: kitchen,
       items: cart.map((l) => ({ product_id: l.product.id, qty: l.qty, notes: l.notes, options: l.options })),
@@ -94,6 +96,11 @@ export default function Pdv() {
       <PageHeader title="Frente de Caixa" subtitle="F2 pagamento · F4 limpar · Enter na busca adiciona o item" actions={
         offline ? <span className="flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs text-amber-200" data-testid="pdv-offline-banner"><WifiOff className="size-3.5" /> Contingência offline · {queue.length} na fila</span> : null
       } />
+      <div className="mb-4 grid grid-cols-3 gap-2" data-testid="pdv-sale-summary">
+        <div className="rounded-md border border-white/10 bg-panel p-3"><p className="text-xs text-zinc-400">Itens no pedido</p><p className="text-xl font-semibold tabular-nums text-white">{itemCount}</p></div>
+        <div className="rounded-md border border-white/10 bg-panel p-3"><p className="text-xs text-zinc-400">Total da venda</p><p className="text-xl font-semibold tabular-nums text-emerald-300">{brl(subtotal)}</p></div>
+        <div className="rounded-md border border-white/10 bg-panel p-3"><p className="flex items-center gap-1 text-xs text-zinc-400"><ReceiptText className="size-3" /> Vendas pendentes</p><p className="text-xl font-semibold tabular-nums text-amber-300">{queue.length}</p></div>
+      </div>
       <div className="grid gap-5 xl:grid-cols-12">
         <div className="xl:col-span-7 2xl:col-span-8">
           <ProductGrid products={prodList} categories={categories.data ?? []} onAdd={add} />
@@ -102,7 +109,7 @@ export default function Pdv() {
           <div className="sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col rounded-2xl border border-white/5 bg-[#121520] p-4" data-testid="pdv-cart">
             <div className="flex items-center justify-between">
               <h3 className="flex items-center gap-2 font-heading text-lg text-white"><ShoppingBag className="size-5 text-primary" /> Venda atual</h3>
-              {cart.length > 0 && <Button variant="ghost" size="sm" onClick={() => setCart([])} data-testid="pdv-clear-cart">Limpar</Button>}
+              {cart.length > 0 && <Button variant="ghost" size="sm" onClick={() => { if (window.confirm("Limpar todos os itens da venda atual?")) setCart([]); }} disabled={sale.isPending} data-testid="pdv-clear-cart">Limpar</Button>}
             </div>
             <Input placeholder="Nome do cliente (opcional)" value={customer} onChange={(e) => setCustomer(e.target.value)} className="mt-3" data-testid="pdv-customer-input" />
             <div className="mt-3 flex-1 space-y-2 overflow-y-auto pr-1">
@@ -131,7 +138,7 @@ export default function Pdv() {
               <span className="text-sm text-zinc-400">{cart.reduce((s, l) => s + l.qty, 0)} itens</span>
               <span className="font-mono text-3xl font-medium text-white" data-testid="pdv-subtotal">{brl(subtotal)}</span>
             </div>
-            <Button className="mt-3 h-14 text-lg" disabled={!cart.length} onClick={() => setPayOpen(true)} data-testid="pdv-checkout-button">
+            <Button className="mt-3 h-14 text-lg" disabled={!cart.length || sale.isPending} onClick={() => setPayOpen(true)} data-testid="pdv-checkout-button">
               Pagamento (F2)
             </Button>
           </div>
