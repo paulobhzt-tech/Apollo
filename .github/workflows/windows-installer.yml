@@ -89,6 +89,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Apollo-PDV-Setup-${{ env.PDV_BUILD_CHANNEL }}
-          path: desktop/dist/Apollo-PDV-Setup.exe
+          path: |
+            desktop/dist/Apollo-PDV-Setup.exe
+            desktop/dist/latest.yml
+            desktop/dist/*.blockmap
           if-no-files-found: error
           retention-days: 14
