@@ -50,3 +50,15 @@ async def test_financial_audit_contains_actor_and_no_credentials(monkeypatch):
     assert entry["bill_id"] == "bill-1"
     assert "pin_hash" not in entry
     assert "customer" not in entry
+
+
+@pytest.mark.asyncio
+async def test_delete_bill_rejects_settled_record(monkeypatch):
+    from types import SimpleNamespace
+    deleted = AsyncMock(return_value=SimpleNamespace(deleted_count=0))
+    monkeypatch.setattr(finance.db.bills, "delete_one", deleted)
+    monkeypatch.setattr(finance.db.bills, "find_one", AsyncMock(return_value={"status": "pago"}))
+    with pytest.raises(HTTPException) as error:
+        await finance.delete_bill("bill-1", {"role": "admin"})
+    assert error.value.status_code == 409
+    assert deleted.await_args.args[0] == {"id": "bill-1", "status": "aberto"}
