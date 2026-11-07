@@ -23,10 +23,10 @@ const ICONS: Record<string, typeof Menu> = {
   Bot, LayoutDashboard, Music, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone,
 };
 
-function NavList({ role, onNavigate }: { role: Role; onNavigate?: () => void }) {
+function NavList({ role, onNavigate, search = "" }: { role: Role; onNavigate?: () => void; search?: string }) {\n  const normalizedSearch = search.trim().toLocaleLowerCase("pt-BR");
   return (
     <nav className="flex flex-col gap-1">
-      {NAV.filter((n) => n.roles.includes(role)).map((n, idx, arr) => {
+      {NAV.filter((n) => n.roles.includes(role) && (!normalizedSearch || `${n.label} ${n.group}`.toLocaleLowerCase("pt-BR").includes(normalizedSearch))).map((n, idx, arr) => {
         const Icon = ICONS[n.icon];
         const header = idx === 0 || arr[idx - 1].group !== n.group;
         return (
@@ -101,7 +101,7 @@ export function OfflineBadge() {
 
 export default function AppShell({ children, roles }: { children: ReactNode; roles?: Role[] }) {
   const { data: me, isLoading, isError } = useMe();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false);\n  const [menuSearch, setMenuSearch] = useState("");
   const [activeRibbon, setActiveRibbon] = useState<string | null>(null);
   const loc = useLocation();
   const { resolvedTheme, setTheme } = useTheme();
