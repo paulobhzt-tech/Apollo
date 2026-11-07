@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from lib.auth import require
 from lib.db import db
 from lib.orders import day_bounds, local_today
-from routers.assistant import sales_answer, format_sales_answer
+from routers.assistant import sales_answer, format_sales_answer, yesterday_sales_answer, format_yesterday_answer
 from routers.reports import paid_between
 
 router = APIRouter()
@@ -92,9 +92,17 @@ def _gemini_request(metrics: dict) -> str:
 @router.post("/assistant/chat")
 async def chat(payload: ChatQuestion, _: dict = Depends(require("admin", "caixa"))):
     question = payload.question.casefold().strip()
+    sales_question = "venda" in question or "faturamento" in question or "faturei" in question
+    if sales_question and "ontem" in question:
+        yesterday = (date.fromisoformat(local_today()) - timedelta(days=1)).isoformat()
+        start, end = day_bounds(yesterday)
+        metrics = yesterday_sales_answer(yesterday, await paid_between(start, end))
+        return {"supported": True, "answer": format_yesterday_answer(metrics),
+                "metrics": metrics, "source": "pedidos_pagos_ontem", "provider": "local",
+                "notice": "Consulta histórica calculada localmente, sem envio a serviços externos."}
     if not (("venda" in question or "faturamento" in question or "faturei" in question)
             and ("hoje" in question or "dia" in question or "atual" in question)):
-        return {"supported": False, "answer": "Por segurança, o assistente está limitado à pergunta sobre vendas de hoje.",
+        return {"supported": False, "answer": "Por segurança, o assistente responde apenas sobre vendas de hoje ou de ontem.",
                 "metrics": None, "source": "restricao_de_escopo", "provider": "local"}
     today = local_today()
     yesterday = (date.fromisoformat(today) - timedelta(days=1)).isoformat()
