@@ -104,6 +104,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
   const { data: me, isLoading, isError } = useMe();
   const [open, setOpen] = useState(false);
   const [menuSearch, setMenuSearch] = useState("");
+  const [desktopSearch, setDesktopSearch] = useState("");
   const [activeRibbon, setActiveRibbon] = useState<string | null>(null);
   const loc = useLocation();
   const { resolvedTheme, setTheme } = useTheme();
@@ -115,10 +116,12 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
 
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className="hidden">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-white/10 bg-shell p-4 lg:flex" aria-label="Menu principal do computador" data-testid="desktop-sidebar">
         <Brand />
-        <div className="mt-8 flex-1 overflow-y-auto">
-          <NavList role={me.role} />
+        <label htmlFor="apollo-desktop-search" className="mt-6 text-xs text-zinc-400">Buscar função</label>
+        <input id="apollo-desktop-search" data-testid="desktop-menu-search" type="search" value={desktopSearch} onChange={(event) => setDesktopSearch(event.target.value)} placeholder="Buscar no Apollo..." className="mt-2 w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary" />
+        <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
+          <NavList role={me.role} search={desktopSearch} />
         </div>
         <UserCard name={me.name} role={me.role} />
       </aside>
@@ -143,8 +146,8 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
         <header className="sticky top-0 z-30 border-b border-white/10 bg-[#252527] text-white" data-testid="apollo-ribbon">
           <div className="flex min-h-10 items-center gap-2 border-b border-white/10 px-2 sm:px-4">
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)} data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
-            <div className="mr-2 hidden shrink-0 sm:block"><Brand /></div>
-            <nav aria-label="Seções do sistema" className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto">
+            <div className="mr-2 hidden shrink-0 sm:block lg:hidden"><Brand /></div>
+            <nav aria-label="Seções do sistema" className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto lg:hidden">
               {([
                 ["PRINCIPAL", "Operação"], ["PRODUTOS", "Cadastros"], ["FINANCEIRO", "Financeiro"], ["RELATÓRIOS", "Relatórios"], ["CONFIGURAÇÕES", "Sistema"],
               ] as const).map(([label, group]) => {
@@ -164,7 +167,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
               <Users className="size-4" /><span className="max-w-32 truncate">{me.name}</span><LogOut className="size-3" />
             </button>
           </div>
-          <nav aria-label="Atalhos do sistema" className="flex min-h-20 items-stretch gap-1 overflow-x-auto bg-[#303034] px-2 py-1.5 sm:px-4">
+          <nav aria-label="Atalhos do sistema" className="flex min-h-20 items-stretch gap-1 overflow-x-auto bg-[#303034] px-2 py-1.5 sm:px-4 lg:hidden">
             {NAV.filter(n => n.roles.includes(me.role) && (
               activeRibbon === "Relatórios" ? ["/vendas", "/financeiro"].includes(n.to) :
               activeRibbon ? n.group === activeRibbon :
