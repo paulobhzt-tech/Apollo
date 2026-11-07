@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { Download, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import AppShell, { PageHeader, Stat } from "@/components/AppShell";
@@ -74,11 +74,26 @@ type Cashflow = {
   note: string;
 };
 
+function exportCashflowCsv(data: Cashflow) {
+  const header = ["Data", "Vendas recebidas", "Contas recebidas", "Contas pagas", "Despesas", "Saldo estimado"];
+  const rows = data.days.map((day) => [day.date, day.sales, day.receivables, day.payables, day.expenses, day.balance]);
+  rows.push(["TOTAL", data.totals.sales, data.totals.receivables, data.totals.payables, data.totals.expenses, data.totals.balance]);
+  const csv = "\uFEFF" + [header, ...rows].map((row) =>
+    row.map((value) => `"${String(typeof value === "number" ? value.toFixed(2).replace(".", ",") : value).replace(/"/g, '""')}"`).join(";")
+  ).join("\r\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `apollo-fluxo-caixa-${data.start}-a-${data.end}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function CashflowPanel({ start, end }: { start: string; end: string }) {
   const q = useQuery({ queryKey: ["cashflow", start, end], queryFn: () => apiGet<Cashflow>(`/reports/cashflow?start=${start}&end=${end}`), enabled: !!start && !!end && start <= end });
   return (
     <section className="mb-5 space-y-3" data-testid="financial-cashflow">
-      <h2 className="text-xl font-semibold">Fluxo de caixa operacional</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">Fluxo de caixa operacional</h2><Button size="sm" variant="outline" disabled={!q.data || !q.data.days.length} onClick={() => { if (q.data) exportCashflowCsv(q.data); }} data-testid="cashflow-export-csv"><Download className="size-4" /> Exportar Excel (CSV)</Button></div>
       {q.isError && <p role="alert" className="text-red-400">{errMsg(q.error)}</p>}
       {q.data && <>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
@@ -223,7 +238,7 @@ export default function Financeiro() {
   const now = new Date();
   const [start, setStart] = useState(isoLocal(new Date(now.getFullYear(), now.getMonth(), 1)));
   const [end, setEnd] = useState(isoLocal(now));
-  const dre = useQuery({ queryKey: ["dre", start, end], queryFn: () => apiGet<Dre>(`/reports/dre?start=${start}&end=${end}`) });
+  const dre = useQuery({ queryKey: ["dre", start, end], queryFn: () => apiGet<Dre>(`/reports/dre?start=${start}&end=${end}`), enabled: !!start && !!end && start <= end });
   const d = dre.isError ? undefined : dre.data;
   const intelligence = useQuery({ queryKey: ["sales-intelligence", start, end], queryFn: () => apiGet<{ top: { product_id: string; name: string; qty: number; revenue: number }[]; least: { product_id: string; name: string; qty: number; revenue: number }[]; unsold: { id: string; name: string }[]; note: string }>(`/reports/sales-intelligence?start=${start}&end=${end}`) });
   const productProfit = useQuery({ queryKey: ["product-profit", start, end], queryFn: () => apiGet<{ products: { product_id: string; name: string; qty: number; revenue: number; cost: number; profit: number; margin_pct: number }[]; profit: number; revenue: number; cost: number; note: string }>(`/reports/product-profit?start=${start}&end=${end}`) });
@@ -239,6 +254,7 @@ export default function Financeiro() {
           <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="w-40" data-testid="dre-end-input" />
         </>
       } />
+      {start > end && <p role="alert" className="mb-4 text-sm text-amber-300">A data inicial não pode ser posterior à data final.</p>}
       {dre.isError && <p className="mb-4 text-sm text-red-400">{errMsg(dre.error)}</p>}
       <section className="mb-5 space-y-3" data-testid="sales-intelligence">
         <h2 className="text-lg font-semibold text-white">Inteligência de vendas</h2>
