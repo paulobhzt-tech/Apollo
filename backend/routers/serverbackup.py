@@ -16,6 +16,23 @@ from lib.db import db
 from models.schemas import LocalBackupSettings, OkOut, RestoreIn, RestoreOut, ServerBackupInfo
 
 router = APIRouter()
+
+
+async def audit_backup(action: str, user: dict, backup_id: str = "") -> None:
+    """Append-only operational audit entry, without backup payload or credentials."""
+    await db.backup_audit.insert_one({
+        "at": datetime.now(timezone.utc),
+        "action": action,
+        "backup_id": backup_id,
+        "employee_id": user.get("id", ""),
+        "employee_name": user.get("name", ""),
+    })
+
+
+@router.get("/backups/server/audit")
+async def list_backup_audit(_: dict = Depends(require())):
+    return await db.backup_audit.find({}, {"_id": 0}).sort("at", -1).to_list(200)
+
 MAX_BYTES = 15 * 1024 * 1024  # Mongo document limit is 16 MB
 MAX_UNCOMPRESSED_BYTES = 100 * 1024 * 1024  # Protect restore/download from oversized payloads
 
@@ -50,7 +67,9 @@ async def list_server_backups(_: dict = Depends(require())):
 
 @router.post("/backups/server", response_model=ServerBackupInfo)
 async def backup_now(me: dict = Depends(require())):
-    return await make_server_backup("manual", me["name"])
+    info = await make_server_backup("manual", me["name"])
+    await audit_backup("created", me, info.id)
+    return info
 
 
 @router.get("/backups/server/settings", response_model=LocalBackupSettings)
@@ -59,8 +78,9 @@ async def get_local_settings(_: dict = Depends(require())):
 
 
 @router.put("/backups/server/settings", response_model=LocalBackupSettings)
-async def put_local_settings(body: LocalBackupSettings, _: dict = Depends(require())):
+async def put_local_settings(body: LocalBackupSettings, me: dict = Depends(require())):
     await db.settings.update_one({"_id": "backup_local"}, {"$set": body.model_dump()}, upsert=True)
+    await audit_backup("settings_updated", me)
     return body
 
 
@@ -109,11 +129,14 @@ async def restore_backup(id: str, me: dict = Depends(require())):
     from routers.config import restore
     _d, payload = await _load(id)
     await make_server_backup("antes da restauração", me["name"])  # safety copy of the current data
-    return await restore(RestoreIn(data=payload["data"]), me)
+    result = await restore(RestoreIn(data=payload["data"]), me)
+    await audit_backup("restored", me, id)
+    return result
 
 
 @router.delete("/backups/server/{id}", response_model=OkOut)
-async def delete_backup(id: str, _: dict = Depends(require())):
+async def delete_backup(id: str, me: dict = Depends(require())):
     if not (await db.server_backups.delete_one({"id": id})).deleted_count:
         raise HTTPException(404, "Backup não encontrado")
+    await audit_backup("deleted", me, id)
     return OkOut(message="Backup apagado")
