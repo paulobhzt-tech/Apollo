@@ -24,7 +24,7 @@ export default function ApolloIA() {
     <section className="mx-auto max-w-2xl space-y-5 p-4" data-testid="apollo-assistant">
       <div className="rounded-xl border border-white/10 bg-panel p-5">
         <div className="mb-4 flex items-center gap-2 font-semibold"><Bot className="size-5 text-primary" /> Assistente Apollo</div>
-        <p className="mb-4 text-sm text-zinc-400">Pergunte sobre vendas de hoje, de ontem ou despesas deste mês. Escolha ChatGPT, Gemini ou Apollo local. Serviços externos recebem apenas os indicadores agregados de vendas; se indisponíveis, o Apollo responde localmente. Nenhuma alteração é feita no caixa.</p>
+        <p className="mb-4 text-sm text-zinc-400">Pergunte sobre vendas, despesas ou produtos mais vendidos. Escolha ChatGPT, Gemini ou Apollo local. Serviços externos recebem apenas os indicadores agregados de vendas; se indisponíveis, o Apollo responde localmente. Nenhuma alteração é feita no caixa.</p>
         <label htmlFor="apollo-provider" className="mb-2 block text-sm text-zinc-300">Assistente</label>
         <select id="apollo-provider" value={provider} onChange={e => setProvider(e.target.value as "openai" | "gemini" | "local")} className="mb-4 w-full rounded-lg border border-white/20 bg-background px-3 py-2 text-sm">
           <option value="openai">ChatGPT</option>
@@ -33,6 +33,7 @@ export default function ApolloIA() {
         </select>
         <div className="mb-3 flex flex-wrap gap-2"><button type="button" onClick={() => setQuestion("Como estão minhas vendas hoje?")} className="rounded-lg border border-white/20 px-3 py-1 text-xs">Vendas de hoje</button><button type="button" onClick={() => setQuestion("Quanto vendi ontem?")} className="rounded-lg border border-white/20 px-3 py-1 text-xs">Vendas de ontem</button></div>
         <button type="button" onClick={() => setQuestion("Quanto gastei este mês?")} className="mb-3 rounded-lg border border-white/20 px-3 py-1 text-xs">Despesas deste mês</button>
+        <button type="button" onClick={() => setQuestion("Quais são os produtos mais vendidos?")} className="mb-3 ml-2 rounded-lg border border-white/20 px-3 py-1 text-xs">Produtos mais vendidos</button>
         <form onSubmit={ask} className="flex gap-2">
           <input aria-label="Pergunta ao Apollo IA" maxLength={300} value={question} onChange={e => setQuestion(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-white/20 bg-background px-3 py-2 text-sm" />
           <button type="submit" disabled={loading || !question.trim()} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Send className="size-4" /> {loading ? "Consultando…" : "Perguntar"}</button>
