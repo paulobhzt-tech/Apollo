@@ -66,3 +66,15 @@ async def test_verify_legacy_backup_reports_missing_checksum(monkeypatch):
     monkeypatch.setattr(serverbackup.db.server_backups, "find_one", AsyncMock(return_value={"blob": gzip.compress(raw)}))
     result = await serverbackup.verify_server_backup("backup-legacy", {"role": "admin"})
     assert result["integrity"] == "legacy_without_checksum"
+
+
+@pytest.mark.asyncio
+async def test_backup_audit_records_actor_and_action_without_sensitive_data(monkeypatch):
+    insert = AsyncMock()
+    monkeypatch.setattr(serverbackup.db.backup_audit, "insert_one", insert)
+    await serverbackup.audit_backup("restored", {"id": "employee-1", "name": "Admin", "pin_hash": "secret"}, "backup-1")
+    record = insert.await_args.args[0]
+    assert record["action"] == "restored"
+    assert record["backup_id"] == "backup-1"
+    assert record["employee_id"] == "employee-1"
+    assert "pin_hash" not in record
