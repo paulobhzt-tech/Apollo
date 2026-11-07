@@ -91,7 +91,7 @@ export async function syncQueue(): Promise<{ synced: number; failed: number }> {
       } catch (e) {
         // business errors (4xx, e.g. caixa fechado) leave the queue but are KEPT in the rejected list for review;
         // network errors, 5xx and expired login (401) stay queued and are retried
-        if (e instanceof ApiError && e.status < 500 && e.status !== 401) {
+        if (e instanceof ApiError && e.status >= 400 && e.status < 500 && ![401, 408, 409, 425, 429].includes(e.status)) {
           failed++;
           const body = e.body as { detail?: unknown } | null;
           rejected.push({ ...s, error: typeof body?.detail === "string" ? body.detail : `Erro ${e.status}`, rejected_at: new Date().toISOString() });
@@ -138,7 +138,16 @@ export function dismissRejected(ref: string) {
   emit();
 }
 
-window.addEventListener("online", () => void syncQueue());
+// Keep the queue and rejection list consistent across browser tabs / desktop windows.
+window.addEventListener("storage", (event) => {
+  if ([KEY, REJ_KEY, LOG_KEY, "pdv_force_offline"].includes(event.key || "")) {
+    forced = kv.get("pdv_force_offline") === "1";
+    emit();
+    if (event.key === KEY && read().length && !isOffline()) void syncQueue();
+  }
+});
+window.addEventListener("online", () => { emit(); void syncQueue(); });
+window.addEventListener("offline", emit);
 // desktop app: the online window flushes whatever the offline window recorded
 if (read().length) setTimeout(() => void syncQueue(), 3000);
 setInterval(() => { if (read().length) void syncQueue(); }, 60_000);
