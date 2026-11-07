@@ -58,7 +58,9 @@ export function setForcedOffline(v: boolean) {
   if (!v) void syncQueue();
 }
 export function enqueue(sale: QueuedSale) {
-  kv.set(KEY, JSON.stringify([...read(), sale]));
+  const queued = read();
+  if (queued.some((item) => item.payload.client_ref === sale.payload.client_ref)) return;
+  kv.set(KEY, JSON.stringify([...queued, sale]));
   emit();
 }
 export function cacheMenu(products: Product[]) {
@@ -81,7 +83,8 @@ export async function syncQueue(): Promise<{ synced: number; failed: number }> {
   const remaining: QueuedSale[] = [];
   const rejected: RejectedSale[] = [];
   try {
-    for (const s of read()) {
+    const snapshot = read();
+    for (const s of snapshot) {
       try {
         await apiPost("/pdv/sale", s.payload);
         synced++;
@@ -95,9 +98,12 @@ export async function syncQueue(): Promise<{ synced: number; failed: number }> {
         } else remaining.push(s);
       }
     }
-    kv.set(KEY, JSON.stringify(remaining));
+    // Keep sales added while synchronization was running. Only replace the snapshot we processed.
+    const processedRefs = new Set(snapshot.map((s) => s.payload.client_ref));
+    const newlyQueued = read().filter((s) => !processedRefs.has(s.payload.client_ref));
+    kv.set(KEY, JSON.stringify([...remaining, ...newlyQueued]));
     if (rejected.length) kv.set(REJ_KEY, JSON.stringify([...rejected, ...readRejected()].slice(0, 200)));
-    kv.set(LOG_KEY, JSON.stringify({ at: new Date().toISOString(), synced, failed, pending: remaining.length }));
+    kv.set(LOG_KEY, JSON.stringify({ at: new Date().toISOString(), synced, failed, pending: remaining.length + newlyQueued.length }));
     emit();
     if (synced) void queryClient.invalidateQueries();
   } finally {
@@ -124,8 +130,7 @@ export function retryRejected(ref: string) {
   if (!item) return;
   const { error: _e, rejected_at: _r, ...sale } = item;
   kv.set(REJ_KEY, JSON.stringify(r.filter((x) => x.payload.client_ref !== ref)));
-  kv.set(KEY, JSON.stringify([...read(), sale]));
-  emit();
+  enqueue(sale);
   void syncQueue();
 }
 export function dismissRejected(ref: string) {
