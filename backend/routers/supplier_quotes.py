@@ -14,8 +14,8 @@ router = APIRouter()
 class SupplierQuoteIn(BaseModel):
     supplier_id: str = Field(min_length=1, max_length=120)
     ingredient_id: str = Field(min_length=1, max_length=120)
-    unit_price: float = Field(gt=0, le=100000000)
-    minimum_qty: float = Field(default=1, gt=0, le=100000000)
+    unit_price: float = Field(gt=0, le=100000000, allow_inf_nan=False)
+    minimum_qty: float = Field(default=1, gt=0, le=100000000, allow_inf_nan=False)
     delivery_days: int = Field(default=0, ge=0, le=365)
     note: str = Field(default="", max_length=500)
 
@@ -55,7 +55,8 @@ async def compare_supplier_quotes(
 ):
     if not ingredient_id.strip():
         raise HTTPException(400, "Informe o insumo")
-    if not 0 < qty <= 100000000:
+    from math import isfinite
+    if not isfinite(qty) or not 0 < qty <= 100000000:
         raise HTTPException(400, "Quantidade inválida")
     quotes = await db.supplier_quotes.find(
         {"ingredient_id": ingredient_id}, {"_id": 0}
