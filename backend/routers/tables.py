@@ -91,9 +91,12 @@ async def set_table_customers(id: str, body: TableCustomersIn, _: dict = Depends
         raise HTTPException(400, "Informe nomes de 1 a 80 caracteres")
     if len(set(name.casefold() for name in customers)) != len(customers):
         raise HTTPException(400, "Não repita o mesmo nome na mesa")
-    await db.tables.update_one({"id": id, "order_id": t["order_id"]},
-                               {"$set": {"customers": customers, "people": max(1, len(customers)),
-                                         "customer_name": ", ".join(customers)[:160]}})
+    result = await db.tables.update_one(
+        {"id": id, "order_id": t["order_id"], "status": {"$in": ["ocupada", "conta"]}},
+        {"$set": {"customers": customers, "people": max(1, len(customers)),
+                  "customer_name": ", ".join(customers)[:160]}})
+    if result.matched_count != 1:
+        raise HTTPException(409, "Mesa foi fechada ou alterada. Atualize antes de cadastrar clientes.")
     return await get_table(id)
 
 
