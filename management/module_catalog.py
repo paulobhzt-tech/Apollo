@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 Period = Literal["mensal", "anual"]
-Plan = Literal["essencial", "basico", "profissional", "completo"]
+Plan = Literal["essencial", "basico", "profissional", "completo", "personalizado"]
 
 @dataclass(frozen=True)
 class Module:
@@ -22,8 +22,10 @@ MODULES = (
     Module("caixa", "Controle de caixa", True),
     Module("relatorios_basicos", "Relatorios essenciais", True),
     Module("estoque", "Estoque e ficha tecnica"),
+    Module("compras", "Compras e fornecedores"),
     Module("financeiro", "Financeiro avancado"),
     Module("delivery", "Delivery e iFood"),
+    Module("integracoes", "Integracoes externas"),
     Module("cardapio_digital", "Cardapio digital e QR Code"),
     Module("comanda_mobile", "Comanda Mobile"),
     Module("kds", "Cozinha KDS"),
@@ -39,7 +41,7 @@ ESSENTIAL_MODULES = frozenset({"pdv", "produtos", "caixa", "relatorios_basicos"}
 BASIC_MODULES = ESSENTIAL_MODULES | {"mesas"}
 PROFESSIONAL_MODULES = BASIC_MODULES | {"estoque", "financeiro", "kds", "cardapio_digital"}
 CORE_MODULES = BASIC_MODULES
-PLAN_MODULES = {"essencial": ESSENTIAL_MODULES, "basico": BASIC_MODULES, "profissional": PROFESSIONAL_MODULES, "completo": frozenset(MODULE_BY_CODE)}
+PLAN_MODULES = {"essencial": ESSENTIAL_MODULES, "basico": BASIC_MODULES, "profissional": PROFESSIONAL_MODULES, "completo": frozenset(MODULE_BY_CODE), "personalizado": frozenset()}
 # Seguranca, backup e auditoria sao recursos obrigatorios, nao adicionais comerciais.
 
 def build_proposal(plan: Plan, period: Period, add_ons=()):
@@ -54,6 +56,8 @@ def build_proposal(plan: Plan, period: Period, add_ons=()):
     unknown = set(selected) - MODULE_BY_CODE.keys()
     if unknown:
         raise ValueError("Modulo desconhecido")
+    if plan == "personalizado" and not selected:
+        raise ValueError("Selecione pelo menos um modulo")
     if set(selected) & PLAN_MODULES[plan]:
         raise ValueError("Modulo ja incluido no plano escolhido")
     enabled = PLAN_MODULES[plan] | set(selected)
