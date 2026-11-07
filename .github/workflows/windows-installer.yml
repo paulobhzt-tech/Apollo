@@ -95,3 +95,47 @@ jobs:
             desktop/dist/*.blockmap
           if-no-files-found: error
           retention-days: 14
+
+      - name: Homologar instalacao e inicializacao em Windows virtual
+        if: env.PDV_BUILD_CHANNEL == 'test'
+        shell: pwsh
+        env:
+          PDV_SMOKE: '1'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = (Resolve-Path 'desktop/dist/Apollo-PDV-Setup.exe').Path
+          $dir = Join-Path $env:RUNNER_TEMP 'ApolloSmoke'
+          $installer = Start-Process -FilePath $setup -ArgumentList @('/S', "/D=$dir") -PassThru -Wait
+          if ($installer.ExitCode -ne 0) { throw "Instalacao NSIS falhou: $($installer.ExitCode)" }
+          $app = Join-Path $dir 'Apollo PDV.exe'
+          if (-not (Test-Path $app)) { throw "Apollo PDV.exe nao foi instalado" }
+          $stdout = Join-Path $env:RUNNER_TEMP 'apollo-smoke-out.txt'
+          $stderr = Join-Path $env:RUNNER_TEMP 'apollo-smoke-err.txt'
+          $process = Start-Process -FilePath $app -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          try {
+            $deadline = (Get-Date).AddSeconds(90)
+            do {
+              Start-Sleep -Seconds 2
+              $process.Refresh()
+            } while (-not $process.HasExited -and (Get-Date) -lt $deadline)
+            if (-not $process.HasExited) { throw 'Apollo nao encerrou o smoke test em 90 segundos' }
+            $output = Get-Content $stdout -Raw -ErrorAction SilentlyContinue
+            Write-Host $output
+            if ($process.ExitCode -ne 0) { throw "Apollo falhou ao iniciar: $($process.ExitCode)" }
+            if ($output -notmatch 'PDV_SMOKE_PASS') { throw 'Apollo nao confirmou tela offline e ponte desktop' }
+            Write-Host 'HOMOLOGACAO BASICA WINDOWS APROVADA'
+          } finally {
+            Get-CimInstance Win32_Process | Where-Object {
+              $_.Name -eq 'Apollo PDV.exe' -and $_.ExecutablePath -like "$dir*"
+            } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+          }
+      - name: Publicar logs da homologacao Windows
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apollo-windows-smoke-logs
+          path: |
+            ${{ runner.temp }}/apollo-smoke-out.txt
+            ${{ runner.temp }}/apollo-smoke-err.txt
+          if-no-files-found: ignore
+          retention-days: 14
