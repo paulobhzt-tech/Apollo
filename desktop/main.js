@@ -172,6 +172,12 @@ function createWindow() {
       if (url.endsWith("offline.html")) return;
       const bridge = await win.webContents.executeJavaScript("typeof window.pdvDesktop + ' ' + (window.pdvDesktop && window.pdvDesktop.deviceId)");
       console.log("PDV_SMOKE", mode, url, bridge);
+      if (mode !== "offline" || !url.startsWith("pdv://") || !bridge.startsWith("object ")) {
+        console.error("PDV_SMOKE_FAIL: tela offline ou ponte desktop indisponivel");
+        app.exit(2);
+        return;
+      }
+      console.log("PDV_SMOKE_PASS");
       setTimeout(() => app.quit(), 1500);
     });
   }
