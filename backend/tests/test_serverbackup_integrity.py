@@ -49,14 +49,14 @@ async def test_load_rejects_oversized_payload(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_verify_backup_does_not_restore_or_modify_data(monkeypatch):
-    raw = json.dumps({"data": {"tables": [], "orders": []}}).encode()
+    raw = json.dumps({"data": {"tables": [], "orders": [{"id": "o-1"}]}}).encode()
     document = {"blob": gzip.compress(raw), "sha256": hashlib.sha256(raw).hexdigest()}
     lookup = AsyncMock(return_value=document)
     monkeypatch.setattr(serverbackup.db.server_backups, "find_one", lookup)
     result = await serverbackup.verify_server_backup("backup-1", {"role": "admin"})
     assert result["valid"] is True
     assert result["integrity"] == "sha256"
-    assert result["collections"] == ["orders", "tables"]
+    assert result["collections"] == ["orders", "tables"]\n    assert result["record_counts"]["orders"] == 1
     assert lookup.await_count == 1
 
 
@@ -78,3 +78,17 @@ async def test_backup_audit_records_actor_and_action_without_sensitive_data(monk
     assert record["backup_id"] == "backup-1"
     assert record["employee_id"] == "employee-1"
     assert "pin_hash" not in record
+
+
+def test_restore_preflight_rejects_malformed_collections():
+    from routers.config import validate_restore_data
+    with pytest.raises(HTTPException) as error:
+        validate_restore_data({"products": [{"id": "p1"}], "orders": "not-a-list"})
+    assert error.value.status_code == 400
+
+
+def test_restore_preflight_rejects_unknown_collection():
+    from routers.config import validate_restore_data
+    with pytest.raises(HTTPException) as error:
+        validate_restore_data({"products": [{"id": "p1"}], "sessions": []})
+    assert error.value.status_code == 400
