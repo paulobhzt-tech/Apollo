@@ -29,6 +29,7 @@ INDEXES: dict[str, list[IndexModel]] = {
                  IndexModel([("token", ASCENDING)], name="token", unique=True),
                  IndexModel([("expires_at", ASCENDING)], name="expires_ttl", expireAfterSeconds=0)],
     "login_attempts": [IndexModel([("expires_at", ASCENDING)], name="login_attempts_ttl", expireAfterSeconds=0)],
+    "public_qr_limits": [IndexModel([("expires_at", ASCENDING)], name="public_qr_limits_ttl", expireAfterSeconds=0)],
     "categories": [_id_idx()],
     "products": [_id_idx(), IndexModel([("category_id", ASCENDING)], name="category")],
     "ingredients": [_id_idx()],
