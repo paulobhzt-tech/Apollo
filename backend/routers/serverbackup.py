@@ -84,6 +84,19 @@ async def _load(id: str) -> tuple[dict, dict]:
         raise HTTPException(400, "Backup corrompido ou inválido") from exc
 
 
+@router.get("/backups/server/{id}/verify")
+async def verify_server_backup(id: str, _: dict = Depends(require())):
+    """Read and validate a backup without modifying restaurant data."""
+    document, payload = await _load(id)
+    return {
+        "id": id,
+        "valid": True,
+        "integrity": "sha256" if document.get("sha256") else "legacy_without_checksum",
+        "collections": sorted(payload["data"].keys()),
+        "message": "Backup íntegro; nenhuma restauração foi executada.",
+    }
+
+
 @router.get("/backups/server/{id}/download")
 async def download_backup(id: str, _: dict = Depends(require())):
     d, payload = await _load(id)
