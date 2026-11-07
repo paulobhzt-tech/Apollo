@@ -108,11 +108,14 @@ async def _load(id: str) -> tuple[dict, dict]:
 async def verify_server_backup(id: str, _: dict = Depends(require())):
     """Read and validate a backup without modifying restaurant data."""
     document, payload = await _load(id)
+    from routers.config import validate_restore_data
+    collections = validate_restore_data(payload["data"])
     return {
         "id": id,
         "valid": True,
         "integrity": "sha256" if document.get("sha256") else "legacy_without_checksum",
-        "collections": sorted(payload["data"].keys()),
+        "collections": sorted(collections.keys()),
+        "record_counts": {name: len(docs) for name, docs in collections.items()},
         "message": "Backup íntegro; nenhuma restauração foi executada.",
     }
 
@@ -128,6 +131,8 @@ async def download_backup(id: str, _: dict = Depends(require())):
 async def restore_backup(id: str, me: dict = Depends(require())):
     from routers.config import restore
     _d, payload = await _load(id)
+    from routers.config import validate_restore_data
+    validate_restore_data(payload["data"])
     await make_server_backup("antes da restauração", me["name"])  # safety copy of the current data
     result = await restore(RestoreIn(data=payload["data"]), me)
     await audit_backup("restored", me, id)
