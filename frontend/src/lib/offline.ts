@@ -77,6 +77,19 @@ export function cachedMenu(): Product[] {
 let syncing = false;
 export async function syncQueue(): Promise<{ synced: number; failed: number }> {
   if (syncing || isOffline()) return { synced: 0, failed: 0 };
+  // Web Locks serialize replay across tabs on the same origin.
+  // The backend client_ref protects desktop windows on other origins.
+  if (typeof navigator !== "undefined" && navigator.locks?.request) {
+    return navigator.locks.request("apollo-pdv-offline-sync", async () => {
+      if (isOffline()) return { synced: 0, failed: 0 };
+      return performSyncQueue();
+    });
+  }
+  return performSyncQueue();
+}
+
+async function performSyncQueue(): Promise<{ synced: number; failed: number }> {
+  if (syncing || isOffline()) return { synced: 0, failed: 0 };
   syncing = true;
   let synced = 0;
   let failed = 0;
