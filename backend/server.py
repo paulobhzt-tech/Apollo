@@ -14,7 +14,7 @@ load_dotenv(ROOT_DIR / '.env')
 # MongoDB connection
 from lib.db import client, db, ensure_indexes  # noqa: E402
 from lib.csrf import CsrfOriginMiddleware  # noqa: E402
-from routers import assistant, auth, catalog, config, drive, fiado, finance, operations, production, public, reports, serverbackup, system, tables  # noqa: E402
+from routers import assistant, assistant_openai, auth, catalog, config, drive, fiado, finance, operations, production, public, reports, serverbackup, system, tables  # noqa: E402
 
 
 @asynccontextmanager
@@ -43,7 +43,7 @@ async def root():
     return {"message": "Apollo PDV API"}
 
 
-for r in (assistant, auth, catalog, tables, operations, reports, public, fiado, config, production, drive, system, finance, serverbackup):
+for r in (assistant, assistant_openai, auth, catalog, tables, operations, reports, public, fiado, config, production, drive, system, finance, serverbackup):
     api_router.include_router(r.router)
 
 app.add_middleware(CsrfOriginMiddleware)
