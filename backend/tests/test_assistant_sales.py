@@ -1,4 +1,4 @@
-from routers.assistant import sales_answer, format_sales_answer, yesterday_sales_answer, format_yesterday_answer, monthly_expense_answer, format_monthly_expense_answer
+from routers.assistant import sales_answer, format_sales_answer, yesterday_sales_answer, format_yesterday_answer, monthly_expense_answer, format_monthly_expense_answer, top_selling_products, format_top_products
 
 def test_daily_sales_answer_uses_paid_orders_only():
     today = [{"total": 100}, {"total": 50}]
@@ -38,3 +38,16 @@ def test_monthly_expense_answer_uses_only_recorded_entries():
     answer = format_monthly_expense_answer(metrics)
     assert "R$ 50,50" in answer
     assert "não representam lucro" in answer
+
+
+def test_top_selling_products_excludes_cancelled_and_sorts_by_quantity():
+    orders = [{"items": [
+        {"name": "Espetinho", "qty": 3, "unit_price": 10},
+        {"name": "Chopp", "qty": 2, "unit_price": 8, "cancelled": True},
+    ]}, {"items": [{"name": "Espetinho", "qty": 2, "unit_price": 10},
+                   {"name": "Porcao", "qty": 1, "unit_price": 30}]}]
+    result = top_selling_products(orders)
+    assert [p["name"] for p in result] == ["Espetinho", "Porcao"]
+    assert result[0]["qty"] == 5
+    assert result[0]["revenue"] == 50
+    assert "não representam lucro" in format_top_products(result, "2026-11")
