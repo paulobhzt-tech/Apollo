@@ -41,6 +41,44 @@ async def paid_between(start: datetime, end: datetime) -> list[dict]:
     return await db.orders.find({"status": "pago", "paid_at": {"$gte": start, "$lt": end}}, {"_id": 0}).to_list(50000)
 
 
+class DailySalesGoal(BaseModel):
+    amount: float = Field(ge=0, le=100000000)
+
+
+@router.get("/reports/daily-goal")
+async def get_daily_goal(_: dict = Depends(require("caixa"))):
+    config = await db.settings.find_one({"_id": "daily_sales_goal"}, {"_id": 0, "amount": 1})
+    return {"amount": float((config or {}).get("amount", 0))}
+
+
+@router.put("/reports/daily-goal")
+async def save_daily_goal(payload: DailySalesGoal, _: dict = Depends(require("admin"))):
+    amount = round(payload.amount, 2)
+    await db.settings.update_one({"_id": "daily_sales_goal"}, {"$set": {"amount": amount}}, upsert=True)
+    return {"amount": amount}
+
+
+@router.get("/reports/daily-performance")
+async def daily_performance(_: dict = Depends(require("caixa"))):
+    today = date.fromisoformat(local_today())
+    start, end = day_bounds(today.isoformat())
+    prev_start, prev_end = day_bounds((today - timedelta(days=1)).isoformat())
+    current = await paid_between(start, end)
+    previous = await paid_between(prev_start, prev_end)
+    revenue = round(sum(float(o.get("total") or 0) for o in current), 2)
+    previous_revenue = round(sum(float(o.get("total") or 0) for o in previous), 2)
+    cmv = round(sum(float(o.get("cmv") or 0) for o in current), 2)
+    config = await db.settings.find_one({"_id": "daily_sales_goal"}, {"_id": 0, "amount": 1})
+    goal = float((config or {}).get("amount", 0))
+    return {"date": today.isoformat(), "revenue": revenue, "previous_revenue": previous_revenue,
+            "revenue_change_pct": round((revenue - previous_revenue) / previous_revenue * 100, 1) if previous_revenue > 0 else None,
+            "estimated_gross_contribution": round(revenue - cmv, 2),
+            "recorded_cmv": cmv, "goal": goal,
+            "goal_pct": round(revenue / goal * 100, 1) if goal > 0 else None,
+            "remaining": round(max(0, goal - revenue), 2),
+            "note": "Comparação do dia atual (parcial) com o dia anterior completo. Contribuição bruta estimada: vendas menos CMV registrado; não desconta taxas, impostos, salários ou despesas fixas. CMV ausente pode superestimar o resultado."}
+
+
 @router.get("/reports/dashboard", response_model=Dashboard)
 async def dashboard(_: dict = Depends(require("caixa"))):
     today = local_today()
