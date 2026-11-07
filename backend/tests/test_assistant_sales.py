@@ -1,4 +1,4 @@
-from routers.assistant import sales_answer, format_sales_answer, yesterday_sales_answer, format_yesterday_answer
+from routers.assistant import sales_answer, format_sales_answer, yesterday_sales_answer, format_yesterday_answer, monthly_expense_answer, format_monthly_expense_answer
 
 def test_daily_sales_answer_uses_paid_orders_only():
     today = [{"total": 100}, {"total": 50}]
@@ -28,3 +28,13 @@ def test_yesterday_sales_are_closed_period_and_no_profit_claim():
     assert "R$ 120,00" in answer
     assert "não representa lucro" in answer
     assert "parcial" not in answer
+
+
+def test_monthly_expense_answer_uses_only_recorded_entries():
+    metrics = monthly_expense_answer("2026-10", [{"amount": 20}, {"amount": 30.5}])
+    assert metrics["recorded_expenses"] == 50.5
+    assert metrics["entries"] == 2
+    assert metrics["partial_month"] is False
+    answer = format_monthly_expense_answer(metrics)
+    assert "R$ 50,50" in answer
+    assert "não representam lucro" in answer
