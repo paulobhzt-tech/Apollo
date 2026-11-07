@@ -3,7 +3,7 @@ import { Bot, Send } from "lucide-react";
 import AppShell, { PageHeader } from "@/components/AppShell";
 import { apiPost } from "@/lib/api";
 
-type Reply = { supported: boolean; answer: string; source: string; provider?: string; notice?: string; metrics: null | { date: string; revenue: number; paid_orders: number; average_ticket: number } };
+type Reply = { supported: boolean; answer: string; source: string; provider?: string; notice?: string; metrics: null | { date: string; revenue: number; paid_orders: number; average_ticket: number; partial_day?: boolean } };
 
 export default function ApolloIA() {
   const [provider, setProvider] = useState<"openai" | "gemini" | "local">("openai");
@@ -42,7 +42,7 @@ export default function ApolloIA() {
         <h2 className="mb-3 font-semibold">Resposta do Apollo {reply.provider === "openai" ? "· ChatGPT" : reply.provider === "gemini" ? "· Gemini" : "· Local"}</h2>
         <p className="whitespace-pre-wrap leading-relaxed">{reply.answer}</p>
         {reply.notice && <p className="mt-3 text-sm text-amber-300">{reply.notice}</p>}
-        {reply.supported && <p className="mt-4 text-xs text-zinc-400">Fonte: pedidos pagos registrados no Apollo. {reply.metrics?.date} {reply.metrics?.date === new Date().toLocaleDateString("en-CA") ? "· Dia em andamento." : "· Período encerrado."}</p>}
+        {reply.supported && <p className="mt-4 text-xs text-zinc-400">Fonte: pedidos pagos registrados no Apollo. {reply.metrics?.date} {reply.metrics?.partial_day ? "· Dia em andamento." : "· Período encerrado."}</p>}
       </div>}
     </section>
   </AppShell>;
