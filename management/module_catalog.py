@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 Period = Literal["mensal", "anual"]
-Plan = Literal["basico", "completo"]
+Plan = Literal["essencial", "basico", "profissional", "completo"]
 
 @dataclass(frozen=True)
 class Module:
@@ -35,12 +35,16 @@ MODULES = (
     Module("relatorios_avancados", "Relatorios avancados"),
 )
 MODULE_BY_CODE = {module.code: module for module in MODULES}
-CORE_MODULES = frozenset(m.code for m in MODULES if m.included_in_basic)
+ESSENTIAL_MODULES = frozenset({"pdv", "produtos", "caixa", "relatorios_basicos"})
+BASIC_MODULES = ESSENTIAL_MODULES | {"mesas"}
+PROFESSIONAL_MODULES = BASIC_MODULES | {"estoque", "financeiro", "kds", "cardapio_digital"}
+CORE_MODULES = BASIC_MODULES
+PLAN_MODULES = {"essencial": ESSENTIAL_MODULES, "basico": BASIC_MODULES, "profissional": PROFESSIONAL_MODULES, "completo": frozenset(MODULE_BY_CODE)}
 # Seguranca, backup e auditoria sao recursos obrigatorios, nao adicionais comerciais.
 
 def build_proposal(plan: Plan, period: Period, add_ons=()):
     """Retorna a selecao comercial; nao calcula valores nem aplica permissoes."""
-    if plan not in ("basico", "completo"):
+    if plan not in PLAN_MODULES:
         raise ValueError("Plano invalido")
     if period not in ("mensal", "anual"):
         raise ValueError("Periodicidade invalida")
@@ -50,11 +54,9 @@ def build_proposal(plan: Plan, period: Period, add_ons=()):
     unknown = set(selected) - MODULE_BY_CODE.keys()
     if unknown:
         raise ValueError("Modulo desconhecido")
-    if plan == "completo" and selected:
-        raise ValueError("Plano completo ja inclui todos os modulos")
-    if plan == "basico" and set(selected) & CORE_MODULES:
-        raise ValueError("Modulo ja incluido no plano basico")
-    enabled = set(MODULE_BY_CODE) if plan == "completo" else CORE_MODULES | set(selected)
+    if set(selected) & PLAN_MODULES[plan]:
+        raise ValueError("Modulo ja incluido no plano escolhido")
+    enabled = PLAN_MODULES[plan] | set(selected)
     return {
         "plan": plan,
         "period": period,
