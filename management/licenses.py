@@ -25,6 +25,9 @@ def connect(path: Path):
         due_date TEXT NOT NULL,
         created_at TEXT NOT NULL
     )""")
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(licenses)")}
+    if "annual_cents" not in columns:
+        conn.execute("ALTER TABLE licenses ADD COLUMN annual_cents INTEGER NOT NULL DEFAULT 0 CHECK(annual_cents >= 0)")
     conn.commit()
     return conn
 
@@ -37,6 +40,7 @@ def main():
     new.add_argument("--customer", required=True)
     new.add_argument("--plan", default="mensal")
     new.add_argument("--monthly-cents", required=True, type=int)
+    new.add_argument("--annual-cents", type=int, default=0, help="Preco anual em centavos; obrigatorio para plano anual")
     new.add_argument("--domain", default="")
     new.add_argument("--days", type=int, default=30)
     sub.add_parser("list")
@@ -49,20 +53,20 @@ def main():
     args = parser.parse_args()
     db = connect(Path(args.db))
     if args.cmd == "create":
-        if args.monthly_cents < 0 or not 1 <= args.days <= 366:
+        if args.plan not in ("mensal", "anual") or args.monthly_cents < 0 or args.annual_cents < 0 or (args.plan == "anual" and args.annual_cents == 0) or not 1 <= args.days <= 366:
             parser.error("Valor/dias invalido")
         license_id = "APL-" + secrets.token_hex(8).upper()
-        db.execute("INSERT INTO licenses VALUES (?,?,?,?,?,?,?,?)", (
+        db.execute("INSERT INTO licenses(id,customer,plan,domain,monthly_cents,status,due_date,created_at,annual_cents) VALUES (?,?,?,?,?,?,?,?,?)", (
             license_id, args.customer.strip(), args.plan.strip(),
             args.domain.strip(), args.monthly_cents,
             "trial", (date.today() + timedelta(days=args.days)).isoformat(),
-            date.today().isoformat(),
+            date.today().isoformat(), args.annual_cents,
         ))
         db.commit()
         print("Cadastro criado:", license_id)
         print("ATENCAO: o cadastro nao ativa nem bloqueia automaticamente o PDV.")
     elif args.cmd == "list":
-        for row in db.execute("SELECT id,customer,plan,status,due_date,monthly_cents,domain FROM licenses ORDER BY customer"):
+        for row in db.execute("SELECT id,customer,plan,status,due_date,monthly_cents,annual_cents,domain FROM licenses ORDER BY customer"):
             print(" | ".join(str(value) for value in row))
     elif args.cmd == "status":
         cursor = db.execute("UPDATE licenses SET status=? WHERE id=?", (args.status, args.id))
