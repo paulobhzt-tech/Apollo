@@ -7,7 +7,7 @@ on:
         description: "Tipo do instalador: teste local ou producao HTTPS"
         type: choice
         required: true
-        default: test
+        default: production
         options:
           - test
           - production
@@ -26,7 +26,7 @@ jobs:
         shell: pwsh
         env:
           REQUESTED_CHANNEL: ${{ inputs.channel }}
-          PUBLISHED_URL: ${{ vars.PDV_SERVER_URL }}
+          PUBLISHED_URL: ${{ vars.PDV_SERVER_URL || 'https://pdv.apollo-pdv.com' }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
           $channel = if ($env:EVENT_NAME -eq "workflow_dispatch") { $env:REQUESTED_CHANNEL } else { "production" }
