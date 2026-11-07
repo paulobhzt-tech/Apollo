@@ -56,7 +56,8 @@ async def test_verify_backup_does_not_restore_or_modify_data(monkeypatch):
     result = await serverbackup.verify_server_backup("backup-1", {"role": "admin"})
     assert result["valid"] is True
     assert result["integrity"] == "sha256"
-    assert result["collections"] == ["orders", "tables"]\n    assert result["record_counts"]["orders"] == 1
+    assert result["collections"] == ["orders", "tables"]
+    assert result["record_counts"]["orders"] == 1
     assert lookup.await_count == 1
 
 
