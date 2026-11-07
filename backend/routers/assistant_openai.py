@@ -5,14 +5,21 @@ import os
 import urllib.error
 import urllib.request
 from datetime import date, timedelta
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Literal
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 from lib.auth import require
 from lib.db import db
 from lib.orders import day_bounds, local_today
-from routers.assistant import AssistantQuestion, sales_answer, format_sales_answer
+from routers.assistant import sales_answer, format_sales_answer
 from routers.reports import paid_between
 
 router = APIRouter()
+
+class ChatQuestion(BaseModel):
+    question: str = Field(min_length=1, max_length=300)
+    provider: Literal["openai", "gemini", "local"] = "openai"
+
 
 SYSTEM = (
     "Você é o Apollo IA, assistente gerencial de um restaurante. "
@@ -51,12 +58,43 @@ def _openai_request(metrics: dict) -> str:
         raise RuntimeError("Resposta vazia da API")
     return answer
 
+def _gemini_request(metrics: dict) -> str:
+    key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY não configurada")
+    model = os.environ.get("APOLLO_GEMINI_MODEL", "gemini-2.5-flash")
+    if not model or any(ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._" for ch in model):
+        raise RuntimeError("Modelo Gemini inválido")
+    payload = {
+        "systemInstruction": {"parts": [{"text": SYSTEM}]},
+        "contents": [{"role": "user", "parts": [{"text":
+            "Responda à pergunta 'Como estão minhas vendas hoje?' usando apenas estes dados agregados: "
+            + json.dumps(metrics, ensure_ascii=False)}]}],
+        "generationConfig": {"maxOutputTokens": 500, "temperature": 0.2},
+    }
+    req = urllib.request.Request(
+        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"x-goog-api-key": key, "Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=12) as response:
+        result = json.loads(response.read(150000).decode("utf-8"))
+    answer = "\n".join(
+        part.get("text", "") for candidate in result.get("candidates", [])
+        for part in candidate.get("content", {}).get("parts", [])
+        if isinstance(part.get("text"), str)
+    ).strip()
+    if not answer:
+        raise RuntimeError("Resposta vazia do Gemini")
+    return answer
+
 @router.post("/assistant/chat")
-async def chat(payload: AssistantQuestion, _: dict = Depends(require("admin", "caixa"))):
+async def chat(payload: ChatQuestion, _: dict = Depends(require("admin", "caixa"))):
     question = payload.question.casefold().strip()
     if not (("venda" in question or "faturamento" in question or "faturei" in question)
             and ("hoje" in question or "dia" in question or "atual" in question)):
-        return {"supported": False, "answer": "Por segurança, o ChatGPT está limitado à pergunta sobre vendas de hoje.",
+        return {"supported": False, "answer": "Por segurança, o assistente está limitado à pergunta sobre vendas de hoje.",
                 "metrics": None, "source": "restricao_de_escopo", "provider": "local"}
     today = local_today()
     yesterday = (date.fromisoformat(today) - timedelta(days=1)).isoformat()
@@ -67,15 +105,22 @@ async def chat(payload: AssistantQuestion, _: dict = Depends(require("admin", "c
     setting = await db.settings.find_one({"_id": "daily_sales_goal"}, {"amount": 1})
     goal = max(0.0, float((setting or {}).get("amount") or 0))
     metrics = sales_answer(today, current, previous, goal)
-    if not os.environ.get("OPENAI_API_KEY", "").strip():
+    provider = payload.provider
+    if provider == "local":
+        return {"supported": True, "answer": format_sales_answer(metrics),
+                "metrics": metrics, "source": "pedidos_pagos_e_meta_diaria", "provider": "local"}
+    key_name = "GEMINI_API_KEY" if provider == "gemini" else "OPENAI_API_KEY"
+    label = "Gemini" if provider == "gemini" else "ChatGPT"
+    if not os.environ.get(key_name, "").strip():
         return {"supported": True, "answer": format_sales_answer(metrics),
                 "metrics": metrics, "source": "pedidos_pagos_e_meta_diaria", "provider": "local",
-                "notice": "ChatGPT não configurado. Resposta local com dados reais."}
+                "notice": f"{label} não configurado. Resposta local com dados reais."}
     try:
-        answer = await asyncio.wait_for(asyncio.to_thread(_openai_request, metrics), timeout=15)
+        provider_fn = _gemini_request if provider == "gemini" else _openai_request
+        answer = await asyncio.wait_for(asyncio.to_thread(provider_fn, metrics), timeout=15)
         return {"supported": True, "answer": answer, "metrics": metrics,
-                "source": "pedidos_pagos_e_meta_diaria", "provider": "openai"}
-    except (RuntimeError, urllib.error.URLError, TimeoutError, ValueError, asyncio.TimeoutError):
+                "source": "pedidos_pagos_e_meta_diaria", "provider": provider}
+    except (RuntimeError, urllib.error.URLError, TimeoutError, ValueError, asyncio.TimeoutError, KeyError):
         return {"supported": True, "answer": format_sales_answer(metrics),
                 "metrics": metrics, "source": "pedidos_pagos_e_meta_diaria", "provider": "local",
-                "notice": "ChatGPT indisponível; exibindo resposta calculada pelo Apollo."}
+                "notice": f"{label} indisponível; exibindo resposta calculada pelo Apollo."}
