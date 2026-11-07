@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from lib.auth import require
 from lib.db import db
 from lib.orders import day_bounds, local_today
-from routers.assistant import sales_answer, format_sales_answer, yesterday_sales_answer, format_yesterday_answer, monthly_expenses_response
+from routers.assistant import sales_answer, format_sales_answer, yesterday_sales_answer, format_yesterday_answer, monthly_expenses_response, top_products_response
 from routers.reports import paid_between
 
 router = APIRouter()
@@ -94,6 +94,8 @@ async def chat(payload: ChatQuestion, _: dict = Depends(require("admin", "caixa"
     question = payload.question.casefold().strip()
     if ("despesa" in question or "gastei" in question or "gasto" in question) and ("mês" in question or "mes" in question):
         return await monthly_expenses_response()
+    if "produto" in question and ("mais vendido" in question or "mais vendid" in question):
+        return await top_products_response()
     sales_question = "venda" in question or "faturamento" in question or "faturei" in question
     if sales_question and "ontem" in question:
         yesterday = (date.fromisoformat(local_today()) - timedelta(days=1)).isoformat()
@@ -104,7 +106,7 @@ async def chat(payload: ChatQuestion, _: dict = Depends(require("admin", "caixa"
                 "notice": "Consulta histórica calculada localmente, sem envio a serviços externos."}
     if not (("venda" in question or "faturamento" in question or "faturei" in question)
             and ("hoje" in question or "dia" in question or "atual" in question)):
-        return {"supported": False, "answer": "Por segurança, o assistente responde sobre vendas de hoje, de ontem ou despesas deste mês.",
+        return {"supported": False, "answer": "Por segurança, o assistente responde sobre vendas de hoje, de ontem, despesas deste mês ou produtos mais vendidos.",
                 "metrics": None, "source": "restricao_de_escopo", "provider": "local"}
     today = local_today()
     yesterday = (date.fromisoformat(today) - timedelta(days=1)).isoformat()
