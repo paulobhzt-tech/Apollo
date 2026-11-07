@@ -102,11 +102,27 @@ def revive(v):
     return v
 
 
+def validate_restore_data(source: dict) -> dict[str, list[dict]]:
+    """Preflight the entire backup before any destructive database operation."""
+    if not isinstance(source, dict):
+        raise HTTPException(400, "Dados do backup inválidos")
+    if not source or any(name not in BACKUP_COLLS for name in source):
+        raise HTTPException(400, "Backup contém coleções desconhecidas ou está vazio")
+    data = {}
+    for name, docs in source.items():
+        if not isinstance(docs, list) or any(not isinstance(doc, dict) for doc in docs):
+            raise HTTPException(400, f"Coleção {name} deve conter uma lista de registros válidos")
+        data[name] = docs
+    if not data.get("products") and not data.get("orders"):
+        raise HTTPException(400, "Arquivo de backup inválido ou vazio")
+    return data
+
+
 @router.post("/backup/restore", response_model=RestoreOut)
 async def restore(body: RestoreIn, me: dict = Depends(require())):
     """Replaces each collection present in the backup. Employees keep their current PINs (backups never carry PINs);
     employees that do not exist here are restored inactive until the admin sets a PIN. The logged-in admin is always kept."""
-    data = {k: v for k, v in body.data.items() if k in BACKUP_COLLS}
+    data = validate_restore_data(body.data)
     if "settings" in data:  # never overwrite the Google Drive connection of this install
         data["settings"] = [d for d in data["settings"] if isinstance(d, dict) and d.get("_id") != "drive"]
     if not data.get("products") and not data.get("orders"):
