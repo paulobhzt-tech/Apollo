@@ -10,7 +10,10 @@ tmp="${out}.partial"
 trap 'rm -f "$tmp"' EXIT
 docker compose exec -T mongo sh -c 'exec mongodump --authenticationDatabase admin --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --db apollo_pdv --archive --gzip' > "$tmp"
 test -s "$tmp"
+# Reject truncated/corrupt archives before publishing or rotating backups.
+gzip -t "$tmp"
 mv "$tmp" "$out"
+sha256sum "$out" > "${out}.sha256"
 trap - EXIT
-find "$BACKUP_DIR" -type f -name 'apollo-*.archive.gz' -mtime +6 -delete
+find "$BACKUP_DIR" -type f \( -name 'apollo-*.archive.gz' -o -name 'apollo-*.archive.gz.sha256' \) -mtime +6 -delete
 echo "Backup local criado: $out"
