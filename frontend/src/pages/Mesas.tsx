@@ -316,6 +316,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   const [payOpen, setPayOpen] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [transferTo, setTransferTo] = useState("");
+  const [mergeTo, setMergeTo] = useState("");
   const [preBill, setPreBill] = useState(false);
   const [partialOpen, setPartialOpen] = useState(false);
   const [grouped, setGrouped] = useState(true);
@@ -360,6 +361,11 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   const transfer = useMutation({
     mutationFn: () => apiPost<Table>(`/tables/${table!.id}/transfer`, { target_table_id: transferTo }),
     onSuccess: (t) => { toast.success(`Transferida para ${tableLabel(t)}`); setTransferTo(""); invalidateTables(); onClose(); },
+    onError: onErr,
+  });
+  const merge = useMutation({
+    mutationFn: () => apiPost<Table>(`/tables/${table!.id}/merge`, { target_table_id: mergeTo }),
+    onSuccess: (t) => { toast.success(`Comandas reunidas em ${tableLabel(t)}`); setMergeTo(""); invalidateTables(); onClose(); },
     onError: onErr,
   });
   const pay = useMutation({
