@@ -9,6 +9,7 @@ from routers import finance
 async def test_pay_bill_only_updates_open_bill(monkeypatch):
     update = AsyncMock(return_value={"id": "bill-1", "status": "pago"})
     monkeypatch.setattr(finance.db.bills, "find_one_and_update", update)
+    monkeypatch.setattr(finance, "audit_bill_change", AsyncMock())
     body = type("Payment", (), {"model_dump": lambda self: {"paid_amount": 42.0}})()
     result = await finance.pay_bill("bill-1", body, {"role": "caixa"})
     assert result["status"] == "pago"
@@ -30,5 +31,22 @@ async def test_pay_bill_rejects_duplicate_settlement(monkeypatch):
 async def test_reopen_only_closed_bills(monkeypatch):
     update = AsyncMock(return_value={"id": "bill-1", "status": "aberto"})
     monkeypatch.setattr(finance.db.bills, "find_one_and_update", update)
+    monkeypatch.setattr(finance, "audit_bill_change", AsyncMock())
     await finance.reopen_bill("bill-1", {"role": "admin"})
     assert update.await_args.args[0]["status"] == {"$in": ["pago", "cancelado"]}
+
+
+@pytest.mark.asyncio
+async def test_financial_audit_contains_actor_and_no_credentials(monkeypatch):
+    from types import SimpleNamespace
+    insert = AsyncMock()
+    monkeypatch.setattr(finance, "db", SimpleNamespace(bill_audit=SimpleNamespace(insert_one=insert)))
+    await finance.audit_bill_change(
+        "paid", {"id": "cashier-1", "pin_hash": "private"},
+        {"id": "bill-1", "kind": "pagar", "status": "pago", "customer": "private"},
+    )
+    entry = insert.await_args.args[0]
+    assert entry["actor_id"] == "cashier-1"
+    assert entry["bill_id"] == "bill-1"
+    assert "pin_hash" not in entry
+    assert "customer" not in entry
