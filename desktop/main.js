@@ -167,7 +167,8 @@ ipcMain.on("pdv:kv-set", (e, key, value) => { kvLoad()[key] = value; kvSave(); e
 ipcMain.handle("pdv:config", () => ({ serverUrl: cfg.serverUrl, servers: cfg.servers, startWithWindows: !!cfg.startWithWindows, mode }));
 ipcMain.handle("pdv:test-server", async (_e, url) => {
   try {
-    if (!validServerUrl(cleanUrl(url))) return { ok: false, error: "Endereço inválido: use HTTPS (HTTP apenas para testes locais)" };\n    const r = await net.fetch(cleanUrl(url) + "/api/", { cache: "no-store" });
+    if (!validServerUrl(cleanUrl(url))) return { ok: false, error: "Endereço inválido: use HTTPS (HTTP apenas para testes locais)" };
+    const r = await net.fetch(cleanUrl(url) + "/api/", { cache: "no-store" });
     return { ok: r.status < 500, error: r.status >= 500 ? "HTTP " + r.status : undefined };
   } catch (err) {
     return { ok: false, error: String(err.message || err) };
