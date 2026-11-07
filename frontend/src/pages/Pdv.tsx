@@ -34,15 +34,6 @@ export default function Pdv() {
   const itemCount = cart.reduce((sum, line) => sum + line.qty, 0);
   const subtotal = Math.round(cart.reduce((s, l) => s + l.qty * (l.product.price + l.extra), 0) * 100) / 100;
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "F2" && cart.length && !payOpen && !sale.isPending) { e.preventDefault(); setPayOpen(true); }
-      if (e.key === "F4" && !payOpen && !sale.isPending && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) { e.preventDefault(); setCart([]); }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [cart.length, payOpen, sale.isPending]);
-
   const [optFor, setOptFor] = useState<Product | null>(null);
   const push = (p: Product, picked?: Picked) => setCart((c) => {
     if (!picked) {
@@ -75,6 +66,15 @@ export default function Pdv() {
       } else toast.error(errMsg(e));
     },
   });
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "F2" && cart.length && !payOpen && !sale.isPending) { e.preventDefault(); setPayOpen(true); }
+      if (e.key === "F4" && !payOpen && !sale.isPending && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) { e.preventDefault(); setCart([]); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [cart.length, payOpen, sale.isPending]);
 
   const confirm = (pay: PayIn) => {
     if (!cart.length || sale.isPending) return;
