@@ -29,7 +29,8 @@ from routers import auth as auth_router
 @pytest.mark.asyncio
 async def test_employee_audit_never_records_credentials(monkeypatch):
     insert = AsyncMock()
-    monkeypatch.setattr(auth_router.db.employee_audit, "insert_one", insert)
+    from types import SimpleNamespace
+    monkeypatch.setattr(auth_router, "db", SimpleNamespace(employee_audit=SimpleNamespace(insert_one=insert)))
     await auth_router.audit_employee_change(
         "updated", {"id": "admin-1"}, "employee-2",
         ["role", "active", "pin", "password", "pin_hash", "password_hash"],
