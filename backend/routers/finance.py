@@ -2,7 +2,7 @@
 import calendar
 import re
 import unicodedata
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -108,6 +108,24 @@ async def delete_cat(id: str, _: dict = Depends(require())):
 
 
 # ---------- contas a pagar / receber ----------
+async def audit_bill_change(action: str, actor: dict, bill: dict) -> None:
+    """Keep a minimal, immutable audit event for financial status changes."""
+    await db.bill_audit.insert_one({
+        "at": datetime.now(timezone.utc),
+        "action": action,
+        "actor_id": actor.get("id", ""),
+        "bill_id": bill["id"],
+        "kind": bill.get("kind", ""),
+        "status": bill["status"],
+    })
+
+
+@router.get("/bills/audit")
+async def list_bill_audit(_: dict = Depends(require())):
+    return await db.bill_audit.find({}, {"_id": 0}).sort("at", -1).to_list(200)
+
+
+
 def _add_months(d: str, n: int) -> str:
     y, m, day = map(int, d.split("-"))
     m0 = m - 1 + n
@@ -186,7 +204,7 @@ async def update_bill(id: str, body: BillIn, _: dict = Depends(require())):
 
 
 @router.post("/bills/{id}/pay", response_model=Bill)
-async def pay_bill(id: str, body: BillPayIn, _: dict = Depends(require("caixa"))):
+async def pay_bill(id: str, body: BillPayIn, user: dict = Depends(require("caixa"))):
     """Atomically settle an open bill; a concurrent payment cannot settle it twice."""
     updated = await db.bills.find_one_and_update(
         {"id": id, "status": "aberto"},
@@ -194,6 +212,7 @@ async def pay_bill(id: str, body: BillPayIn, _: dict = Depends(require("caixa"))
         projection={"_id": 0}, return_document=True,
     )
     if updated:
+        await audit_bill_change("paid", user, updated)
         return updated
     existing = await db.bills.find_one({"id": id}, {"_id": 0, "status": 1})
     if not existing:
@@ -202,7 +221,7 @@ async def pay_bill(id: str, body: BillPayIn, _: dict = Depends(require("caixa"))
 
 
 @router.post("/bills/{id}/reopen", response_model=Bill)
-async def reopen_bill(id: str, _: dict = Depends(require())):
+async def reopen_bill(id: str, user: dict = Depends(require())):
     updated = await db.bills.find_one_and_update(
         {"id": id, "status": {"$in": ["pago", "cancelado"]}},
         {"$set": {"status": "aberto", "paid_date": None, "paid_amount": 0, "payment_method": ""}},
@@ -210,6 +229,7 @@ async def reopen_bill(id: str, _: dict = Depends(require())):
     )
     if not updated:
         raise HTTPException(409, "Conta inexistente ou já aberta. Atualize a lista.")
+    await audit_bill_change("reopened", user, updated)
     return updated
 
 
