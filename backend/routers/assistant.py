@@ -36,12 +36,32 @@ def format_sales_answer(data: dict) -> str:
     parts.append("Somente pedidos pagos; o dia ainda não terminou. Valores não representam lucro.")
     return " ".join(parts)
 
+def yesterday_sales_answer(day: str, orders: list[dict]) -> dict:
+    revenue = round(sum(float(o.get("total") or 0) for o in orders), 2)
+    count = len(orders)
+    return {"date": day, "revenue": revenue, "paid_orders": count,
+            "average_ticket": round(revenue / count, 2) if count else 0.0, "partial_day": False}
+
+
+def format_yesterday_answer(data: dict) -> str:
+    brl = lambda n: f"R$ {n:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return (f"Vendas de ontem ({data['date']}): {brl(data['revenue'])}. "
+            f"{data['paid_orders']} pedido(s) pago(s); ticket médio de {brl(data['average_ticket'])}. "
+            "Somente pedidos pagos; faturamento não representa lucro.")
+
+
 @router.post("/assistant/ask")
 async def ask_assistant(payload: AssistantQuestion, _: dict = Depends(require("admin", "caixa"))):
     normalized = payload.question.casefold().strip()
-    if not (("venda" in normalized or "faturamento" in normalized or "faturei" in normalized) and
-            ("hoje" in normalized or "dia" in normalized or "atual" in normalized)):
-        return {"supported": False, "answer": "Por enquanto, posso responder: Como estão minhas vendas hoje?",
+    sales_question = "venda" in normalized or "faturamento" in normalized or "faturei" in normalized
+    if sales_question and "ontem" in normalized:
+        yesterday = (date.fromisoformat(local_today()) - timedelta(days=1)).isoformat()
+        start, end = day_bounds(yesterday)
+        metrics = yesterday_sales_answer(yesterday, await paid_between(start, end))
+        return {"supported": True, "answer": format_yesterday_answer(metrics),
+                "metrics": metrics, "source": "pedidos_pagos_ontem"}
+    if not (sales_question and ("hoje" in normalized or "dia" in normalized or "atual" in normalized)):
+        return {"supported": False, "answer": "Posso responder sobre vendas de hoje ou de ontem.",
                 "metrics": None, "source": "relatorios_internos"}
     today = local_today()
     previous = (date.fromisoformat(today) - timedelta(days=1)).isoformat()
