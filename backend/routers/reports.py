@@ -698,6 +698,70 @@ async def live_music_report(event_date: str | None = None, _: dict = Depends(req
             "event_result": round(contribution - costs, 2), "reached": contribution >= costs}
 
 
+@router.get("/reports/live-music/history")
+async def live_music_history(event_date: str | None = None, weeks: int = 8, _: dict = Depends(require("caixa"))):
+    """Compare paid sales on the same weekday, with and without registered live music.
+
+    Descriptive only: differences cannot be attributed causally to music.
+    """
+    if not 2 <= weeks <= 16:
+        raise HTTPException(400, "Informe entre 2 e 16 semanas")
+    try:
+        selected = date.fromisoformat(event_date or local_today())
+    except ValueError:
+        raise HTTPException(400, "Data inválida")
+    first = selected - timedelta(weeks=weeks)
+    start, _ = day_bounds(first.isoformat())
+    _, end = day_bounds(selected.isoformat())
+    orders = await paid_between(start, end)
+    totals: dict[str, dict] = {}
+    for order in orders:
+        paid_at = order.get("paid_at")
+        if not isinstance(paid_at, datetime):
+            continue
+        day = paid_at.astimezone(TZ).date().isoformat()
+        row = totals.setdefault(day, {"revenue": 0.0, "orders": 0})
+        row["revenue"] += float(order.get("total") or 0)
+        row["orders"] += 1
+    events = await db.live_music_events.find(
+        {"date": {"$gte": first.isoformat(), "$lte": selected.isoformat()}},
+        {"_id": 0, "date": 1, "artist": 1, "artist_fee": 1, "extra_costs": 1,
+         "contribution_margin_pct": 1},
+    ).to_list(200)
+    by_date = {event["date"]: event for event in events}
+    rows = []
+    # Same weekday only, and never compare with a future day.
+    for n in range(weeks, -1, -1):
+        day = selected - timedelta(weeks=n)
+        if day > date.fromisoformat(local_today()):
+            continue
+        key = day.isoformat()
+        event = by_date.get(key)
+        sales = totals.get(key, {"revenue": 0.0, "orders": 0})
+        revenue = round(sales["revenue"], 2)
+        costs = float(event.get("artist_fee", 0)) + float(event.get("extra_costs", 0)) if event else 0
+        margin = float(event.get("contribution_margin_pct", 40)) / 100 if event else 0.4
+        rows.append({"date": key, "artist": event.get("artist", "") if event else "",
+                     "has_music": bool(event), "revenue": revenue, "orders": sales["orders"],
+                     "average_ticket": round(revenue / sales["orders"], 2) if sales["orders"] else 0,
+                     "event_cost": round(costs, 2),
+                     "estimated_event_result": round(revenue * margin - costs, 2) if event else None})
+    with_music = [r for r in rows if r["has_music"]]
+    without_music = [r for r in rows if not r["has_music"]]
+    def summary(group):
+        count = len(group)
+        return {"days": count, "average_revenue": round(sum(r["revenue"] for r in group) / count, 2) if count else None,
+                "average_ticket": round(sum(r["average_ticket"] for r in group) / count, 2) if count else None,
+                "average_orders": round(sum(r["orders"] for r in group) / count, 1) if count else None}
+    music = summary(with_music)
+    no_music = summary(without_music)
+    delta = (round(music["average_revenue"] - no_music["average_revenue"], 2)
+             if music["average_revenue"] is not None and no_music["average_revenue"] is not None else None)
+    return {"weekday": selected.weekday(), "weeks": weeks, "days": rows,
+            "with_music": music, "without_music": no_music, "revenue_difference": delta,
+            "note": "Comparação descritiva de mesmo dia da semana, sem controle de feriados, clima, promoções ou horário. Dias sem vendas são incluídos, inclusive possíveis dias fechados. Evento é identificado somente quando cadastrado no Apollo. Diferença não comprova retorno causado pela música."}
+
+
 @router.put("/reports/live-music")
 async def save_live_music(payload: LiveMusicIn, _: dict = Depends(require("admin"))):
     config = payload.model_dump(mode="json")
