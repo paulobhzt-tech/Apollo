@@ -12,6 +12,7 @@ on:
           - test
           - production
   push:
+    branches: ["fix/windows-production-server"]
     tags: ["v*"]
 
 jobs:
@@ -29,7 +30,7 @@ jobs:
           PUBLISHED_URL: ${{ vars.PDV_SERVER_URL || 'https://pdv.apollo-pdv.com' }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
-          $channel = if ($env:EVENT_NAME -eq "workflow_dispatch") { $env:REQUESTED_CHANNEL } else { "production" }
+          $channel = if ($env:EVENT_NAME -eq "workflow_dispatch") { $env:REQUESTED_CHANNEL } elseif ($env:GITHUB_REF -eq "refs/heads/fix/windows-production-server") { "test" } else { "production" }
           if ($channel -eq "test") {
             "PDV_BUILD_CHANNEL=test" >> $env:GITHUB_ENV
             "PDV_SERVER_URL=http://localhost:18080" >> $env:GITHUB_ENV
@@ -87,7 +88,7 @@ jobs:
           Get-FileHash $file -Algorithm SHA256 | Format-List
       - uses: actions/upload-artifact@v4
         with:
-          name: Apollo-PDV-Setup-${{ inputs.channel || 'production' }}
+          name: Apollo-PDV-Setup-${{ env.PDV_BUILD_CHANNEL }}
           path: desktop/dist/Apollo-PDV-Setup.exe
           if-no-files-found: error
           retention-days: 14
