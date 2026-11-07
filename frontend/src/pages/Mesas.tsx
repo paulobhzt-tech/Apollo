@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowRightLeft, Bell, Clock, Minus, Pencil, Plus, QrCode, Receipt, Send, Trash2, Users } from "lucide-react";
+import { ArrowRightLeft, Bell, Clock, Minus, Pencil, Plus, QrCode, Receipt, RefreshCw, Send, Trash2, Users } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
@@ -59,6 +59,8 @@ export default function Mesas() {
   const [selId, setSelId] = useState<string | null>(null);
   const [mobileSearch, setMobileSearch] = useState("");
   const [desktopSearch, setDesktopSearch] = useState("");
+  const [desktopStatus, setDesktopStatus] = useState<"todas" | Table["status"]>("todas");
+  const [desktopSort, setDesktopSort] = useState<"numero" | "tempo" | "valor">("numero");
   const [mobileFilter, setMobileFilter] = useState<"todas" | "minhas" | "ocupadas" | "livres">("todas");
   const [qrTable, setQrTable] = useState<Table | null>(null);
   const [kind, setKind] = useState<Kind>("mesa");
@@ -68,6 +70,7 @@ export default function Mesas() {
     if (t.kind !== kind) return false;
     if (!mobileMode) {
       const term = desktopSearch.trim().toLocaleLowerCase("pt-BR");
+      if (desktopStatus !== "todas" && t.status !== desktopStatus) return false;
       return !term || [String(t.number), t.name ?? "", t.customer_name ?? ""].some((v) => v.toLocaleLowerCase("pt-BR").includes(term));
     }
     const term = mobileSearch.trim().toLocaleLowerCase("pt-BR");
@@ -77,6 +80,7 @@ export default function Mesas() {
     if (mobileFilter === "livres" && t.status !== "livre") return false;
     return true;
   });
+  const sortedList = [...list].sort((a, b) => desktopSort === "valor" ? (b.total ?? 0) - (a.total ?? 0) || a.number - b.number : desktopSort === "tempo" ? (b.opened_at ? minutesSince(b.opened_at) : 0) - (a.opened_at ? minutesSince(a.opened_at) : 0) || a.number - b.number : a.number - b.number);
   const sel = all.find((t) => t.id === selId) ?? null;
   const counts = list.reduce<Record<string, number>>((a, t) => ({ ...a, [t.status]: (a[t.status] ?? 0) + 1 }), {});
   const canCreate = me?.role === "admin" || me?.role === "caixa";
@@ -123,10 +127,33 @@ export default function Mesas() {
         <div className="flex flex-wrap gap-2">{([["todas", "Todas"], ["minhas", "Minhas mesas"], ["ocupadas", "Em atendimento"], ["livres", "Livres"]] as const).map(([value, label]) => <Button key={value} size="sm" variant={mobileFilter === value ? "default" : "outline"} onClick={() => setMobileFilter(value)}>{label}</Button>)}</div>
       </div>}
       {!mobileMode && (
+        <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4" data-testid="tables-summary">
+          {([
+            { label: "Em andamento", status: "ocupada", color: "border-emerald-500/40 text-emerald-300" },
+            { label: "Contas solicitadas", status: "conta", color: "border-amber-500/40 text-amber-300" },
+            { label: "Livres", status: "livre", color: "border-zinc-500/40 text-zinc-200" },
+            { label: "Reservadas", status: "reservada", color: "border-violet-500/40 text-violet-300" },
+          ] as const).map(item => (
+            <button key={item.status} type="button" onClick={() => setDesktopStatus(desktopStatus === item.status ? "todas" : item.status)}
+              aria-pressed={desktopStatus === item.status} className={cn("rounded-md border bg-white/5 px-3 py-3 text-left transition-colors hover:bg-white/10", item.color, desktopStatus === item.status && "ring-2 ring-primary")}>
+              <span className="block text-xs">{item.label}</span>
+              <span className="mt-1 block text-2xl font-bold tabular-nums">{all.filter(t => t.kind === kind && t.status === item.status).length}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {!mobileMode && (
         <div className="mb-5 flex flex-wrap items-center gap-3 border-b border-white/10 pb-4" data-testid="desktop-tables-toolbar">
           <Input aria-label="Pesquisar mesas e comandas" placeholder="Pesquisar mesa, comanda ou cliente..." value={desktopSearch}
             onChange={(e) => setDesktopSearch(e.target.value)} className="w-full max-w-sm rounded-sm bg-zinc-900/60 sm:w-80" />
-          <div className="ml-auto flex items-center gap-2 text-xs text-zinc-400">
+          <label className="flex items-center gap-2 text-xs text-zinc-300">Ordenar por
+            <select aria-label="Ordenar mesas" value={desktopSort} onChange={(e) => setDesktopSort(e.target.value as typeof desktopSort)} className="rounded border border-white/15 bg-zinc-800 px-2 py-2 text-white">
+              <option value="numero">Número</option><option value="tempo">Maior tempo</option><option value="valor">Maior valor</option>
+            </select>
+          </label>
+          <Button variant="outline" size="sm" onClick={() => void tables.refetch()} disabled={tables.isFetching} data-testid="refresh-tables"><RefreshCw className={cn("size-4", tables.isFetching && "animate-spin")} /> Atualizar</Button>
+          {desktopStatus !== "todas" && <Button variant="ghost" size="sm" onClick={() => setDesktopStatus("todas")}>Limpar filtro</Button>}
+          <div className="ml-auto hidden items-center gap-2 text-xs text-zinc-400 xl:flex">
             <span className="inline-block size-2 rounded-full bg-emerald-500" /> Em andamento
             <span className="ml-2 inline-block size-2 rounded-full bg-zinc-500" /> Livre
             <span className="ml-2 inline-block size-2 rounded-full bg-amber-500" /> Conta pedida
@@ -138,13 +165,15 @@ export default function Mesas() {
           <span key={k} className="flex items-center gap-1.5 text-zinc-400"><span className={cn("size-2 rounded-full", s.dot)} />{s.label} ({counts[k] ?? 0})</span>
         ))}
       </div>}
-      {list.length === 0 && (
+      {tables.isError && <div role="alert" className="mb-3 rounded border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">Não foi possível carregar as mesas. Confira a conexão e tente atualizar.</div>}
+      {tables.isLoading && <p role="status" className="mb-3 text-sm text-zinc-400">Carregando mesas e comandas…</p>}
+      {!tables.isLoading && !tables.isError && list.length === 0 && (
         <p className="py-12 text-center text-sm text-zinc-500" data-testid="tables-empty">
           {mobileMode ? "Nenhuma mesa ou comanda corresponde aos filtros." : `Nenhuma ${kind} encontrada.`}
         </p>
       )}
       {([
-        { title: "Pedidos em andamento", items: list.filter(t => t.status === "ocupada"), color: "bg-[#298858]" },
+        { title: "Pedidos em andamento", items: sortedList.filter(t => t.status === "ocupada"), color: "bg-[#298858]" },
         { title: "Contas solicitadas", items: list.filter(t => t.status === "conta"), color: "bg-[#a87322]" },
         { title: "Mesas reservadas", items: list.filter(t => t.status === "reservada"), color: "bg-[#62518d]" },
         { title: kind === "mesa" ? "Mesas livres" : "Comandas livres", items: list.filter(t => t.status === "livre"), color: "bg-[#656565]" },
@@ -165,7 +194,7 @@ export default function Mesas() {
           </div>
         </section>
       ))}
-      {canCreate && list.length > 0 && (
+      {canCreate && !tables.isError && list.length > 0 && (
         <button type="button" onClick={() => setCreating(true)} data-testid="add-more-tile"
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 py-5 text-sm text-zinc-400 transition-colors duration-150 hover:border-primary/50 hover:text-white">
           <Plus className="size-4" /> Adicionar mais {kind === "mesa" ? "mesas" : "comandas"}
