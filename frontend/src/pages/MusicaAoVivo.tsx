@@ -10,11 +10,14 @@ import { brl, errMsg } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
 
 type EventReport = { date: string; artist: string; artist_fee: number; extra_costs: number; contribution_margin_pct: number; revenue: number; target: number; remaining: number; contribution: number; event_result: number; reached: boolean; saved: boolean };
+type History = { weeks: number; days: { date: string; artist: string; has_music: boolean; revenue: number; orders: number; average_ticket: number; event_cost: number; estimated_event_result: number | null }[]; with_music: { days: number; average_revenue: number | null; average_ticket: number | null }; without_music: { days: number; average_revenue: number | null; average_ticket: number | null }; revenue_difference: number | null; note: string };
 const today = () => { const d = new Date(); return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-"); };
 export default function MusicaAoVivo() {
   const [date, setDate] = useState(today);
   const [values, setValues] = useState<Values>({ artist: "", fee: "0", extra: "0", margin: "40" });
   const [dirty, setDirty] = useState(false);
+  const [weeks, setWeeks] = useState(8);
+  const history = useQuery({ queryKey: ["live-music-history", date, weeks], queryFn: () => apiGet<History>(`/reports/live-music/history?event_date=${date}&weeks=${weeks}`) });
   const q = useQuery({ queryKey: ["live-music", date], queryFn: () => apiGet<EventReport>(`/reports/live-music?event_date=${date}`), refetchInterval: 30000 });
   const mutation = useMutation({ mutationFn: (v: Values) => apiPut<{ ok: boolean }>("/reports/live-music", { date, artist: v.artist.trim(), artist_fee: Number(v.fee), extra_costs: Number(v.extra), contribution_margin_pct: Number(v.margin) }), onSuccess: () => { setDirty(false); void queryClient.invalidateQueries({ queryKey: ["live-music", date] }); toast.success("Evento salvo"); }, onError: (e) => toast.error(errMsg(e)) });
   const data = q.data;
@@ -26,6 +29,7 @@ export default function MusicaAoVivo() {
   return <AppShell roles={["admin"]}>
     <PageHeader title="Música ao Vivo — Meta de Vendas" subtitle="Quanto o dia precisa vender para cobrir o cachê e os custos do evento" />
     <div className="mb-4 max-w-sm"><Label htmlFor="music-date">Data do evento</Label><Input id="music-date" type="date" value={date} onChange={e => { setDate(e.target.value); setDirty(false); }} /></div>
+    <div className="mb-4 max-w-sm"><Label htmlFor="music-weeks">Histórico para comparação</Label><select id="music-weeks" value={weeks} onChange={e => setWeeks(Number(e.target.value))} className="mt-1 w-full rounded-md border border-white/15 bg-[#252527] p-2 text-white"><option value={4}>4 semanas</option><option value={8}>8 semanas</option><option value={12}>12 semanas</option><option value={16}>16 semanas</option></select></div>
     {q.isError && <p role="alert" className="mb-4 text-red-400">Não foi possível carregar o evento e as vendas. Tente novamente.</p>}
     {q.isLoading && <p className="text-zinc-400">Carregando vendas do dia...</p>}
     {data && !dirty && <div className="hidden" aria-hidden="true">{data.artist}</div>}
@@ -44,6 +48,31 @@ export default function MusicaAoVivo() {
         {dirty && <p className="mt-2 text-xs text-amber-300">Prévia com valores alterados. Salve para registrar a meta do evento.</p>}
       </div>
     </div>}
+    <section className="mt-6 space-y-4" data-testid="live-music-history">
+      <h2 className="text-xl font-semibold text-white">Análise de rentabilidade e histórico</h2>
+      <p className="text-sm text-zinc-400">Comparação de dias equivalentes da semana, com e sem música cadastrada.</p>
+      {history.isLoading && <p className="text-sm text-zinc-400">Carregando histórico...</p>}
+      {history.isError && <p role="alert" className="text-sm text-red-400">Não foi possível carregar a comparação.</p>}
+      {history.data && <>
+        <div className="grid gap-3 md:grid-cols-3">
+          <Stat testid="music-average-with" label={`Média com música (${history.data.with_music.days} dias)`} value={history.data.with_music.average_revenue === null ? "Sem dados" : brl(history.data.with_music.average_revenue)} />
+          <Stat testid="music-average-without" label={`Média sem música (${history.data.without_music.days} dias)`} value={history.data.without_music.average_revenue === null ? "Sem dados" : brl(history.data.without_music.average_revenue)} />
+          <Stat testid="music-revenue-difference" label="Diferença média de faturamento" value={history.data.revenue_difference === null ? "Sem comparação" : brl(history.data.revenue_difference)} />
+        </div>
+        <div className="overflow-x-auto rounded-xl border border-white/10">
+          <table className="w-full min-w-[660px] text-left text-sm">
+            <thead className="bg-white/10 text-zinc-300"><tr><th className="p-3">Data</th><th className="p-3">Atração</th><th className="p-3 text-right">Vendas pagas</th><th className="p-3 text-right">Pedidos</th><th className="p-3 text-right">Custo do evento</th><th className="p-3 text-right">Resultado estimado</th></tr></thead>
+            <tbody>{history.data.days.map(row => <tr key={row.date} className="border-t border-white/10">
+              <td className="p-3">{row.date.split("-").reverse().join("/")}</td><td className="p-3">{row.has_music ? row.artist : "Sem evento cadastrado"}</td>
+              <td className="p-3 text-right">{brl(row.revenue)}</td><td className="p-3 text-right">{row.orders}</td>
+              <td className="p-3 text-right">{row.has_music ? brl(row.event_cost) : "—"}</td>
+              <td className="p-3 text-right">{row.estimated_event_result === null ? "—" : brl(row.estimated_event_result)}</td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+        <p className="text-xs text-amber-200">{history.data.note}</p>
+      </>}
+    </section>
   </AppShell>;
 }
 type Values = { artist: string; fee: string; extra: string; margin: string };
