@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from typing import Literal
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
@@ -137,3 +139,24 @@ async def restore(body: RestoreIn, me: dict = Depends(require())):
     await ensure_environments()
     total = sum(counts.values())
     return RestoreOut(counts=counts, message=f"Backup restaurado: {total} registros em {len(counts)} tabelas")
+
+class BackupDestinationIn(BaseModel):
+    destination: Literal["pc", "google_drive"]
+
+
+@router.get("/settings/backup-destination")
+async def get_backup_destination(_: dict = Depends(require("admin"))):
+    doc = await db.settings.find_one({"_id": "backup_destination"}) or {}
+    return {"destination": doc.get("destination"), "required": True}
+
+
+@router.put("/settings/backup-destination")
+async def put_backup_destination(body: BackupDestinationIn, _: dict = Depends(require("admin"))):
+    if body.destination == "google_drive":
+        drive = await db.settings.find_one({"_id": "drive"}) or {}
+        if not drive.get("refresh_token"):
+            raise HTTPException(400, "Conecte o Google Drive antes de escolhê-lo como destino obrigatório")
+        if not drive.get("auto", True):
+            raise HTTPException(400, "Ative o backup automático no Google Drive antes de selecioná-lo")
+    await db.settings.update_one({"_id": "backup_destination"}, {"$set": {"destination": body.destination}}, upsert=True)
+    return {"destination": body.destination, "required": True}
