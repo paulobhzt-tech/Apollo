@@ -105,7 +105,7 @@ def format_top_products(items: list[dict], month: str) -> str:
         brl = f"R$ {item['revenue']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         lines.append(f"{index}. {item['name']}: {item['qty']:g} unidade(s), {brl}.")
     lines.append("Valores de vendas não representam lucro; itens cancelados foram excluídos.")
-    return "\\n".join(lines)
+    return "\n".join(lines)
 
 
 async def top_products_response() -> dict:
