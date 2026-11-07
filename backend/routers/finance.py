@@ -234,10 +234,11 @@ async def reopen_bill(id: str, user: dict = Depends(require())):
 
 
 @router.post("/bills/{id}/cancel", response_model=Bill)
-async def cancel_bill(id: str, _: dict = Depends(require())):
+async def cancel_bill(id: str, user: dict = Depends(require())):
     b = await db.bills.find_one_and_update({"id": id, "status": "aberto"}, {"$set": {"status": "cancelado"}}, projection={"_id": 0}, return_document=True)
     if not b:
         raise HTTPException(400, "Só contas em aberto podem ser canceladas")
+    await audit_bill_change("cancelled", user, b)
     return b
 
 
