@@ -58,6 +58,7 @@ export default function Mesas() {
   const myReady = ready.filter((ticket) => (tables.data ?? []).some((t) => t.order_id === ticket.order_id && t.waiter_id === me?.id));
   const [selId, setSelId] = useState<string | null>(null);
   const [mobileSearch, setMobileSearch] = useState("");
+  const [desktopSearch, setDesktopSearch] = useState("");
   const [mobileFilter, setMobileFilter] = useState<"todas" | "minhas" | "ocupadas" | "livres">("todas");
   const [qrTable, setQrTable] = useState<Table | null>(null);
   const [kind, setKind] = useState<Kind>("mesa");
@@ -65,7 +66,10 @@ export default function Mesas() {
   const all = tables.isError ? [] : tables.data ?? [];
   const list = all.filter((t) => {
     if (t.kind !== kind) return false;
-    if (!mobileMode) return true;
+    if (!mobileMode) {
+      const term = desktopSearch.trim().toLocaleLowerCase("pt-BR");
+      return !term || [String(t.number), t.name ?? "", t.customer_name ?? ""].some((v) => v.toLocaleLowerCase("pt-BR").includes(term));
+    }
     const term = mobileSearch.trim().toLocaleLowerCase("pt-BR");
     if (term && ![String(t.number), t.name ?? "", t.customer_name ?? ""].some((v) => v.toLocaleLowerCase("pt-BR").includes(term))) return false;
     if (mobileFilter === "minhas" && t.waiter_id !== me?.id) return false;
@@ -118,46 +122,49 @@ export default function Mesas() {
         <Input aria-label="Buscar mesa, comanda ou cliente" placeholder="Buscar número, mesa ou cliente..." value={mobileSearch} onChange={(e) => setMobileSearch(e.target.value)} data-testid="mobile-table-search" />
         <div className="flex flex-wrap gap-2">{([["todas", "Todas"], ["minhas", "Minhas mesas"], ["ocupadas", "Em atendimento"], ["livres", "Livres"]] as const).map(([value, label]) => <Button key={value} size="sm" variant={mobileFilter === value ? "default" : "outline"} onClick={() => setMobileFilter(value)}>{label}</Button>)}</div>
       </div>}
-      <div className="mb-4 flex flex-wrap gap-3 text-xs">
+      {!mobileMode && (
+        <div className="mb-5 flex flex-wrap items-center gap-3 border-b border-white/10 pb-4" data-testid="desktop-tables-toolbar">
+          <Input aria-label="Pesquisar mesas e comandas" placeholder="Pesquisar mesa, comanda ou cliente..." value={desktopSearch}
+            onChange={(e) => setDesktopSearch(e.target.value)} className="w-full max-w-sm rounded-sm bg-zinc-900/60 sm:w-80" />
+          <div className="ml-auto flex items-center gap-2 text-xs text-zinc-400">
+            <span className="inline-block size-2 rounded-full bg-emerald-500" /> Em andamento
+            <span className="ml-2 inline-block size-2 rounded-full bg-zinc-500" /> Livre
+            <span className="ml-2 inline-block size-2 rounded-full bg-amber-500" /> Conta pedida
+          </div>
+        </div>
+      )}
+      {mobileMode && <div className="mb-4 flex flex-wrap gap-3 text-xs">
         {Object.entries(STATUS).map(([k, s]) => (
           <span key={k} className="flex items-center gap-1.5 text-zinc-400"><span className={cn("size-2 rounded-full", s.dot)} />{s.label} ({counts[k] ?? 0})</span>
         ))}
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6" data-testid="tables-grid">
-        {list.length === 0 && (
-          <p className="col-span-full py-12 text-center text-sm text-zinc-500" data-testid="tables-empty">
-            {mobileMode ? "Nenhuma mesa ou comanda corresponde aos filtros." : `Nenhuma ${kind} cadastrada.`}{!mobileMode && canCreate && " Clique em “Nova " + kind + "” para criar."}
-          </p>
-        )}
-        {list.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setSelId(t.id)}
-            data-testid={`${t.kind === "comanda" ? "comanda" : "table"}-card-${t.number}`}
-            className={cn("relative rounded-2xl border p-4 text-left transition-transform duration-200 hover:-translate-y-0.5 animate-rise", STATUS[t.status].cls)}
-          >
-            {t.call && (
-              <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-white animate-pulse-ring" data-testid={`table-call-${t.number}`}>
-                <Bell className="size-3" />{t.call === "conta" ? "Conta" : "Garçom"}
-              </span>
-            )}
-            <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">{kindLabel(t.kind)}</p>
-            <p className="font-heading text-4xl font-semibold text-white">{String(t.number).padStart(2, "0")}</p>
-            {t.name && <p className="truncate text-sm font-medium text-primary" data-testid={`table-name-${t.number}`}>{t.name}</p>}
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-zinc-300"><span className={cn("size-2 rounded-full", STATUS[t.status].dot)} />{STATUS[t.status].label}</p>
-            {t.order_id ? (
-              <div className="mt-3 flex items-center justify-between text-xs text-zinc-400">
-                <span className="flex items-center gap-1"><Users className="size-3" />{t.people}</span>
-                <span className="flex items-center gap-1"><Clock className="size-3" />{minutesSince(t.opened_at)}min</span>
-                <span className="font-mono text-sm text-white">{brl(t.total)}</span>
-              </div>
-            ) : (
-              <p className="mt-3 text-xs text-zinc-500">{t.customer_name || `${t.seats} lugares`}</p>
-            )}
-          </button>
-        ))}
-      </div>
+      </div>}
+      {list.length === 0 && (
+        <p className="py-12 text-center text-sm text-zinc-500" data-testid="tables-empty">
+          {mobileMode ? "Nenhuma mesa ou comanda corresponde aos filtros." : `Nenhuma ${kind} encontrada.`}
+        </p>
+      )}
+      {([
+        { title: "Pedidos em andamento", items: list.filter(t => t.status === "ocupada"), color: "bg-[#298858]" },
+        { title: "Contas solicitadas", items: list.filter(t => t.status === "conta"), color: "bg-[#a87322]" },
+        { title: "Mesas reservadas", items: list.filter(t => t.status === "reservada"), color: "bg-[#62518d]" },
+        { title: kind === "mesa" ? "Mesas livres" : "Comandas livres", items: list.filter(t => t.status === "livre"), color: "bg-[#656565]" },
+      ]).filter(group => group.items.length > 0).map(group => (
+        <section key={group.title} className="mb-5" aria-label={group.title}>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">{group.title} ({group.items.length})</h2>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-7 xl:grid-cols-10 2xl:grid-cols-12" data-testid="tables-grid">
+            {group.items.map(t => (
+              <button key={t.id} type="button" onClick={() => setSelId(t.id)}
+                data-testid={`${t.kind === "comanda" ? "comanda" : "table"}-card-${t.number}`}
+                className={cn("relative flex min-h-28 flex-col items-center justify-between p-2 text-center text-white transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", group.color)}>
+                <span className="text-[10px] font-medium">{t.status === "livre" ? "ABRIR" : t.status === "conta" ? "CONTA" : t.status === "reservada" ? "RESERVADA" : `${minutesSince(t.opened_at)} min`}</span>
+                {t.call && <Bell className="absolute right-1 top-1 size-3 animate-pulse" aria-label="Chamada pendente" />}
+                <span className="text-2xl font-bold tabular-nums">{String(t.number).padStart(2, "0")}</span>
+                <span className="w-full truncate text-[10px]">{t.order_id ? brl(t.total) : (t.name || t.customer_name || " ")}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ))}
       {canCreate && list.length > 0 && (
         <button type="button" onClick={() => setCreating(true)} data-testid="add-more-tile"
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 py-5 text-sm text-zinc-400 transition-colors duration-150 hover:border-primary/50 hover:text-white">
