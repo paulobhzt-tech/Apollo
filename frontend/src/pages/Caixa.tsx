@@ -14,7 +14,11 @@ import type { CashSession } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Panel } from "./Dashboard";
 
-const num = (s: string) => Number(s.replace(",", ".")) || 0;
+const num = (s: string) => {
+  const normalized = s.trim().replace(/^R\$\s*/, "").replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return NaN;
+  return Number(normalized);
+};
 const inv = () => { void queryClient.invalidateQueries({ queryKey: ["cash"] }); void queryClient.invalidateQueries({ queryKey: ["dashboard"] }); };
 
 export default function Caixa() {
@@ -43,16 +47,20 @@ export default function Caixa() {
   });
 
   const s = current.isError ? null : current.data;
+  const validOpening = Number.isFinite(num(opening)) && num(opening) >= 0;
+  const validMove = Number.isFinite(num(moveAmt)) && num(moveAmt) > 0;
+  const validCounted = Number.isFinite(num(counted)) && num(counted) >= 0;
   return (
     <AppShell roles={["caixa"]}>
       <PageHeader title="Controle de Caixa" subtitle="Abertura, sangria, suprimento e fechamento com conferência cega" />
-      {current.isLoading ? null : !s ? (
+      {current.isError && <div role="alert" className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">Não foi possível consultar o estado do caixa. Verifique a conexão antes de abrir ou fechar um turno. <Button size="sm" variant="outline" onClick={() => void current.refetch()}>Tentar novamente</Button></div>}
+      {current.isLoading ? <p role="status" className="text-sm text-zinc-400">Consultando caixa…</p> : current.isError ? null : !s ? (
         <div className="max-w-md rounded-2xl border border-white/5 bg-panel p-6" data-testid="cash-open-panel">
           <h3 className="font-heading text-xl text-white">Caixa fechado</h3>
           <p className="mt-1 text-sm text-zinc-400">Informe o fundo de troco para iniciar o turno.</p>
           <Label className="mt-4 block text-xs text-zinc-400">Fundo de troco (R$)</Label>
           <Input value={opening} onChange={(e) => setOpening(e.target.value)} inputMode="decimal" className="mt-1 font-mono" data-testid="cash-opening-input" />
-          <Button className="mt-4 w-full" onClick={() => open.mutate()} disabled={open.isPending} data-testid="cash-open-button">Abrir caixa</Button>
+          <Button className="mt-4 w-full" onClick={() => open.mutate()} disabled={open.isPending || !validOpening} data-testid="cash-open-button">Abrir caixa</Button>
         </div>
       ) : (
         <>
@@ -80,7 +88,8 @@ export default function Caixa() {
               </div>
               <Input placeholder="Valor" value={moveAmt} onChange={(e) => setMoveAmt(e.target.value)} inputMode="decimal" className="mt-3 font-mono" data-testid="cash-move-amount-input" />
               <Input placeholder="Motivo" value={moveNote} onChange={(e) => setMoveNote(e.target.value)} className="mt-2" data-testid="cash-move-note-input" />
-              <Button className="mt-3 w-full" disabled={!num(moveAmt) || move.isPending} onClick={() => move.mutate()} data-testid="cash-move-button">Registrar</Button>
+              <p className="mt-1 text-xs text-zinc-500">Informe um valor positivo e o motivo da movimentação.</p>
+              <Button className="mt-3 w-full" disabled={!validMove || !moveNote.trim() || move.isPending} onClick={() => move.mutate()} data-testid="cash-move-button">Registrar</Button>
               <ul className="mt-3 space-y-1 text-xs">
                 {s.movements.map((m, i) => (
                   <li key={i} className="flex justify-between text-zinc-400"><span>{m.type} · {m.note || "—"}</span><span className={cn("font-mono", m.type === "sangria" ? "text-red-300" : "text-emerald-300")}>{brl(m.amount)}</span></li>
@@ -90,7 +99,7 @@ export default function Caixa() {
             <Panel title="Fechamento" actions={<Button size="xs" variant="outline" onClick={() => setPrinting(s)} data-testid="cash-print-partial"><Printer className="size-3" /> Imprimir parcial</Button>}>
               <p className="text-sm text-zinc-400">Conte o dinheiro na gaveta e informe o valor.</p>
               <Input placeholder="Valor contado (R$)" value={counted} onChange={(e) => setCounted(e.target.value)} inputMode="decimal" className="mt-3 font-mono" data-testid="cash-counted-input" />
-              <Button variant="destructive" className="mt-3 w-full" disabled={!counted || close.isPending} onClick={() => window.confirm("Confirmar fechamento do caixa?") && close.mutate()} data-testid="cash-close-button">Fechar caixa</Button>
+              <Button variant="destructive" className="mt-3 w-full" disabled={!validCounted || close.isPending} onClick={() => window.confirm("Confirmar fechamento do caixa?") && close.mutate()} data-testid="cash-close-button">Fechar caixa</Button>
             </Panel>
           </div>
         </>
