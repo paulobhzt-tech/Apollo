@@ -247,7 +247,12 @@ async def register_inventory_count(body: InventoryCountIn, user: dict = Depends(
     diff = round(counted - previous, 4)
     count = InventoryCount(**{**body.model_dump(), "counted_qty": counted},
                            previous_qty=previous, difference=diff, by_name=user["name"]).model_dump()
-    await db.ingredients.update_one({"id": ing["id"]}, {"$set": {"stock": counted, "updated_at": now()}})
+    result = await db.ingredients.update_one(
+        {"id": ing["id"], "stock": ing["stock"]},
+        {"$set": {"stock": counted, "updated_at": now()}},
+    )
+    if not result.matched_count:
+        raise HTTPException(409, "Estoque alterado durante o inventário. Atualize a quantidade e tente novamente.")
     await db.inventory_counts.insert_one(dict(count))
     await db.stock_moves.insert_one(StockMove(
         ingredient_id=ing["id"], ingredient_name=ing["name"], type="ajuste",
@@ -376,7 +381,18 @@ async def create_move(body: StockMoveIn, user: dict = Depends(require("caixa", "
             if body.qty <= 0:
                 raise HTTPException(400, "Quantidade deve ser maior que zero")
             delta = body.qty if body.type == "entrada" else -body.qty
-        await db.ingredients.update_one({"id": ing["id"]}, {"$inc": {"stock": round(delta, 4)}, "$set": {"updated_at": now()}})
+        stock_filter = {"id": ing["id"]}
+        if body.type == "ajuste":
+            # A manual absolute count must not overwrite intervening sales or receipts.
+            stock_filter["stock"] = ing["stock"]
+        elif body.type == "saida":
+            stock_filter["stock"] = {"$gte": round(body.qty, 4)}
+        result = await db.ingredients.update_one(
+            stock_filter,
+            {"$inc": {"stock": round(delta, 4)}, "$set": {"updated_at": now()}},
+        )
+        if not result.matched_count:
+            raise HTTPException(409, "Estoque alterado ou insuficiente. Atualize e tente novamente.")
     await db.stock_moves.insert_one(StockMove(
         ingredient_id=ing["id"], ingredient_name=ing["name"], type=body.type, qty=round(delta, 4),
         note=body.note, by_name=user["name"],
