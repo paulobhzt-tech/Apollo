@@ -1,6 +1,8 @@
 """Backup local no próprio servidor: cópias completas compactadas guardadas no banco (sobrevivem a reinícios),
 geradas toda noite pelo agendador ou na hora, para baixar ou restaurar com um clique."""
 import gzip
+import hashlib
+import io
 import json
 import uuid
 from datetime import datetime, timezone
@@ -15,6 +17,7 @@ from models.schemas import LocalBackupSettings, OkOut, RestoreIn, RestoreOut, Se
 
 router = APIRouter()
 MAX_BYTES = 15 * 1024 * 1024  # Mongo document limit is 16 MB
+MAX_UNCOMPRESSED_BYTES = 100 * 1024 * 1024  # Protect restore/download from oversized payloads
 
 
 async def local_settings() -> LocalBackupSettings:
@@ -25,11 +28,14 @@ async def local_settings() -> LocalBackupSettings:
 async def make_server_backup(trigger: str, by_name: str = "") -> ServerBackupInfo:
     from routers.config import build_backup
     _stamp, payload = await build_backup()
-    blob = gzip.compress(json.dumps(payload, ensure_ascii=False).encode(), compresslevel=6)
+    raw = json.dumps(payload, ensure_ascii=False).encode()
+    if len(raw) > MAX_UNCOMPRESSED_BYTES:
+        raise HTTPException(400, "Backup excede o limite de segurança de 100 MB")
+    blob = gzip.compress(raw, compresslevel=6)
     if len(blob) > MAX_BYTES:
         raise HTTPException(400, "Backup grande demais para guardar no servidor: use o Google Drive ou baixe o arquivo")
     info = ServerBackupInfo(id=str(uuid.uuid4()), at=datetime.now(timezone.utc), trigger=trigger, size_kb=max(1, len(blob) // 1024), by_name=by_name)
-    await db.server_backups.insert_one({**info.model_dump(), "blob": Binary(blob)})
+    await db.server_backups.insert_one({**info.model_dump(), "blob": Binary(blob), "sha256": hashlib.sha256(raw).hexdigest()})
     keep = (await local_settings()).keep
     old = await db.server_backups.find({}, {"_id": 0, "id": 1}).sort("at", -1).skip(keep).to_list(1000)
     if old:
@@ -62,7 +68,20 @@ async def _load(id: str) -> tuple[dict, dict]:
     d = await db.server_backups.find_one({"id": id}, {"_id": 0})
     if not d:
         raise HTTPException(404, "Backup não encontrado")
-    return d, json.loads(gzip.decompress(bytes(d["blob"])))
+    try:
+        with gzip.GzipFile(fileobj=io.BytesIO(bytes(d["blob"]))) as stream:
+            raw = stream.read(MAX_UNCOMPRESSED_BYTES + 1)
+        if len(raw) > MAX_UNCOMPRESSED_BYTES:
+            raise HTTPException(400, "Backup excede o limite de segurança de 100 MB")
+        expected = d.get("sha256")
+        if expected and hashlib.sha256(raw).hexdigest() != expected:
+            raise HTTPException(409, "Integridade do backup comprometida. Restauração bloqueada.")
+        payload = json.loads(raw)
+        if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
+            raise HTTPException(400, "Estrutura do backup inválida")
+        return d, payload
+    except (OSError, EOFError, ValueError, UnicodeDecodeError) as exc:
+        raise HTTPException(400, "Backup corrompido ou inválido") from exc
 
 
 @router.get("/backups/server/{id}/download")
