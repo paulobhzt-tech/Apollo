@@ -26,7 +26,7 @@ export default function QrCodes() {
   const printable = (tables.data ?? []).filter((t) => selectedKind === "all" || t.kind === selectedKind);
   const downloadList = () => {
     const rows = [["Identificação", "URL do cardápio"], ...printable.map((t) => [tableLabel(t), `${origin}/cardapio/${t.id}`])];
-    const csv = "\\uFEFF" + rows.map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\\r\\n");
+    const csv = "\uFEFF" + rows.map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n");
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     link.download = "apollo-qr-mesas.csv";
