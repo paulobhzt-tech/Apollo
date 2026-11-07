@@ -31,7 +31,16 @@ let cfg;
 function saveConfig() {
   fs.writeFileSync(path.join(userDir(), "config.json"), JSON.stringify(cfg, null, 2));
 }
-const cleanUrl = (u) => String(u).trim().replace(/\/+$/, "");
+const cleanUrl = (u) => String(u).trim().replace(/\\/+$/, "");
+function validServerUrl(value) {
+  try {
+    const u = new URL(value);
+    if (u.username || u.password || u.search || u.hash || u.pathname !== "/") return false;
+    if (u.protocol === "https:") return !!u.hostname;
+    return cfg && cfg.testBuild === true && u.protocol === "http:" &&
+      ["localhost", "127.0.0.1", "[::1]"].includes(u.hostname);
+  } catch { return false; }
+}
 
 // ---------- encrypted key/value store (offline queue, cached menu, last operator) ----------
 const kvFile = () => path.join(userDir(), "pdv-dados.bin");
@@ -158,7 +167,7 @@ ipcMain.on("pdv:kv-set", (e, key, value) => { kvLoad()[key] = value; kvSave(); e
 ipcMain.handle("pdv:config", () => ({ serverUrl: cfg.serverUrl, servers: cfg.servers, startWithWindows: !!cfg.startWithWindows, mode }));
 ipcMain.handle("pdv:test-server", async (_e, url) => {
   try {
-    const r = await net.fetch(cleanUrl(url) + "/api/", { cache: "no-store" });
+    if (!validServerUrl(cleanUrl(url))) return { ok: false, error: "Endereço inválido: use HTTPS (HTTP apenas para testes locais)" };\n    const r = await net.fetch(cleanUrl(url) + "/api/", { cache: "no-store" });
     return { ok: r.status < 500, error: r.status >= 500 ? "HTTP " + r.status : undefined };
   } catch (err) {
     return { ok: false, error: String(err.message || err) };
@@ -166,7 +175,7 @@ ipcMain.handle("pdv:test-server", async (_e, url) => {
 });
 ipcMain.handle("pdv:add-server", (_e, s) => {
   const url = cleanUrl(s.url);
-  if (!/^https?:\/\/[^\s]+$/.test(url)) return false;
+  if (!validServerUrl(url)) return false;
   cfg.servers = [...cfg.servers.filter((x) => x.url !== url), { name: s.name || url, url }];
   saveConfig();
   return true;
@@ -179,7 +188,7 @@ ipcMain.handle("pdv:remove-server", (_e, url) => {
 });
 ipcMain.handle("pdv:use-server", async (_e, url) => {
   const u = cleanUrl(url);
-  if (!cfg.servers.some((x) => x.url === u)) return false;
+  if (!validServerUrl(u) || !cfg.servers.some((x) => x.url === u)) return false;
   cfg.serverUrl = u;
   saveConfig();
   await openBest();
