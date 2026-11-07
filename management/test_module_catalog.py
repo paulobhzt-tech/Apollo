@@ -16,6 +16,12 @@ class ModuleCatalogTests(unittest.TestCase):
         self.assertEqual(set(result["modules"]), CORE_MODULES)
         self.assertEqual(result["status"], "rascunho")
 
+    def test_custom_monthly_and_annual(self):
+        for period in ("mensal", "anual"):
+            result = build_proposal("personalizado", period, ["pdv", "kds", "compras"])
+            self.assertEqual(set(result["modules"]), {"pdv", "kds", "compras"})
+            self.assertIsNone(result["price_cents"])
+
     def test_essential_can_add_modules(self):
         result = build_proposal("essencial", "mensal", ["mesas", "kds"])
         self.assertIn("mesas", result["modules"])
@@ -38,6 +44,7 @@ class ModuleCatalogTests(unittest.TestCase):
             ("basico", "mensal", ["pdv"]),
             ("completo", "anual", ["kds"]),
             ("profissional", "anual", ["estoque"]),
+            ("personalizado", "mensal", []),
         ]:
             with self.subTest(plan=plan, period=period, extras=extras):
                 with self.assertRaises(ValueError):
