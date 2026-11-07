@@ -41,6 +41,7 @@ export const NAV: NavItem[] = [
   { to: "/contas-receber", label: "Contas a Receber", icon: "ArrowDownCircle", roles: ["admin", "caixa"], group: "Financeiro" },
   { to: "/categorias-contas", label: "Categorias de Contas", icon: "Tags", roles: ["admin"], group: "Financeiro" },
   { to: "/formas-pagamento", label: "Formas de Pagamento", icon: "CreditCard", roles: ["admin"], group: "Financeiro" },
+  { to: "/musica-ao-vivo", label: "Música ao Vivo", icon: "Music", roles: ["admin", "caixa"], group: "Financeiro" },
   { to: "/financeiro", label: "DRE & Despesas", icon: "LineChart", roles: ["admin"], group: "Financeiro" },
   { to: "/vendas", label: "Histórico de Vendas", icon: "History", roles: ["admin", "caixa"], group: "Financeiro" },
   { to: "/fiado", label: "Conta Fiado", icon: "HandCoins", roles: ["admin", "caixa"], group: "Financeiro" },
