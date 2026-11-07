@@ -20,7 +20,7 @@ import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 
 const ICONS: Record<string, typeof Menu> = {
-  LayoutDashboard, Music, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone,
+  Bot, LayoutDashboard, Music, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone,
 };
 
 function NavList({ role, onNavigate }: { role: Role; onNavigate?: () => void }) {
