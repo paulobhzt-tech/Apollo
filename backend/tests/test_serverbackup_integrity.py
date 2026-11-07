@@ -45,3 +45,24 @@ async def test_load_rejects_oversized_payload(monkeypatch):
     with pytest.raises(HTTPException) as error:
         await serverbackup._load("backup-1")
     assert error.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_verify_backup_does_not_restore_or_modify_data(monkeypatch):
+    raw = json.dumps({"data": {"tables": [], "orders": []}}).encode()
+    document = {"blob": gzip.compress(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+    lookup = AsyncMock(return_value=document)
+    monkeypatch.setattr(serverbackup.db.server_backups, "find_one", lookup)
+    result = await serverbackup.verify_server_backup("backup-1", {"role": "admin"})
+    assert result["valid"] is True
+    assert result["integrity"] == "sha256"
+    assert result["collections"] == ["orders", "tables"]
+    assert lookup.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_verify_legacy_backup_reports_missing_checksum(monkeypatch):
+    raw = json.dumps({"data": {"tables": []}}).encode()
+    monkeypatch.setattr(serverbackup.db.server_backups, "find_one", AsyncMock(return_value={"blob": gzip.compress(raw)}))
+    result = await serverbackup.verify_server_backup("backup-legacy", {"role": "admin"})
+    assert result["integrity"] == "legacy_without_checksum"
