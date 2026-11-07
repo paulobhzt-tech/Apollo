@@ -39,7 +39,9 @@ cfg.testBuild = channel === "test";
 fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2) + "\n");
 console.log("Canal:", channel, "| Servidor:", url);
 
-execSync("npm install --no-audit --no-fund", { cwd: front, stdio: "inherit", shell: true });
+// Install with Yarn in the frontend directory: npm Arborist can fail on Windows
+// with "Cannot read properties of null (reading edgesOut)" for this dependency tree.
+execSync("yarn install --non-interactive --no-progress", { cwd: front, stdio: "inherit", shell: true });
 execSync("npm run build", { cwd: front, stdio: "inherit", shell: true });
 fs.rmSync(out, { recursive: true, force: true });
 fs.cpSync(path.join(front, "dist"), out, { recursive: true });
