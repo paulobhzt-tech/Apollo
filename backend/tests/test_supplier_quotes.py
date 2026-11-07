@@ -24,3 +24,9 @@ def test_zero_quantity_rejected():
 def test_quote_validation():
     with pytest.raises(ValueError):
         SupplierQuoteIn(supplier_id="s", ingredient_id="i", unit_price=-1)
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), float("-inf")])
+def test_quote_rejects_nonfinite_price(invalid):
+    with pytest.raises(ValueError):
+        SupplierQuoteIn(supplier_id="s", ingredient_id="i", unit_price=invalid)
