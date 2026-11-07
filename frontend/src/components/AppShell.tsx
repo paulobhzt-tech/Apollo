@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import { Link, NavLink, Navigate, useLocation } from "react-router-dom";
 import {
-  Armchair, Bike, Boxes, ChefHat, LayoutDashboard, LineChart, LogOut, Menu, QrCode, Receipt, ShoppingCart,
+  Armchair, Bike, Boxes, ChefHat, LayoutDashboard, LineChart, LogOut, Menu, Music, QrCode, Receipt, ShoppingCart,
   Users, UtensilsCrossed, Wallet, WifiOff, Wifi, Flame, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -20,7 +20,7 @@ import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 
 const ICONS: Record<string, typeof Menu> = {
-  LayoutDashboard, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone,
+  LayoutDashboard, Music, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone,
 };
 
 function NavList({ role, onNavigate }: { role: Role; onNavigate?: () => void }) {
