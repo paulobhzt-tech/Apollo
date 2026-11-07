@@ -103,8 +103,8 @@ async function performSyncQueue(): Promise<{ synced: number; failed: number }> {
         synced++;
       } catch (e) {
         // business errors (4xx, e.g. caixa fechado) leave the queue but are KEPT in the rejected list for review;
-        // network errors, 5xx and expired login (401) stay queued and are retried
-        if (e instanceof ApiError && e.status >= 400 && e.status < 500 && ![401, 408, 425, 429].includes(e.status)) {
+        // network errors, 5xx, 401 and transient concurrent replay conflicts (409) stay queued and are retried
+        if (e instanceof ApiError && e.status >= 400 && e.status < 500 && ![401, 408, 409, 425, 429].includes(e.status)) {
           failed++;
           const body = e.body as { detail?: unknown } | null;
           rejected.push({ ...s, error: typeof body?.detail === "string" ? body.detail : `Erro ${e.status}`, rejected_at: new Date().toISOString() });
