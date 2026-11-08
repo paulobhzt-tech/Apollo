@@ -60,7 +60,10 @@ export function setForcedOffline(v: boolean) {
 export function enqueue(sale: QueuedSale) {
   const queued = read();
   if (queued.some((item) => item.payload.client_ref === sale.payload.client_ref)) return;
-  kv.set(KEY, JSON.stringify([...queued, sale]));
+  // A failed write must never be presented as a successfully saved sale.
+  const next = JSON.stringify([...queued, sale]);
+  kv.set(KEY, next);
+  if (kv.get(KEY) !== next) throw new Error("Não foi possível salvar a venda neste dispositivo");
   emit();
 }
 export function cacheMenu(products: Product[]) {
