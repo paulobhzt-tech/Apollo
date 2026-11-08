@@ -69,6 +69,13 @@ def require(*roles: str):
     return dep
 
 
+async def require_platform_admin(user: dict = Depends(current_user)) -> dict:
+    """Fail closed: restaurant admins cannot manage global SaaS accounts."""
+    if user.get("role") != "admin" or user.get("platform_role") != "superadmin":
+        raise HTTPException(403, "Acesso restrito à administração da plataforma")
+    return user
+
+
 async def cancel_authorizer(user: dict, manager_pin: str | None) -> str:
     """Name of who authorised a cancel/refund: the user, or a manager who typed their PIN."""
     if user["role"] == "admin" or user.get("can_cancel"):
