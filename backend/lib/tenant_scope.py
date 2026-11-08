@@ -13,14 +13,28 @@ def tenant_id_for_user(user: dict) -> str:
     return tenant_id.strip()
 
 
+
+def _validate_safe_filter(filters: dict) -> None:
+    """Reject nested Mongo operators and ambiguous field paths from user filters."""
+    for key, value in filters.items():
+        if not isinstance(key, str) or not key or key.startswith("$") or "." in key or "\\x00" in key:
+            raise HTTPException(422, "Campo de filtro não permitido")
+        if isinstance(value, dict):
+            # Query operators can also be hidden under otherwise valid fields.
+            _validate_safe_filter(value)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, (dict, list)):
+                    raise HTTPException(422, "Estrutura de filtro não permitida")
+
+
 def tenant_query(user: dict, filters: dict | None = None) -> dict:
     """Force the authenticated tenant into MongoDB queries, rejecting override attempts."""
     tenant_id = tenant_id_for_user(user)
     filters = dict(filters or {})
     if "tenant_id" in filters and filters["tenant_id"] != tenant_id:
         raise HTTPException(403, "Acesso a outro restaurante não permitido")
-    if any(key.startswith("$") for key in filters):
-        raise HTTPException(422, "Operadores de consulta não permitidos neste filtro")
+    _validate_safe_filter(filters)
     return {"$and": [{"tenant_id": tenant_id}, filters]} if filters else {"tenant_id": tenant_id}
 
 
