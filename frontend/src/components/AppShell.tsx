@@ -156,9 +156,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)} data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
             <div className="mr-2 hidden shrink-0 sm:block lg:hidden"><Brand /></div>
             <nav aria-label="Seções do sistema" className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto">
-              {([
-                ["PRINCIPAL", "Operação"], ["PRODUTOS", "Cadastros"], ["FINANCEIRO", "Financeiro"], ["RELATÓRIOS", "Relatórios"], ["CONFIGURAÇÕES", "Sistema"],
-              ] as const).map(([label, group]) => {
+              {RIBBON_GROUPS.filter(({group}) => NAV.some(n => n.group === group && n.roles.includes(me.role))).map(({label, group, icon: GroupIcon}) => {
                 const selected = activeRibbon ? activeRibbon === group : NAV.some(n => n.group === group && n.to === loc.pathname) || (group === "Operação" && loc.pathname === "/");
                 return <button key={group} type="button" onClick={() => setActiveRibbon(group)}
                   className={cn("flex shrink-0 items-center gap-1.5 px-3 py-3 text-[10px] font-medium transition-colors hover:bg-white/10 sm:text-xs", selected ? "bg-[#36363a] text-white" : "text-zinc-300")}
