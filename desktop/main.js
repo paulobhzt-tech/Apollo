@@ -62,23 +62,46 @@ function validServerUrl(value) {
 // ---------- encrypted key/value store (offline queue, cached menu, last operator) ----------
 const kvFile = () => path.join(userDir(), "pdv-dados.bin");
 let kvCache = null;
+function kvDecode(raw) {
+  const txt = safeStorage.isEncryptionAvailable() ? safeStorage.decryptString(raw) : raw.toString("utf8");
+  const value = JSON.parse(txt);
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Formato de dados offline invalido");
+  return value;
+}
 function kvLoad() {
   if (kvCache) return kvCache;
-  try {
-    const raw = fs.readFileSync(kvFile());
-    const txt = safeStorage.isEncryptionAvailable() ? safeStorage.decryptString(raw) : raw.toString("utf8");
-    kvCache = JSON.parse(txt);
-  } catch {
+  const primary = kvFile();
+  if (!fs.existsSync(primary)) {
     kvCache = {};
+    return kvCache;
   }
-  return kvCache;
+  try {
+    kvCache = kvDecode(fs.readFileSync(primary));
+    return kvCache;
+  } catch (err) {
+    // Never replace a corrupted queue with an empty object: unsynced sales
+    // may still be recoverable from the original file or its backup.
+    console.error("Apollo: dados offline indisponiveis; arquivo original preservado", err.message);
+    throw new Error("Nao foi possivel ler as vendas offline. Nenhum dado foi apagado. Procure suporte antes de continuar.");
+  }
 }
 function kvSave() {
+  const primary = kvFile();
+  const backup = primary + ".bak";
+  const tmp = primary + ".tmp";
   const txt = JSON.stringify(kvCache || {});
   const data = safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(txt) : Buffer.from(txt, "utf8");
-  const tmp = kvFile() + ".tmp";
-  fs.writeFileSync(tmp, data);
-  fs.renameSync(tmp, kvFile()); // atomic replace: a power cut never leaves a half-written queue
+  // Save a validated copy of the previous state before replacing it.
+  if (fs.existsSync(primary)) {
+    kvDecode(fs.readFileSync(primary));
+    fs.copyFileSync(primary, backup);
+  }
+  try {
+    fs.writeFileSync(tmp, data, { flag: "w" });
+    fs.renameSync(tmp, primary);
+  } finally {
+    if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+  }
 }
 function deviceId() {
   const s = kvLoad();
