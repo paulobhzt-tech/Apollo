@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from lib.auth import require
+from lib.auth import require_platform_admin
 from lib.db import db
 
 router = APIRouter(prefix="/commercial/admin", tags=["commercial-admin"])
@@ -49,7 +49,7 @@ def ensure_code(code: str | None) -> str | None:
 
 
 @router.post("/resellers", status_code=201)
-async def create_reseller(body: ResellerIn, _: dict = Depends(require("admin"))):
+async def create_reseller(body: ResellerIn, _: dict = Depends(require_platform_admin)):
     email = normalize_email(body.email)
     if await db.commercial_resellers.find_one({"email": email}, {"_id": 0, "id": 1}):
         raise HTTPException(409, "Já existe revendedor com este e-mail")
@@ -62,12 +62,12 @@ async def create_reseller(body: ResellerIn, _: dict = Depends(require("admin")))
 
 
 @router.get("/resellers")
-async def list_resellers(_: dict = Depends(require("admin"))):
+async def list_resellers(_: dict = Depends(require_platform_admin)):
     return await db.commercial_resellers.find({}, {"_id": 0}).sort("name", 1).to_list(1000)
 
 
 @router.post("/franchises", status_code=201)
-async def create_franchise(body: FranchiseIn, _: dict = Depends(require("admin"))):
+async def create_franchise(body: FranchiseIn, _: dict = Depends(require_platform_admin)):
     if body.reseller_id:
         reseller = await db.commercial_resellers.find_one({"id": body.reseller_id, "active": True})
         if not reseller:
@@ -79,12 +79,12 @@ async def create_franchise(body: FranchiseIn, _: dict = Depends(require("admin")
 
 
 @router.get("/franchises")
-async def list_franchises(_: dict = Depends(require("admin"))):
+async def list_franchises(_: dict = Depends(require_platform_admin)):
     return await db.commercial_franchises.find({}, {"_id": 0}).sort("name", 1).to_list(1000)
 
 
 @router.post("/franchises/{franchise_id}/locations", status_code=201)
-async def create_franchise_location(franchise_id: str, body: LocationIn, _: dict = Depends(require("admin"))):
+async def create_franchise_location(franchise_id: str, body: LocationIn, _: dict = Depends(require_platform_admin)):
     if not await db.commercial_franchises.find_one({"id": franchise_id}, {"_id": 0, "id": 1}):
         raise HTTPException(404, "Franquia não encontrada")
     code = ensure_code(body.external_code)
@@ -97,7 +97,7 @@ async def create_franchise_location(franchise_id: str, body: LocationIn, _: dict
 
 
 @router.get("/franchises/{franchise_id}/locations")
-async def list_franchise_locations(franchise_id: str, _: dict = Depends(require("admin"))):
+async def list_franchise_locations(franchise_id: str, _: dict = Depends(require_platform_admin)):
     if not await db.commercial_franchises.find_one({"id": franchise_id}, {"_id": 0, "id": 1}):
         raise HTTPException(404, "Franquia não encontrada")
     return await db.commercial_locations.find({"franchise_id": franchise_id}, {"_id": 0}).sort("name", 1).to_list(1000)
