@@ -228,7 +228,28 @@ function createWindow() {
 // ---------- IPC ----------
 ipcMain.on("pdv:info", (e) => { e.returnValue = { version: app.getVersion(), deviceId: deviceId() }; });
 ipcMain.on("pdv:kv-get", (e, key) => { const v = kvLoad()[key]; e.returnValue = v === undefined ? null : v; });
-ipcMain.on("pdv:kv-set", (e, key, value) => { kvLoad()[key] = value; kvSave(); e.returnValue = true; });
+ipcMain.on("pdv:kv-set", (e, key, value) => {
+  // A failed disk write must not look successful to the cashier or poison
+  // the in-memory queue with data that was never persisted.
+  try {
+    const store = kvLoad();
+    const existed = Object.prototype.hasOwnProperty.call(store, key);
+    const previous = store[key];
+    store[key] = value;
+    try {
+      kvSave();
+      e.returnValue = true;
+    } catch (err) {
+      if (existed) store[key] = previous;
+      else delete store[key];
+      console.error("Apollo: falha ao salvar dados offline", err.message);
+      e.returnValue = false;
+    }
+  } catch (err) {
+    console.error("Apollo: armazenamento offline indisponivel", err.message);
+    e.returnValue = false;
+  }
+});
 ipcMain.handle("pdv:config", () => ({ serverUrl: cfg.serverUrl, servers: cfg.servers, startWithWindows: !!cfg.startWithWindows, mode }));
 ipcMain.handle("pdv:test-server", async (_e, url) => {
   try {
