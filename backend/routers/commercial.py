@@ -5,6 +5,7 @@ Module selections are validated before a subscription is provisioned.
 """
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from lib.trial_policy import TRIAL_DAYS
 
 router = APIRouter(prefix="/commercial", tags=["commercial"])
 
@@ -58,6 +59,9 @@ async def commercial_catalog():
         "plans": [{"key": key, "name": name, "included_modules": list(modules)}
                   for key, (name, modules) in PLANS.items()],
         "cycles": list(CYCLES),
+        "trial": {"enabled": False, "max_days": TRIAL_DAYS,
+                  "activation_status": "pendente_integracao_licenciamento",
+                  "note": "Teste gratuito de até 7 dias; ativação ainda indisponível."},
         "pricing_status": "pendente_configuracao",
         "note": "Catálogo de demonstração; não cria assinaturas nem define preços.",
     }
