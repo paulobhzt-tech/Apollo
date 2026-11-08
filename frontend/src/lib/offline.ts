@@ -13,7 +13,7 @@ export interface RejectedSale extends QueuedSale { error: string; rejected_at: s
 const REJ_KEY = "pdv_offline_rejected";
 const LOG_KEY = "pdv_offline_last_sync";
 /** Unique, device-tagged reference: replays are idempotent on the server (client_ref). */
-export const newClientRef = () => `${deviceTag()}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+export const newClientRef = () => `${deviceTag()}-${Date.now().toString(36)}-${typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)}`;
 
 const listeners = new Set<() => void>();
 let forced = kv.get("pdv_force_offline") === "1";
@@ -145,8 +145,13 @@ export function retryRejected(ref: string) {
   const item = r.find((x) => x.payload.client_ref === ref);
   if (!item) return;
   const { error: _e, rejected_at: _r, ...sale } = item;
-  kv.set(REJ_KEY, JSON.stringify(r.filter((x) => x.payload.client_ref !== ref)));
+  // Persist the sale back into the pending queue BEFORE removing the rejected copy.
+  // If storage is full or unavailable, the rejected record remains recoverable.
   enqueue(sale);
+  const next = JSON.stringify(r.filter((x) => x.payload.client_ref !== ref));
+  kv.set(REJ_KEY, next);
+  if (kv.get(REJ_KEY) !== next) throw new Error("Falha ao atualizar vendas rejeitadas");
+  emit();
   void syncQueue();
 }
 export function dismissRejected(ref: string) {
