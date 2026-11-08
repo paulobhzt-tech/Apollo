@@ -142,7 +142,26 @@ function watchConnection() {
 }
 
 function isInternal(url) {
-  return url.startsWith(cfg.serverUrl) || url.startsWith("pdv://") || url.startsWith("file://");
+  try {
+    const target = new URL(url);
+    if (target.protocol === "pdv:") return target.hostname === "app";
+    if (target.protocol === "file:") return false;
+    const server = new URL(cfg.serverUrl);
+    return target.origin === server.origin &&
+      target.username === "" && target.password === "";
+  } catch {
+    return false;
+  }
+}
+function openTrustedExternal(url) {
+  try {
+    const target = new URL(url);
+    if (target.protocol === "https:" || target.protocol === "http:") {
+      shell.openExternal(target.href).catch((err) => console.error("Falha ao abrir link externo:", err.message));
+    }
+  } catch {
+    // Ignore invalid or unsafe navigation targets.
+  }
 }
 
 function createWindow() {
@@ -155,8 +174,8 @@ function createWindow() {
   win.loadFile(path.join(__dirname, "offline.html"));
   win.once("ready-to-show", () => win.show());
   // external links (Google Drive, WhatsApp, Google login) open in the normal browser
-  win.webContents.setWindowOpenHandler(({ url }) => { if (!isInternal(url)) shell.openExternal(url); return { action: "deny" }; });
-  win.webContents.on("will-navigate", (e, url) => { if (!isInternal(url)) { e.preventDefault(); shell.openExternal(url); } });
+  win.webContents.setWindowOpenHandler(({ url }) => { if (!isInternal(url)) openTrustedExternal(url); return { action: "deny" }; });
+  win.webContents.on("will-navigate", (e, url) => { if (!isInternal(url)) { e.preventDefault(); openTrustedExternal(url); } });
   win.webContents.on("did-fail-load", (_e, code, _d, url, isMain) => {
     if (isMain && code !== -3 && url.startsWith(cfg.serverUrl)) { mode = "offline"; win.loadURL("pdv://app/pdv"); }
   });
