@@ -7,7 +7,7 @@ import os
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from lib.auth import current_user
+from lib.auth import require_platform_admin
 from lib.db import db
 from lib.trial_issuance import issue_trial, TrialConflict, evaluate_trial
 from lib.trial_signing import sign_trial_license
@@ -16,7 +16,7 @@ from lib.license_verification import LicenseError
 router = APIRouter(prefix="/commercial/platform/trials", tags=["platform-trials"])
 
 
-async def platform_operator(user: dict = Depends(current_user)) -> dict:
+async def platform_operator(user: dict = Depends(require_platform_admin)) -> dict:
     # Restaurant admins are not SaaS platform administrators.
     if user.get("platform_role") != "superadmin" or user.get("role") != "admin":
         raise HTTPException(403, "Operação restrita à administração da plataforma")
