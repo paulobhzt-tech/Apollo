@@ -37,3 +37,16 @@ def test_cross_tenant_record_does_not_disclose_existence():
 def test_same_tenant_record_allowed():
     record = {"tenant_id": "restaurant-a", "id": "order-1"}
     assert require_same_tenant({"tenant_id": "restaurant-a"}, record) is record
+
+
+@pytest.mark.parametrize("filters", [
+    {"status": {"$ne": "closed"}},
+    {"profile.tenant_id": "other"},
+    {"items": [{"$where": "true"}]},
+    {"nested": {"safe": {"$gt": 0}}},
+    {"$expr": {"$eq": [1, 1]}},
+])
+def test_nested_mongo_injection_rejected(filters):
+    with pytest.raises(HTTPException) as exc:
+        tenant_query({"tenant_id": "restaurant-a"}, filters)
+    assert exc.value.status_code == 422
