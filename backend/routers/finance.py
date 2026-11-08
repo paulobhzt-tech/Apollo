@@ -200,7 +200,13 @@ async def update_bill(id: str, body: BillIn, _: dict = Depends(require())):
     if b["status"] != "aberto":
         raise HTTPException(400, "Só contas em aberto podem ser editadas")
     upd = {**body.model_dump(exclude={"repeat_months"}), "category_name": await _category_name(body.category_id, body.kind)}
-    return await db.bills.find_one_and_update({"id": id}, {"$set": upd}, projection={"_id": 0}, return_document=True)
+    # Recheck status atomically: payment/cancellation may occur after the initial read.
+    updated = await db.bills.find_one_and_update(
+        {"id": id, "status": "aberto"}, {"$set": upd}, projection={"_id": 0}, return_document=True,
+    )
+    if not updated:
+        raise HTTPException(409, "Conta já baixada ou cancelada. Atualize a lista.")
+    return updated
 
 
 @router.post("/bills/{id}/pay", response_model=Bill)
