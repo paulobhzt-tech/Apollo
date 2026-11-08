@@ -19,6 +19,14 @@ import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 
+const RIBBON_GROUPS = [
+  { label: "PRINCIPAL", group: "Operação", icon: ShoppingCart },
+  { label: "CADASTROS", group: "Cadastros", icon: Boxes },
+  { label: "FINANCEIRO", group: "Financeiro", icon: Wallet },
+  { label: "RELATÓRIOS", group: "Relatórios", icon: LineChart },
+  { label: "CONFIGURAÇÕES", group: "Sistema", icon: Settings },
+] as const;
+
 const ICONS: Record<string, typeof Menu> = {
   Bot, LayoutDashboard, Music, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone,
 };
@@ -147,14 +155,12 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
           <div className="flex min-h-10 items-center gap-2 border-b border-white/10 px-2 sm:px-4">
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)} data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
             <div className="mr-2 hidden shrink-0 sm:block lg:hidden"><Brand /></div>
-            <nav aria-label="Seções do sistema" className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto lg:hidden">
-              {([
-                ["PRINCIPAL", "Operação"], ["PRODUTOS", "Cadastros"], ["FINANCEIRO", "Financeiro"], ["RELATÓRIOS", "Relatórios"], ["CONFIGURAÇÕES", "Sistema"],
-              ] as const).map(([label, group]) => {
+            <nav aria-label="Seções do sistema" className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto">
+              {RIBBON_GROUPS.filter(({group}) => NAV.some(n => n.group === group && n.roles.includes(me.role))).map(({label, group, icon: GroupIcon}) => {
                 const selected = activeRibbon ? activeRibbon === group : NAV.some(n => n.group === group && n.to === loc.pathname) || (group === "Operação" && loc.pathname === "/");
                 return <button key={group} type="button" onClick={() => setActiveRibbon(group)}
-                  className={cn("shrink-0 px-3 py-3 text-[10px] font-medium transition-colors hover:bg-white/10 sm:text-xs", selected ? "bg-[#36363a] text-white" : "text-zinc-300")}
-                  aria-pressed={selected}>{label}</button>;
+                  className={cn("flex shrink-0 items-center gap-1.5 px-3 py-3 text-[10px] font-medium transition-colors hover:bg-white/10 sm:text-xs", selected ? "bg-[#36363a] text-white" : "text-zinc-300")}
+                  aria-pressed={selected}><GroupIcon className="size-4 text-[#e6b44d]" aria-hidden="true" />{label}</button>;
               })}
             </nav>
             <button type="button" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
@@ -167,14 +173,13 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
               <Users className="size-4" /><span className="max-w-32 truncate">{me.name}</span><LogOut className="size-3" />
             </button>
           </div>
-          <nav aria-label="Atalhos do sistema" className="flex min-h-20 items-stretch gap-1 overflow-x-auto bg-[#303034] px-2 py-1.5 sm:px-4 lg:hidden">
+          <nav aria-label="Atalhos do sistema" className="flex min-h-20 items-stretch gap-1 overflow-x-auto bg-[#303034] px-2 py-1.5 sm:px-4">
             {NAV.filter(n => n.roles.includes(me.role) && (
-              activeRibbon === "Relatórios" ? ["/vendas", "/financeiro"].includes(n.to) :
               activeRibbon ? n.group === activeRibbon :
               (NAV.find(item => item.to === loc.pathname)?.group ?? "Operação") === n.group
             )).map(n => {
               const Icon = ICONS[n.icon] ?? LayoutDashboard;
-              return <NavLink key={n.to} to={n.to} title={n.label} onClick={() => setActiveRibbon(null)}
+              return <NavLink key={n.to} to={n.to} title={n.label} onClick={() => setActiveRibbon(n.group)}
                 className={({isActive}) => cn("flex min-w-20 max-w-28 shrink-0 flex-col items-center justify-center gap-1 rounded-sm px-2 py-2 text-center text-[11px] leading-tight transition-colors hover:bg-white/10",isActive ? "bg-[#414147] text-white" : "text-zinc-200")}>
                 <Icon className="size-6 text-[#e6b44d]" strokeWidth={1.8} /><span>{n.label}</span>
               </NavLink>;
