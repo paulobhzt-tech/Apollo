@@ -74,6 +74,6 @@ if _web and os.path.isdir(_web):
     @app.get("/{path:path}", include_in_schema=False)
     async def _spa(path: str):
         f = os.path.realpath(os.path.join(_web, path))
-        if f.startswith(os.path.realpath(_web)) and os.path.isfile(f):
+        # commonpath checks directory containment; startswith allows sibling paths\n        # such as /web-private to pass for a /web root.\n        root = os.path.realpath(_web)\n        if os.path.commonpath([root, f]) == root and os.path.isfile(f):
             return FileResponse(f)
         return FileResponse(os.path.join(_web, "index.html"))
