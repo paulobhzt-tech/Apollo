@@ -76,3 +76,21 @@ async def test_cancel_bill_records_audit_event(monkeypatch):
     assert result["status"] == "cancelado"
     assert update.await_args.args[0] == {"id": "bill-1", "status": "aberto"}
     audit.assert_awaited_once_with("cancelled", actor, cancelled)
+
+
+@pytest.mark.asyncio
+async def test_update_bill_rechecks_open_status_atomically(monkeypatch):
+    existing = {"id": "bill-1", "status": "aberto"}
+    find = AsyncMock(return_value=existing)
+    update = AsyncMock(return_value=None)  # Another cashier settled the bill meanwhile.
+    monkeypatch.setattr(finance.db.bills, "find_one", find)
+    monkeypatch.setattr(finance.db.bills, "find_one_and_update", update)
+    monkeypatch.setattr(finance, "_category_name", AsyncMock(return_value="Aluguel"))
+    body = type("BillEdit", (), {
+        "kind": "pagar", "category_id": "cat-1",
+        "model_dump": lambda self, **kwargs: {"kind": "pagar", "category_id": "cat-1", "amount": 50},
+    })()
+    with pytest.raises(HTTPException) as error:
+        await finance.update_bill("bill-1", body, {"role": "admin"})
+    assert error.value.status_code == 409
+    assert update.await_args.args[0] == {"id": "bill-1", "status": "aberto"}
