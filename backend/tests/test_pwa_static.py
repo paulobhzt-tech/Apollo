@@ -48,3 +48,14 @@ def test_retry_rejected_sale_persists_before_removal():
 def test_offline_reference_prefers_cryptographic_uuid():
     offline = OFFLINE.read_text()
     assert "crypto.randomUUID()" in offline
+
+
+def test_sync_persists_rejections_before_queue_cleanup():
+    offline = OFFLINE.read_text()
+    start = offline.index("async function performSyncQueue(")
+    end = offline.index("export function useOffline()", start)
+    sync = offline[start:end]
+    assert sync.index("kv.set(REJ_KEY, nextRejected)") < sync.index("kv.set(KEY, nextQueue)")
+    assert 'if (kv.get(REJ_KEY) !== nextRejected) throw new Error(' in sync
+    assert 'if (kv.get(KEY) !== nextQueue) throw new Error(' in sync
+    assert "slice(0, 200)" not in sync
