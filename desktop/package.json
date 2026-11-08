@@ -25,6 +25,7 @@
     },
     "files": [
       "main.js",
+      "server-connection.js",
       "preload.js",
       "offline.html",
       "config.default.json",

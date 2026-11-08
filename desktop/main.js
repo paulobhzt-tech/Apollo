@@ -7,6 +7,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const { autoUpdater } = require("electron-updater");
+const { cleanUrl, validServerUrl, resolveServerConfig, probeServer } = require("./server-connection");
 
 const CHECK_MS = 15000;
 let win = null;
@@ -34,29 +35,17 @@ function loadConfig() {
   const def = JSON.parse(fs.readFileSync(path.join(__dirname, "config.default.json"), "utf8"));
   const f = path.join(userDir(), "config.json");
   if (!fs.existsSync(f)) fs.writeFileSync(f, JSON.stringify(def, null, 2));
+  let saved;
   try {
-    const cfg = { ...def, ...JSON.parse(fs.readFileSync(f, "utf8")) };
-    cfg.serverUrl = String(cfg.serverUrl).replace(/\/+$/, "");
-    cfg.servers = Array.isArray(cfg.servers) && cfg.servers.length ? cfg.servers : [{ name: "Servidor na nuvem", url: cfg.serverUrl }];
-    if (!cfg.servers.some((s) => s.url === cfg.serverUrl)) cfg.servers.push({ name: "Servidor", url: cfg.serverUrl });
-    return cfg;
+    saved = JSON.parse(fs.readFileSync(f, "utf8"));
   } catch {
-    return def;
+    saved = {};
   }
+  return resolveServerConfig(def, saved);
 }
 let cfg;
 function saveConfig() {
   fs.writeFileSync(path.join(userDir(), "config.json"), JSON.stringify(cfg, null, 2));
-}
-const cleanUrl = (u) => String(u).trim().replace(/\/+$/, "");
-function validServerUrl(value) {
-  try {
-    const u = new URL(value);
-    if (u.username || u.password || u.search || u.hash || u.pathname !== "/") return false;
-    if (u.protocol === "https:") return !!u.hostname;
-    return cfg && cfg.testBuild === true && u.protocol === "http:" &&
-      ["localhost", "127.0.0.1", "[::1]"].includes(u.hostname);
-  } catch { return false; }
 }
 
 // ---------- encrypted key/value store (offline queue, cached menu, last operator) ----------
@@ -129,18 +118,11 @@ function registerAppProtocol() {
 }
 
 async function serverReachable() {
-  try {
-    const r = await net.fetch(cfg.serverUrl + "/api/", { method: "GET", cache: "no-store" });
-    if (!r.ok || !(r.headers.get("content-type") || "").includes("application/json")) return false;
-    const payload = await r.json();
-    return payload && payload.message === "Apollo PDV API";
-  } catch {
-    return false;
-  }
+  return (await probeServer(cfg.serverUrl, net.fetch)).ok;
 }
 
-async function openBest() {
-  const online = await serverReachable();
+async function openBest(offlineOnly = false) {
+  const online = !offlineOnly && await serverReachable();
   const target = online ? cfg.serverUrl + "/pdv" : "pdv://app/pdv";
   mode = online ? "online" : "offline";
   await win.loadURL(target).catch(() => {
@@ -206,7 +188,6 @@ function createWindow() {
     if (input.type === "keyDown" && input.key === "F11") win.setFullScreen(!win.isFullScreen());
     if (input.type === "keyDown" && input.key === "F5") win.webContents.reload();
   });
-  openBest();
   if (process.env.PDV_SMOKE) {
     // CI/dev smoke test: report what loaded and whether the bridge is present, then quit
     win.webContents.on("did-finish-load", async () => {
@@ -223,6 +204,7 @@ function createWindow() {
       setTimeout(() => app.quit(), 1500);
     });
   }
+  openBest(process.env.PDV_SMOKE === "offline");
 }
 
 // ---------- IPC ----------
@@ -251,18 +233,14 @@ ipcMain.on("pdv:kv-set", (e, key, value) => {
   }
 });
 ipcMain.handle("pdv:config", () => ({ serverUrl: cfg.serverUrl, servers: cfg.servers, startWithWindows: !!cfg.startWithWindows, mode }));
-ipcMain.handle("pdv:test-server", async (_e, url) => {
-  try {
-    if (!validServerUrl(cleanUrl(url))) return { ok: false, error: "Endereço inválido: use HTTPS (HTTP apenas para testes locais)" };
-    const r = await net.fetch(cleanUrl(url) + "/api/", { cache: "no-store" });
-    return { ok: r.status < 500, error: r.status >= 500 ? "HTTP " + r.status : undefined };
-  } catch (err) {
-    return { ok: false, error: String(err.message || err) };
-  }
+ipcMain.handle("pdv:test-server", (_e, url) => {
+  const serverUrl = cleanUrl(url);
+  if (!validServerUrl(serverUrl, cfg.testBuild)) return { ok: false, error: "Endereço inválido: use HTTPS (HTTP apenas para testes locais)" };
+  return probeServer(serverUrl, net.fetch);
 });
 ipcMain.handle("pdv:add-server", (_e, s) => {
   const url = cleanUrl(s.url);
-  if (!validServerUrl(url)) return false;
+  if (!validServerUrl(url, cfg.testBuild)) return false;
   cfg.servers = [...cfg.servers.filter((x) => x.url !== url), { name: s.name || url, url }];
   saveConfig();
   return true;
@@ -275,7 +253,7 @@ ipcMain.handle("pdv:remove-server", (_e, url) => {
 });
 ipcMain.handle("pdv:use-server", async (_e, url) => {
   const u = cleanUrl(url);
-  if (!validServerUrl(u) || !cfg.servers.some((x) => x.url === u)) return false;
+  if (!validServerUrl(u, cfg.testBuild) || !cfg.servers.some((x) => x.url === u)) return false;
   cfg.serverUrl = u;
   saveConfig();
   await openBest();

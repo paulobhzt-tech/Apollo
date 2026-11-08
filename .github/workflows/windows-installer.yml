@@ -30,7 +30,7 @@ jobs:
           PUBLISHED_URL: ${{ vars.PDV_SERVER_URL || 'https://pdv.apollo-pdv.com' }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
-          $channel = if ($env:EVENT_NAME -eq "workflow_dispatch") { $env:REQUESTED_CHANNEL } elseif ($env:GITHUB_REF -eq "refs/heads/fix/windows-production-server") { "production" } else { "production" }
+          $channel = if ($env:EVENT_NAME -eq "workflow_dispatch") { $env:REQUESTED_CHANNEL } else { "production" }
           if ($channel -eq "test") {
             "PDV_BUILD_CHANNEL=test" >> $env:GITHUB_ENV
             "PDV_SERVER_URL=http://localhost:18080" >> $env:GITHUB_ENV
@@ -49,12 +49,6 @@ jobs:
           } else {
             throw "Canal invalido"
           }
-      - name: Verificar API publicada antes do instalador comercial
-        if: env.PDV_BUILD_CHANNEL == 'production'
-        shell: pwsh
-        run: |
-          $response = Invoke-RestMethod -Uri "$env:PDV_SERVER_URL/api/" -TimeoutSec 15
-          if ($response.message -notin @("API Apollo PDV", "Apollo PDV API")) { throw "Servidor nao respondeu com a API Apollo PDV" }
       - name: Validar API de producao antes de empacotar
         if: env.PDV_BUILD_CHANNEL == 'production'
         shell: pwsh
@@ -77,6 +71,9 @@ jobs:
           node --check scripts/build-web.js
           node --check main.js
           node --check preload.js
+      - name: Testar deteccao do servidor e atualizacao da configuracao
+        working-directory: desktop
+        run: node --test scripts/server-connection.test.js
       - name: Gerar instalador
         working-directory: desktop
         run: npm run dist
@@ -86,21 +83,10 @@ jobs:
           $file = "desktop/dist/Apollo-PDV-Setup.exe"
           if (-not (Test-Path $file)) { throw "Instalador nao encontrado" }
           Get-FileHash $file -Algorithm SHA256 | Format-List
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Apollo-PDV-Setup-${{ env.PDV_BUILD_CHANNEL }}
-          path: |
-            desktop/dist/Apollo-PDV-Setup.exe
-            desktop/dist/latest.yml
-            desktop/dist/*.blockmap
-          if-no-files-found: error
-          retention-days: 14
-
       - name: Homologar instalacao e inicializacao em Windows virtual
-        if: env.PDV_BUILD_CHANNEL == 'test'
         shell: pwsh
         env:
-          PDV_SMOKE: '1'
+          PDV_SMOKE: offline
         run: |
           $ErrorActionPreference = 'Stop'
           $setup = (Resolve-Path 'desktop/dist/Apollo-PDV-Setup.exe').Path
@@ -140,6 +126,15 @@ jobs:
               $_.Name -eq 'Apollo PDV.exe' -and $_.ExecutablePath -like "$dir*"
             } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
           }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Apollo-PDV-Setup-${{ env.PDV_BUILD_CHANNEL }}
+          path: |
+            desktop/dist/Apollo-PDV-Setup.exe
+            desktop/dist/latest.yml
+            desktop/dist/*.blockmap
+          if-no-files-found: error
+          retention-days: 14
       - name: Publicar logs da homologacao Windows
         if: always()
         uses: actions/upload-artifact@v4
