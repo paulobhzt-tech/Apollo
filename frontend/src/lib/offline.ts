@@ -114,11 +114,22 @@ async function performSyncQueue(): Promise<{ synced: number; failed: number }> {
         } else remaining.push(s);
       }
     }
+    // Write rejected sales to durable storage BEFORE removing anything from the queue.
+    // If persistence fails, leave the original queue untouched for safe recovery.
+    if (rejected.length) {
+      const previous = readRejected();
+      const knownRefs = new Set(previous.map((s) => s.payload.client_ref));
+      const additions = rejected.filter((s) => !knownRefs.has(s.payload.client_ref));
+      const nextRejected = JSON.stringify([...additions, ...previous]);
+      kv.set(REJ_KEY, nextRejected);
+      if (kv.get(REJ_KEY) !== nextRejected) throw new Error("Falha ao salvar vendas rejeitadas");
+    }
     // Keep sales added while synchronization was running. Only replace the snapshot we processed.
     const processedRefs = new Set(snapshot.map((s) => s.payload.client_ref));
     const newlyQueued = read().filter((s) => !processedRefs.has(s.payload.client_ref));
-    kv.set(KEY, JSON.stringify([...remaining, ...newlyQueued]));
-    if (rejected.length) kv.set(REJ_KEY, JSON.stringify([...rejected, ...readRejected()].slice(0, 200)));
+    const nextQueue = JSON.stringify([...remaining, ...newlyQueued]);
+    kv.set(KEY, nextQueue);
+    if (kv.get(KEY) !== nextQueue) throw new Error("Falha ao salvar fila de vendas");
     kv.set(LOG_KEY, JSON.stringify({ at: new Date().toISOString(), synced, failed, pending: remaining.length + newlyQueued.length }));
     emit();
     if (synced) void queryClient.invalidateQueries();
