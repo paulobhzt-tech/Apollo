@@ -51,7 +51,7 @@ try {
     delete pkg.devDependencies["@emergentbase/overlay"];
     delete pkg.devDependencies["@emergentbase/visual-edits"];
   }
-  fs.writeFileSync(manifest, JSON.stringify(pkg, null, 2) + "\\n");
+  fs.writeFileSync(manifest, JSON.stringify(pkg, null, 2) + "\n");
   execSync("npm install --no-audit --no-fund --legacy-peer-deps", { cwd: front, stdio: "inherit", shell: true });
   execSync("npm run build", { cwd: front, stdio: "inherit", shell: true });
 } finally {
