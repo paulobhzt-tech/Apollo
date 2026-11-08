@@ -34,3 +34,17 @@ def test_offline_sale_requires_persistence_before_acknowledgement():
     assert "Armazenamento local indisponível" in pdv
     assert "Mantenha o carrinho aberto" in pdv
     assert "Documento fiscal ainda não emitido" in pdv
+
+
+def test_retry_rejected_sale_persists_before_removal():
+    offline = OFFLINE.read_text()
+    start = offline.index("export function retryRejected(")
+    end = offline.index("export function dismissRejected(", start)
+    retry = offline[start:end]
+    assert retry.index("enqueue(sale)") < retry.index("kv.set(REJ_KEY, next)")
+    assert 'if (kv.get(REJ_KEY) !== next) throw new Error(' in retry
+
+
+def test_offline_reference_prefers_cryptographic_uuid():
+    offline = OFFLINE.read_text()
+    assert "crypto.randomUUID()" in offline
