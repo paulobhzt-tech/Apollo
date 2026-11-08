@@ -1,6 +1,7 @@
 import os
 import bcrypt
 import secrets
+import hmac
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
@@ -21,7 +22,7 @@ async def profiles():
 
 class FirstAccessIn(BaseModel):
     username: str
-    password: str
+    password: str = Field(min_length=12, max_length=128)
 
 
 @router.post("/auth/first-access", response_model=Employee)
@@ -29,16 +30,22 @@ async def first_access(body: FirstAccessIn, response: Response, request: Request
     """One-time local-only bootstrap. Never expose predictable credentials publicly."""
     if request.client is None or request.client.host not in ("127.0.0.1", "::1"):
         raise HTTPException(403, "Primeiro acesso permitido apenas no computador servidor")
-    if body.username != "admin" or body.password != "admin":
-        raise HTTPException(401, "Credenciais iniciais inválidas")
+    # Bootstrap is disabled unless an operator explicitly sets a one-time secret.
+    # Never accept hard-coded/default credentials, even on localhost.
+    expected = os.environ.get("APOLLO_BOOTSTRAP_TOKEN", "")
+    supplied = request.headers.get("x-apollo-bootstrap-token", "")
+    if len(expected) < 32 or not supplied or not hmac.compare_digest(expected, supplied):
+        raise HTTPException(403, "Configuração inicial não autorizada")
+    if body.username.strip().lower() != "admin" or body.password.lower() in ("admin", "admin123", "123456789012"):
+        raise HTTPException(422, "Informe administrador e senha inicial forte")
     if await db.employees.count_documents({}, limit=1):
         raise HTTPException(409, "Administrador inicial já configurado")
     pin = f"{secrets.randbelow(900000) + 100000:06d}"
     emp = Employee(name="Administrador", role="admin", can_cancel=True).model_dump()
     try:
         await db.employees.insert_one({**emp, "username": "admin",
-            "password_hash": secure_hash_pin("admin"), "pin_hash": secure_hash_pin(pin),
-            "must_change_password": True})
+            "password_hash": secure_hash_pin(body.password), "pin_hash": secure_hash_pin(pin),
+            "must_change_password": False})
     except Exception:
         raise HTTPException(409, "Não foi possível criar o administrador inicial")
     token = await create_session(emp["id"])
