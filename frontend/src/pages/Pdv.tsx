@@ -60,9 +60,13 @@ export default function Pdv() {
     },
     onError: (e, p) => {
       if (!(e instanceof ApiError)) {
-        enqueue({ payload: p, total: subtotal, queued_at: new Date().toISOString() });
-        toast.warning("Sem conexão: venda salva no modo contingência e será sincronizada");
-        reset();
+        try {
+          enqueue({ payload: p, total: subtotal, queued_at: new Date().toISOString() });
+          toast.warning("Sem conexão: venda salva no modo contingência e será sincronizada");
+          reset();
+        } catch {
+          toast.error("Falha ao salvar a venda offline. NÃO finalize novamente sem conferir a venda; mantenha o carrinho aberto.");
+        }
       } else toast.error(errMsg(e));
     },
   });
@@ -83,9 +87,13 @@ export default function Pdv() {
       items: cart.map((l) => ({ product_id: l.product.id, qty: l.qty, notes: l.notes, options: l.options })),
     };
     if (offline) {
-      enqueue({ payload, total: subtotal, queued_at: new Date().toISOString() });
-      toast.warning("Modo offline: venda registrada localmente (nota será emitida em contingência)");
-      reset();
+      try {
+        enqueue({ payload, total: subtotal, queued_at: new Date().toISOString() });
+        toast.warning("Modo offline: venda pendente de sincronização. Documento fiscal ainda não emitido.");
+        reset();
+      } catch {
+        toast.error("Armazenamento local indisponível: venda NÃO foi salva. Mantenha o carrinho aberto.");
+      }
       return;
     }
     sale.mutate(payload);
