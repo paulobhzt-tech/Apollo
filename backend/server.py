@@ -14,6 +14,7 @@ load_dotenv(ROOT_DIR / '.env')
 # MongoDB connection
 from lib.db import client, db, ensure_indexes  # noqa: E402
 from lib.csrf import CsrfOriginMiddleware  # noqa: E402
+from lib.security_headers import SecurityHeadersMiddleware  # noqa: E402
 from routers import assistant, assistant_openai, auth, beverages, catalog, commercial, commercial_admin, config, drive, fiado, finance, operations, production, public, reports, serverbackup, supplier_quotes, system, tables  # noqa: E402
 
 
@@ -47,6 +48,7 @@ for r in (assistant, assistant_openai, auth, beverages, catalog, commercial, com
     api_router.include_router(r.router)
 
 app.add_middleware(CsrfOriginMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Do not use wildcard origins with credentialed CORS.
 _allowed_origins = [o.strip() for o in os.environ.get('CORS_ORIGINS', '').split(',') if o.strip() and o.strip() != '*']
