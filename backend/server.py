@@ -15,7 +15,7 @@ load_dotenv(ROOT_DIR / '.env')
 from lib.db import client, db, ensure_indexes  # noqa: E402
 from lib.csrf import CsrfOriginMiddleware  # noqa: E402
 from lib.security_headers import SecurityHeadersMiddleware  # noqa: E402
-from routers import assistant, assistant_openai, auth, beverages, catalog, commercial, commercial_admin, config, drive, fiado, finance, operations, production, public, reports, serverbackup, supplier_quotes, system, tables  # noqa: E402
+from routers import assistant, assistant_openai, auth, beverages, catalog, commercial, commercial_admin, platform_trials, config, drive, fiado, finance, operations, production, public, reports, serverbackup, supplier_quotes, system, tables  # noqa: E402
 
 
 @asynccontextmanager
@@ -44,7 +44,7 @@ async def root():
     return {"message": "Apollo PDV API"}
 
 
-for r in (assistant, assistant_openai, auth, beverages, catalog, commercial, commercial_admin, tables, operations, reports, public, fiado, config, production, drive, system, finance, serverbackup, supplier_quotes):
+for r in (assistant, assistant_openai, auth, beverages, catalog, commercial, commercial_admin, platform_trials, tables, operations, reports, public, fiado, config, production, drive, system, finance, serverbackup, supplier_quotes):
     api_router.include_router(r.router)
 
 app.add_middleware(CsrfOriginMiddleware)
