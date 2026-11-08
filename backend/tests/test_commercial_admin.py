@@ -55,8 +55,10 @@ async def test_unit_duplicate_code_rejected_within_franchise(monkeypatch):
 
 def test_registry_endpoints_require_admin():
     from fastapi.routing import APIRoute
-    from lib.auth import require
     routes = [route for route in admin.router.routes if isinstance(route, APIRoute)]
     assert len(routes) == 6
     for route in routes:
-        assert any(dependency.call.__name__ == "dep" for dependency in route.dependant.dependencies)
+        dependencies = [dependency.call for dependency in route.dependant.dependencies]
+        assert len(dependencies) == 1
+        assert dependencies[0].__name__ == "dep"
+        assert dependencies[0].__closure__[0].cell_contents == ("admin",)
