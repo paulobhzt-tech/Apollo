@@ -51,6 +51,11 @@ INDEXES: dict[str, list[IndexModel]] = {
     "customer_moves": [IndexModel([("customer_id", ASCENDING), ("at", DESCENDING)], name="customer_at"),
                        IndexModel([("cash_session_id", ASCENDING)], name="cash_session")],
     "expenses": [_id_idx(), IndexModel([("date", DESCENDING)], name="date_desc")],
+    "commercial_resellers": [_id_idx(), IndexModel([("email", ASCENDING)], name="reseller_email", unique=True)],
+    "commercial_franchises": [_id_idx(), IndexModel([("reseller_id", ASCENDING)], name="reseller_id")],
+    "commercial_locations": [_id_idx(), IndexModel([("franchise_id", ASCENDING), ("external_code", ASCENDING)],
+                                                  name="franchise_external_code", unique=True,
+                                                  partialFilterExpression={"external_code": {"$type": "string"}})],
 }
 
 
