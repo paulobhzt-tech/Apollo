@@ -169,8 +169,8 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
               <span className="hidden xl:inline">Modo {resolvedTheme === "dark" ? "Escuro" : "Claro"}</span>
             </button>
             <OfflineBadge />
-            <button type="button" onClick={() => void endSession()} className="hidden shrink-0 items-center gap-1 text-xs text-zinc-200 hover:text-white lg:flex" title="Bloquear ou trocar operador">
-              <Users className="size-4" /><span className="max-w-32 truncate">{me.name}</span><LogOut className="size-3" />
+            <button type="button" onClick={() => void endSession()} className="flex shrink-0 items-center gap-1 rounded-md border border-white/20 px-2 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/10 sm:px-3" title="Encerrar sessão e trocar operador" aria-label="Trocar operador ou sair" data-testid="header-switch-operator">
+              <LogOut className="size-4" aria-hidden="true" /><span className="hidden sm:inline">Trocar operador / Sair</span><span className="sm:hidden">Sair</span>
             </button>
           </div>
           <nav aria-label="Atalhos do sistema" className="flex min-h-20 flex-wrap items-stretch gap-1 bg-[#303034] px-2 py-1.5 sm:px-4">
