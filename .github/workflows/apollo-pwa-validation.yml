@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install pytest
-        run: python -m pip install pytest pytest-xdist
+        run: python -m pip install pytest pytest-xdist pytest-asyncio httpx fastapi pydantic
       - name: PWA security regression checks
         run: python -m pytest backend/tests/test_pwa_static.py -q
   frontend:
@@ -28,9 +28,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Upgrade npm and install dependencies
+      - name: Install frontend dependencies without Emergent preview-only packages
         run: |
-          npm install -g npm@latest
+          npm pkg delete 'devDependencies.@emergentbase/overlay' 'devDependencies.@emergentbase/visual-edits'
           npm install --no-audit --no-fund --legacy-peer-deps
       - name: TypeScript typecheck
         run: npm run typecheck
