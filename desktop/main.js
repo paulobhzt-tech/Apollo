@@ -200,6 +200,7 @@ function createWindow() {
         app.exit(2);
         return;
       }
+      console.log("PDV_SMOKE_VERSION", app.getVersion());
       console.log("PDV_SMOKE_PASS");
       setTimeout(() => app.quit(), 1500);
     });

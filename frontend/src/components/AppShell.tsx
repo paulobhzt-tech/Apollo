@@ -92,6 +92,8 @@ export function OfflineBadge() {
       onClick={toggle}
       data-testid="offline-toggle"
       title="Alternar modo offline (contingência)"
+      aria-label={forced ? "Desativar modo offline manual" : "Ativar modo offline manual"}
+      aria-pressed={forced}
       className={cn(
         "flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-200",
         offline ? "animate-pulse-ring border-amber-400/40 bg-amber-400/10 text-amber-300" : "border-emerald-400/25 bg-emerald-400/10 text-emerald-300",
@@ -169,8 +171,8 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
               <span className="hidden xl:inline">Modo {resolvedTheme === "dark" ? "Escuro" : "Claro"}</span>
             </button>
             <OfflineBadge />
-            <button type="button" onClick={() => void endSession()} className="hidden shrink-0 items-center gap-1 text-xs text-zinc-200 hover:text-white lg:flex" title="Bloquear ou trocar operador">
-              <Users className="size-4" /><span className="max-w-32 truncate">{me.name}</span><LogOut className="size-3" />
+            <button type="button" onClick={() => void endSession()} className="hidden shrink-0 items-center gap-1.5 text-xs text-zinc-200 hover:text-white lg:flex" title={`Operador atual: ${me.name}`}>
+              <LogOut className="size-4" aria-hidden="true" /><span>Trocar operador</span>
             </button>
           </div>
           <nav aria-label="Atalhos do sistema" className="flex min-h-20 items-stretch gap-1 overflow-x-auto bg-[#303034] px-2 py-1.5 sm:px-4">

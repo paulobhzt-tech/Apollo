@@ -17,13 +17,17 @@ on:
 
 jobs:
   build-windows:
-    runs-on: windows-latest
+    runs-on: windows-2025
+    outputs:
+      channel: ${{ steps.channel.outputs.name }}
+      sha256: ${{ steps.installer.outputs.sha256 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - name: Definir servidor e canal do instalador
+        id: channel
         shell: pwsh
         env:
           REQUESTED_CHANNEL: ${{ inputs.channel }}
@@ -49,6 +53,7 @@ jobs:
           } else {
             throw "Canal invalido"
           }
+          "name=$channel" >> $env:GITHUB_OUTPUT
       - name: Validar API de producao antes de empacotar
         if: env.PDV_BUILD_CHANNEL == 'production'
         shell: pwsh
@@ -78,54 +83,17 @@ jobs:
         working-directory: desktop
         run: npm run dist
       - name: Conferir executavel gerado
+        id: installer
         shell: pwsh
         run: |
           $file = "desktop/dist/Apollo-PDV-Setup.exe"
           if (-not (Test-Path $file)) { throw "Instalador nao encontrado" }
-          Get-FileHash $file -Algorithm SHA256 | Format-List
-      - name: Homologar instalacao e inicializacao em Windows virtual
+          $hash = Get-FileHash $file -Algorithm SHA256
+          $hash | Format-List
+          "sha256=$($hash.Hash)" >> $env:GITHUB_OUTPUT
+      - name: Testar instalacao e abertura no Windows Server 2025
         shell: pwsh
-        env:
-          PDV_SMOKE: offline
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $setup = (Resolve-Path 'desktop/dist/Apollo-PDV-Setup.exe').Path
-          $dir = Join-Path $env:RUNNER_TEMP 'ApolloSmoke'
-          Write-Host "Runner: $([Environment]::OSVersion.VersionString)"
-          Write-Host "Instalador: $setup"
-          Write-Host "Destino: $dir"
-          # NSIS requires /D=path as the LAST argument, with no quoting of the path.
-          $installer = Start-Process -FilePath $setup -ArgumentList "/S /D=$dir" -PassThru -Wait
-          Write-Host "NSIS exit code: $($installer.ExitCode)"
-          if ($installer.ExitCode -ne 0) {
-            Write-Host 'Arquivos encontrados apos tentativa de instalacao:'
-            Get-ChildItem -Path $dir -Force -ErrorAction SilentlyContinue | Select-Object Name,Length | Format-Table
-            $crash = Join-Path $env:RUNNER_TEMP 'apollo-installer-diagnostics.txt'
-            "NSIS exit code: $($installer.ExitCode)`nSetup: $setup`nTarget: $dir`nWindows: $([Environment]::OSVersion.VersionString)" | Set-Content $crash
-            throw "Instalacao NSIS falhou: $($installer.ExitCode)"
-          }
-          $app = Join-Path $dir 'Apollo PDV.exe'
-          if (-not (Test-Path $app)) { throw "Apollo PDV.exe nao foi instalado" }
-          $stdout = Join-Path $env:RUNNER_TEMP 'apollo-smoke-out.txt'
-          $stderr = Join-Path $env:RUNNER_TEMP 'apollo-smoke-err.txt'
-          $process = Start-Process -FilePath $app -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
-          try {
-            $deadline = (Get-Date).AddSeconds(90)
-            do {
-              Start-Sleep -Seconds 2
-              $process.Refresh()
-            } while (-not $process.HasExited -and (Get-Date) -lt $deadline)
-            if (-not $process.HasExited) { throw 'Apollo nao encerrou o smoke test em 90 segundos' }
-            $output = Get-Content $stdout -Raw -ErrorAction SilentlyContinue
-            Write-Host $output
-            if ($process.ExitCode -ne 0) { throw "Apollo falhou ao iniciar: $($process.ExitCode)" }
-            if ($output -notmatch 'PDV_SMOKE_PASS') { throw 'Apollo nao confirmou tela offline e ponte desktop' }
-            Write-Host 'HOMOLOGACAO BASICA WINDOWS APROVADA'
-          } finally {
-            Get-CimInstance Win32_Process | Where-Object {
-              $_.Name -eq 'Apollo PDV.exe' -and $_.ExecutablePath -like "$dir*"
-            } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-          }
+        run: ./desktop/scripts/windows-smoke.ps1 -Installer desktop/dist/Apollo-PDV-Setup.exe
       - uses: actions/upload-artifact@v4
         with:
           name: Apollo-PDV-Setup-${{ env.PDV_BUILD_CHANNEL }}
@@ -140,6 +108,38 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: apollo-windows-smoke-logs
+          path: |
+            ${{ runner.temp }}/apollo-smoke-out.txt
+            ${{ runner.temp }}/apollo-smoke-err.txt
+            ${{ runner.temp }}/apollo-installer-diagnostics.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+  smoke-windows-2022:
+    needs: build-windows
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Apollo-PDV-Setup-${{ needs.build-windows.outputs.channel }}
+          path: desktop/dist
+      - name: Conferir o mesmo instalador e testar no Windows Server 2022
+        shell: pwsh
+        env:
+          EXPECTED_SHA256: ${{ needs.build-windows.outputs.sha256 }}
+        run: |
+          $installer = 'desktop/dist/Apollo-PDV-Setup.exe'
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne $env:EXPECTED_SHA256) {
+            throw 'O instalador baixado difere do instalador testado no Windows Server 2025'
+          }
+          ./desktop/scripts/windows-smoke.ps1 -Installer $installer
+      - name: Publicar logs do teste Windows Server 2022
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apollo-windows-2022-smoke-logs
           path: |
             ${{ runner.temp }}/apollo-smoke-out.txt
             ${{ runner.temp }}/apollo-smoke-err.txt
