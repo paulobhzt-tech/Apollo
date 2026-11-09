@@ -81,10 +81,16 @@ export function OfflineBadge() {
   const { offline, forced, queue } = useOffline();
   const toggle = async () => {
     setForcedOffline(!forced);
-    if (forced) {
+    if (!forced) {
+      toast.message("Modo contingência ativado: vendas do PDV ficam salvas neste dispositivo");
+      return;
+    }
+    try {
       const r = await syncQueue();
       if (r.synced) toast.success(`${r.synced} venda(s) offline sincronizada(s)`);
-    } else toast.message("Modo contingência ativado: vendas do PDV ficam salvas neste dispositivo");
+    } catch {
+      toast.error("Não foi possível sincronizar. Confira a fila em Configurações.");
+    }
   };
   return (
     <button

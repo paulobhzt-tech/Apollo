@@ -55,7 +55,6 @@ export function setForcedOffline(v: boolean) {
   forced = v;
   kv.set("pdv_force_offline", v ? "1" : "0");
   emit();
-  if (!v) void syncQueue();
 }
 export function enqueue(sale: QueuedSale) {
   const queued = read();
