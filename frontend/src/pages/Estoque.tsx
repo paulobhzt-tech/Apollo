@@ -163,14 +163,15 @@ function InventoryPanel({ ingredients, onSaved }: { ingredients: Ingredient[]; o
 export default function Estoque() {
   const { data: me } = useMe();
   const ings = useQuery({ queryKey: ["ingredients"], queryFn: () => apiGet<Ingredient[]>("/ingredients"), refetchInterval: 15000 });
+  const alerts = useQuery({ queryKey: ["inventory-alerts"], queryFn: () => apiGet<{ total: number; out_of_stock: number; low_stock: number; estimated_minimum_cost: number }>("/inventory/alerts"), refetchInterval: 15000 });
   const moves = useQuery({ queryKey: ["stock-moves"], queryFn: () => apiGet<StockMove[]>("/stock/moves") });
   const batches = useQuery({ queryKey: ["production-batches"], queryFn: () => apiGet<ProductionBatch[]>("/production/batches") });
   const products = useQuery({ queryKey: ["products"], queryFn: () => apiGet<Product[]>("/products") });
   const [editing, setEditing] = useState<Ingredient | "new" | null>(null);
   const [moving, setMoving] = useState<Ingredient | null>(null);
   const list = ings.data ?? [];
-  const low = list.filter((i) => i.min_stock > 0 && i.stock <= i.min_stock).sort((a, b) => a.stock / a.min_stock - b.stock / b.min_stock);
-  const shopping = low.map((i) => ({ ...i, suggested: Math.max(0, i.min_stock * 2 - i.stock) }));
+  const low = list.filter((i) => i.stock <= 0 || (i.min_stock > 0 && i.stock < i.min_stock)).sort((a, b) => a.stock / a.min_stock - b.stock / b.min_stock);
+  const shopping = low.filter((i) => i.min_stock > 0).map((i) => ({ ...i, suggested: Math.max(0, i.min_stock * 2 - i.stock) }));
   const shoppingText = shopping.map((i) => `${i.name}: comprar ${i.suggested.toFixed(2)} ${i.unit} (atual ${i.stock.toFixed(2)}, mínimo ${i.min_stock.toFixed(2)})`).join("\n");
   const losses = (moves.data ?? []).filter((m) => m.type === "perda");
   const lossTotal = losses.reduce((sum, m) => sum + (m.cost_total ?? 0), 0);
@@ -186,6 +187,7 @@ export default function Estoque() {
         <div className="rounded-2xl border border-white/5 bg-panel p-4"><p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Valor em estoque</p><p className="mt-1 font-mono text-2xl text-white" data-testid="stock-value">{brl(value)}</p></div>
         <div className="rounded-2xl border border-red-400/20 bg-red-400/5 p-4"><p className="text-[11px] uppercase tracking-[0.15em] text-red-300">Reposição urgente</p><p className="mt-1 font-mono text-2xl text-red-200" data-testid="stock-low-count">{low.length}</p></div>
       </div>
+      {alerts.data && alerts.data.total > 0 && <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/5 p-3 text-sm" data-testid="inventory-alert-summary"><strong className="text-red-200">Alertas de estoque:</strong> {alerts.data.out_of_stock} sem estoque · {alerts.data.low_stock} abaixo do mínimo · Custo estimado para atingir os mínimos: <strong>{brl(alerts.data.estimated_minimum_cost)}</strong></div>}
       {shopping.length > 0 && <div className="mb-4 rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4" data-testid="stock-shopping-list">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-200"><ClipboardList className="size-4" /> Lista de compras sugerida ({shopping.length})</h3>

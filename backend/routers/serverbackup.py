@@ -1,6 +1,8 @@
 """Backup local no próprio servidor: cópias completas compactadas guardadas no banco (sobrevivem a reinícios),
 geradas toda noite pelo agendador ou na hora, para baixar ou restaurar com um clique."""
 import gzip
+import hashlib
+import io
 import json
 import uuid
 from datetime import datetime, timezone
@@ -14,7 +16,25 @@ from lib.db import db
 from models.schemas import LocalBackupSettings, OkOut, RestoreIn, RestoreOut, ServerBackupInfo
 
 router = APIRouter()
+
+
+async def audit_backup(action: str, user: dict, backup_id: str = "") -> None:
+    """Append-only operational audit entry, without backup payload or credentials."""
+    await db.backup_audit.insert_one({
+        "at": datetime.now(timezone.utc),
+        "action": action,
+        "backup_id": backup_id,
+        "employee_id": user.get("id", ""),
+        "employee_name": user.get("name", ""),
+    })
+
+
+@router.get("/backups/server/audit")
+async def list_backup_audit(_: dict = Depends(require())):
+    return await db.backup_audit.find({}, {"_id": 0}).sort("at", -1).to_list(200)
+
 MAX_BYTES = 15 * 1024 * 1024  # Mongo document limit is 16 MB
+MAX_UNCOMPRESSED_BYTES = 100 * 1024 * 1024  # Protect restore/download from oversized payloads
 
 
 async def local_settings() -> LocalBackupSettings:
@@ -25,11 +45,14 @@ async def local_settings() -> LocalBackupSettings:
 async def make_server_backup(trigger: str, by_name: str = "") -> ServerBackupInfo:
     from routers.config import build_backup
     _stamp, payload = await build_backup()
-    blob = gzip.compress(json.dumps(payload, ensure_ascii=False).encode(), compresslevel=6)
+    raw = json.dumps(payload, ensure_ascii=False).encode()
+    if len(raw) > MAX_UNCOMPRESSED_BYTES:
+        raise HTTPException(400, "Backup excede o limite de segurança de 100 MB")
+    blob = gzip.compress(raw, compresslevel=6)
     if len(blob) > MAX_BYTES:
         raise HTTPException(400, "Backup grande demais para guardar no servidor: use o Google Drive ou baixe o arquivo")
     info = ServerBackupInfo(id=str(uuid.uuid4()), at=datetime.now(timezone.utc), trigger=trigger, size_kb=max(1, len(blob) // 1024), by_name=by_name)
-    await db.server_backups.insert_one({**info.model_dump(), "blob": Binary(blob)})
+    await db.server_backups.insert_one({**info.model_dump(), "blob": Binary(blob), "sha256": hashlib.sha256(raw).hexdigest()})
     keep = (await local_settings()).keep
     old = await db.server_backups.find({}, {"_id": 0, "id": 1}).sort("at", -1).skip(keep).to_list(1000)
     if old:
@@ -44,7 +67,9 @@ async def list_server_backups(_: dict = Depends(require())):
 
 @router.post("/backups/server", response_model=ServerBackupInfo)
 async def backup_now(me: dict = Depends(require())):
-    return await make_server_backup("manual", me["name"])
+    info = await make_server_backup("manual", me["name"])
+    await audit_backup("created", me, info.id)
+    return info
 
 
 @router.get("/backups/server/settings", response_model=LocalBackupSettings)
@@ -53,8 +78,9 @@ async def get_local_settings(_: dict = Depends(require())):
 
 
 @router.put("/backups/server/settings", response_model=LocalBackupSettings)
-async def put_local_settings(body: LocalBackupSettings, _: dict = Depends(require())):
+async def put_local_settings(body: LocalBackupSettings, me: dict = Depends(require())):
     await db.settings.update_one({"_id": "backup_local"}, {"$set": body.model_dump()}, upsert=True)
+    await audit_backup("settings_updated", me)
     return body
 
 
@@ -62,7 +88,36 @@ async def _load(id: str) -> tuple[dict, dict]:
     d = await db.server_backups.find_one({"id": id}, {"_id": 0})
     if not d:
         raise HTTPException(404, "Backup não encontrado")
-    return d, json.loads(gzip.decompress(bytes(d["blob"])))
+    try:
+        with gzip.GzipFile(fileobj=io.BytesIO(bytes(d["blob"]))) as stream:
+            raw = stream.read(MAX_UNCOMPRESSED_BYTES + 1)
+        if len(raw) > MAX_UNCOMPRESSED_BYTES:
+            raise HTTPException(400, "Backup excede o limite de segurança de 100 MB")
+        expected = d.get("sha256")
+        if expected and hashlib.sha256(raw).hexdigest() != expected:
+            raise HTTPException(409, "Integridade do backup comprometida. Restauração bloqueada.")
+        payload = json.loads(raw)
+        if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
+            raise HTTPException(400, "Estrutura do backup inválida")
+        return d, payload
+    except (OSError, EOFError, ValueError, UnicodeDecodeError) as exc:
+        raise HTTPException(400, "Backup corrompido ou inválido") from exc
+
+
+@router.get("/backups/server/{id}/verify")
+async def verify_server_backup(id: str, _: dict = Depends(require())):
+    """Read and validate a backup without modifying restaurant data."""
+    document, payload = await _load(id)
+    from routers.config import validate_restore_data
+    collections = validate_restore_data(payload["data"])
+    return {
+        "id": id,
+        "valid": True,
+        "integrity": "sha256" if document.get("sha256") else "legacy_without_checksum",
+        "collections": sorted(collections.keys()),
+        "record_counts": {name: len(docs) for name, docs in collections.items()},
+        "message": "Backup íntegro; nenhuma restauração foi executada.",
+    }
 
 
 @router.get("/backups/server/{id}/download")
@@ -76,12 +131,17 @@ async def download_backup(id: str, _: dict = Depends(require())):
 async def restore_backup(id: str, me: dict = Depends(require())):
     from routers.config import restore
     _d, payload = await _load(id)
+    from routers.config import validate_restore_data
+    validate_restore_data(payload["data"])
     await make_server_backup("antes da restauração", me["name"])  # safety copy of the current data
-    return await restore(RestoreIn(data=payload["data"]), me)
+    result = await restore(RestoreIn(data=payload["data"]), me)
+    await audit_backup("restored", me, id)
+    return result
 
 
 @router.delete("/backups/server/{id}", response_model=OkOut)
-async def delete_backup(id: str, _: dict = Depends(require())):
+async def delete_backup(id: str, me: dict = Depends(require())):
     if not (await db.server_backups.delete_one({"id": id})).deleted_count:
         raise HTTPException(404, "Backup não encontrado")
+    await audit_backup("deleted", me, id)
     return OkOut(message="Backup apagado")

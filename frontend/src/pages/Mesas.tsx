@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowRightLeft, Bell, Clock, Minus, Pencil, Plus, QrCode, Receipt, Send, Trash2, Users } from "lucide-react";
+import { ArrowRightLeft, Bell, Clock, Minus, Pencil, Plus, QrCode, Receipt, RefreshCw, Search, Send, Trash2, Users } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
@@ -58,6 +58,9 @@ export default function Mesas() {
   const myReady = ready.filter((ticket) => (tables.data ?? []).some((t) => t.order_id === ticket.order_id && t.waiter_id === me?.id));
   const [selId, setSelId] = useState<string | null>(null);
   const [mobileSearch, setMobileSearch] = useState("");
+  const [desktopSearch, setDesktopSearch] = useState("");
+  const [desktopStatus, setDesktopStatus] = useState<"todas" | Table["status"]>("todas");
+  const [desktopSort, setDesktopSort] = useState<"numero" | "tempo" | "valor">("numero");
   const [mobileFilter, setMobileFilter] = useState<"todas" | "minhas" | "ocupadas" | "livres">("todas");
   const [qrTable, setQrTable] = useState<Table | null>(null);
   const [kind, setKind] = useState<Kind>("mesa");
@@ -65,7 +68,11 @@ export default function Mesas() {
   const all = tables.isError ? [] : tables.data ?? [];
   const list = all.filter((t) => {
     if (t.kind !== kind) return false;
-    if (!mobileMode) return true;
+    if (!mobileMode) {
+      const term = desktopSearch.trim().toLocaleLowerCase("pt-BR");
+      if (desktopStatus !== "todas" && t.status !== desktopStatus) return false;
+      return !term || [String(t.number), t.name ?? "", t.customer_name ?? ""].some((v) => v.toLocaleLowerCase("pt-BR").includes(term));
+    }
     const term = mobileSearch.trim().toLocaleLowerCase("pt-BR");
     if (term && ![String(t.number), t.name ?? "", t.customer_name ?? ""].some((v) => v.toLocaleLowerCase("pt-BR").includes(term))) return false;
     if (mobileFilter === "minhas" && t.waiter_id !== me?.id) return false;
@@ -73,6 +80,7 @@ export default function Mesas() {
     if (mobileFilter === "livres" && t.status !== "livre") return false;
     return true;
   });
+  const sortedList = [...list].sort((a, b) => desktopSort === "valor" ? (b.total ?? 0) - (a.total ?? 0) || a.number - b.number : desktopSort === "tempo" ? (b.opened_at ? minutesSince(b.opened_at) : 0) - (a.opened_at ? minutesSince(a.opened_at) : 0) || a.number - b.number : a.number - b.number);
   const sel = all.find((t) => t.id === selId) ?? null;
   const counts = list.reduce<Record<string, number>>((a, t) => ({ ...a, [t.status]: (a[t.status] ?? 0) + 1 }), {});
   const canCreate = me?.role === "admin" || me?.role === "caixa";
@@ -118,47 +126,75 @@ export default function Mesas() {
         <Input aria-label="Buscar mesa, comanda ou cliente" placeholder="Buscar número, mesa ou cliente..." value={mobileSearch} onChange={(e) => setMobileSearch(e.target.value)} data-testid="mobile-table-search" />
         <div className="flex flex-wrap gap-2">{([["todas", "Todas"], ["minhas", "Minhas mesas"], ["ocupadas", "Em atendimento"], ["livres", "Livres"]] as const).map(([value, label]) => <Button key={value} size="sm" variant={mobileFilter === value ? "default" : "outline"} onClick={() => setMobileFilter(value)}>{label}</Button>)}</div>
       </div>}
-      <div className="mb-4 flex flex-wrap gap-3 text-xs">
+      {!mobileMode && (
+        <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4" data-testid="tables-summary">
+          {([
+            { label: "Em andamento", status: "ocupada", color: "border-emerald-500/40 text-emerald-300" },
+            { label: "Contas solicitadas", status: "conta", color: "border-amber-500/40 text-amber-300" },
+            { label: "Livres", status: "livre", color: "border-zinc-500/40 text-zinc-200" },
+            { label: "Reservadas", status: "reservada", color: "border-violet-500/40 text-violet-300" },
+          ] as const).map(item => (
+            <button key={item.status} type="button" onClick={() => setDesktopStatus(desktopStatus === item.status ? "todas" : item.status)}
+              aria-pressed={desktopStatus === item.status} className={cn("rounded-md border bg-white/5 px-3 py-3 text-left transition-colors hover:bg-white/10", item.color, desktopStatus === item.status && "ring-2 ring-primary")}>
+              <span className="block text-xs">{item.label}</span>
+              <span className="mt-1 block text-2xl font-bold tabular-nums">{all.filter(t => t.kind === kind && t.status === item.status).length}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {!mobileMode && (
+        <div className="mb-5 flex flex-wrap items-center gap-3 border-b border-white/10 pb-4" data-testid="desktop-tables-toolbar">
+          <Input aria-label="Pesquisar mesas e comandas" placeholder="Pesquisar mesa, comanda ou cliente..." value={desktopSearch}
+            onChange={(e) => setDesktopSearch(e.target.value)} className="w-full max-w-sm rounded-sm bg-zinc-900/60 sm:w-80" />
+          <label className="flex items-center gap-2 text-xs text-zinc-300">Ordenar por
+            <select aria-label="Ordenar mesas" value={desktopSort} onChange={(e) => setDesktopSort(e.target.value as typeof desktopSort)} className="rounded border border-white/15 bg-zinc-800 px-2 py-2 text-white">
+              <option value="numero">Número</option><option value="tempo">Maior tempo</option><option value="valor">Maior valor</option>
+            </select>
+          </label>
+          <Button variant="outline" size="sm" onClick={() => void tables.refetch()} disabled={tables.isFetching} data-testid="refresh-tables"><RefreshCw className={cn("size-4", tables.isFetching && "animate-spin")} /> Atualizar</Button>
+          {desktopStatus !== "todas" && <Button variant="ghost" size="sm" onClick={() => setDesktopStatus("todas")}>Limpar filtro</Button>}
+          <div className="ml-auto hidden items-center gap-2 text-xs text-zinc-400 xl:flex">
+            <span className="inline-block size-2 rounded-full bg-emerald-500" /> Em andamento
+            <span className="ml-2 inline-block size-2 rounded-full bg-zinc-500" /> Livre
+            <span className="ml-2 inline-block size-2 rounded-full bg-amber-500" /> Conta pedida
+          </div>
+        </div>
+      )}
+      {mobileMode && <div className="mb-4 flex flex-wrap gap-3 text-xs">
         {Object.entries(STATUS).map(([k, s]) => (
           <span key={k} className="flex items-center gap-1.5 text-zinc-400"><span className={cn("size-2 rounded-full", s.dot)} />{s.label} ({counts[k] ?? 0})</span>
         ))}
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6" data-testid="tables-grid">
-        {list.length === 0 && (
-          <p className="col-span-full py-12 text-center text-sm text-zinc-500" data-testid="tables-empty">
-            {mobileMode ? "Nenhuma mesa ou comanda corresponde aos filtros." : `Nenhuma ${kind} cadastrada.`}{!mobileMode && canCreate && " Clique em “Nova " + kind + "” para criar."}
-          </p>
-        )}
-        {list.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setSelId(t.id)}
-            data-testid={`${t.kind === "comanda" ? "comanda" : "table"}-card-${t.number}`}
-            className={cn("relative rounded-2xl border p-4 text-left transition-transform duration-200 hover:-translate-y-0.5 animate-rise", STATUS[t.status].cls)}
-          >
-            {t.call && (
-              <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-white animate-pulse-ring" data-testid={`table-call-${t.number}`}>
-                <Bell className="size-3" />{t.call === "conta" ? "Conta" : "Garçom"}
-              </span>
-            )}
-            <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">{kindLabel(t.kind)}</p>
-            <p className="font-heading text-4xl font-semibold text-white">{String(t.number).padStart(2, "0")}</p>
-            {t.name && <p className="truncate text-sm font-medium text-primary" data-testid={`table-name-${t.number}`}>{t.name}</p>}
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-zinc-300"><span className={cn("size-2 rounded-full", STATUS[t.status].dot)} />{STATUS[t.status].label}</p>
-            {t.order_id ? (
-              <div className="mt-3 flex items-center justify-between text-xs text-zinc-400">
-                <span className="flex items-center gap-1"><Users className="size-3" />{t.people}</span>
-                <span className="flex items-center gap-1"><Clock className="size-3" />{minutesSince(t.opened_at)}min</span>
-                <span className="font-mono text-sm text-white">{brl(t.total)}</span>
-              </div>
-            ) : (
-              <p className="mt-3 text-xs text-zinc-500">{t.customer_name || `${t.seats} lugares`}</p>
-            )}
-          </button>
-        ))}
-      </div>
-      {canCreate && list.length > 0 && (
+      </div>}
+      {tables.isError && <div role="alert" className="mb-3 rounded border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">Não foi possível carregar as mesas. Confira a conexão e tente atualizar.</div>}
+      {tables.isLoading && <p role="status" className="mb-3 text-sm text-zinc-400">Carregando mesas e comandas…</p>}
+      {!tables.isLoading && !tables.isError && list.length === 0 && (
+        <p className="py-12 text-center text-sm text-zinc-500" data-testid="tables-empty">
+          {mobileMode ? "Nenhuma mesa ou comanda corresponde aos filtros." : `Nenhuma ${kind} encontrada.`}
+        </p>
+      )}
+      {([
+        { title: "Pedidos em andamento", items: sortedList.filter(t => t.status === "ocupada"), color: "bg-[#298858]" },
+        { title: "Contas solicitadas", items: list.filter(t => t.status === "conta"), color: "bg-[#a87322]" },
+        { title: "Mesas reservadas", items: list.filter(t => t.status === "reservada"), color: "bg-[#62518d]" },
+        { title: kind === "mesa" ? "Mesas livres" : "Comandas livres", items: list.filter(t => t.status === "livre"), color: "bg-[#656565]" },
+      ]).filter(group => group.items.length > 0).map(group => (
+        <section key={group.title} className="mb-5" aria-label={group.title}>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">{group.title} ({group.items.length})</h2>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-7 xl:grid-cols-10 2xl:grid-cols-12" data-testid="tables-grid">
+            {group.items.map(t => (
+              <button key={t.id} type="button" onClick={() => setSelId(t.id)}
+                data-testid={`${t.kind === "comanda" ? "comanda" : "table"}-card-${t.number}`}
+                className={cn("relative flex min-h-28 flex-col items-center justify-between p-2 text-center text-white transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", group.color)}>
+                <span className="text-[10px] font-medium">{t.status === "livre" ? "ABRIR" : t.status === "conta" ? "CONTA" : t.status === "reservada" ? "RESERVADA" : `${minutesSince(t.opened_at)} min`}</span>
+                {t.call && <Bell className="absolute right-1 top-1 size-3 animate-pulse" aria-label="Chamada pendente" />}
+                <span className="text-2xl font-bold tabular-nums">{String(t.number).padStart(2, "0")}</span>
+                <span className="w-full truncate text-[10px]">{t.order_id ? brl(t.total) : (t.name || t.customer_name || " ")}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ))}
+      {canCreate && !tables.isError && list.length > 0 && (
         <button type="button" onClick={() => setCreating(true)} data-testid="add-more-tile"
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 py-5 text-sm text-zinc-400 transition-colors duration-150 hover:border-primary/50 hover:text-white">
           <Plus className="size-4" /> Adicionar mais {kind === "mesa" ? "mesas" : "comandas"}
@@ -280,9 +316,11 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   const [payOpen, setPayOpen] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [transferTo, setTransferTo] = useState("");
+  const [mergeTo, setMergeTo] = useState("");
   const [preBill, setPreBill] = useState(false);
   const [partialOpen, setPartialOpen] = useState(false);
   const [grouped, setGrouped] = useState(true);
+  const [productSearch, setProductSearch] = useState("");
   const [removing, setRemoving] = useState<GroupedItem | null>(null);
 
   const onErr = (e: unknown) => toast.error(errMsg(e));
@@ -325,6 +363,11 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
     onSuccess: (t) => { toast.success(`Transferida para ${tableLabel(t)}`); setTransferTo(""); invalidateTables(); onClose(); },
     onError: onErr,
   });
+  const merge = useMutation({
+    mutationFn: () => apiPost<Table>(`/tables/${table!.id}/merge`, { target_table_id: mergeTo }),
+    onSuccess: (t) => { toast.success(`Comandas reunidas em ${tableLabel(t)}`); setMergeTo(""); invalidateTables(); onClose(); },
+    onError: onErr,
+  });
   const pay = useMutation({
     mutationFn: (p: PayIn) => apiPost<SaleResult>(`/tables/${table!.id}/pay`, p),
     onSuccess: (r) => {
@@ -347,13 +390,31 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   const addPending = (p: Product) => (p.options?.length ? setOptFor(p) : push(p));
   const o = table?.order_id ? order.data ?? null : null;
   const items = (o?.items ?? []);
+  const visibleProducts = (products.data ?? []).filter((p) => p.active && (!productSearch.trim() || [p.name, p.code, p.description].some((v) => v?.toLocaleLowerCase("pt-BR").includes(productSearch.trim().toLocaleLowerCase("pt-BR")))));
 
   return (
     <>
       <Sheet open={open} onOpenChange={(v) => { if (!v) { onClose(); setAdding(false); setPending([]); } }}>
-        <SheetContent side="right" className="w-full overflow-y-auto border-white/5 bg-shell p-0 sm:max-w-xl" data-testid="table-sheet">
+        <SheetContent side="right" className="w-full overflow-y-auto border-white/10 bg-[#252527] p-0 sm:max-w-[96vw] xl:max-w-[1120px]" data-testid="table-sheet">
           {table && (
-            <div className="flex min-h-full flex-col p-5">
+            <div className="flex min-h-full flex-col">
+              <div className="flex items-center gap-3 border-b border-white/10 bg-[#202023] px-5 py-3 pr-12">
+                <span className="text-xl font-bold text-emerald-400">{table.number}</span>
+                <span className="rounded-sm bg-emerald-700 px-4 py-2 text-xs font-semibold text-white">{table.order_id ? "Em Aberto" : STATUS[table.status].label}</span>
+                <strong className="text-sm text-white">{table.kind === "mesa" ? "Mesa" : "Comanda"} {table.number}{o ? ` · Pedido #${o.number}` : ""}</strong>
+              </div>
+              <div className="grid flex-1 lg:grid-cols-[225px_minmax(0,1fr)]">
+                <aside className="flex flex-col gap-3 border-b border-white/10 bg-[#2d2d31] p-4 text-xs text-zinc-300 lg:min-h-[calc(100vh-7rem)] lg:border-b-0 lg:border-r">
+                  <div className="flex items-center gap-2"><Clock className="size-4 text-zinc-400" /> {table.opened_at ? `Iniciado em ${fmtTime(table.opened_at)}` : "Aguardando abertura"}</div>
+                  <div className="flex items-center gap-2"><Users className="size-4 text-zinc-400" /> {table.waiter_name ? `Criado por: ${table.waiter_name}` : "Atendimento"}</div>
+                  <div className="rounded border border-white/10 bg-[#252527] p-2 text-zinc-200">{table.customer_name || table.name || "Cliente não identificado"}</div>
+                  <div className="mt-auto flex flex-wrap gap-2 lg:flex-col">
+                    <Button variant="outline" size="sm" onClick={() => onQr(table)} data-testid="table-qr-button"><QrCode className="size-4" /> QR da mesa</Button>
+                    {table.order_id && <Button variant="outline" size="sm" onClick={() => setPreBill(true)}><Receipt className="size-4" /> Imprimir pré-conta</Button>}
+                    <Button variant="ghost" size="sm" onClick={onClose}>Voltar</Button>
+                  </div>
+                </aside>
+                <div className="min-w-0 p-4 lg:p-5">
               <div className="flex items-start justify-between pr-8">
                 <div>
                   <SheetTitle className="font-heading text-2xl text-white" data-testid="table-sheet-title">{tableLabel(table)}</SheetTitle>
@@ -363,7 +424,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                     {table.opened_at && ` · aberta ${fmtTime(table.opened_at)}`}
                   </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => onQr(table)} data-testid="table-qr-button"><QrCode className="size-4" /> QR</Button>
+                <span className="rounded border border-white/10 px-2 py-1 text-xs text-zinc-400">{o ? `Pedido #${o.number}` : "Sem pedido"}</span>
               </div>
               <RenameRow key={table.id + table.name} table={table} canDelete={canDelete} onDeleted={onClose} />
 
@@ -392,16 +453,17 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
               ) : (
                 <>
                   <TableCustomers key={table.id + (table.order_id ?? "")} table={table} />
-                  <div className="mt-5 flex items-center justify-between">
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-2">
+                    <div className="flex items-center gap-2"><strong className="text-sm text-white">Itens do Pedido ({items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)})</strong></div>
                     <span className="text-xs uppercase tracking-[0.15em] text-zinc-500">Itens · {items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)} un.</span>
                     <button type="button" onClick={() => setGrouped((g) => !g)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-300 transition-colors duration-150 hover:border-primary/50" data-testid="toggle-group-items">
                       {grouped ? "Ver item a item (cancelar)" : "Agrupar quantidades"}
                     </button>
                   </div>
                   {grouped ? (
-                    <div className="mt-2 space-y-2" data-testid="table-order-grouped">
+                    <div className="mt-2 space-y-0 divide-y divide-white/10 rounded-sm border border-white/10" data-testid="table-order-grouped">
                       {groupItems(items).map((g) => (
-                        <div key={g.key} className="flex items-center gap-3 rounded-xl bg-panel px-3 py-2.5 text-sm" data-testid="grouped-line">
+                        <div key={g.key} className="flex items-center gap-3 bg-[#28282b] px-3 py-3 text-sm" data-testid="grouped-line">
                           <span className="min-w-8 font-mono text-primary" data-testid="grouped-line-qty">{g.qty}x</span>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-white">{g.name}</p>
@@ -438,14 +500,16 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                     {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
                   </div>
                   )}
-                  <div className="mt-4 flex items-end justify-between border-t border-white/10 pt-3">
+                  <div className="mt-4 flex items-end justify-between border-y border-white/10 bg-[#29292c] px-3 py-4">
                     <span className="text-sm text-zinc-400">Subtotal (+10% serviço opcional)</span>
                     <span className="font-mono text-2xl text-white" data-testid="table-order-total">{brl(o?.total ?? table.total)}</span>
                   </div>
 
                   {adding ? (
                     <div className="mt-4 space-y-3 rounded-2xl border border-primary/20 bg-panel p-3">
-                      <ProductGrid products={products.data ?? []} categories={categories.data ?? []} onAdd={addPending} compact />
+                      <label className="flex items-center gap-2 rounded-md border border-white/15 bg-[#242427] px-3"><Search className="size-4 text-zinc-400" /><Input autoFocus aria-label="Buscar produto na comanda" placeholder="Buscar produto por nome ou código..." value={productSearch} onChange={(e) => setProductSearch(e.target.value)} className="border-0 bg-transparent shadow-none" data-testid="table-product-search" /></label>
+                      <ProductGrid products={visibleProducts} categories={categories.data ?? []} onAdd={addPending} compact />
+                      {visibleProducts.length === 0 && <p className="text-xs text-amber-200">Nenhum produto encontrado. Confira o nome ou código.</p>}
                       <p className="text-xs text-zinc-400">Selecione quem pediu cada item. O funcionário que lançou o pedido será registrado automaticamente.</p>
                       {pending.map((p, i) => (
                         <div key={p.key} className="flex items-center gap-2 text-sm" data-testid={`pending-line-${i}`}>
@@ -469,15 +533,15 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                       </div>
                     </div>
                   ) : (
-                    <Button className="mt-4 h-12" onClick={() => setAdding(true)} data-testid="add-items-button"><Plus className="size-4" /> Adicionar itens</Button>
+                    <Button className="mt-4 h-12" onClick={() => { setProductSearch(""); setAdding(true); }} data-testid="add-items-button"><Plus className="size-4" /> Adicionar produtos</Button>
                   )}
 
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <Button variant="outline" onClick={() => setPreBill(true)} disabled={!items.some((i) => !i.cancelled)} data-testid="request-bill-button">
                       <Receipt className="size-4" /> Pré-conta
                     </Button>
-                    <Button variant="secondary" onClick={() => setPayOpen(true)} disabled={!items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "")} data-testid="close-table-button">
-                      Fechar conta
+                    <Button className="h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={!items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
+                      <Receipt className="size-4" /> PAGAMENTO
                     </Button>
                   </div>
                   {["admin", "caixa"].includes(me?.role ?? "") && <Button className="mt-2 w-full" variant="outline" disabled={!items.some((i) => !i.cancelled)} onClick={() => setPartialOpen(true)}>Dividir conta por itens</Button>}
@@ -490,6 +554,17 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                     </Select>
                     <Button variant="outline" disabled={!transferTo} onClick={() => transfer.mutate()} data-testid="transfer-button"><ArrowRightLeft className="size-4" /></Button>
                   </div>
+                  {(me?.role === "admin" || me?.role === "caixa") && <div className="mt-3 space-y-2 rounded-lg border border-white/10 p-3" data-testid="merge-tables-panel">
+                    <p className="text-xs text-zinc-300">Juntar contas — escolha a mesa que receberá todos os itens</p>
+                    <div className="flex gap-2">
+                      <Select value={mergeTo} onValueChange={(v: string) => setMergeTo(v)}>
+                        <SelectTrigger className="flex-1" data-testid="merge-select"><SelectValue placeholder="Mesa de destino">{(v) => v ? (() => { const x = tables.find(t => t.id === v); return x ? tableLabel(x) : ""; })() : "Mesa de destino"}</SelectValue></SelectTrigger>
+                        <SelectContent>{tables.filter(t => t.id !== table.id && !!t.order_id).map(t => <SelectItem key={t.id} value={t.id}>{tableLabel(t)}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <Button variant="outline" data-testid="merge-button" disabled={!mergeTo || merge.isPending} onClick={() => { const dst = tables.find(t => t.id === mergeTo); if (dst && window.confirm(`Juntar ${tableLabel(table)} em ${tableLabel(dst)}? Os itens serão transferidos e a mesa de origem será liberada.`)) merge.mutate(); }}>Juntar</Button>
+                    </div>
+                    <p className="text-xs text-zinc-500">Disponível para caixa e administrador. Requer banco de dados com transações.</p>
+                  </div>}
                   <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/5 pt-3">
                     <Button size="sm" variant="outline" disabled={status.isPending}
                       onClick={() => status.mutate(table.status === "conta" ? "ocupada" : "conta")} data-testid="table-toggle-status-button">
@@ -507,6 +582,8 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                   </div>
                 </>
               )}
+                </div>
+              </div>
             </div>
           )}
         </SheetContent>

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import Login from "@/pages/Login";
+import ApolloIA from "@/pages/ApolloIA";
 import Dashboard from "@/pages/Dashboard";
 import Pdv from "@/pages/Pdv";
 import Mesas from "@/pages/Mesas";
@@ -12,6 +13,7 @@ import Notas from "@/pages/Notas";
 import Produtos from "@/pages/Produtos";
 import Estoque from "@/pages/Estoque";
 import Financeiro from "@/pages/Financeiro";
+import MusicaAoVivo from "@/pages/MusicaAoVivo";
 import Funcionarios from "@/pages/Funcionarios";
 import QrCodes from "@/pages/QrCodes";
 import Cardapio from "@/pages/Cardapio";
@@ -56,6 +58,7 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/pdv" element={<Pdv />} />
+      <Route path="/apollo-ia" element={<ApolloIA />} />
       <Route path="/mesas" element={<Mesas />} />
       <Route path="/comanda-mobile" element={<Mesas />} />
       <Route path="/cozinha" element={<Kds />} />
@@ -75,6 +78,7 @@ export default function App() {
       <Route path="/produtos" element={<Produtos />} />
       <Route path="/estoque" element={<Estoque />} />
       <Route path="/financeiro" element={<Financeiro />} />
+      <Route path="/musica-ao-vivo" element={<MusicaAoVivo />} />
       <Route path="/funcionarios" element={<Funcionarios />} />
       <Route path="/qrcodes" element={<QrCodes />} />
       <Route path="/cardapio/:tableId" element={<Cardapio />} />

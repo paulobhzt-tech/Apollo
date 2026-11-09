@@ -1,0 +1,38 @@
+name: Apollo PWA validation
+on:
+  push:
+    branches: [fix/windows-production-server]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pwa-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pytest
+        run: python -m pip install pytest pytest-xdist pytest-asyncio httpx fastapi pydantic
+      - name: PWA security regression checks
+        run: python -m pytest backend/tests/test_pwa_static.py -q
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install frontend dependencies without Emergent preview-only packages
+        run: |
+          npm pkg delete 'devDependencies.@emergentbase/overlay' 'devDependencies.@emergentbase/visual-edits'
+          npm install --no-audit --no-fund --legacy-peer-deps
+      - name: TypeScript typecheck
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build

@@ -72,8 +72,11 @@ function PaymentBody({ subtotal, title, defaultService = 0, partialMode = false,
   const perPerson = useMemo(() => Math.ceil((total / n) * 100) / 100, [total, n]);
 
   const add = (value?: number) => {
-    const v = value ?? (Number(amount.replace(",", ".")) || remaining);
-    if (v <= 0 || (isCard && !brand) || (method === "fiado" && !fiadoId)) return;
+    const typed = amount.trim().replace(",", ".");
+    const v = value ?? (typed === "" ? remaining : Number(typed));
+    if (!Number.isFinite(v) || v <= 0 || remaining <= 0 || (isCard && !brand) || (method === "fiado" && !fiadoId)) return;
+    // Only cash can exceed the outstanding balance (change is given in cash).
+    if (method !== "dinheiro" && Math.round(v * 100) > Math.round(remaining * 100)) return;
     setPayments((p) => [...p, { method, amount: Math.round(v * 100) / 100, brand: isCard ? brand : null }]);
     setAmount("");
   };

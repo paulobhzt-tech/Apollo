@@ -169,6 +169,13 @@ function CompanyForm({ init }: { init: GeneralSettings }) {
 }
 
 function Backup({ flash }: { flash: string | null }) {
+  const choice = useQuery({ queryKey: ["backup-destination"], queryFn: () => apiGet<{ destination: "pc" | "google_drive" | null }>("/settings/backup-destination") });
+  const drive = useQuery({ queryKey: ["drive-status"], queryFn: () => apiGet<{ connected: boolean; auto: boolean }>("/drive/status") });
+  const choose = useMutation({
+    mutationFn: (destination: "pc" | "google_drive") => apiPut("/settings/backup-destination", { destination }),
+    onSuccess: () => { toast.success("Destino de backup configurado"); void queryClient.invalidateQueries({ queryKey: ["backup-destination"] }); },
+    onError: (e) => toast.error(errMsg(e)),
+  });
   const [busy, setBusy] = useState(false);
   const download = async () => {
     setBusy(true);
@@ -181,13 +188,25 @@ function Backup({ flash }: { flash: string | null }) {
       a.download = `backup-apollo-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-")}.json`;
       a.click();
       URL.revokeObjectURL(a.href);
-      toast.success("Backup baixado. Agora envie o arquivo para o seu Google Drive.");
+      toast.success("Backup baixado. Guarde o arquivo em local seguro.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha no backup");
     } finally { setBusy(false); }
   };
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+    <div className="lg:col-span-2 rounded-xl border border-amber-400/40 bg-amber-400/10 p-4" data-testid="mandatory-backup-choice">
+      <h2 className="font-semibold">Configuração obrigatória de backup</h2>
+      <p className="mt-1 text-sm text-zinc-300">Escolha onde guardar as cópias de segurança. Google Drive pode enviar automaticamente; no PC é necessário baixar o arquivo diariamente.</p>
+      {choice.isError && <p role="alert" className="mt-2 text-red-300">Não foi possível verificar o destino do backup.</p>}
+      <p className="mt-2 text-sm">Destino: <strong>{choice.data?.destination === "pc" ? "PC (manual)" : choice.data?.destination === "google_drive" ? "Google Drive (automático)" : "Não configurado"}</strong></p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button variant="outline" disabled={choose.isPending} onClick={() => choose.mutate("pc")} data-testid="backup-choose-pc">Selecionar PC</Button>
+        <Button variant="outline" disabled={choose.isPending || !drive.data?.connected || !drive.data?.auto} onClick={() => choose.mutate("google_drive")} data-testid="backup-choose-drive">Selecionar Google Drive</Button>
+      </div>
+      {!drive.data?.connected && <p className="mt-2 text-xs text-amber-200">Para escolher Google Drive, conecte a conta abaixo e ative o backup automático.</p>}
+      {choice.data?.destination === "pc" && <p className="mt-2 text-xs text-amber-200">Backup no PC não é automático: baixe e guarde o arquivo em local seguro todos os dias.</p>}
+    </div>
     <ServerBackups />
     <DriveBackup flash={flash} />
     <Panel title="Backup manual (baixar arquivo)">

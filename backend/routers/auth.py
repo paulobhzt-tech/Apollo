@@ -1,6 +1,7 @@
 import os
 import bcrypt
 import secrets
+import hmac
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
@@ -21,7 +22,7 @@ async def profiles():
 
 class FirstAccessIn(BaseModel):
     username: str
-    password: str
+    password: str = Field(min_length=12, max_length=128)
 
 
 @router.post("/auth/first-access", response_model=Employee)
@@ -29,16 +30,22 @@ async def first_access(body: FirstAccessIn, response: Response, request: Request
     """One-time local-only bootstrap. Never expose predictable credentials publicly."""
     if request.client is None or request.client.host not in ("127.0.0.1", "::1"):
         raise HTTPException(403, "Primeiro acesso permitido apenas no computador servidor")
-    if body.username != "admin" or body.password != "admin":
-        raise HTTPException(401, "Credenciais iniciais inválidas")
+    # Bootstrap is disabled unless an operator explicitly sets a one-time secret.
+    # Never accept hard-coded/default credentials, even on localhost.
+    expected = os.environ.get("APOLLO_BOOTSTRAP_TOKEN", "")
+    supplied = request.headers.get("x-apollo-bootstrap-token", "")
+    if len(expected) < 32 or not supplied or not hmac.compare_digest(expected, supplied):
+        raise HTTPException(403, "Configuração inicial não autorizada")
+    if body.username.strip().lower() != "admin" or body.password.lower() in ("admin", "admin123", "123456789012"):
+        raise HTTPException(422, "Informe administrador e senha inicial forte")
     if await db.employees.count_documents({}, limit=1):
         raise HTTPException(409, "Administrador inicial já configurado")
     pin = f"{secrets.randbelow(900000) + 100000:06d}"
     emp = Employee(name="Administrador", role="admin", can_cancel=True).model_dump()
     try:
         await db.employees.insert_one({**emp, "username": "admin",
-            "password_hash": secure_hash_pin("admin"), "pin_hash": secure_hash_pin(pin),
-            "must_change_password": True})
+            "password_hash": secure_hash_pin(body.password), "pin_hash": secure_hash_pin(pin),
+            "must_change_password": False})
     except Exception:
         raise HTTPException(409, "Não foi possível criar o administrador inicial")
     token = await create_session(emp["id"])
@@ -105,6 +112,24 @@ async def me(user: dict = Depends(current_user)):
 
 
 # ---------- employees (admin) ----------
+async def audit_employee_change(action: str, actor: dict, employee_id: str, fields: list[str] | None = None) -> None:
+    """Audit metadata only; never record PINs, passwords or their hashes."""
+    safe_fields = sorted(set(fields or []) - {"pin", "password", "pin_hash", "password_hash"})
+    await db.employee_audit.insert_one({
+        "at": datetime.now(timezone.utc),
+        "action": action,
+        "actor_id": actor.get("id", ""),
+        "employee_id": employee_id,
+        "fields": safe_fields,
+    })
+
+
+@router.get("/employees/audit")
+async def employee_audit_log(_: dict = Depends(require())):
+    return await db.employee_audit.find({}, {"_id": 0}).sort("at", -1).to_list(200)
+
+
+
 async def _pin_free(pin: str, exclude_id: str | None = None) -> None:
     if await pin_in_use(pin, exclude_id):
         raise HTTPException(400, "Este PIN já está em uso por outro funcionário")
@@ -116,7 +141,7 @@ async def list_employees(_: dict = Depends(require())):
 
 
 @router.post("/employees", response_model=Employee)
-async def create_employee(body: EmployeeIn, _: dict = Depends(require())):
+async def create_employee(body: EmployeeIn, actor: dict = Depends(require())):
     await _pin_free(body.pin)
     data = body.model_dump()
     pin = data.pop("pin")
@@ -131,6 +156,7 @@ async def create_employee(body: EmployeeIn, _: dict = Depends(require())):
         raise HTTPException(400, "Informe o nome de usuário")
     emp = Employee(**data).model_dump()
     await db.employees.insert_one({**emp, "pin_hash": secure_hash_pin(pin), **({"username": username, "password_hash": secure_hash_pin(password)} if username and password else {})})
+    await audit_employee_change("created", actor, emp["id"], list(data.keys()))
     return emp
 
 
@@ -164,6 +190,7 @@ async def update_employee(id: str, body: EmployeeUpdate, user: dict = Depends(re
         raise HTTPException(404, "Funcionário não encontrado")
     if "pin_hash" in data or "password_hash" in data or "username" in data or "role" in data or data.get("active") is False:
         await db.sessions.delete_many({"employee_id": id})
+    await audit_employee_change("updated", user, id, list(data.keys()))
     return res
 
 
@@ -175,6 +202,7 @@ async def delete_employee(id: str, user: dict = Depends(require())):
     if not res.deleted_count:
         raise HTTPException(404, "Funcionário não encontrado")
     await db.sessions.delete_many({"employee_id": id})
+    await audit_employee_change("deleted", user, id)
     return OkOut()
 
 

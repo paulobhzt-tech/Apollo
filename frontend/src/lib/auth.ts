@@ -25,11 +25,12 @@ export function useMe() {
   });
 }
 
-export interface NavItem { to: string; label: string; icon: string; roles: Role[]; group: "Operação" | "Financeiro" | "Cadastros" | "Sistema" }
+export interface NavItem { to: string; label: string; icon: string; roles: Role[]; group: "Operação" | "Financeiro" | "Cadastros" | "Relatórios" | "Sistema" }
 
 // Admin sees everything; the other roles get only their operational screens.
 export const NAV: NavItem[] = [
   { to: "/", label: "Painel", icon: "LayoutDashboard", roles: ["admin", "caixa"], group: "Operação" },
+  { to: "/apollo-ia", label: "Apollo IA", icon: "Bot", roles: ["admin", "caixa"], group: "Operação" },
   { to: "/pdv", label: "PDV / Caixa", icon: "ShoppingCart", roles: ["admin", "caixa"], group: "Operação" },
   { to: "/mesas", label: "Mesas & Comandas", icon: "Armchair", roles: ["admin", "caixa", "garcom"], group: "Operação" },
   { to: "/comanda-mobile", label: "Comanda Mobile", icon: "Smartphone", roles: ["admin", "caixa", "garcom"], group: "Operação" },
@@ -41,8 +42,9 @@ export const NAV: NavItem[] = [
   { to: "/contas-receber", label: "Contas a Receber", icon: "ArrowDownCircle", roles: ["admin", "caixa"], group: "Financeiro" },
   { to: "/categorias-contas", label: "Categorias de Contas", icon: "Tags", roles: ["admin"], group: "Financeiro" },
   { to: "/formas-pagamento", label: "Formas de Pagamento", icon: "CreditCard", roles: ["admin"], group: "Financeiro" },
-  { to: "/financeiro", label: "DRE & Despesas", icon: "LineChart", roles: ["admin"], group: "Financeiro" },
-  { to: "/vendas", label: "Histórico de Vendas", icon: "History", roles: ["admin", "caixa"], group: "Financeiro" },
+  { to: "/musica-ao-vivo", label: "Música ao Vivo", icon: "Music", roles: ["admin"], group: "Cadastros" },
+  { to: "/financeiro", label: "DRE & Despesas", icon: "LineChart", roles: ["admin"], group: "Relatórios" },
+  { to: "/vendas", label: "Histórico de Vendas", icon: "History", roles: ["admin", "caixa"], group: "Relatórios" },
   { to: "/fiado", label: "Conta Fiado", icon: "HandCoins", roles: ["admin", "caixa"], group: "Financeiro" },
   { to: "/notas", label: "Notas Fiscais", icon: "Receipt", roles: ["admin", "caixa"], group: "Financeiro" },
   { to: "/produtos", label: "Cadastro de Produtos", icon: "UtensilsCrossed", roles: ["admin"], group: "Cadastros" },

@@ -1,0 +1,100 @@
+name: Teste virtual Windows - instalacao Apollo
+
+on:
+  workflow_run:
+    workflows: ["Instalador Windows (Apollo-PDV-Setup.exe)"]
+    types: [completed]
+    branches: ["fix/windows-production-server"]
+  workflow_dispatch:
+    inputs:
+      installer_run_id:
+        description: "ID da execucao do instalador de TESTE"
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  smoke-windows:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Obter instalador de teste da execucao
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_RUN: ${{ inputs.installer_run_id }}
+          TRIGGER_RUN: ${{ github.event.workflow_run.id }}
+        run: |
+          $runId = if ($env:EVENT_NAME -eq 'workflow_dispatch') { $env:DISPATCH_RUN } else { $env:TRIGGER_RUN }
+          if ($runId -notmatch '^[0-9]+$') { throw "ID da execucao invalido" }
+          $run = gh api "repos/$env:REPO/actions/runs/$runId" | ConvertFrom-Json
+          if ($run.conclusion -ne 'success' -or $run.name -ne 'Instalador Windows (Apollo-PDV-Setup.exe)' -or $run.head_branch -ne 'fix/windows-production-server') {
+            throw "Execucao de instalador nao aprovada ou branch incorreta"
+          }
+          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\installer" | Out-Null
+          gh run download $runId --repo $env:REPO --name Apollo-PDV-Setup-test --dir "$env:RUNNER_TEMP\installer"
+          if ($LASTEXITCODE -ne 0) { throw "Artefato de teste nao encontrado (nao usar producao)" }
+          $exe = Join-Path $env:RUNNER_TEMP 'installer\Apollo-PDV-Setup.exe'
+          if (-not (Test-Path $exe)) { throw "EXE ausente" }
+          Get-FileHash $exe -Algorithm SHA256 | Format-List
+
+      - name: Instalar silenciosamente em Windows limpo
+        shell: pwsh
+        run: |
+          $exe = Join-Path $env:RUNNER_TEMP 'installer\Apollo-PDV-Setup.exe'
+          $installDir = Join-Path $env:RUNNER_TEMP 'ApolloSmoke'
+          $p = Start-Process -FilePath $exe -ArgumentList @('/S', "/D=$installDir") -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw "Instalador falhou: $($p.ExitCode)" }
+          $app = Join-Path $installDir 'Apollo PDV.exe'
+          if (-not (Test-Path $app)) { throw "Executavel instalado nao encontrado: $app" }
+          "APOLLO_TEST_EXE=$app" >> $env:GITHUB_ENV
+          "APOLLO_TEST_DIR=$installDir" >> $env:GITHUB_ENV
+          Write-Host "Instalacao concluida: $app"
+
+      - name: Iniciar Apollo em modo de teste sem servidor
+        shell: pwsh
+        run: |
+          # O canal test aponta para localhost:18080, sem tunel; valida inicializacao offline.
+          $env:PDV_SMOKE = '1'
+          $p = Start-Process -FilePath $env:APOLLO_TEST_EXE -PassThru
+          $deadline = (Get-Date).AddSeconds(75)
+          try {
+            Start-Sleep -Seconds 5
+            if ($p.HasExited -and $p.ExitCode -ne 0) { throw "Apollo encerrou com erro: $($p.ExitCode)" }
+            while (-not $p.HasExited -and (Get-Date) -lt $deadline) {
+              Start-Sleep -Seconds 2
+              $p.Refresh()
+            }
+            if (-not $p.HasExited) { throw "Apollo nao finalizou o smoke test em 75 segundos" }
+            if ($p.ExitCode -ne 0) { throw "Smoke test falhou: $($p.ExitCode)" }
+            Write-Host "Apollo abriu e concluiu o smoke test com exit code 0."
+          } finally {
+            Get-CimInstance Win32_Process | Where-Object {
+              $_.Name -eq 'Apollo PDV.exe' -and $_.ExecutablePath -like "$env:APOLLO_TEST_DIR*"
+            } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+          }
+
+      - name: Registrar limite do teste
+        if: always()
+        shell: pwsh
+        run: |
+          @'
+          Teste automatizado em runner Windows do GitHub.
+          Verifica: artefato do canal TESTE, instalacao silenciosa, executavel e inicializacao/saida do smoke test.
+          Nao verifica: interface visual, login real, vendas, sincronizacao offline, impressoras fisicas,
+          desempenho, desinstalacao manual ou ambiente do cliente.
+          Nenhuma cobranca e nenhum dado de producao foram usados.
+          '@ | Out-File -FilePath "$env:RUNNER_TEMP\resultado-teste-virtual.txt" -Encoding utf8
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: relatorio-teste-virtual-windows
+          path: ${{ runner.temp }}/resultado-teste-virtual.txt
+          if-no-files-found: warn

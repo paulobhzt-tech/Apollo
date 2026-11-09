@@ -74,15 +74,16 @@ def create_pix(db, license_id, payer_email, token, *, transport=urlopen, today=N
     initialize(db)
     if "@" not in payer_email or len(payer_email) > 254:
         raise ValueError("Email do pagador invalido")
-    customer = db.execute("SELECT customer,plan,monthly_cents,status FROM licenses WHERE id=?", (license_id,)).fetchone()
+    customer = db.execute("SELECT customer,plan,monthly_cents,status,annual_cents FROM licenses WHERE id=?", (license_id,)).fetchone()
     if not customer:
         raise ValueError("Cliente inexistente")
-    name, plan, cents, status = customer
+    name, plan, monthly_cents, status, annual_cents = customer
+    cents = annual_cents if plan.lower() == "anual" else monthly_cents
     if status == "cancelled" or cents <= 0:
         raise ValueError("Licenca cancelada ou plano sem cobranca")
     days = VALID_PLANS.get(plan.lower())
-    if not days or plan.lower() != "mensal":
-        raise ValueError("Cobranca Pix automatica disponivel apenas para plano mensal; outros planos exigem preco proprio")
+    if plan.lower() not in ("mensal", "anual") or not days:
+        raise ValueError("Plano de cobranca nao suportado")
     existing = db.execute("""SELECT id, payment_id, qr_code, ticket_url FROM pix_invoices
        WHERE license_id=? AND status IN ('creating','pending')""", (license_id,)).fetchone()
     if existing and existing[1]:

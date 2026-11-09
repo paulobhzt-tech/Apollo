@@ -1,5 +1,9 @@
 import BillAlertsPanel from "@/components/BillAlerts";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useMe } from "@/lib/auth";
+import { apiPut } from "@/lib/api";
+import { queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowRight } from "lucide-react";
@@ -49,6 +53,42 @@ function ExecutivePanel() {
   </section>;
 }
 
+type DailyPerformance = { revenue: number; previous_revenue: number; revenue_change_pct: number | null; estimated_gross_contribution: number; recorded_cmv: number; goal: number; goal_pct: number | null; remaining: number; note: string };
+function DailyGoalPanel() {
+  const { data: me } = useMe();
+  const [editing, setEditing] = useState(false);
+  const [amount, setAmount] = useState("");
+  const q = useQuery({ queryKey: ["daily-performance"], queryFn: () => apiGet<DailyPerformance>("/reports/daily-performance"), refetchInterval: 20000 });
+  const save = useMutation({
+    mutationFn: (value: number) => apiPut<{ amount: number }>("/reports/daily-goal", { amount: value }),
+    onSuccess: () => { setEditing(false); toast.success("Meta diária atualizada"); void queryClient.invalidateQueries({ queryKey: ["daily-performance"] }); },
+    onError: () => toast.error("Não foi possível salvar a meta diária"),
+  });
+  const d = q.data;
+  return <section className="mb-5 space-y-3" data-testid="daily-goal-panel">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h2 className="text-xl font-semibold">Meta e desempenho de hoje</h2>
+      {me?.role === "admin" && <button className="rounded-lg border border-white/20 px-3 py-1.5 text-sm" onClick={() => { setAmount(String(d?.goal ?? 0)); setEditing(!editing); }}>{editing ? "Cancelar" : "Configurar meta"}</button>}
+    </div>
+    {editing && <form className="flex flex-wrap items-center gap-2" onSubmit={e => { e.preventDefault(); const value = Number(amount.replace(",", ".")); if (Number.isFinite(value) && value >= 0 && value <= 100000000) save.mutate(value); }}>
+      <label htmlFor="daily-goal-input" className="text-sm">Meta diária (R$)</label>
+      <input id="daily-goal-input" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} className="w-40 rounded-md border border-white/20 bg-panel px-3 py-2" />
+      <button type="submit" disabled={save.isPending || amount.trim() === "" || !Number.isFinite(Number(amount.replace(",", "."))) || Number(amount.replace(",", ".")) < 0} className="rounded-md bg-primary px-4 py-2 text-sm text-white">Salvar</button>
+    </form>}
+    {q.isError && <p role="alert" className="text-sm text-red-400">Não foi possível carregar as metas.</p>}
+    {d && <>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat testid="daily-goal-value" label="Meta diária" value={d.goal > 0 ? brl(d.goal) : "Não definida"} />
+        <Stat testid="daily-goal-progress" label="Meta atingida" value={d.goal_pct === null ? "—" : d.goal_pct.toFixed(1) + "%"} hint={d.goal > 0 ? `Faltam ${brl(d.remaining)}` : "Configure uma meta"} />
+        <Stat testid="daily-revenue-change" label="Variação ante ontem" value={d.revenue_change_pct === null ? "Sem base" : `${d.revenue_change_pct > 0 ? "+" : ""}${d.revenue_change_pct.toFixed(1)}%`} hint={`Ontem: ${brl(d.previous_revenue)}`} />
+        <Stat testid="daily-gross-contribution" label="Contribuição bruta estimada" value={brl(d.estimated_gross_contribution)} hint={`CMV registrado: ${brl(d.recorded_cmv)}`} />
+      </div>
+      {d.goal > 0 && <div className="h-3 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label="Progresso da meta diária" aria-valuenow={Math.min(100, d.goal_pct ?? 0)} aria-valuemin={0} aria-valuemax={100}><div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.min(100, d.goal_pct ?? 0)}%` }} /></div>}
+      <p className="text-xs text-zinc-400">{d.note}</p>
+    </>}
+  </section>;
+}
+
 export default function Dashboard() {
   const { data, isError } = useQuery({ queryKey: ["dashboard"], queryFn: () => apiGet<D>("/reports/dashboard"), refetchInterval: 20000 });
   const d = isError ? undefined : data;
@@ -62,6 +102,7 @@ export default function Dashboard() {
         </Link>
       )}
       <BillAlertsPanel />
+      <DailyGoalPanel />
       <ExecutivePanel />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Faturamento hoje" value={brl(d?.revenue_today ?? 0)} testid="stat-revenue" accent="text-primary" />

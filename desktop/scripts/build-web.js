@@ -39,8 +39,24 @@ cfg.testBuild = channel === "test";
 fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2) + "\n");
 console.log("Canal:", channel, "| Servidor:", url);
 
-execSync("yarn install", { cwd: front, stdio: "inherit", shell: true });
-execSync("yarn build", { cwd: front, stdio: "inherit", shell: true });
+// Emergent's preview-only tarballs are not required by the production build.
+// They are hosted externally and can make Windows installer CI fail even when
+// the application itself compiles. Match the dependency strategy of PWA CI.
+// Restore package.json after the build so local developer configuration remains intact.
+const manifest = path.join(front, "package.json");
+const originalManifest = fs.readFileSync(manifest, "utf8");
+try {
+  const pkg = JSON.parse(originalManifest);
+  if (pkg.devDependencies) {
+    delete pkg.devDependencies["@emergentbase/overlay"];
+    delete pkg.devDependencies["@emergentbase/visual-edits"];
+  }
+  fs.writeFileSync(manifest, JSON.stringify(pkg, null, 2) + "\n");
+  execSync("npm install --no-audit --no-fund --legacy-peer-deps", { cwd: front, stdio: "inherit", shell: true });
+  execSync("npm run build", { cwd: front, stdio: "inherit", shell: true });
+} finally {
+  fs.writeFileSync(manifest, originalManifest);
+}
 fs.rmSync(out, { recursive: true, force: true });
 fs.cpSync(path.join(front, "dist"), out, { recursive: true });
 console.log("Telas integradas ao instalador:", out);

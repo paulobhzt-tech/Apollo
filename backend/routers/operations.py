@@ -22,14 +22,21 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
     """Atomic create+pay for counter sales. Idempotent on client_ref (offline queue replays)."""
     existing = await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0})
     if existing:
+        if existing.get("status") != "pago":
+            raise HTTPException(409, "Venda ainda em processamento. Tente sincronizar novamente.")
         inv = await db.invoices.find_one({"id": existing.get("invoice_id")}, {"_id": 0}) if existing.get("invoice_id") else None
         return {"order": existing, "invoice": inv}
     if not await current_cash():
         raise HTTPException(400, "Caixa fechado. Abra o caixa para receber pagamentos.")
     items = await build_items(body.items)
-    order = await new_order(channel="balcao", source="pdv", items=[i.model_dump() for i in items],
-                            client_ref=body.client_ref, customer={"name": body.customer_name, "cpf": body.customer_cpf},
-                            waiter_id=user["id"], waiter_name=user["name"])
+    try:
+        order = await new_order(channel="balcao", source="pdv", items=[i.model_dump() for i in items],
+                                client_ref=body.client_ref, customer={"name": body.customer_name, "cpf": body.customer_cpf},
+                                waiter_id=user["id"], waiter_name=user["name"])
+    except DuplicateKeyError:
+        # Another device/tab is processing this client_ref. Do not return an unpaid
+        # order as a completed sale; the client should retry after the first finishes.
+        raise HTTPException(409, "Venda em processamento. Tente sincronizar novamente.") from None
     inv = None
     try:
         order, inv = await finalize_payment(order, body)

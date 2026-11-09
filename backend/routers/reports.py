@@ -1,6 +1,7 @@
 import calendar
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
+from pydantic import BaseModel, Field
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -38,6 +39,44 @@ def payment_totals(orders: list[dict]) -> dict[str, float]:
 
 async def paid_between(start: datetime, end: datetime) -> list[dict]:
     return await db.orders.find({"status": "pago", "paid_at": {"$gte": start, "$lt": end}}, {"_id": 0}).to_list(50000)
+
+
+class DailySalesGoal(BaseModel):
+    amount: float = Field(ge=0, le=100000000)
+
+
+@router.get("/reports/daily-goal")
+async def get_daily_goal(_: dict = Depends(require("caixa"))):
+    config = await db.settings.find_one({"_id": "daily_sales_goal"}, {"_id": 0, "amount": 1})
+    return {"amount": float((config or {}).get("amount", 0))}
+
+
+@router.put("/reports/daily-goal")
+async def save_daily_goal(payload: DailySalesGoal, _: dict = Depends(require("admin"))):
+    amount = round(payload.amount, 2)
+    await db.settings.update_one({"_id": "daily_sales_goal"}, {"$set": {"amount": amount}}, upsert=True)
+    return {"amount": amount}
+
+
+@router.get("/reports/daily-performance")
+async def daily_performance(_: dict = Depends(require("caixa"))):
+    today = date.fromisoformat(local_today())
+    start, end = day_bounds(today.isoformat())
+    prev_start, prev_end = day_bounds((today - timedelta(days=1)).isoformat())
+    current = await paid_between(start, end)
+    previous = await paid_between(prev_start, prev_end)
+    revenue = round(sum(float(o.get("total") or 0) for o in current), 2)
+    previous_revenue = round(sum(float(o.get("total") or 0) for o in previous), 2)
+    cmv = round(sum(float(o.get("cmv") or 0) for o in current), 2)
+    config = await db.settings.find_one({"_id": "daily_sales_goal"}, {"_id": 0, "amount": 1})
+    goal = float((config or {}).get("amount", 0))
+    return {"date": today.isoformat(), "revenue": revenue, "previous_revenue": previous_revenue,
+            "revenue_change_pct": round((revenue - previous_revenue) / previous_revenue * 100, 1) if previous_revenue > 0 else None,
+            "estimated_gross_contribution": round(revenue - cmv, 2),
+            "recorded_cmv": cmv, "goal": goal,
+            "goal_pct": round(revenue / goal * 100, 1) if goal > 0 else None,
+            "remaining": round(max(0, goal - revenue), 2),
+            "note": "Comparação do dia atual (parcial) com o dia anterior completo. Contribuição bruta estimada: vendas menos CMV registrado; não desconta taxas, impostos, salários ou despesas fixas. CMV ausente pode superestimar o resultado."}
 
 
 @router.get("/reports/dashboard", response_model=Dashboard)
@@ -667,3 +706,105 @@ async def delete_expense(id: str, _: dict = Depends(require())):
 
 
 _ = timezone
+
+class LiveMusicIn(BaseModel):
+    date: date
+    artist: str = Field(min_length=1, max_length=160)
+    artist_fee: float = Field(ge=0, le=10000000)
+    extra_costs: float = Field(ge=0, le=10000000)
+    contribution_margin_pct: float = Field(gt=0, le=100)
+
+
+@router.get("/reports/live-music")
+async def live_music_report(event_date: str | None = None, _: dict = Depends(require("caixa"))):
+    event_day = event_date or local_today()
+    try:
+        date.fromisoformat(event_day)
+        start, end = day_bounds(event_day)
+    except ValueError:
+        raise HTTPException(400, "Data inválida")
+    saved = await db.live_music_events.find_one({"date": event_day}, {"_id": 0})
+    config = saved or {"date": event_day, "artist": "", "artist_fee": 0, "extra_costs": 0, "contribution_margin_pct": 40}
+    orders = await paid_between(start, end)
+    revenue = round(sum(float(o.get("total") or 0) for o in orders), 2)
+    margin = config["contribution_margin_pct"] / 100
+    costs = config["artist_fee"] + config["extra_costs"]
+    target = round(costs / margin, 2)
+    contribution = round(revenue * margin, 2)
+    return {**config, "saved": saved is not None, "revenue": revenue, "target": target,
+            "remaining": round(max(0, target - revenue), 2), "contribution": contribution,
+            "event_result": round(contribution - costs, 2), "reached": contribution >= costs}
+
+
+@router.get("/reports/live-music/history")
+async def live_music_history(event_date: str | None = None, weeks: int = 8, _: dict = Depends(require("caixa"))):
+    """Compare paid sales on the same weekday, with and without registered live music.
+
+    Descriptive only: differences cannot be attributed causally to music.
+    """
+    if not 2 <= weeks <= 16:
+        raise HTTPException(400, "Informe entre 2 e 16 semanas")
+    try:
+        selected = date.fromisoformat(event_date or local_today())
+    except ValueError:
+        raise HTTPException(400, "Data inválida")
+    first = selected - timedelta(weeks=weeks)
+    start, _ = day_bounds(first.isoformat())
+    _, end = day_bounds(selected.isoformat())
+    orders = await paid_between(start, end)
+    totals: dict[str, dict] = {}
+    for order in orders:
+        paid_at = order.get("paid_at")
+        if not isinstance(paid_at, datetime):
+            continue
+        day = paid_at.astimezone(TZ).date().isoformat()
+        row = totals.setdefault(day, {"revenue": 0.0, "orders": 0})
+        row["revenue"] += float(order.get("total") or 0)
+        row["orders"] += 1
+    events = await db.live_music_events.find(
+        {"date": {"$gte": first.isoformat(), "$lte": selected.isoformat()}},
+        {"_id": 0, "date": 1, "artist": 1, "artist_fee": 1, "extra_costs": 1,
+         "contribution_margin_pct": 1},
+    ).to_list(200)
+    by_date = {event["date"]: event for event in events}
+    rows = []
+    # Same weekday only, and never compare with a future day.
+    for n in range(weeks, -1, -1):
+        day = selected - timedelta(weeks=n)
+        if day > date.fromisoformat(local_today()):
+            continue
+        key = day.isoformat()
+        event = by_date.get(key)
+        sales = totals.get(key, {"revenue": 0.0, "orders": 0})
+        revenue = round(sales["revenue"], 2)
+        costs = float(event.get("artist_fee", 0)) + float(event.get("extra_costs", 0)) if event else 0
+        margin = float(event.get("contribution_margin_pct", 40)) / 100 if event else 0.4
+        rows.append({"date": key, "artist": event.get("artist", "") if event else "",
+                     "has_music": bool(event), "revenue": revenue, "orders": sales["orders"],
+                     "average_ticket": round(revenue / sales["orders"], 2) if sales["orders"] else 0,
+                     "event_cost": round(costs, 2),
+                     "estimated_event_result": round(revenue * margin - costs, 2) if event else None})
+    with_music = [r for r in rows if r["has_music"]]
+    without_music = [r for r in rows if not r["has_music"]]
+    def summary(group):
+        count = len(group)
+        return {"days": count, "average_revenue": round(sum(r["revenue"] for r in group) / count, 2) if count else None,
+                "average_ticket": round(sum(r["average_ticket"] for r in group) / count, 2) if count else None,
+                "average_orders": round(sum(r["orders"] for r in group) / count, 1) if count else None}
+    music = summary(with_music)
+    no_music = summary(without_music)
+    delta = (round(music["average_revenue"] - no_music["average_revenue"], 2)
+             if music["average_revenue"] is not None and no_music["average_revenue"] is not None else None)
+    return {"weekday": selected.weekday(), "weeks": weeks, "days": rows,
+            "with_music": music, "without_music": no_music, "revenue_difference": delta,
+            "note": "Comparação descritiva de mesmo dia da semana, sem controle de feriados, clima, promoções ou horário. Dias sem vendas são incluídos, inclusive possíveis dias fechados. Evento é identificado somente quando cadastrado no Apollo. Diferença não comprova retorno causado pela música."}
+
+
+@router.put("/reports/live-music")
+async def save_live_music(payload: LiveMusicIn, _: dict = Depends(require("admin"))):
+    config = payload.model_dump(mode="json")
+    config["artist"] = config["artist"].strip()
+    if not config["artist"]:
+        raise HTTPException(400, "Informe o artista")
+    await db.live_music_events.update_one({"date": config["date"]}, {"$set": config}, upsert=True)
+    return {"ok": True}

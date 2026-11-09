@@ -7,26 +7,31 @@ on:
         description: "Tipo do instalador: teste local ou producao HTTPS"
         type: choice
         required: true
-        default: test
+        default: production
         options:
           - test
           - production
   push:
+    branches: ["fix/windows-production-server"]
     tags: ["v*"]
 
 jobs:
   build-windows:
-    runs-on: windows-latest
+    runs-on: windows-2025
+    outputs:
+      channel: ${{ steps.channel.outputs.name }}
+      sha256: ${{ steps.installer.outputs.sha256 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - name: Definir servidor e canal do instalador
+        id: channel
         shell: pwsh
         env:
           REQUESTED_CHANNEL: ${{ inputs.channel }}
-          PUBLISHED_URL: ${{ vars.PDV_SERVER_URL }}
+          PUBLISHED_URL: ${{ vars.PDV_SERVER_URL || 'https://pdv.apollo-pdv.com' }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
           $channel = if ($env:EVENT_NAME -eq "workflow_dispatch") { $env:REQUESTED_CHANNEL } else { "production" }
@@ -48,12 +53,7 @@ jobs:
           } else {
             throw "Canal invalido"
           }
-      - name: Verificar API publicada antes do instalador comercial
-        if: env.PDV_BUILD_CHANNEL == 'production'
-        shell: pwsh
-        run: |
-          $response = Invoke-RestMethod -Uri "$env:PDV_SERVER_URL/api/" -TimeoutSec 15
-          if ($response.message -ne "Apollo PDV API") { throw "Servidor nao respondeu com a API Apollo PDV" }
+          "name=$channel" >> $env:GITHUB_OUTPUT
       - name: Validar API de producao antes de empacotar
         if: env.PDV_BUILD_CHANNEL == 'production'
         shell: pwsh
@@ -64,7 +64,7 @@ jobs:
           } catch {
             throw "Servidor Apollo indisponivel em $endpoint. Instalador de producao cancelado: $_"
           }
-          if ($response.message -ne "Apollo PDV API") {
+          if ($response.message -notin @("API Apollo PDV", "Apollo PDV API")) {
             throw "A URL configurada nao retornou a API Apollo. Instalador de producao cancelado."
           }
       - name: Instalar dependencias do aplicativo desktop
@@ -76,18 +76,74 @@ jobs:
           node --check scripts/build-web.js
           node --check main.js
           node --check preload.js
+      - name: Testar deteccao do servidor e atualizacao da configuracao
+        working-directory: desktop
+        run: node --test scripts/server-connection.test.js
       - name: Gerar instalador
         working-directory: desktop
         run: npm run dist
       - name: Conferir executavel gerado
+        id: installer
         shell: pwsh
         run: |
           $file = "desktop/dist/Apollo-PDV-Setup.exe"
           if (-not (Test-Path $file)) { throw "Instalador nao encontrado" }
-          Get-FileHash $file -Algorithm SHA256 | Format-List
+          $hash = Get-FileHash $file -Algorithm SHA256
+          $hash | Format-List
+          "sha256=$($hash.Hash)" >> $env:GITHUB_OUTPUT
+      - name: Testar instalacao e abertura no Windows Server 2025
+        shell: pwsh
+        run: ./desktop/scripts/windows-smoke.ps1 -Installer desktop/dist/Apollo-PDV-Setup.exe -Channel $env:PDV_BUILD_CHANNEL
       - uses: actions/upload-artifact@v4
         with:
-          name: Apollo-PDV-Setup-${{ inputs.channel || 'production' }}
-          path: desktop/dist/Apollo-PDV-Setup.exe
+          name: Apollo-PDV-Setup-${{ env.PDV_BUILD_CHANNEL }}
+          path: |
+            desktop/dist/Apollo-PDV-Setup.exe
+            desktop/dist/latest.yml
+            desktop/dist/*.blockmap
           if-no-files-found: error
+          retention-days: 14
+      - name: Publicar logs da homologacao Windows
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apollo-windows-smoke-logs
+          path: |
+            ${{ runner.temp }}/apollo-smoke-out.txt
+            ${{ runner.temp }}/apollo-smoke-err.txt
+            ${{ runner.temp }}/apollo-installer-diagnostics.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+  smoke-windows-2022:
+    needs: build-windows
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Apollo-PDV-Setup-${{ needs.build-windows.outputs.channel }}
+          path: desktop/dist
+      - name: Conferir o mesmo instalador e testar no Windows Server 2022
+        shell: pwsh
+        env:
+          EXPECTED_SHA256: ${{ needs.build-windows.outputs.sha256 }}
+          INSTALLER_CHANNEL: ${{ needs.build-windows.outputs.channel }}
+        run: |
+          $installer = 'desktop/dist/Apollo-PDV-Setup.exe'
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne $env:EXPECTED_SHA256) {
+            throw 'O instalador baixado difere do instalador testado no Windows Server 2025'
+          }
+          ./desktop/scripts/windows-smoke.ps1 -Installer $installer -Channel $env:INSTALLER_CHANNEL
+      - name: Publicar logs do teste Windows Server 2022
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apollo-windows-2022-smoke-logs
+          path: |
+            ${{ runner.temp }}/apollo-smoke-out.txt
+            ${{ runner.temp }}/apollo-smoke-err.txt
+            ${{ runner.temp }}/apollo-installer-diagnostics.txt
+          if-no-files-found: ignore
           retention-days: 14

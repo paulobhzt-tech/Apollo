@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ImagePlus, Pencil, Plus, Printer as PrinterIcon, Trash2 } from "lucide-react";
+import { Download, ImagePlus, Pencil, Plus, Printer as PrinterIcon, Search, Trash2 } from "lucide-react";
 import { fileToDataUrl } from "@/lib/image";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
@@ -28,6 +28,9 @@ export default function Produtos() {
   const categories = useQuery({ queryKey: ["categories"], queryFn: () => apiGet<Category[]>("/categories") });
   const ingredients = useQuery({ queryKey: ["ingredients"], queryFn: () => apiGet<Ingredient[]>("/ingredients") });
   const [editing, setEditing] = useState<Product | "new" | null>(null);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "price" | "cost" | "code">("name");
+  const [activeOnly, setActiveOnly] = useState(false);
   const envs = useEnvironments();
   const cats = categories.data ?? [];
   const catName = (id: string) => cats.find((c) => c.id === id)?.name ?? "—";
@@ -38,6 +41,16 @@ export default function Produtos() {
   });
   const [sel, setSel] = useState<string[]>([]);
   const all = products.data ?? [];
+  const visible = all.filter(p => (!activeOnly || p.active) && [p.name, p.code, p.description, catName(p.category_id)].some(v => v.toLocaleLowerCase("pt-BR").includes(search.toLocaleLowerCase("pt-BR")))).sort((a, b) => sortBy === "name" ? a.name.localeCompare(b.name, "pt-BR") : sortBy === "code" ? a.code.localeCompare(b.code, "pt-BR", { numeric: true }) : a[sortBy] - b[sortBy]);
+  const exportProducts = () => {
+    const quote = (v: string | number) => '"' + String(v).replaceAll('"', '""') + '"';
+    const rows = [["Código", "Categoria", "Produto", "Custo", "Venda", "Ativo"], ...visible.map(p => [p.code, catName(p.category_id), p.name, p.cost.toFixed(2), p.price.toFixed(2), p.active ? "Sim" : "Não"])];
+    const blob = new Blob(["\uFEFF", rows.map(row => row.map(quote).join(";")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "produtos-apollo.csv"; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.success("Lista exportada em CSV compatível com Excel");
+  };
   const bulk = useMutation({
     mutationFn: (ids: string[]) => apiPost<OkOut>("/products/bulk-delete", { ids } satisfies BulkDeleteIn),
     onSuccess: (r) => { toast.success(r.message); setSel([]); inv(); },
@@ -56,6 +69,17 @@ export default function Produtos() {
           <TabsTrigger value="ambientes" data-testid="tab-ambientes">Ambientes</TabsTrigger>
         </TabsList>
         <TabsContent value="produtos" className="mt-4">
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-panel p-3" data-testid="products-toolbar">
+            <div className="relative min-w-52 flex-1"><Search className="absolute left-3 top-2.5 size-4 text-zinc-400" /><Input className="pl-9" placeholder="Pesquisar nome, código ou categoria..." value={search} onChange={e => setSearch(e.target.value)} data-testid="products-search" /></div>
+            <select aria-label="Ordenar produtos" className="h-9 rounded-md border border-white/15 bg-background px-3 text-sm" value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}>
+              <option value="name">Nome</option><option value="code">Código</option><option value="price">Preço de venda</option><option value="cost">Preço de custo</option>
+            </select>
+            <label className="flex items-center gap-2 text-sm"><Checkbox checked={activeOnly} onCheckedChange={v => setActiveOnly(!!v)} /> Somente ativos</label>
+            <Button variant="outline" onClick={() => window.print()}><PrinterIcon className="size-4" /> Imprimir</Button>
+            <Button variant="outline" onClick={exportProducts} data-testid="products-export-csv"><Download className="size-4" /> Exportar Excel (CSV)</Button>
+            <Button onClick={() => setEditing("new")}><Plus className="size-4" /> Novo</Button>
+          </div>
+          <div className="mb-2 text-sm text-zinc-300">Produtos ({visible.length}) · Ativos ({visible.filter(p => p.active).length})</div>
           {sel.length > 0 && (
             <div className="mb-3 flex items-center justify-between rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2 animate-rise" data-testid="product-bulk-bar">
               <span className="text-sm text-red-200">{sel.length} produto(s) selecionado(s)</span>
@@ -70,10 +94,10 @@ export default function Produtos() {
           <div className="rounded-2xl border border-white/5 bg-panel">
             <Table>
               <TableHeader>
-                <TableRow><TableHead className="w-8"><Checkbox checked={all.length > 0 && sel.length === all.length} onCheckedChange={(v) => setSel(v ? all.map((p) => p.id) : [])} data-testid="product-select-all" /></TableHead><TableHead>Produto</TableHead><TableHead>Categoria</TableHead><TableHead>Ambiente</TableHead><TableHead className="text-right">Preço</TableHead><TableHead className="text-right">Custo</TableHead><TableHead className="text-right">Margem</TableHead><TableHead /></TableRow>
+                <TableRow><TableHead className="w-8"><Checkbox checked={all.length > 0 && sel.length === all.length} onCheckedChange={(v) => setSel(v ? all.map((p) => p.id) : [])} data-testid="product-select-all" /></TableHead><TableHead>Cód. PDV</TableHead><TableHead>Produto</TableHead><TableHead>Categoria</TableHead><TableHead>Ambiente</TableHead><TableHead className="text-right">Preço</TableHead><TableHead className="text-right">Custo</TableHead><TableHead className="text-right">Margem</TableHead><TableHead>Status venda</TableHead><TableHead /></TableRow>
               </TableHeader>
               <TableBody>
-                {(products.data ?? []).map((p) => (
+                {visible.map((p) => (
                   <TableRow key={p.id} data-testid={`product-row-${p.code || p.id}`}>
                     <TableCell><Checkbox checked={sel.includes(p.id)} onCheckedChange={() => toggle(p.id)} data-testid={`product-select-${p.code || p.id}`} /></TableCell>
                     <TableCell>
@@ -92,7 +116,7 @@ export default function Produtos() {
                     </TableCell>
                     <TableCell className="text-right font-mono">{brl(p.price)}</TableCell>
                     <TableCell className="text-right font-mono text-zinc-400">{brl(p.cost)}{p.cost_price > 0 && <span className="ml-1 text-[10px] text-zinc-500">manual</span>}</TableCell>
-                    <TableCell className={cn("text-right font-mono", p.margin_pct >= 65 ? "text-emerald-300" : p.margin_pct >= 45 ? "text-amber-300" : "text-red-300")}>{p.margin_pct}%</TableCell>
+                    <TableCell className={cn("text-right font-mono", p.margin_pct >= 65 ? "text-emerald-300" : p.margin_pct >= 45 ? "text-amber-300" : "text-red-300")}>{p.margin_pct}%</TableCell>\n                    <TableCell><span className={p.active ? "text-emerald-300" : "text-zinc-400"}>{p.active ? "● Ativo" : "○ Inativo"}</span></TableCell>
                     <TableCell className="text-right">
                       <Button size="icon-sm" variant="ghost" onClick={() => setEditing(p)} data-testid={`edit-product-${p.code || p.id}`}><Pencil /></Button>
                       <Button size="icon-sm" variant="ghost" onClick={() => window.confirm(`Apagar ${p.name}?`) && del.mutate(p.id)} data-testid={`delete-product-${p.code || p.id}`}><Trash2 /></Button>
@@ -106,6 +130,11 @@ export default function Produtos() {
         <TabsContent value="categorias" className="mt-4"><Categorias cats={cats} /></TabsContent>
         <TabsContent value="ambientes" className="mt-4"><Ambientes /></TabsContent>
       </Tabs>
+      <div className="mt-3 flex flex-wrap justify-between gap-3 border-t border-white/10 py-3 text-xs text-zinc-400">
+        <span>Total de itens: {visible.length}</span>
+        <span>Custo médio: {brl(visible.length ? visible.reduce((s, p) => s + p.cost, 0) / visible.length : 0)}</span>
+        <span>Venda média: {brl(visible.length ? visible.reduce((s, p) => s + p.price, 0) / visible.length : 0)}</span>
+      </div>
       <ProductDialog editing={editing} onClose={() => setEditing(null)} cats={cats} ings={ingredients.data ?? []} />
     </AppShell>
   );

@@ -29,6 +29,7 @@ INDEXES: dict[str, list[IndexModel]] = {
                  IndexModel([("token", ASCENDING)], name="token", unique=True),
                  IndexModel([("expires_at", ASCENDING)], name="expires_ttl", expireAfterSeconds=0)],
     "login_attempts": [IndexModel([("expires_at", ASCENDING)], name="login_attempts_ttl", expireAfterSeconds=0)],
+    "public_qr_limits": [IndexModel([("expires_at", ASCENDING)], name="public_qr_limits_ttl", expireAfterSeconds=0)],
     "categories": [_id_idx()],
     "products": [_id_idx(), IndexModel([("category_id", ASCENDING)], name="category")],
     "ingredients": [_id_idx()],
@@ -50,6 +51,11 @@ INDEXES: dict[str, list[IndexModel]] = {
     "customer_moves": [IndexModel([("customer_id", ASCENDING), ("at", DESCENDING)], name="customer_at"),
                        IndexModel([("cash_session_id", ASCENDING)], name="cash_session")],
     "expenses": [_id_idx(), IndexModel([("date", DESCENDING)], name="date_desc")],
+    "commercial_resellers": [_id_idx(), IndexModel([("email", ASCENDING)], name="reseller_email", unique=True)],
+    "commercial_franchises": [_id_idx(), IndexModel([("reseller_id", ASCENDING)], name="reseller_id")],
+    "commercial_locations": [_id_idx(), IndexModel([("franchise_id", ASCENDING), ("external_code", ASCENDING)],
+                                                  name="franchise_external_code", unique=True,
+                                                  partialFilterExpression={"external_code": {"$type": "string"}})],
 }
 
 

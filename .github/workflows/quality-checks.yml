@@ -55,8 +55,8 @@ jobs:
             sleep 2
           done
           exit 1
-      - name: Testar pagamentos parciais e concorrencia
-        run: python -m pytest -q -n 0 tests/test_partial_payment_integration.py
+      - name: Testar pagamentos parciais, concorrencia e juncao de mesas
+        run: python -m pytest -q -n 0 tests/test_partial_payment_integration.py tests/test_table_merge_integration.py
 
   frontend:
     runs-on: ubuntu-latest

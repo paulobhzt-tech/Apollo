@@ -2,7 +2,7 @@
 import calendar
 import re
 import unicodedata
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -108,6 +108,24 @@ async def delete_cat(id: str, _: dict = Depends(require())):
 
 
 # ---------- contas a pagar / receber ----------
+async def audit_bill_change(action: str, actor: dict, bill: dict) -> None:
+    """Keep a minimal, immutable audit event for financial status changes."""
+    await db.bill_audit.insert_one({
+        "at": datetime.now(timezone.utc),
+        "action": action,
+        "actor_id": actor.get("id", ""),
+        "bill_id": bill["id"],
+        "kind": bill.get("kind", ""),
+        "status": bill["status"],
+    })
+
+
+@router.get("/bills/audit")
+async def list_bill_audit(_: dict = Depends(require())):
+    return await db.bill_audit.find({}, {"_id": 0}).sort("at", -1).to_list(200)
+
+
+
 def _add_months(d: str, n: int) -> str:
     y, m, day = map(int, d.split("-"))
     m0 = m - 1 + n
@@ -182,39 +200,61 @@ async def update_bill(id: str, body: BillIn, _: dict = Depends(require())):
     if b["status"] != "aberto":
         raise HTTPException(400, "Só contas em aberto podem ser editadas")
     upd = {**body.model_dump(exclude={"repeat_months"}), "category_name": await _category_name(body.category_id, body.kind)}
-    return await db.bills.find_one_and_update({"id": id}, {"$set": upd}, projection={"_id": 0}, return_document=True)
+    # Recheck status atomically: payment/cancellation may occur after the initial read.
+    updated = await db.bills.find_one_and_update(
+        {"id": id, "status": "aberto"}, {"$set": upd}, projection={"_id": 0}, return_document=True,
+    )
+    if not updated:
+        raise HTTPException(409, "Conta já baixada ou cancelada. Atualize a lista.")
+    return updated
 
 
 @router.post("/bills/{id}/pay", response_model=Bill)
-async def pay_bill(id: str, body: BillPayIn, _: dict = Depends(require("caixa"))):
-    b = await db.bills.find_one({"id": id})
-    if not b:
+async def pay_bill(id: str, body: BillPayIn, user: dict = Depends(require("caixa"))):
+    """Atomically settle an open bill; a concurrent payment cannot settle it twice."""
+    updated = await db.bills.find_one_and_update(
+        {"id": id, "status": "aberto"},
+        {"$set": {"status": "pago", **body.model_dump()}},
+        projection={"_id": 0}, return_document=True,
+    )
+    if updated:
+        await audit_bill_change("paid", user, updated)
+        return updated
+    existing = await db.bills.find_one({"id": id}, {"_id": 0, "status": 1})
+    if not existing:
         raise HTTPException(404, "Conta não encontrada")
-    if b["status"] != "aberto":
-        raise HTTPException(400, "Conta já baixada ou cancelada")
-    return await db.bills.find_one_and_update({"id": id}, {"$set": {"status": "pago", **body.model_dump()}}, projection={"_id": 0}, return_document=True)
+    raise HTTPException(409, "Conta já baixada ou cancelada. Atualize a lista.")
 
 
 @router.post("/bills/{id}/reopen", response_model=Bill)
-async def reopen_bill(id: str, _: dict = Depends(require())):
-    b = await db.bills.find_one_and_update({"id": id, "status": {"$ne": "aberto"}},
-                                           {"$set": {"status": "aberto", "paid_date": None, "paid_amount": 0, "payment_method": ""}},
-                                           projection={"_id": 0}, return_document=True)
-    if not b:
-        raise HTTPException(400, "Conta não encontrada ou já está em aberto")
-    return b
+async def reopen_bill(id: str, user: dict = Depends(require())):
+    updated = await db.bills.find_one_and_update(
+        {"id": id, "status": {"$in": ["pago", "cancelado"]}},
+        {"$set": {"status": "aberto", "paid_date": None, "paid_amount": 0, "payment_method": ""}},
+        projection={"_id": 0}, return_document=True,
+    )
+    if not updated:
+        raise HTTPException(409, "Conta inexistente ou já aberta. Atualize a lista.")
+    await audit_bill_change("reopened", user, updated)
+    return updated
 
 
 @router.post("/bills/{id}/cancel", response_model=Bill)
-async def cancel_bill(id: str, _: dict = Depends(require())):
+async def cancel_bill(id: str, user: dict = Depends(require())):
     b = await db.bills.find_one_and_update({"id": id, "status": "aberto"}, {"$set": {"status": "cancelado"}}, projection={"_id": 0}, return_document=True)
     if not b:
         raise HTTPException(400, "Só contas em aberto podem ser canceladas")
+    await audit_bill_change("cancelled", user, b)
     return b
 
 
 @router.delete("/bills/{id}", response_model=OkOut)
 async def delete_bill(id: str, _: dict = Depends(require())):
-    if not (await db.bills.delete_one({"id": id})).deleted_count:
+    # Never erase settled financial records or their audit trail.
+    deleted = await db.bills.delete_one({"id": id, "status": "aberto"})
+    if deleted.deleted_count:
+        return OkOut(message="Conta apagada")
+    existing = await db.bills.find_one({"id": id}, {"_id": 0, "status": 1})
+    if not existing:
         raise HTTPException(404, "Conta não encontrada")
-    return OkOut(message="Conta apagada")
+    raise HTTPException(409, "Conta paga ou cancelada não pode ser apagada; preserve o histórico financeiro.")

@@ -189,7 +189,7 @@ class PanelHandler(BaseHTTPRequestHandler):
                     domain = get("domain").strip()
                     if not 2 <= len(customer) <= 100 or plan not in ("Mensal","Trimestral","Anual") or not 0 <= amount <= 99999900 or not 1 <= days <= 366 or len(domain) > 200:
                         raise ValueError("Cadastro invalido")
-                    db.execute("INSERT INTO licenses VALUES (?,?,?,?,?,?,?,?)", (
+                    db.execute("INSERT INTO licenses(id,customer,plan,domain,monthly_cents,status,due_date,created_at) VALUES (?,?,?,?,?,?,?,?)", (
                         "APL-" + secrets.token_hex(8).upper(), customer, plan, domain, amount,
                         "trial", (date.today() + timedelta(days=days)).isoformat(), date.today().isoformat()))
                 elif self.path == "/status":

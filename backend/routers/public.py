@@ -1,9 +1,9 @@
 """Unauthenticated endpoints used by the QR-code table menu and the own delivery site."""
 import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 from pymongo.errors import DuplicateKeyError
 
@@ -15,6 +15,27 @@ from routers.tables import get_or_open_order, get_table
 from models.schemas import CallIn, OkOut, PublicDeliveryIn, PublicMenu, PublicOrderIn, PublicOrderStatus, PublicTable, table_label
 
 router = APIRouter(prefix="/public")
+QR_WINDOW_SECONDS = 60
+QR_MAX_REQUESTS = 12
+QR_MAX_READS = 120
+
+
+async def limit_table_actions(request: Request, table_id: str, *, read_only: bool = False) -> None:
+    """Shared MongoDB rate limit per client and table, across application workers."""
+    import hashlib
+    ip = request.client.host if request.client else "unknown"
+    key = hashlib.sha256(f"{ip}:{table_id}:{'read' if read_only else 'write'}".encode()).hexdigest()
+    bucket = int(datetime.now(timezone.utc).timestamp()) // QR_WINDOW_SECONDS
+    expires = datetime.now(timezone.utc) + timedelta(minutes=3)
+    record = await db.public_qr_limits.find_one_and_update(
+        {"_id": f"{key}:{bucket}"},
+        {"$inc": {"attempts": 1}, "$setOnInsert": {"expires_at": expires}},
+        upsert=True,
+        return_document=True,
+    )
+    if record["attempts"] > (QR_MAX_READS if read_only else QR_MAX_REQUESTS):
+        raise HTTPException(429, "Muitas solicitações para esta mesa. Aguarde um minuto.")
+
 RESTAURANT = os.environ.get("RESTAURANT_NAME", "Espeteria Churras Burguer")
 
 
@@ -28,7 +49,8 @@ async def menu():
 
 
 @router.get("/tables/{id}", response_model=PublicTable)
-async def public_table(id: str):
+async def public_table(id: str, request: Request):
+    await limit_table_actions(request, id, read_only=True)
     t = await get_table(id)
     order = await db.orders.find_one({"id": t.get("order_id"), "status": "aberto"}, {"_id": 0, "items": 1}) if t.get("order_id") else None
     consumed = [{"id": item.get("id", ""), "name": item.get("name", ""), "qty": item.get("qty", 0),
@@ -39,8 +61,9 @@ async def public_table(id: str):
 
 
 @router.get("/tables/{id}/preparo")
-async def public_table_preparation(id: str):
+async def public_table_preparation(id: str, request: Request):
     """Show only preparation stages for the current table order, never other tables."""
+    await limit_table_actions(request, id, read_only=True)
     t = await get_table(id)
     if not t.get("order_id"):
         return {"tickets": []}
@@ -64,8 +87,9 @@ class SplitRequestIn(BaseModel):
 
 
 @router.post("/tables/{id}/split-request")
-async def request_table_split(id: str, body: SplitRequestIn):
+async def request_table_split(id: str, body: SplitRequestIn, request: Request):
     """Customer requests a read-only item split; only staff can accept payment."""
+    await limit_table_actions(request, id)
     t = await get_table(id)
     if not t.get("order_id"):
         raise HTTPException(400, "Mesa sem comanda aberta")
@@ -92,10 +116,11 @@ async def request_table_split(id: str, body: SplitRequestIn):
 
 
 @router.post("/tables/{id}/order", response_model=PublicTable)
-async def public_table_order(id: str, body: PublicOrderIn):
+async def public_table_order(id: str, body: PublicOrderIn, request: Request):
+    await limit_table_actions(request, id)
     t = await get_table(id)
-    if t["status"] == "reservada":
-        raise HTTPException(400, "Mesa reservada. Chame um garçom.")
+    if t["status"] in ("reservada", "conta"):
+        raise HTTPException(409, "Mesa indisponível para novos pedidos. Chame um garçom.")
     items = await build_items(body.items)
     order = await get_or_open_order(t, None, source="cardapio")
     updated = await db.orders.update_one({"id": order["id"], "status": "aberto"}, {"$push": {"items": {"$each": [i.model_dump() for i in items]}}})
@@ -108,7 +133,8 @@ async def public_table_order(id: str, body: PublicOrderIn):
 
 
 @router.post("/tables/{id}/call", response_model=OkOut)
-async def public_call(id: str, body: CallIn):
+async def public_call(id: str, body: CallIn, request: Request):
+    await limit_table_actions(request, id)
     await get_table(id)
     await db.tables.update_one({"id": id}, {"$set": {"call": body.type}})
     return OkOut(message="Garçom chamado" if body.type == "garcom" else "Conta solicitada")

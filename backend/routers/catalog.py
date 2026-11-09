@@ -247,7 +247,12 @@ async def register_inventory_count(body: InventoryCountIn, user: dict = Depends(
     diff = round(counted - previous, 4)
     count = InventoryCount(**{**body.model_dump(), "counted_qty": counted},
                            previous_qty=previous, difference=diff, by_name=user["name"]).model_dump()
-    await db.ingredients.update_one({"id": ing["id"]}, {"$set": {"stock": counted, "updated_at": now()}})
+    result = await db.ingredients.update_one(
+        {"id": ing["id"], "stock": ing["stock"]},
+        {"$set": {"stock": counted, "updated_at": now()}},
+    )
+    if not result.matched_count:
+        raise HTTPException(409, "Estoque alterado durante o inventário. Atualize a quantidade e tente novamente.")
     await db.inventory_counts.insert_one(dict(count))
     await db.stock_moves.insert_one(StockMove(
         ingredient_id=ing["id"], ingredient_name=ing["name"], type="ajuste",
@@ -259,6 +264,33 @@ async def register_inventory_count(body: InventoryCountIn, user: dict = Depends(
 @router.get("/ingredients", response_model=list[Ingredient])
 async def list_ingredients(_: dict = Depends(current_user)):
     return await db.ingredients.find({}, {"_id": 0}).sort("name", 1).to_list(5000)
+
+
+def stock_alerts(ingredients: list[dict]) -> list[dict]:
+    """Pure stock-threshold evaluation; zero minimum disables low-stock alerts."""
+    alerts = []
+    for ing in ingredients:
+        stock = float(ing.get("stock") or 0)
+        minimum = float(ing.get("min_stock") or 0)
+        if stock <= 0 or (minimum > 0 and stock < minimum):
+            alerts.append({
+                "ingredient_id": ing["id"], "name": ing["name"], "unit": ing.get("unit", ""),
+                "stock": round(stock, 4), "min_stock": round(minimum, 4),
+                "missing_to_min": round(max(0, minimum - stock), 4),
+                "severity": "sem_estoque" if stock <= 0 else "baixo",
+                "estimated_minimum_cost": round(max(0, minimum - stock) * float(ing.get("cost_per_unit") or 0), 2),
+            })
+    return sorted(alerts, key=lambda a: (a["severity"] != "sem_estoque", a["name"].casefold()))
+
+
+@router.get("/inventory/alerts")
+async def inventory_alerts(_: dict = Depends(require("caixa", "cozinha"))):
+    ingredients = await db.ingredients.find({}, {"_id": 0}).to_list(5000)
+    alerts = stock_alerts(ingredients)
+    return {"total": len(alerts), "out_of_stock": sum(a["severity"] == "sem_estoque" for a in alerts),
+            "low_stock": sum(a["severity"] == "baixo" for a in alerts),
+            "estimated_minimum_cost": round(sum(a["estimated_minimum_cost"] for a in alerts), 2),
+            "items": alerts}
 
 
 @router.post("/ingredients", response_model=Ingredient)
@@ -349,7 +381,18 @@ async def create_move(body: StockMoveIn, user: dict = Depends(require("caixa", "
             if body.qty <= 0:
                 raise HTTPException(400, "Quantidade deve ser maior que zero")
             delta = body.qty if body.type == "entrada" else -body.qty
-        await db.ingredients.update_one({"id": ing["id"]}, {"$inc": {"stock": round(delta, 4)}, "$set": {"updated_at": now()}})
+        stock_filter = {"id": ing["id"]}
+        if body.type == "ajuste":
+            # A manual absolute count must not overwrite intervening sales or receipts.
+            stock_filter["stock"] = ing["stock"]
+        elif body.type == "saida":
+            stock_filter["stock"] = {"$gte": round(body.qty, 4)}
+        result = await db.ingredients.update_one(
+            stock_filter,
+            {"$inc": {"stock": round(delta, 4)}, "$set": {"updated_at": now()}},
+        )
+        if not result.matched_count:
+            raise HTTPException(409, "Estoque alterado ou insuficiente. Atualize e tente novamente.")
     await db.stock_moves.insert_one(StockMove(
         ingredient_id=ing["id"], ingredient_name=ing["name"], type=body.type, qty=round(delta, 4),
         note=body.note, by_name=user["name"],

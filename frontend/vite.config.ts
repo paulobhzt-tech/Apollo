@@ -2,7 +2,7 @@ import path from "node:path";
 import { defineConfig, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import { visualEdits } from "@emergentbase/visual-edits/vite";
+
 
 // Supervisor exports DISABLE_HOT_RELOAD=true when the platform sets ENABLE_RELOAD=false.
 const hotReloadDisabled = process.env.DISABLE_HOT_RELOAD === "true";
@@ -19,10 +19,24 @@ const emergentOverlayDisabled = process.env.DISABLE_EMERGENT_OVERLAY === "true";
 async function loadEmergentOverlay() {
   if (emergentOverlayDisabled) return null;
   try {
-    const mod = await import("@emergentbase/overlay/vite");
+    const packageName = "@emergentbase/overlay/vite";
+    const mod = await import(/* @vite-ignore */ packageName);
     return mod.emergentOverlay();
   } catch (e) {
     console.warn("[emergent-overlay] plugin failed to load; using Vite's overlay instead:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+// Optional Emergent preview plugin: production builds must work without private preview packages.
+async function loadVisualEdits() {
+  if (visualEditsDisabled) return null;
+  try {
+    const packageName = "@emergentbase/visual-edits/vite";
+    const mod = await import(/* @vite-ignore */ packageName);
+    return mod.visualEdits();
+  } catch (e) {
+    console.warn("[visual-edits] preview plugin unavailable:", e instanceof Error ? e.message : e);
     return null;
   }
 }
@@ -36,11 +50,12 @@ if (!hotReloadDisabled) {
 // https://vite.dev/config/
 export default defineConfig(async () => {
   const emergentOverlay = await loadEmergentOverlay();
+  const visualEditsPlugin = await loadVisualEdits();
   return {
     plugins: [
       react(),
       tailwindcss(),
-      ...(visualEditsDisabled ? [] : [visualEdits()]),
+      ...(visualEditsPlugin ? [visualEditsPlugin] : []),
       // No isServe guard: this factory takes no ConfigEnv arg, so build purity here rests
       // on the package's own `apply: "serve"`.
       ...(emergentOverlay ? [emergentOverlay] : []),

@@ -14,7 +14,8 @@ load_dotenv(ROOT_DIR / '.env')
 # MongoDB connection
 from lib.db import client, db, ensure_indexes  # noqa: E402
 from lib.csrf import CsrfOriginMiddleware  # noqa: E402
-from routers import auth, catalog, config, drive, fiado, finance, operations, production, public, reports, serverbackup, system, tables  # noqa: E402
+from lib.security_headers import SecurityHeadersMiddleware  # noqa: E402
+from routers import assistant, assistant_openai, auth, beverages, catalog, commercial, commercial_admin, platform_trials, config, drive, fiado, finance, operations, production, public, reports, serverbackup, supplier_quotes, system, tables  # noqa: E402
 
 
 @asynccontextmanager
@@ -43,10 +44,11 @@ async def root():
     return {"message": "Apollo PDV API"}
 
 
-for r in (auth, catalog, tables, operations, reports, public, fiado, config, production, drive, system, finance, serverbackup):
+for r in (assistant, assistant_openai, auth, beverages, catalog, commercial, commercial_admin, platform_trials, tables, operations, reports, public, fiado, config, production, drive, system, finance, serverbackup, supplier_quotes):
     api_router.include_router(r.router)
 
 app.add_middleware(CsrfOriginMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Do not use wildcard origins with credentialed CORS.
 _allowed_origins = [o.strip() for o in os.environ.get('CORS_ORIGINS', '').split(',') if o.strip() and o.strip() != '*']
@@ -74,6 +76,9 @@ if _web and os.path.isdir(_web):
     @app.get("/{path:path}", include_in_schema=False)
     async def _spa(path: str):
         f = os.path.realpath(os.path.join(_web, path))
-        if f.startswith(os.path.realpath(_web)) and os.path.isfile(f):
+        # commonpath checks directory containment; startswith allows sibling paths
+        # such as /web-private to pass for a /web root.
+        root = os.path.realpath(_web)
+        if os.path.commonpath([root, f]) == root and os.path.isfile(f):
             return FileResponse(f)
         return FileResponse(os.path.join(_web, "index.html"))
