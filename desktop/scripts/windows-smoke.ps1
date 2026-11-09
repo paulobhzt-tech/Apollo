@@ -14,14 +14,14 @@ Write-Host "Runner: $([Environment]::OSVersion.VersionString)"
 Write-Host "Instalador: $setup"
 Write-Host "Destino: $dir"
 # NSIS requires /D=path as the LAST argument, with no quoting of the path.
-$installer = Start-Process -FilePath $setup -ArgumentList "/S /D=$dir" -PassThru -Wait
-Write-Host "NSIS exit code: $($installer.ExitCode)"
-if ($installer.ExitCode -ne 0) {
+$installerProcess = Start-Process -FilePath $setup -ArgumentList "/S /D=$dir" -PassThru -Wait
+Write-Host "NSIS exit code: $($installerProcess.ExitCode)"
+if ($installerProcess.ExitCode -ne 0) {
   Write-Host 'Arquivos encontrados apos tentativa de instalacao:'
   Get-ChildItem -Path $dir -Force -ErrorAction SilentlyContinue | Select-Object Name,Length | Format-Table
   $crash = Join-Path $env:RUNNER_TEMP 'apollo-installer-diagnostics.txt'
-  "NSIS exit code: $($installer.ExitCode)`nSetup: $setup`nTarget: $dir`nWindows: $([Environment]::OSVersion.VersionString)" | Set-Content $crash
-  throw "Instalacao NSIS falhou: $($installer.ExitCode)"
+  "NSIS exit code: $($installerProcess.ExitCode)`nSetup: $setup`nTarget: $dir`nWindows: $([Environment]::OSVersion.VersionString)" | Set-Content $crash
+  throw "Instalacao NSIS falhou: $($installerProcess.ExitCode)"
 }
 $app = Join-Path $dir 'Apollo PDV.exe'
 if (-not (Test-Path $app)) { throw "Apollo PDV.exe nao foi instalado" }
