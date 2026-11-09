@@ -205,7 +205,7 @@ function createWindow() {
       setTimeout(() => app.quit(), 1500);
     });
   }
-  openBest(process.env.PDV_SMOKE === "offline");
+  openBest(process.env.PDV_SMOKE?.startsWith("offline"));
 }
 
 // ---------- IPC ----------
@@ -283,8 +283,22 @@ ipcMain.handle("pdv:print", async (_e, { html, deviceName, copies = 1, paper = "
 // ---------- lifecycle ----------
 if (!app.requestSingleInstanceLock()) app.quit();
 app.on("second-instance", () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   cfg = loadConfig();
+  if (process.env.PDV_SMOKE === "offline-with-server") {
+    if (cfg.testBuild || cfg.startWithWindows !== false || !cfg.serverUrl.startsWith("https://")) {
+      console.error("PDV_SMOKE_FAIL: configuracao antiga nao foi recuperada corretamente");
+      app.exit(2);
+      return;
+    }
+    const result = await probeServer(cfg.serverUrl, net.fetch);
+    if (!result.ok) {
+      console.error("PDV_SMOKE_FAIL: API HTTPS indisponivel", result.error);
+      app.exit(2);
+      return;
+    }
+    console.log("PDV_SMOKE_HTTPS_PASS");
+  }
   Menu.setApplicationMenu(null);
   app.setLoginItemSettings({ openAtLogin: !!cfg.startWithWindows });
   registerAppProtocol();

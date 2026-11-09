@@ -93,7 +93,7 @@ jobs:
           "sha256=$($hash.Hash)" >> $env:GITHUB_OUTPUT
       - name: Testar instalacao e abertura no Windows Server 2025
         shell: pwsh
-        run: ./desktop/scripts/windows-smoke.ps1 -Installer desktop/dist/Apollo-PDV-Setup.exe
+        run: ./desktop/scripts/windows-smoke.ps1 -Installer desktop/dist/Apollo-PDV-Setup.exe -Channel $env:PDV_BUILD_CHANNEL
       - uses: actions/upload-artifact@v4
         with:
           name: Apollo-PDV-Setup-${{ env.PDV_BUILD_CHANNEL }}
@@ -129,12 +129,13 @@ jobs:
         shell: pwsh
         env:
           EXPECTED_SHA256: ${{ needs.build-windows.outputs.sha256 }}
+          INSTALLER_CHANNEL: ${{ needs.build-windows.outputs.channel }}
         run: |
           $installer = 'desktop/dist/Apollo-PDV-Setup.exe'
           if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne $env:EXPECTED_SHA256) {
             throw 'O instalador baixado difere do instalador testado no Windows Server 2025'
           }
-          ./desktop/scripts/windows-smoke.ps1 -Installer $installer
+          ./desktop/scripts/windows-smoke.ps1 -Installer $installer -Channel $env:INSTALLER_CHANNEL
       - name: Publicar logs do teste Windows Server 2022
         if: always()
         uses: actions/upload-artifact@v4

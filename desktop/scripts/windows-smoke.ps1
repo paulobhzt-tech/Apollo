@@ -1,10 +1,12 @@
 param(
   [Parameter(Mandatory)]
-  [string]$Installer
+  [string]$Installer,
+  [Parameter(Mandatory)]
+  [ValidateSet('production', 'test')]
+  [string]$Channel
 )
 
 $ErrorActionPreference = 'Stop'
-$env:PDV_SMOKE = 'offline'
 $setup = (Resolve-Path -LiteralPath $Installer).Path
 $version = (Get-Content (Join-Path $PSScriptRoot '../package.json') -Raw | ConvertFrom-Json).version
 $dir = Join-Path $env:RUNNER_TEMP 'ApolloSmoke'
@@ -23,6 +25,19 @@ if ($installer.ExitCode -ne 0) {
 }
 $app = Join-Path $dir 'Apollo PDV.exe'
 if (-not (Test-Path $app)) { throw "Apollo PDV.exe nao foi instalado" }
+$env:PDV_SMOKE = 'offline'
+if ($Channel -eq 'production') {
+  $env:PDV_SMOKE = 'offline-with-server'
+  $configDir = Join-Path $env:APPDATA 'Apollo PDV'
+  $config = Join-Path $configDir 'config.json'
+  if (Test-Path $config) { throw 'O teste precisa de um perfil Windows sem configuracao Apollo' }
+  New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+  @{
+    serverUrl = 'http://localhost:18080'
+    testBuild = $true
+    startWithWindows = $false
+  } | ConvertTo-Json | Set-Content -LiteralPath $config
+}
 $stdout = Join-Path $env:RUNNER_TEMP 'apollo-smoke-out.txt'
 $stderr = Join-Path $env:RUNNER_TEMP 'apollo-smoke-err.txt'
 $process = Start-Process -FilePath $app -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
@@ -37,6 +52,9 @@ try {
   Write-Host $output
   if ($process.ExitCode -ne 0) { throw "Apollo falhou ao iniciar: $($process.ExitCode)" }
   if ($output -notmatch 'PDV_SMOKE_PASS') { throw 'Apollo nao confirmou tela offline e ponte desktop' }
+  if ($Channel -eq 'production' -and $output -notmatch 'PDV_SMOKE_HTTPS_PASS') {
+    throw 'Apollo nao confirmou a recuperacao da configuracao antiga e a conexao HTTPS'
+  }
   if ($output -notmatch "(?m)^PDV_SMOKE_VERSION $([regex]::Escape($version))\s*$") {
     throw "O aplicativo instalado nao confirmou a versao $version"
   }
