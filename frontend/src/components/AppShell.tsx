@@ -129,9 +129,9 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
     try {
       const stored = localStorage.getItem(`apollo-menu-favorites:${me.id}`);
       const parsed: unknown = stored ? JSON.parse(stored) : null;
-      setFavorites(Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : ["/", "/pdv", "/mesas"]);
+      setFavorites(Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : ["/mesas", "/pdv", "/produtos", "/estoque", "/delivery"]);
     } catch {
-      setFavorites(["/", "/pdv", "/mesas"]);
+      setFavorites(["/mesas", "/pdv", "/produtos", "/estoque", "/delivery"]);
     }
   }, [me?.id]);
   const toggleFavorite = (path: string) => {
