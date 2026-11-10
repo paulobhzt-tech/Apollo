@@ -21,6 +21,7 @@ interface CartLine { key: string; product: Product; qty: number; notes: string; 
 
 export default function Pdv() {
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const saleRef = useRef<string | null>(null);
   const { offline, queue } = useOffline();
   const products = useQuery({ queryKey: ["products"], queryFn: () => apiGet<Product[]>("/products") });
   const categories = useQuery({ queryKey: ["categories"], queryFn: () => apiGet<Category[]>("/categories") });
@@ -47,7 +48,7 @@ export default function Pdv() {
   const setQty = (i: number, d: number) =>
     setCart((c) => c.flatMap((l, j) => (j !== i ? [l] : l.qty + d <= 0 ? [] : [{ ...l, qty: l.qty + d }])));
 
-  const reset = () => { setCart([]); setCustomer(""); setPayOpen(false); };
+  const reset = () => { saleRef.current = null; setCart([]); setCustomer(""); setPayOpen(false); };
 
   const sale = useMutation({
     mutationFn: (p: QuickSaleIn) => apiPost<SaleResult>("/pdv/sale", p),
@@ -85,7 +86,7 @@ export default function Pdv() {
   const confirm = (pay: PayIn) => {
     if (!cart.length || sale.isPending) return;
     const payload: QuickSaleIn = {
-      ...pay, client_ref: newClientRef(), customer_name: customer, send_to_kitchen: kitchen,
+      ...pay, client_ref: (saleRef.current ??= newClientRef()), customer_name: customer, send_to_kitchen: kitchen,
       items: cart.map((l) => ({ product_id: l.product.id, qty: l.qty, notes: l.notes, options: l.options })),
     };
     if (offline) {

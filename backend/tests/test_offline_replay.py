@@ -106,3 +106,15 @@ async def test_replay_same_request_with_fingerprint_is_idempotent(monkeypatch):
              "request_fingerprint": operations.sale_fingerprint(body)}
     monkeypatch.setattr(operations.db.orders, "find_one", AsyncMock(return_value=order))
     assert (await operations.quick_sale(body, {"id": "cashier", "name": "Cashier"}))["order"] == order
+
+
+@pytest.mark.asyncio
+async def test_payment_failure_cleanup_cannot_delete_a_paid_sale(monkeypatch):
+    monkeypatch.setattr(operations.db.orders, "find_one", AsyncMock(return_value=None))
+    monkeypatch.setattr(operations, "current_cash", AsyncMock(return_value={"id": "cash-1"}))
+    monkeypatch.setattr(operations, "build_items", AsyncMock(return_value=[]))
+    monkeypatch.setattr(operations, "new_order", AsyncMock(return_value={"id": "order-1", "number": 1}))
+    monkeypatch.setattr(operations, "finalize_payment", AsyncMock(side_effect=HTTPException(400, "Falha fiscal")))
+    with pytest.raises(HTTPException):
+        await operations.quick_sale(sale_body(), {"id": "cashier", "name": "Cashier"})
+    operations.db.orders.delete_one.assert_awaited_once_with({"id": "order-1", "status": "aberto"})

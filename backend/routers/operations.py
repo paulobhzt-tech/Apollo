@@ -58,7 +58,9 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
     try:
         order, inv = await finalize_payment(order, body)
     except HTTPException:
-        await db.orders.delete_one({"id": order["id"]})
+        # Fiscal/post-payment failures must not erase an already paid sale.
+        # The same client_ref can then recover it on the next attempt.
+        await db.orders.delete_one({"id": order["id"], "status": "aberto"})
         raise
     if body.send_to_kitchen:
         await create_ticket(order, items)
