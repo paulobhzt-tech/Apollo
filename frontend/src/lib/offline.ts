@@ -9,9 +9,10 @@ import { deviceTag, kv } from "./desktop";
 
 const KEY = "pdv_offline_queue";
 const MENU_KEY = "pdv_offline_menu";
-export interface QueuedSale { payload: QuickSaleIn; total: number; queued_at: string }
+export interface QueuedSale { payload: QuickSaleIn; total: number; queued_at: string; attempts?: number; last_attempt_at?: string; last_error?: string; next_retry_at?: string }
 export interface RejectedSale extends QueuedSale { error: string; rejected_at: string }
 const REJ_KEY = "pdv_offline_rejected";
+const ARCHIVE_KEY = "pdv_offline_reviewed";
 const LOG_KEY = "pdv_offline_last_sync";
 /** Unique, device-tagged reference: replays are idempotent on the server (client_ref). */
 export const newClientRef = () => `${deviceTag()}-${Date.now().toString(36)}-${typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)}`;
@@ -81,20 +82,20 @@ export function cachedMenu(): Product[] {
 }
 
 let syncing = false;
-export async function syncQueue(): Promise<{ synced: number; failed: number }> {
+export async function syncQueue(options: { force?: boolean } = {}): Promise<{ synced: number; failed: number }> {
   if (syncing || isOffline()) return { synced: 0, failed: 0 };
   // Web Locks serialize replay across tabs on the same origin.
   // The backend client_ref protects desktop windows on other origins.
   if (typeof navigator !== "undefined" && navigator.locks?.request) {
     return navigator.locks.request("apollo-pdv-offline-sync", async () => {
       if (isOffline()) return { synced: 0, failed: 0 };
-      return performSyncQueue();
+      return performSyncQueue(!!options.force);
     });
   }
-  return performSyncQueue();
+  return performSyncQueue(!!options.force);
 }
 
-async function performSyncQueue(): Promise<{ synced: number; failed: number }> {
+async function performSyncQueue(force: boolean): Promise<{ synced: number; failed: number }> {
   if (syncing || isOffline()) return { synced: 0, failed: 0 };
   syncing = true;
   let synced = 0;
@@ -105,6 +106,10 @@ async function performSyncQueue(): Promise<{ synced: number; failed: number }> {
     const snapshot = read(true);
     readRejected(true);
     for (const [index, s] of snapshot.entries()) {
+      if (!force && s.next_retry_at && new Date(s.next_retry_at).getTime() > Date.now()) {
+        remaining.push(...snapshot.slice(index));
+        break;
+      }
       try {
         await apiPost("/pdv/sale", s.payload);
         synced++;
@@ -118,7 +123,11 @@ async function performSyncQueue(): Promise<{ synced: number; failed: number }> {
         } else {
           // Preserve FIFO after a connection/authentication failure. Sending the
           // rest would hammer an unavailable server and reorder cash sales.
-          remaining.push(...snapshot.slice(index));
+          const attempts = (s.attempts ?? 0) + 1;
+          const delay = Math.min(300_000, 5_000 * 2 ** Math.min(attempts - 1, 6));
+          const error = e instanceof ApiError ? (e.status === 401 ? "Sessão expirada: entre novamente" : `Servidor retornou ${e.status}`) : "Falha de conexão";
+          remaining.push({ ...s, attempts, last_attempt_at: new Date().toISOString(), last_error: error,
+                           next_retry_at: new Date(Date.now() + delay).toISOString() }, ...snapshot.slice(index + 1));
           break;
         }
       }
@@ -167,15 +176,28 @@ export function retryRejected(ref: string) {
   const { error: _e, rejected_at: _r, ...sale } = item;
   // Persist the sale back into the pending queue BEFORE removing the rejected copy.
   // If storage is full or unavailable, the rejected record remains recoverable.
-  enqueue(sale);
+  enqueue({ ...sale, next_retry_at: undefined });
   const next = JSON.stringify(r.filter((x) => x.payload.client_ref !== ref));
   kv.set(REJ_KEY, next);
   if (kv.get(REJ_KEY) !== next) throw new Error("Falha ao atualizar vendas rejeitadas");
   emit();
   void backgroundSync();
 }
+export function reviewedSales(): (RejectedSale & { reviewed_at: string })[] {
+  return readSales<RejectedSale & { reviewed_at: string }>(ARCHIVE_KEY);
+}
 export function dismissRejected(ref: string) {
-  kv.set(REJ_KEY, JSON.stringify(readRejected(true).filter((x) => x.payload.client_ref !== ref)));
+  const rejected = readRejected(true);
+  const item = rejected.find(s => s.payload.client_ref === ref);
+  if (!item) return;
+  // Archive durably before removing from the review list; never erase evidence.
+  const archive = readSales<RejectedSale & { reviewed_at: string }>(ARCHIVE_KEY, true);
+  const nextArchive = JSON.stringify([...archive.filter(s => s.payload.client_ref !== ref), { ...item, reviewed_at: new Date().toISOString() }]);
+  kv.set(ARCHIVE_KEY, nextArchive);
+  if (kv.get(ARCHIVE_KEY) !== nextArchive) throw new Error("Falha ao arquivar a venda recusada");
+  const nextRejected = JSON.stringify(rejected.filter(s => s.payload.client_ref !== ref));
+  kv.set(REJ_KEY, nextRejected);
+  if (kv.get(REJ_KEY) !== nextRejected) throw new Error("Falha ao atualizar a lista de revisão");
   emit();
 }
 
@@ -193,7 +215,7 @@ async function backgroundSync() {
 
 // Keep the queue and rejection list consistent across browser tabs / desktop windows.
 window.addEventListener("storage", (event) => {
-  if ([KEY, REJ_KEY, LOG_KEY, "pdv_force_offline"].includes(event.key || "")) {
+  if ([KEY, REJ_KEY, ARCHIVE_KEY, LOG_KEY, "pdv_force_offline"].includes(event.key || "")) {
     forced = kv.get("pdv_force_offline") === "1";
     emit();
     if (event.key === KEY && read().length && !isOffline()) void backgroundSync();

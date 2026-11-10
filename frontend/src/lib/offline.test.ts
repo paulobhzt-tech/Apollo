@@ -18,7 +18,7 @@ it("stops at a transient failure and preserves FIFO for the next sync", async ()
   expect(post).toHaveBeenCalledTimes(1);
   expect(JSON.parse(storage.get("pdv_offline_queue")!).map((s: {payload: {client_ref: string}}) => s.payload.client_ref)).toEqual(["sale-1", "sale-2"]);
   post.mockResolvedValue({});
-  expect(await offline.syncQueue()).toEqual({ synced: 2, failed: 0 });
+  expect(await offline.syncQueue({ force: true })).toEqual({ synced: 2, failed: 0 });
   expect(JSON.parse(storage.get("pdv_offline_queue")!)).toEqual([]);
 });
 it("does not enqueue the same reference twice", async () => {
@@ -61,4 +61,35 @@ it("preserves a sale enqueued during an in-flight sync", async () => {
   post.mockImplementationOnce(async () => { offline.enqueue(sale("sale-2")); return {}; });
   await offline.syncQueue();
   expect(JSON.parse(storage.get("pdv_offline_queue")!)[0].payload.client_ref).toBe("sale-2");
+});
+
+it("backs off automatic retries but lets the operator retry immediately", async () => {
+  const offline = await import("./offline");
+  offline.enqueue({ payload: { client_ref: "sale-1" } as never, total: 10, queued_at: "now" });
+  post.mockRejectedValueOnce(new Error("network"));
+  await offline.syncQueue();
+  const retained = JSON.parse(storage.get("pdv_offline_queue")!)[0];
+  expect(retained.attempts).toBe(1);
+  expect(new Date(retained.next_retry_at).getTime()).toBe(Date.now() + 5000);
+  post.mockResolvedValue({});
+  await offline.syncQueue();
+  expect(post).toHaveBeenCalledTimes(1);
+  await offline.syncQueue({ force: true });
+  expect(post).toHaveBeenCalledTimes(2);
+});
+it("archives a reviewed rejection without erasing its original payload", async () => {
+  const offline = await import("./offline");
+  const sale = { payload: { client_ref: "sale-1", items: [{product_id: "p1"}] }, total: 10, queued_at: "now", rejected_at: "now", error: "Revisar" };
+  storage.set("pdv_offline_rejected", JSON.stringify([sale]));
+  offline.dismissRejected("sale-1");
+  expect(offline.reviewedSales()[0].payload).toEqual(sale.payload);
+  expect(JSON.parse(storage.get("pdv_offline_rejected")!)).toEqual([]);
+});
+it("does not remove a rejection when the archive is corrupt", async () => {
+  const offline = await import("./offline");
+  const sale = { payload: { client_ref: "sale-1" }, total: 10, queued_at: "now", rejected_at: "now", error: "Revisar" };
+  storage.set("pdv_offline_rejected", JSON.stringify([sale]));
+  storage.set("pdv_offline_reviewed", "corrupt");
+  expect(() => offline.dismissRejected("sale-1")).toThrow("Fila offline ilegível");
+  expect(JSON.parse(storage.get("pdv_offline_rejected")!)).toHaveLength(1);
 });
