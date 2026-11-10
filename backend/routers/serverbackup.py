@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime, timezone
 
 from bson import Binary
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 
 from lib.auth import require
@@ -75,6 +75,54 @@ async def backup_now(me: dict = Depends(require())):
 @router.get("/backups/server/settings", response_model=LocalBackupSettings)
 async def get_local_settings(_: dict = Depends(require())):
     return await local_settings()
+
+
+@router.get("/backups/server/health")
+async def backup_health(overdue_hours: int = Query(default=36, ge=1, le=720),
+                        _: dict = Depends(require())):
+    """Inspect backup metadata only; never decompress, restore, or mutate data.
+
+    Daily automatic backups get a 12-hour tolerance by default. Checksum
+    availability is not proof of integrity: use /{id}/verify for that check.
+    """
+    settings = await local_settings()
+    document = await db.server_backups.find_one(
+        {}, {"_id": 0, "id": 1, "at": 1, "size_kb": 1, "sha256": 1},
+        sort=[("at", -1)],
+    )
+    result = {
+        "auto_enabled": settings.auto,
+        "keep": settings.keep,
+        "overdue_hours": overdue_hours,
+        "status": "missing",
+        "overdue": True,
+        "latest": None,
+        "integrity": "not_checked",
+        # Existing verification is deliberately read-only and stores no history.
+        "last_verified_at": None,
+    }
+    if not document:
+        return result
+    at = document.get("at")
+    if not isinstance(at, datetime):
+        result["status"] = "invalid_metadata"
+        return result
+    if at.tzinfo is None:
+        at = at.replace(tzinfo=timezone.utc)  # legacy Mongo timestamps are UTC
+    age_seconds = (datetime.now(timezone.utc) - at).total_seconds()
+    age_hours = round(max(0, age_seconds) / 3600, 2)
+    checksum = document.get("sha256")
+    checksum_available = isinstance(checksum, str) and len(checksum) == 64 and all(
+        ch in "0123456789abcdefABCDEF" for ch in checksum
+    )
+    overdue = age_seconds > overdue_hours * 3600
+    result.update(
+        status="invalid_metadata" if age_seconds < -300 else "overdue" if overdue else "recent",
+        overdue=overdue or age_seconds < -300,
+        latest={"id": document.get("id"), "at": at, "age_hours": age_hours,
+                "size_kb": document.get("size_kb"), "checksum_available": checksum_available},
+    )
+    return result
 
 
 @router.put("/backups/server/settings", response_model=LocalBackupSettings)
