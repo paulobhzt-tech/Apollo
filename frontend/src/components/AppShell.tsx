@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import { Link, NavLink, Navigate, useLocation } from "react-router-dom";
@@ -120,9 +120,9 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
   const { data: me, isLoading, isError } = useMe();
   const [open, setOpen] = useState(false);
   const [menuSearch, setMenuSearch] = useState("");
-  const [desktopSearch, setDesktopSearch] = useState("");
   const [activeRibbon, setActiveRibbon] = useState<string | null>(null);
   const loc = useLocation();
+  useEffect(() => { setActiveRibbon(null); }, [loc.pathname]);
   const { resolvedTheme, setTheme } = useTheme();
   const backupChoice = useQuery({ queryKey: ["backup-destination"], queryFn: () => apiGet<{ destination: "pc" | "google_drive" | null }>("/settings/backup-destination"), enabled: me?.role === "admin", staleTime: 60000 });
 
@@ -131,23 +131,15 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
   const allowed = !roles || me.role === "admin" || roles.includes(me.role);
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-white/10 bg-shell p-4 lg:flex" aria-label="Menu principal do computador" data-testid="desktop-sidebar">
-        <Brand />
-        <label htmlFor="apollo-desktop-search" className="mt-6 text-xs text-zinc-400">Buscar função</label>
-        <input id="apollo-desktop-search" data-testid="desktop-menu-search" type="search" value={desktopSearch} onChange={(event) => setDesktopSearch(event.target.value)} placeholder="Buscar no Apollo..." className="mt-2 w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary" />
-        <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
-          <NavList role={me.role} search={desktopSearch} />
-        </div>
-        <UserCard name={me.name} role={me.role} />
-      </aside>
-
+    <div className="flex min-h-screen min-w-0 flex-col bg-background">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-72 border-white/5 bg-shell p-4">
           <SheetTitle className="sr-only">Menu</SheetTitle>
           <Brand />
-          <div className="mt-8 flex-1 overflow-y-auto">
-            <NavList role={me.role} onNavigate={() => setOpen(false)} />
+          <label htmlFor="apollo-menu-search" className="mt-5 text-xs text-zinc-400">Buscar função</label>
+          <input id="apollo-menu-search" data-testid="menu-search" type="search" value={menuSearch} onChange={(event) => setMenuSearch(event.target.value)} placeholder="Buscar no Apollo..." className="mt-2 w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary" />
+          <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
+            <NavList role={me.role} search={menuSearch} onNavigate={() => setOpen(false)} />
           </div>
           <UserCard name={me.name} role={me.role} />
         </SheetContent>
@@ -160,36 +152,38 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
           </Link>
         )}
         <header className="sticky top-0 z-30 border-b border-white/10 bg-[#252527] text-white" data-testid="apollo-ribbon">
-          <div className="flex min-h-10 items-center gap-2 border-b border-white/10 px-2 sm:px-4">
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)} data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
-            <div className="mr-2 hidden shrink-0 sm:block lg:hidden"><Brand /></div>
-            <nav aria-label="Seções do sistema" className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto">
-              {RIBBON_GROUPS.filter(({group}) => NAV.some(n => n.group === group && n.roles.includes(me.role))).map(({label, group, icon: GroupIcon}) => {
-                const selected = activeRibbon ? activeRibbon === group : NAV.some(n => n.group === group && n.to === loc.pathname) || (group === "Operação" && loc.pathname === "/");
-                return <button key={group} type="button" onClick={() => setActiveRibbon(group)}
-                  className={cn("flex shrink-0 items-center gap-1.5 px-3 py-3 text-[10px] font-medium transition-colors hover:bg-white/10 sm:text-xs", selected ? "bg-[#36363a] text-white" : "text-zinc-300")}
-                  aria-pressed={selected}><GroupIcon className="size-4 text-[#e6b44d]" aria-hidden="true" />{label}</button>;
-              })}
-            </nav>
-            <button type="button" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              className="hidden shrink-0 items-center gap-2 text-xs text-zinc-200 hover:text-white sm:flex" data-testid="theme-toggle">
-              {resolvedTheme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
-              <span className="hidden xl:inline">Modo {resolvedTheme === "dark" ? "Escuro" : "Claro"}</span>
-            </button>
-            <OfflineBadge />
-            <button type="button" onClick={() => void endSession()} className="hidden shrink-0 items-center gap-1.5 text-xs text-zinc-200 hover:text-white lg:flex" title={`Operador atual: ${me.name}`}>
-              <LogOut className="size-4" aria-hidden="true" /><span>Trocar operador</span>
-            </button>
+          <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-white/10 px-3 py-2 sm:px-4">
+            <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={() => setOpen(true)} aria-label="Abrir todas as funções" data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
+            <Brand />
+            <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+              <button type="button" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                aria-label={resolvedTheme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
+                className="grid size-9 shrink-0 place-items-center rounded-lg text-zinc-200 hover:bg-white/10" data-testid="theme-toggle">
+                {resolvedTheme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
+              </button>
+              <OfflineBadge />
+              <button type="button" onClick={() => void endSession()} className="hidden shrink-0 items-center gap-1.5 rounded-lg px-2 py-2 text-xs text-zinc-200 hover:bg-white/10 sm:flex" title={`Operador atual: ${me.name}`}>
+                <LogOut className="size-4" aria-hidden="true" /><span>Trocar operador</span>
+              </button>
+            </div>
           </div>
-          <nav aria-label="Atalhos do sistema" className="flex min-h-20 items-stretch gap-1 overflow-x-auto bg-[#303034] px-2 py-1.5 sm:px-4">
+          <nav aria-label="Seções do sistema" data-testid="top-menu-groups" className="grid min-w-0 grid-cols-3 gap-1 px-2 py-1.5 sm:grid-cols-5 sm:px-4">
+            {RIBBON_GROUPS.filter(({group}) => NAV.some(n => n.group === group && n.roles.includes(me.role))).map(({label, group, icon: GroupIcon}) => {
+              const selected = activeRibbon ? activeRibbon === group : NAV.some(n => n.group === group && n.to === loc.pathname) || (group === "Operação" && loc.pathname === "/");
+              return <button key={group} type="button" onClick={() => setActiveRibbon(group)}
+                className={cn("flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[10px] font-medium transition-colors hover:bg-white/10 sm:text-xs", selected ? "bg-[#36363a] text-white" : "text-zinc-300")}
+                aria-pressed={selected}><GroupIcon className="size-4 shrink-0 text-[#e6b44d]" aria-hidden="true" /><span className="min-w-0 break-words">{label}</span></button>;
+            })}
+          </nav>
+          <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts" className="grid min-w-0 grid-cols-3 gap-1 bg-[#303034] px-2 py-1.5 sm:grid-cols-4 sm:px-4 lg:grid-cols-6 xl:grid-cols-8">
             {NAV.filter(n => n.roles.includes(me.role) && (
               activeRibbon ? n.group === activeRibbon :
               (NAV.find(item => item.to === loc.pathname)?.group ?? "Operação") === n.group
             )).map(n => {
               const Icon = ICONS[n.icon] ?? LayoutDashboard;
               return <NavLink key={n.to} to={n.to} title={n.label} onClick={() => setActiveRibbon(n.group)}
-                className={({isActive}) => cn("flex min-w-20 max-w-28 shrink-0 flex-col items-center justify-center gap-1 rounded-sm px-2 py-2 text-center text-[11px] leading-tight transition-colors hover:bg-white/10",isActive ? "bg-[#414147] text-white" : "text-zinc-200")}>
-                <Icon className="size-6 text-[#e6b44d]" strokeWidth={1.8} /><span>{n.label}</span>
+                className={({isActive}) => cn("flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-center text-[11px] leading-tight transition-colors hover:bg-white/10",isActive ? "bg-[#414147] text-white" : "text-zinc-200")}>
+                <Icon className="size-4 shrink-0 text-[#e6b44d]" strokeWidth={1.8} aria-hidden="true" /><span className="min-w-0 break-words">{n.label}</span>
               </NavLink>;
             })}
           </nav>
