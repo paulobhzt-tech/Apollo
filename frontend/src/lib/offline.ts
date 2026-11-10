@@ -1,5 +1,6 @@
 // Offline contingency: counter sales that fail on network errors are queued in
 // localStorage and replayed against the idempotent /pdv/sale endpoint (client_ref).
+import { toast } from "sonner";
 import { useSyncExternalStore } from "react";
 import { ApiError, apiPost } from "./api";
 import { queryClient } from "./queryClient";
@@ -20,20 +21,23 @@ let forced = kv.get("pdv_force_offline") === "1";
 let cachedQueue: QueuedSale[] = read();
 let cachedRejected: RejectedSale[] = readRejected();
 
-function read(): QueuedSale[] {
+function readSales<T extends QueuedSale>(key: string, strict = false): T[] {
   try {
-    return JSON.parse(kv.get(KEY) || "[]") as QueuedSale[];
+    const parsed: unknown = JSON.parse(kv.get(key) || "[]");
+    if (!Array.isArray(parsed) || parsed.some((s) => !s || typeof s !== "object" ||
+      !s.payload || typeof s.payload.client_ref !== "string" || !s.payload.client_ref)) {
+      throw new Error("Invalid queue");
+    }
+    return parsed as T[];
   } catch {
+    // Keep the original bytes untouched. UI can render; mutations must fail
+    // closed rather than replacing unreadable sales with an empty queue.
+    if (strict) throw new Error("Fila offline ilegível. Preserve este dispositivo e solicite suporte; nenhum registro foi apagado.");
     return [];
   }
 }
-function readRejected(): RejectedSale[] {
-  try {
-    return JSON.parse(kv.get(REJ_KEY) || "[]") as RejectedSale[];
-  } catch {
-    return [];
-  }
-}
+function read(strict = false): QueuedSale[] { return readSales<QueuedSale>(KEY, strict); }
+function readRejected(strict = false): RejectedSale[] { return readSales<RejectedSale>(REJ_KEY, strict); }
 function emit() {
   cachedQueue = read();
   cachedRejected = readRejected();
@@ -57,7 +61,7 @@ export function setForcedOffline(v: boolean) {
   emit();
 }
 export function enqueue(sale: QueuedSale) {
-  const queued = read();
+  const queued = read(true);
   if (queued.some((item) => item.payload.client_ref === sale.payload.client_ref)) return;
   // A failed write must never be presented as a successfully saved sale.
   const next = JSON.stringify([...queued, sale]);
@@ -98,7 +102,8 @@ async function performSyncQueue(): Promise<{ synced: number; failed: number }> {
   const remaining: QueuedSale[] = [];
   const rejected: RejectedSale[] = [];
   try {
-    const snapshot = read();
+    const snapshot = read(true);
+    readRejected(true);
     for (const [index, s] of snapshot.entries()) {
       try {
         await apiPost("/pdv/sale", s.payload);
@@ -121,7 +126,7 @@ async function performSyncQueue(): Promise<{ synced: number; failed: number }> {
     // Write rejected sales to durable storage BEFORE removing anything from the queue.
     // If persistence fails, leave the original queue untouched for safe recovery.
     if (rejected.length) {
-      const previous = readRejected();
+      const previous = readRejected(true);
       const knownRefs = new Set(previous.map((s) => s.payload.client_ref));
       const additions = rejected.filter((s) => !knownRefs.has(s.payload.client_ref));
       const nextRejected = JSON.stringify([...additions, ...previous]);
@@ -130,7 +135,7 @@ async function performSyncQueue(): Promise<{ synced: number; failed: number }> {
     }
     // Keep sales added while synchronization was running. Only replace the snapshot we processed.
     const processedRefs = new Set(snapshot.map((s) => s.payload.client_ref));
-    const newlyQueued = read().filter((s) => !processedRefs.has(s.payload.client_ref));
+    const newlyQueued = read(true).filter((s) => !processedRefs.has(s.payload.client_ref));
     const nextQueue = JSON.stringify([...remaining, ...newlyQueued]);
     kv.set(KEY, nextQueue);
     if (kv.get(KEY) !== nextQueue) throw new Error("Falha ao salvar fila de vendas");
@@ -156,7 +161,7 @@ export function lastSync(): { at: string; synced: number; failed: number; pendin
 
 /** Puts a rejected sale back in the queue (e.g. after opening the cash register). */
 export function retryRejected(ref: string) {
-  const r = readRejected();
+  const r = readRejected(true);
   const item = r.find((x) => x.payload.client_ref === ref);
   if (!item) return;
   const { error: _e, rejected_at: _r, ...sale } = item;
@@ -167,11 +172,23 @@ export function retryRejected(ref: string) {
   kv.set(REJ_KEY, next);
   if (kv.get(REJ_KEY) !== next) throw new Error("Falha ao atualizar vendas rejeitadas");
   emit();
-  void syncQueue();
+  void backgroundSync();
 }
 export function dismissRejected(ref: string) {
-  kv.set(REJ_KEY, JSON.stringify(readRejected().filter((x) => x.payload.client_ref !== ref)));
+  kv.set(REJ_KEY, JSON.stringify(readRejected(true).filter((x) => x.payload.client_ref !== ref)));
   emit();
+}
+
+let lastBackgroundError = "";
+async function backgroundSync() {
+  try {
+    await syncQueue();
+    lastBackgroundError = "";
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Falha na sincronização offline";
+    if (message !== lastBackgroundError) toast.error(message);
+    lastBackgroundError = message;
+  }
 }
 
 // Keep the queue and rejection list consistent across browser tabs / desktop windows.
@@ -179,11 +196,11 @@ window.addEventListener("storage", (event) => {
   if ([KEY, REJ_KEY, LOG_KEY, "pdv_force_offline"].includes(event.key || "")) {
     forced = kv.get("pdv_force_offline") === "1";
     emit();
-    if (event.key === KEY && read().length && !isOffline()) void syncQueue();
+    if (event.key === KEY && read().length && !isOffline()) void backgroundSync();
   }
 });
-window.addEventListener("online", () => { emit(); void syncQueue(); });
+window.addEventListener("online", () => { emit(); void backgroundSync(); });
 window.addEventListener("offline", emit);
 // desktop app: the online window flushes whatever the offline window recorded
-if (read().length) setTimeout(() => void syncQueue(), 3000);
-setInterval(() => { if (read().length) void syncQueue(); }, 60_000);
+if (read().length) setTimeout(() => void backgroundSync(), 3000);
+setInterval(() => { if (read().length) void backgroundSync(); }, 60_000);
