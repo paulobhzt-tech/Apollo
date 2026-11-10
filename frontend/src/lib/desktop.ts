@@ -7,7 +7,7 @@ export interface DesktopBridge {
   deviceId: string;
   /** Encrypted on-disk key/value store (Windows DPAPI via Electron safeStorage). Sync for small payloads. */
   kvGet: (key: string) => string | null;
-  kvSet: (key: string, value: string) => void;
+  kvSet: (key: string, value: string) => boolean;
   printers: () => Promise<DesktopPrinter[]>;
   print: (opts: { html: string; deviceName?: string; copies?: number; paper?: string }) => Promise<{ ok: boolean; error?: string }>;
   config: () => Promise<{ serverUrl: string; servers: { name: string; url: string }[]; startWithWindows: boolean; mode: "online" | "offline" }>;
@@ -33,8 +33,15 @@ export const kv = {
   },
   set(key: string, value: string): void {
     const d = desktop();
-    if (d) d.kvSet(key, value);
-    else localStorage.setItem(key, value);
+    if (d) {
+      // Electron returns false when its encrypted disk write fails. Never
+      // silently accept a sale or queue update that was not persisted.
+      if (d.kvSet(key, value) !== true) {
+        throw new Error("Falha ao gravar dados locais do Apollo");
+      }
+    } else {
+      localStorage.setItem(key, value);
+    }
   },
 };
 
