@@ -1,29 +1,28 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type RefObject } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { brl } from "@/lib/format";
 import type { Category, Product } from "@/lib/types";
+import { searchProducts } from "@/lib/product-search";
 import { cn } from "@/lib/utils";
 
-export default function ProductGrid({ products, categories, onAdd, compact }: {
+export default function ProductGrid({ products, categories, onAdd, compact, searchInputRef }: {
   products: Product[];
   categories: Category[];
   onAdd: (p: Product) => void;
   compact?: boolean;
+  searchInputRef?: RefObject<HTMLInputElement | null>;
 }) {
   const [cat, setCat] = useState<string>("all");
   const [q, setQ] = useState("");
-  const list = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    return products.filter((p) => p.active && (cat === "all" || p.category_id === cat) &&
-      (!s || p.name.toLowerCase().includes(s) || p.code.toLowerCase() === s));
-  }, [products, cat, q]);
+  const list = useMemo(() => searchProducts(products, cat, q), [products, cat, q]);
 
   return (
     <div className="flex min-h-0 flex-col gap-3">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
         <Input
+          ref={searchInputRef}
           placeholder="Buscar produto ou código (ex: PZ01)"
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -34,7 +33,7 @@ export default function ProductGrid({ products, categories, onAdd, compact }: {
           data-testid="product-search-input"
         />
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex flex-wrap gap-2 pb-1">
         {[{ id: "all", name: "Todos" }, ...categories].map((c) => (
           <button
             key={c.id}

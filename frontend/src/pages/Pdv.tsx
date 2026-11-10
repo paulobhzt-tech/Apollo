@@ -1,5 +1,5 @@
 import { getReceiptPref, printSimpleReceipt } from "@/lib/receipt";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Minus, Plus, ShoppingBag, Trash2, WifiOff, ReceiptText } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ import type { Category, ChosenOption, Invoice, PayIn, Product, QuickSaleIn, Sale
 interface CartLine { key: string; product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number }
 
 export default function Pdv() {
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { offline, queue } = useOffline();
   const products = useQuery({ queryKey: ["products"], queryFn: () => apiGet<Product[]>("/products") });
   const categories = useQuery({ queryKey: ["categories"], queryFn: () => apiGet<Category[]>("/categories") });
@@ -73,12 +74,13 @@ export default function Pdv() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "F3" && !payOpen && !optFor && !sale.isPending) { e.preventDefault(); searchInputRef.current?.focus(); searchInputRef.current?.select(); }
       if (e.key === "F2" && cart.length && !payOpen && !sale.isPending) { e.preventDefault(); setPayOpen(true); }
       if (e.key === "F4" && !payOpen && !sale.isPending && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) { e.preventDefault(); if (window.confirm("Limpar todos os itens da venda atual?")) setCart([]); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [cart.length, payOpen, sale.isPending]);
+  }, [cart.length, payOpen, optFor, sale.isPending]);
 
   const confirm = (pay: PayIn) => {
     if (!cart.length || sale.isPending) return;
@@ -101,7 +103,7 @@ export default function Pdv() {
 
   return (
     <AppShell roles={["caixa"]}>
-      <PageHeader title="Frente de Caixa" subtitle="F2 pagamento · F4 limpar · Enter na busca adiciona o item" actions={
+      <PageHeader title="Frente de Caixa" subtitle="F2 pagamento · F3 buscar · F4 limpar · Enter na busca adiciona o item" actions={
         offline ? <span className="flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs text-amber-200" data-testid="pdv-offline-banner"><WifiOff className="size-3.5" /> Contingência offline · {queue.length} na fila</span> : null
       } />
       <div className="mb-4 grid grid-cols-3 gap-2" data-testid="pdv-sale-summary">
@@ -111,7 +113,7 @@ export default function Pdv() {
       </div>
       <div className="grid gap-5 xl:grid-cols-12">
         <div className="xl:col-span-7 2xl:col-span-8">
-          <ProductGrid products={prodList} categories={categories.data ?? []} onAdd={add} />
+          <ProductGrid products={prodList} categories={categories.data ?? []} onAdd={add} searchInputRef={searchInputRef} />
         </div>
         <aside className="xl:col-span-5 2xl:col-span-4">
           <div className="sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col rounded-2xl border border-white/5 bg-[#121520] p-4" data-testid="pdv-cart">
