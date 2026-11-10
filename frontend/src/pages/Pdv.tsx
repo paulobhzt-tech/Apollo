@@ -1,7 +1,7 @@
 import { getReceiptPref, printSimpleReceipt } from "@/lib/receipt";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Minus, Plus, ShoppingBag, Trash2, WifiOff, ReceiptText } from "lucide-react";
+import { Minus, Plus, ShoppingBag, Trash2, WifiOff, ReceiptText, MoreVertical, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
 import ProductGrid from "@/components/ProductGrid";
@@ -28,6 +28,7 @@ export default function Pdv() {
   const [kitchen, setKitchen] = useState(true);
   const [payOpen, setPayOpen] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [itemMenu, setItemMenu] = useState<string | null>(null);
 
   useEffect(() => { if (products.data) cacheMenu(products.data); }, [products.data]);
   const prodList = products.data ?? cachedMenu();
@@ -46,7 +47,7 @@ export default function Pdv() {
   const setQty = (i: number, d: number) =>
     setCart((c) => c.flatMap((l, j) => (j !== i ? [l] : l.qty + d <= 0 ? [] : [{ ...l, qty: l.qty + d }])));
 
-  const reset = () => { setCart([]); setCustomer(""); setPayOpen(false); };
+  const reset = () => { setCart([]); setCustomer(""); setPayOpen(false); setItemMenu(null); };
 
   const sale = useMutation({
     mutationFn: (p: QuickSaleIn) => apiPost<SaleResult>("/pdv/sale", p),
@@ -131,10 +132,19 @@ export default function Pdv() {
                     <Button size="icon-xs" variant="outline" onClick={() => setQty(i, -1)} data-testid={`cart-dec-${i}`}><Minus /></Button>
                     <span className="w-6 text-center font-mono text-sm" data-testid={`cart-qty-${i}`}>{l.qty}</span>
                     <Button size="icon-xs" variant="outline" onClick={() => setQty(i, 1)} data-testid={`cart-inc-${i}`}><Plus /></Button>
-                    <Input value={l.notes} placeholder="Obs.: sem cebola…" onChange={(e) => setCart((c) => c.map((x, j) => (j === i ? { ...x, notes: e.target.value } : x)))}
-                      className="h-7 flex-1 text-xs" data-testid={`cart-notes-${i}`} />
-                    <Button size="icon-xs" variant="ghost" onClick={() => setQty(i, -l.qty)} data-testid={`cart-remove-${i}`}><Trash2 /></Button>
+                    <Button size="icon-xs" variant="outline" aria-label={`Opções de ${l.product.name}`} aria-expanded={itemMenu === l.key} onClick={() => setItemMenu(itemMenu === l.key ? null : l.key)} disabled={sale.isPending} data-testid={`cart-menu-${i}`}><MoreVertical /></Button>
+                    <span className="ml-auto font-mono text-xs text-zinc-300">{brl(l.qty * (l.product.price + l.extra))}</span>
                   </div>
+                  {itemMenu === l.key && (
+                    <div className="mt-2 grid grid-cols-2 gap-2 rounded-lg border border-white/10 bg-[#20232d] p-2" data-testid={`cart-actions-${i}`}>
+                      <Button size="sm" variant="outline" onClick={() => { setItemMenu(null); document.getElementById(`cart-notes-${i}`)?.focus(); }}><Pencil className="mr-1 size-3.5" /> Editar</Button>
+                      <Button size="sm" variant="outline" onClick={() => { setQty(i, 1); setItemMenu(null); }}><Plus className="mr-1 size-3.5" /> Mais 1</Button>
+                      <Button size="sm" variant="outline" onClick={() => { setQty(i, -1); setItemMenu(null); }}><Minus className="mr-1 size-3.5" /> Menos 1</Button>
+                      <Button size="sm" variant="destructive" onClick={() => { if (window.confirm(`Cancelar ${l.qty} unidade(s) de ${l.product.name}?`)) setQty(i, -l.qty); setItemMenu(null); }}><Trash2 className="mr-1 size-3.5" /> Cancelar</Button>
+                    </div>
+                  )}
+                  <Input id={`cart-notes-${i}`} value={l.notes} placeholder="Observação: sem cebola…" onChange={(e) => setCart((c) => c.map((x, j) => (j === i ? { ...x, notes: e.target.value } : x)))}
+                    className="mt-2 h-8 w-full text-xs" data-testid={`cart-notes-${i}`} />
                 </div>
               ))}
               {cart.length === 0 && <p className="py-12 text-center text-sm text-zinc-500">Toque nos produtos para adicionar.</p>}
