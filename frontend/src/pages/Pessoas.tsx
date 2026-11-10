@@ -20,7 +20,7 @@ import type { FiadoCustomer, FiadoCustomerIn, OkOut, Supplier, SupplierIn } from
 import { cn } from "@/lib/utils";
 
 const num = (s: string) => Number(s.replace(",", ".")) || 0;
-const match = (q: string, ...v: string[]) => !q || v.some((x) => x.toLowerCase().includes(q.toLowerCase()));
+const match = (q: string, ...v: (string | null | undefined)[]) => !q || v.some((x) => (x ?? "").toLowerCase().includes(q.toLowerCase()));
 
 export default function Pessoas() {
   const loc = useLocation();
@@ -171,8 +171,8 @@ function Fornecedores() {
         </Table>
       </div>
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
-        <DialogContent className="border-white/10 bg-elevated sm:max-w-lg" data-testid="supplier-dialog">
-          {editing && <SupplierForm s={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto border-white/10 bg-elevated sm:max-w-lg" data-testid="supplier-dialog">
+          {editing && <SupplierForm key={editing === "new" ? "new" : editing.id} s={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
         </DialogContent>
       </Dialog>
       <Dialog open={!!billFor} onOpenChange={(v) => !v && setBillFor(null)}>
@@ -185,9 +185,12 @@ function Fornecedores() {
 }
 
 function SupplierForm({ s, onClose }: { s: Supplier | null; onClose: () => void }) {
-  const [f, setF] = useState<SupplierIn>(s ? { name: s.name, doc: s.doc, cpf: s.cpf || "", cnpj: s.cnpj || "", phone: s.phone, email: s.email, contact: s.contact, address: s.address, supplies: s.supplies, notes: s.notes } : EMPTY_S);
+  const [f, setF] = useState<SupplierIn>(s ? { name: s.name ?? "", doc: s.doc ?? "", cpf: s.cpf || "", cnpj: s.cnpj || "", phone: s.phone ?? "", email: s.email ?? "", contact: s.contact ?? "", address: s.address ?? "", supplies: s.supplies ?? "", notes: s.notes ?? "" } : EMPTY_S);
   const save = useMutation({
-    mutationFn: () => (s ? apiPut<Supplier>(`/suppliers/${s.id}`, f) : apiPost<Supplier>("/suppliers", f)),
+    mutationFn: () => {
+      const body = { ...f, name: f.name.trim() };
+      return s ? apiPut<Supplier>(`/suppliers/${s.id}`, body) : apiPost<Supplier>("/suppliers", body);
+    },
     onSuccess: () => { toast.success(s ? "Fornecedor atualizado" : "Fornecedor cadastrado"); void queryClient.invalidateQueries({ queryKey: ["suppliers"] }); onClose(); },
     onError: (e) => toast.error(errMsg(e)),
   });
@@ -202,6 +205,7 @@ function SupplierForm({ s, onClose }: { s: Supplier | null; onClose: () => void 
         {field("name", "Nome / razão social", "Ex.: Frigorífico Boi Bom", true)}
         {field("cpf", "CPF", "000.000.000-00")}
         {field("cnpj", "CNPJ", "00.000.000/0000-00")}
+        {!!s?.doc && field("doc", "Documento do cadastro anterior", "", true)}
         {field("supplies", "O que fornece", "Carnes, bebidas, carvão…")}
         {field("contact", "Pessoa de contato")}
         {field("phone", "Telefone / WhatsApp")}

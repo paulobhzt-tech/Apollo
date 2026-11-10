@@ -16,6 +16,7 @@ import { useMe } from "@/lib/auth";
 import { queryClient } from "@/lib/queryClient";
 import type { Ingredient, IngredientIn, StockMove, Unit, Product, Supplier } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ingredientValues } from "@/lib/catalog-form";
 
 const UNITS: Unit[] = ["kg", "g", "L", "ml", "un"];
 const MOVE_LABEL: Record<StockMove["type"], string> = { entrada: "Entrada", saida: "Saída", ajuste: "Ajuste/Inventário", venda: "Baixa por venda", estorno: "Estorno", perda: "Perda / Descarte" };
@@ -257,7 +258,7 @@ export default function Estoque() {
 function IngredientDialog({ editing, onClose }: { editing: Ingredient | "new" | null; onClose: () => void }) {
   return (
     <Dialog open={!!editing} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="border-white/10 bg-elevated" data-testid="ingredient-dialog">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto border-white/10 bg-elevated" data-testid="ingredient-dialog">
         {editing && <IngredientForm key={editing === "new" ? "n" : editing.id} editing={editing} onClose={onClose} />}
       </DialogContent>
     </Dialog>
@@ -268,7 +269,7 @@ function IngredientForm({ editing, onClose }: { editing: Ingredient | "new"; onC
   const init = editing === "new" ? { name: "", unit: "kg" as Unit, stock: "0", min_stock: "0", cost_per_unit: "0", units_per_kg: "0" }
     : { name: editing.name, unit: editing.unit, stock: String(editing.stock), min_stock: String(editing.min_stock), cost_per_unit: String(editing.cost_per_unit), units_per_kg: String(editing.units_per_kg ?? 0) };
   const [f, setF] = useState(init);
-  const n = (s: string) => Number(s.replace(",", ".")) || 0;
+  const numbers = ingredientValues(f, f.unit);
   const save = useMutation({
     mutationFn: (b: IngredientIn) => editing === "new" ? apiPost<Ingredient>("/ingredients", b) : apiPut<Ingredient>(`/ingredients/${editing.id}`, b),
     onSuccess: () => { toast.success("Insumo salvo"); inv(); void queryClient.invalidateQueries({ queryKey: ["products"] }); onClose(); },
@@ -286,12 +287,13 @@ function IngredientForm({ editing, onClose }: { editing: Ingredient | "new"; onC
             <SelectContent>{UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div><Label className="text-xs text-zinc-400">Custo por unidade (R$)</Label><Input value={f.cost_per_unit} onChange={(e) => setF({ ...f, cost_per_unit: e.target.value })} className="mt-1 font-mono" data-testid="ingredient-cost-input" /></div>
-        <div><Label className="text-xs text-zinc-400">Estoque atual</Label><Input value={f.stock} onChange={(e) => setF({ ...f, stock: e.target.value })} className="mt-1 font-mono" data-testid="ingredient-stock-input" /></div>
-        {f.unit === "kg" && <div className="col-span-2"><Label className="text-xs text-zinc-400">Produção: quantas unidades rende 1 kg?</Label><Input value={f.units_per_kg} onChange={(e) => setF({ ...f, units_per_kg: e.target.value })} placeholder="Ex.: 10 espetinhos por kg" inputMode="decimal" className="mt-1 font-mono" data-testid="ingredient-yield-input" /><p className="mt-1 text-xs text-zinc-500">Estimativa: {Math.floor(Math.max(0, n(f.stock) * n(f.units_per_kg)))} unidades com o estoque atual. Não altera a baixa em kg da ficha técnica.</p></div>}
-        <div><Label className="text-xs text-zinc-400">Estoque mínimo</Label><Input value={f.min_stock} onChange={(e) => setF({ ...f, min_stock: e.target.value })} className="mt-1 font-mono" data-testid="ingredient-min-input" /></div>
+        <div><Label className="text-xs text-zinc-400">Custo por unidade (R$)</Label><Input inputMode="decimal" value={f.cost_per_unit} onChange={(e) => setF({ ...f, cost_per_unit: e.target.value })} className="mt-1 font-mono" data-testid="ingredient-cost-input" /></div>
+        <div><Label className="text-xs text-zinc-400">Estoque atual</Label><Input inputMode="decimal" value={f.stock} onChange={(e) => setF({ ...f, stock: e.target.value })} className="mt-1 font-mono" data-testid="ingredient-stock-input" /></div>
+        {f.unit === "kg" && <div className="col-span-2"><Label className="text-xs text-zinc-400">Produção: quantas unidades rende 1 kg?</Label><Input value={f.units_per_kg} onChange={(e) => setF({ ...f, units_per_kg: e.target.value })} placeholder="Ex.: 10 espetinhos por kg" inputMode="decimal" className="mt-1 font-mono" data-testid="ingredient-yield-input" /><p className="mt-1 text-xs text-zinc-500">Estimativa: {numbers ? Math.floor(Math.max(0, numbers.stock * numbers.units_per_kg)) : "—"} unidades com o estoque atual. Não altera a baixa em kg da ficha técnica.</p></div>}
+        <div><Label className="text-xs text-zinc-400">Estoque mínimo</Label><Input inputMode="decimal" value={f.min_stock} onChange={(e) => setF({ ...f, min_stock: e.target.value })} className="mt-1 font-mono" data-testid="ingredient-min-input" /></div>
       </div>
-      <Button disabled={!f.name.trim() || save.isPending} onClick={() => save.mutate({ name: f.name, unit: f.unit, stock: n(f.stock), min_stock: n(f.min_stock), cost_per_unit: n(f.cost_per_unit), units_per_kg: f.unit === "kg" ? n(f.units_per_kg) : 0 })} data-testid="ingredient-save-button">Salvar</Button>
+      {!numbers && <p role="alert" className="text-sm text-amber-300">Preencha os valores numéricos. Use vírgula ou ponto para decimais; custo, mínimo e rendimento devem ser zero ou positivos.</p>}
+      <Button disabled={!f.name.trim() || !numbers || save.isPending} onClick={() => { if (numbers) save.mutate({ name: f.name.trim(), unit: f.unit, ...numbers }); }} data-testid="ingredient-save-button">Salvar</Button>
     </>
   );
 }
