@@ -38,3 +38,16 @@ Branch de trabalho: `feature/seguranca-permissoes-homologacao`. **Não fazer mer
 - [ ] Executar testes automatizados e instalador Windows em ambiente de homologação.
 
 **Registro de execução:** consulta às execuções de GitHub Actions associadas ao commit `68f1399246f3e4bcc557e8ea4dcfacf045109341` retornou lista vazia; portanto nenhum build/teste CI aprovado foi confirmado para este commit. Não considerar os checkboxes acima como executados.
+
+## Política de versões de homologação
+- Numerar as prévias progressivamente como `3.0.1`, `3.0.2`, `3.0.3` etc.; cada nova entrega testável incrementa o último número.
+- `3.0.1`: interface, Meu Menu, ícones e menu superior. **Planejada; não liberada.**
+- `3.0.2`: compras, estoque e fornecedores. **Planejada.**
+- `3.0.3`: segurança e permissões. **Planejada.**
+- `3.0.4`: mesas, comandas e caixa. **Planejada.**
+- `3.0.5`: backup e restauração. **Planejada.**
+- `3.0.6`: sincronização PC/celular. **Planejada.**
+- `3.0.7`: notificações e atalhos. **Planejada.**
+- `3.0.8`: homologação final. **Planejada.**
+- Antes de publicar cada instalador, alinhar o número de versão no aplicativo, no empacotamento Windows e no nome do artefato; executar build, testes e registrar commit.
+- Atualização limpa é autorizada **somente para a instalação local de homologação** após backup verificado; não apagar banco remoto ou dados de produção.
