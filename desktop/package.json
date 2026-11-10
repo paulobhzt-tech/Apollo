@@ -26,6 +26,7 @@
     "files": [
       "main.js",
       "server-connection.js",
+      "durable-store.js",
       "preload.js",
       "offline.html",
       "config.default.json",

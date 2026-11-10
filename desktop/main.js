@@ -1,3 +1,4 @@
+const { atomicWriteWithBackup, recoverMissingPrimary } = require("./durable-store");
 // Apollo PDV — Windows desktop shell (Electron).
 // Online: opens the published system (always the latest version, same data as browsers and phones).
 // Offline: opens the copy of the screens bundled in the installer (pdv://app) so counter sales keep being
@@ -60,6 +61,7 @@ function kvDecode(raw) {
 function kvLoad() {
   if (kvCache) return kvCache;
   const primary = kvFile();
+  if (!fs.existsSync(primary)) recoverMissingPrimary(primary, kvDecode);
   if (!fs.existsSync(primary)) {
     kvCache = {};
     return kvCache;
@@ -76,21 +78,9 @@ function kvLoad() {
 }
 function kvSave() {
   const primary = kvFile();
-  const backup = primary + ".bak";
-  const tmp = primary + ".tmp";
   const txt = JSON.stringify(kvCache || {});
   const data = safeStorage.isEncryptionAvailable() ? safeStorage.encryptString(txt) : Buffer.from(txt, "utf8");
-  // Save a validated copy of the previous state before replacing it.
-  if (fs.existsSync(primary)) {
-    kvDecode(fs.readFileSync(primary));
-    fs.copyFileSync(primary, backup);
-  }
-  try {
-    fs.writeFileSync(tmp, data, { flag: "w" });
-    fs.renameSync(tmp, primary);
-  } finally {
-    if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
-  }
+  atomicWriteWithBackup(primary, data, kvDecode);
 }
 function deviceId() {
   const s = kvLoad();
