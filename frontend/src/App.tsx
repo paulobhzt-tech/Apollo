@@ -25,7 +25,18 @@ import Impressao from "@/pages/Impressao";
 import Pessoas from "@/pages/Pessoas";
 import Contas from "@/pages/Contas";
 import FinCadastros from "@/pages/FinCadastros";
-import { homeFor, useMe } from "@/lib/auth";
+import { homeFor, useMe, NAV } from "@/lib/auth";
+import type { ReactNode } from "react";
+
+// Route-level checks complement (never replace) server-side authorization.
+export function ProtectedRoute({ path, children }: { path: string; children: ReactNode }) {
+  const { data: me, isLoading, isError } = useMe();
+  if (isLoading) return null;
+  if (isError || !me) return <Navigate to="/login" replace />;
+  const item = NAV.find((entry) => entry.to === path);
+  if (!item || !item.roles.includes(me.role)) return <Navigate to={homeFor(me.role)} replace />;
+  return <>{children}</>;
+}
 
 function Home() {
   const { data: me, isLoading, isError } = useMe();
@@ -57,30 +68,30 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/pdv" element={<Pdv />} />
-      <Route path="/apollo-ia" element={<ApolloIA />} />
-      <Route path="/mesas" element={<Mesas />} />
-      <Route path="/comanda-mobile" element={<Mesas />} />
-      <Route path="/cozinha" element={<Kds />} />
-      <Route path="/delivery" element={<Delivery />} />
-      <Route path="/caixa" element={<Caixa />} />
-      <Route path="/vendas" element={<Vendas />} />
-      <Route path="/fiado" element={<Fiado />} />
-      <Route path="/config" element={<Config />} />
-      <Route path="/impressao" element={<Impressao />} />
-      <Route path="/clientes" element={<Pessoas />} />
-      <Route path="/contas-pagar" element={<Contas />} />
-      <Route path="/contas-receber" element={<Contas />} />
-      <Route path="/categorias-contas" element={<FinCadastros />} />
-      <Route path="/formas-pagamento" element={<FinCadastros />} />
-      <Route path="/fornecedores" element={<Pessoas />} />
-      <Route path="/notas" element={<Notas />} />
-      <Route path="/produtos" element={<Produtos />} />
-      <Route path="/estoque" element={<Estoque />} />
-      <Route path="/financeiro" element={<Financeiro />} />
-      <Route path="/musica-ao-vivo" element={<MusicaAoVivo />} />
-      <Route path="/funcionarios" element={<Funcionarios />} />
-      <Route path="/qrcodes" element={<QrCodes />} />
+      <Route path="/pdv" element={<ProtectedRoute path="/pdv"><Pdv /></ProtectedRoute>} />
+      <Route path="/apollo-ia" element={<ProtectedRoute path="/apollo-ia"><ApolloIA /></ProtectedRoute>} />
+      <Route path="/mesas" element={<ProtectedRoute path="/mesas"><Mesas /></ProtectedRoute>} />
+      <Route path="/comanda-mobile" element={<ProtectedRoute path="/comanda-mobile"><Mesas /></ProtectedRoute>} />
+      <Route path="/cozinha" element={<ProtectedRoute path="/cozinha"><Kds /></ProtectedRoute>} />
+      <Route path="/delivery" element={<ProtectedRoute path="/delivery"><Delivery /></ProtectedRoute>} />
+      <Route path="/caixa" element={<ProtectedRoute path="/caixa"><Caixa /></ProtectedRoute>} />
+      <Route path="/vendas" element={<ProtectedRoute path="/vendas"><Vendas /></ProtectedRoute>} />
+      <Route path="/fiado" element={<ProtectedRoute path="/fiado"><Fiado /></ProtectedRoute>} />
+      <Route path="/config" element={<ProtectedRoute path="/config"><Config /></ProtectedRoute>} />
+      <Route path="/impressao" element={<ProtectedRoute path="/impressao"><Impressao /></ProtectedRoute>} />
+      <Route path="/clientes" element={<ProtectedRoute path="/clientes"><Pessoas /></ProtectedRoute>} />
+      <Route path="/contas-pagar" element={<ProtectedRoute path="/contas-pagar"><Contas /></ProtectedRoute>} />
+      <Route path="/contas-receber" element={<ProtectedRoute path="/contas-receber"><Contas /></ProtectedRoute>} />
+      <Route path="/categorias-contas" element={<ProtectedRoute path="/categorias-contas"><FinCadastros /></ProtectedRoute>} />
+      <Route path="/formas-pagamento" element={<ProtectedRoute path="/formas-pagamento"><FinCadastros /></ProtectedRoute>} />
+      <Route path="/fornecedores" element={<ProtectedRoute path="/fornecedores"><Pessoas /></ProtectedRoute>} />
+      <Route path="/notas" element={<ProtectedRoute path="/notas"><Notas /></ProtectedRoute>} />
+      <Route path="/produtos" element={<ProtectedRoute path="/produtos"><Produtos /></ProtectedRoute>} />
+      <Route path="/estoque" element={<ProtectedRoute path="/estoque"><Estoque /></ProtectedRoute>} />
+      <Route path="/financeiro" element={<ProtectedRoute path="/financeiro"><Financeiro /></ProtectedRoute>} />
+      <Route path="/musica-ao-vivo" element={<ProtectedRoute path="/musica-ao-vivo"><MusicaAoVivo /></ProtectedRoute>} />
+      <Route path="/funcionarios" element={<ProtectedRoute path="/funcionarios"><Funcionarios /></ProtectedRoute>} />
+      <Route path="/qrcodes" element={<ProtectedRoute path="/qrcodes"><QrCodes /></ProtectedRoute>} />
       <Route path="/cardapio/:tableId" element={<Cardapio />} />
       <Route path="/pedir" element={<PedirDelivery />} />
       <Route path="*" element={<Navigate to="/" replace />} />
