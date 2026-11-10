@@ -10,6 +10,7 @@ import type { KitchenTicket, Station } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useEnvironments } from "@/lib/environments";
 import { toast } from "sonner";
+import { summarizeKds } from "@/lib/kds-summary";
 
 const COLS: { key: KitchenTicket["status"]; label: string; next?: KitchenTicket["status"]; action?: string }[] = [
   { key: "novo", label: "Novos pedidos", next: "preparo", action: "Iniciar preparo" },
@@ -56,19 +57,9 @@ export default function Kds() {
     onError: (e) => toast.error(errMsg(e)),
   });
 
-  const stationTickets = (tickets.isError ? [] : tickets.data ?? [])
-    .map((t) => ({ ...t, items: t.items.filter((i) => station === "all" || i.station === station) }))
-    .filter((t) => t.items.length && ["novo", "preparo", "pronto"].includes(t.status));
-  const list = stationTickets
-    .filter((t) => !onlyLate || (t.status !== "pronto" && minutesSince(t.created_at) >= 15))
-    .sort((a, b) => oldestFirst ? new Date(a.created_at).getTime() - new Date(b.created_at).getTime() : new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  const waiting = stationTickets.filter((t) => t.status === "novo").length;
-  const preparing = stationTickets.filter((t) => t.status === "preparo").length;
-  const delayed = stationTickets.filter((t) => t.status !== "pronto" && minutesSince(t.created_at) >= 15).length;
-  const critical = stationTickets.filter((t) => t.status !== "pronto" && minutesSince(t.created_at) > 25).length;
-
-  const ready = stationTickets.filter((t) => t.status === "pronto").length;
-  const oldestWaiting = stationTickets.filter((t) => t.status !== "pronto").reduce((age, t) => Math.max(age, minutesSince(t.created_at)), 0);
+  const { list, waiting, preparing, ready, delayed, critical, oldestWaiting } = summarizeKds(
+    tickets.isError ? [] : tickets.data ?? [], station, onlyLate, oldestFirst,
+  );
 
   return (
     <AppShell roles={["cozinha", "garcom", "caixa"]}>
