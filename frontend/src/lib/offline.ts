@@ -165,7 +165,9 @@ export function retryRejected(ref: string) {
   void syncQueue();
 }
 export function dismissRejected(ref: string) {
-  kv.set(REJ_KEY, JSON.stringify(readRejected().filter((x) => x.payload.client_ref !== ref)));
+  const next = JSON.stringify(readRejected().filter((x) => x.payload.client_ref !== ref));
+  kv.set(REJ_KEY, next);
+  if (kv.get(REJ_KEY) !== next) throw new Error("Falha ao atualizar vendas rejeitadas");
   emit();
 }
 
