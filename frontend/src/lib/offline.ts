@@ -7,7 +7,7 @@ import { queryClient } from "./queryClient";
 import type { Product, QuickSaleIn } from "./types";
 import { deviceTag, kv } from "./desktop";
 
-import { contextToken, queueKeys, sameContext, validContext, type QueueContext } from "./queue-context";
+import { contextToken, queueKeys, sameContext, sameQueuedRequest, validContext, type QueueContext } from "./queue-context";
 export type { QueueContext } from "./queue-context";
 let activeContext: QueueContext | null = null;
 let { KEY, REJ_KEY, ARCHIVE_KEY, LOG_KEY, MENU_KEY } = queueKeys(null);
@@ -79,7 +79,11 @@ export function enqueue(sale: QueuedSale) {
   if (sale.payload.sync_context && !sameContext(sale.payload.sync_context, activeContext)) throw new Error("Venda pertence a outra fila de sincronização");
   sale = { ...sale, payload: { ...sale.payload, sync_context: { ...activeContext } } };
   const queued = read(true);
-  if (queued.some((item) => item.payload.client_ref === sale.payload.client_ref)) return;
+  const existing = queued.find((item) => item.payload.client_ref === sale.payload.client_ref);
+  if (existing) {
+    if (!sameQueuedRequest(existing.payload, sale.payload)) throw new Error("Já existe uma tentativa desta venda com dados diferentes. Revise a fila antes de confirmar outro pagamento.");
+    return;
+  }
   // A failed write must never be presented as a successfully saved sale.
   const next = JSON.stringify([...queued, sale]);
   kv.set(KEY, next);

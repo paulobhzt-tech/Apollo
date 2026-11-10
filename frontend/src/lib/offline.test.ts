@@ -157,3 +157,10 @@ it("cannot bind an existing foreign payload to the current queue", async () => {
   offline.setQueueContext(null);
   expect(() => offline.enqueue({ payload: { client_ref: "unknown" } as never, total: 10, queued_at: "now" })).toThrow("Entre novamente");
 });
+
+it("does not acknowledge changed data under an already queued reference", async () => {
+  const offline = await import("./offline");
+  offline.enqueue({ payload: { client_ref: "sale-a", discount: 0 } as never, total: 10, queued_at: "now" });
+  expect(() => offline.enqueue({ payload: { client_ref: "sale-a", discount: 1 } as never, total: 9, queued_at: "now" })).toThrow("dados diferentes");
+  expect(JSON.parse(storage.get(QUEUE_KEY)!)[0].payload.discount).toBe(0);
+});

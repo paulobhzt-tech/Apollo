@@ -11,3 +11,10 @@ export function queueKeys(context: QueueContext | null) {
   return { KEY: `pdv_offline_queue${suffix}`, REJ_KEY: `pdv_offline_rejected${suffix}`,
     ARCHIVE_KEY: `pdv_offline_reviewed${suffix}`, LOG_KEY: `pdv_offline_last_sync${suffix}`, MENU_KEY: `pdv_offline_menu${suffix}` };
 }
+
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => [k, canonical(v)]));
+  return value;
+}
+export const sameQueuedRequest = (a: unknown, b: unknown) => JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));

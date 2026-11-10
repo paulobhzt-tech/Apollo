@@ -22,7 +22,7 @@ interface CartLine { key: string; product: Product; qty: number; notes: string; 
 export default function Pdv() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const saleRef = useRef<string | null>(null);
-  const { offline, queue } = useOffline();
+  const { offline, queue, context } = useOffline();
   const products = useQuery({ queryKey: ["products"], queryFn: () => apiGet<Product[]>("/products") });
   const categories = useQuery({ queryKey: ["categories"], queryFn: () => apiGet<Category[]>("/categories") });
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -86,7 +86,7 @@ export default function Pdv() {
   const confirm = (pay: PayIn) => {
     if (!cart.length || sale.isPending) return;
     const payload: QuickSaleIn = {
-      ...pay, client_ref: (saleRef.current ??= newClientRef()), customer_name: customer, send_to_kitchen: kitchen,
+      ...pay, sync_context: context ?? undefined, client_ref: (saleRef.current ??= newClientRef()), customer_name: customer, send_to_kitchen: kitchen,
       items: cart.map((l) => ({ product_id: l.product.id, qty: l.qty, notes: l.notes, options: l.options })),
     };
     if (offline) {

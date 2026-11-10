@@ -41,3 +41,21 @@ async def test_foreign_scope_rejected_before_business_processing(settings, field
 async def test_older_clients_without_scope_do_not_require_identity_write(settings):
     await sync_identity.validate_sync_context(None, {"id": "cashier"})
     settings.find_one_and_update.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_foreign_request_is_rejected_before_accessing_sale_records(settings, monkeypatch):
+    import httpx
+    from fastapi import FastAPI
+    from lib.auth import current_user
+    from routers import operations
+    app = FastAPI()
+    app.include_router(operations.router)
+    app.dependency_overrides[current_user] = lambda: {"id": "cashier", "name": "Cashier", "role": "caixa"}
+    monkeypatch.setattr(operations, "db", None)
+    payload = {"client_ref": "sale-foreign", "items": [{"product_id": "p1", "qty": 1}],
+               "payments": [{"method": "dinheiro", "amount": 10}],
+               "sync_context": {"server_id": "foreign", "establishment_id": "installation-a", "operator_id": "cashier"}}
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/pdv/sale", json=payload)
+    assert response.status_code == 403
