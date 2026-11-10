@@ -16,3 +16,9 @@ it("finds names without accents and respects category filters", () => {
 it("never returns inactive scanned products", () => {
   expect(searchProducts(products, "all", "OLD")).toEqual([]);
 });
+
+it("favorites narrow browsing but never block a scanned exact code", () => {
+  expect(searchProducts(products, "all", "", ["2", "3"]).map(p => p.id)).toEqual(["2"]);
+  expect(searchProducts(products, "drink", "p01", ["2"]).map(p => p.id)).toEqual(["1"]);
+  expect(searchProducts(products, "all", "", [])).toEqual([]);
+});
