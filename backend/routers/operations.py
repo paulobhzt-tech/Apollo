@@ -2,7 +2,7 @@ import hashlib
 import json
 import os
 import secrets
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -366,11 +366,18 @@ async def operational_audit(action: Optional[str] = None, record_id: Optional[st
                     {"$unwind": "$audit_events"}]
         if action:
             pipeline.append({"$match": {"audit_events.action": action}})
-        pipeline.extend([{"$sort": {"audit_events.at": -1}}, {"$limit": limit}])
+        pipeline.extend([{"$set": {"audit_sort_at": {"$convert": {"input": "$audit_events.at", "to": "date", "onError": None, "onNull": None}}}},
+                         {"$sort": {"audit_sort_at": -1}}, {"$limit": limit}])
         rows = await db[name].aggregate(pipeline).to_list(limit)
         for row in rows:
             event = row["audit_events"]
             events.append({"source": name, "record_id": row["id"], "event": event, "integrity": verify_event(event)})
-    events.sort(key=lambda row: str(row["event"].get("at", "")), reverse=True)
+    def event_time(row):
+        value = row["event"].get("at")
+        try:
+            return value.timestamp() if isinstance(value, datetime) else datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp()
+        except (ValueError, TypeError, OverflowError):
+            return 0
+    events.sort(key=event_time, reverse=True)
     return {"events": events[:limit], "limit": limit,
             "signing_configured": len(os.environ.get("AUDIT_SIGNING_KEY", "")) >= 32}

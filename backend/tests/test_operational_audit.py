@@ -95,3 +95,18 @@ async def test_audit_endpoint_returns_only_projected_events_and_bounded_limit(mo
         pipeline = col.aggregate.call_args.args[0]
         assert pipeline[0] == {"$match": {"id": "record"}}
         assert pipeline[1] == {"$project": {"_id": 0, "id": 1, "audit_events": 1}}
+
+
+@pytest.mark.asyncio
+async def test_audit_merges_legacy_datetime_and_iso_events_chronologically(monkeypatch):
+    from datetime import datetime, timezone
+    legacy = {"id": "old-schema", "action": "counter_sale_created", "at": datetime(2026, 11, 10, 20, tzinfo=timezone.utc)}
+    modern = {"id": "modern", "action": "payment_recorded", "at": "2026-11-10T19:00:00+00:00"}
+    collections = {}
+    for name in ("orders", "cash_sessions", "kitchen_tickets"):
+        rows = [{"id": "r1", "audit_events": modern}, {"id": "r2", "audit_events": legacy}] if name == "orders" else []
+        collections[name] = SimpleNamespace(aggregate=Mock(return_value=SimpleNamespace(to_list=AsyncMock(return_value=rows))))
+    monkeypatch.setattr(operations, "db", collections)
+    result = await operations.operational_audit(action=None, record_id=None, limit=100, _={"role": "admin"})
+    assert [row["event"]["id"] for row in result["events"]] == ["old-schema", "modern"]
+    assert any("$set" in stage and "audit_sort_at" in stage["$set"] for stage in collections["orders"].aggregate.call_args.args[0])
