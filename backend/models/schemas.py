@@ -181,6 +181,11 @@ class IngredientIn(BaseModel):
     units_per_kg: float = Field(default=0, ge=0)
 
 
+class IngredientUpdateIn(IngredientIn):
+    # Compare-and-set token used by modern editors; never persisted as inventory.
+    expected_stock: Optional[float] = Field(default=None, allow_inf_nan=False)
+
+
 class ProductionBatchIn(BaseModel):
     production_type: Literal["espetinho", "porcao"] = "espetinho"
     ingredient_id: str

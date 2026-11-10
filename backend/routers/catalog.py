@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from lib.auth import current_user, require
 from lib.db import db
 from lib.orders import ingredient_map, now, product_cost
-from models.schemas import (BulkDeleteIn, Category, CategoryIn, Ingredient, IngredientIn, OkOut, Product, ProductIn, Supplier, SupplierIn,
+from models.schemas import (BulkDeleteIn, Category, CategoryIn, Ingredient, IngredientIn, IngredientUpdateIn, OkOut, Product, ProductIn, Supplier, SupplierIn,
                             StockMove, StockMoveIn, ProductionBatch, ProductionBatchIn, Purchase, PurchaseIn, InventoryCount, InventoryCountIn, LotCountIn)
 
 router = APIRouter()
@@ -301,10 +301,16 @@ async def create_ingredient(body: IngredientIn, _: dict = Depends(require())):
 
 
 @router.put("/ingredients/{id}", response_model=Ingredient)
-async def update_ingredient(id: str, body: IngredientIn, _: dict = Depends(require())):
+async def update_ingredient(id: str, body: IngredientUpdateIn, _: dict = Depends(require())):
+    query = {"id": id}
+    if body.expected_stock is not None:
+        query["stock"] = body.expected_stock
     res = await db.ingredients.find_one_and_update(
-        {"id": id}, {"$set": {**body.model_dump(), "updated_at": now()}}, projection={"_id": 0}, return_document=True)
+        query, {"$set": {**body.model_dump(exclude={"expected_stock"}), "updated_at": now()}},
+        projection={"_id": 0}, return_document=True)
     if not res:
+        if body.expected_stock is not None and await db.ingredients.find_one({"id": id}, {"_id": 0, "id": 1}):
+            raise HTTPException(409, "O estoque mudou enquanto o formulário estava aberto. Feche e abra o insumo novamente antes de salvar.")
         raise HTTPException(404, "Insumo não encontrado")
     return res
 
