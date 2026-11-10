@@ -1,3 +1,5 @@
+import hashlib
+import json
 import secrets
 from datetime import timedelta
 from typing import Optional
@@ -17,6 +19,12 @@ router = APIRouter()
 
 
 # ---------- PDV ----------
+def sale_fingerprint(body: QuickSaleIn) -> str:
+    """Bind the idempotency reference to the validated request, without storing PII twice."""
+    payload = body.model_dump(mode="json", exclude={"client_ref"})
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
+
+
 @router.post("/pdv/sale", response_model=SaleResult)
 async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
     """Atomic create+pay for counter sales. Idempotent on client_ref (offline queue replays)."""
@@ -26,6 +34,8 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
         # cashier's receipt/customer information.
         if existing.get("waiter_id") and existing["waiter_id"] != user["id"] and user.get("role") != "admin":
             raise HTTPException(403, "Venda registrada por outro operador. Solicite revisão do administrador.")
+        if existing.get("request_fingerprint") and existing["request_fingerprint"] != sale_fingerprint(body):
+            raise HTTPException(422, "Referência de venda reutilizada com dados diferentes. Solicite revisão do administrador.")
         if existing.get("status") != "pago":
             raise HTTPException(409, "Venda ainda em processamento. Tente sincronizar novamente.")
         inv = await db.invoices.find_one({"id": existing.get("invoice_id")}, {"_id": 0}) if existing.get("invoice_id") else None
@@ -35,7 +45,7 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
     items = await build_items(body.items)
     try:
         order = await new_order(channel="balcao", source="pdv", items=[i.model_dump() for i in items],
-                                client_ref=body.client_ref, customer={"name": body.customer_name, "cpf": body.customer_cpf},
+                                client_ref=body.client_ref, request_fingerprint=sale_fingerprint(body), customer={"name": body.customer_name, "cpf": body.customer_cpf},
                                 waiter_id=user["id"], waiter_name=user["name"],
                                 audit_events=[{"action": "counter_sale_created", "at": now(),
                                                "actor_id": user["id"], "actor_name": user["name"],

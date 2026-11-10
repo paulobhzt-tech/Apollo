@@ -20,8 +20,9 @@ def isolated_database(monkeypatch):
 
 
 def sale_body():
-    return SimpleNamespace(client_ref="pc-1-sale-1", items=[], customer_name=None,
-                           customer_cpf=None, send_to_kitchen=False)
+    return operations.QuickSaleIn(client_ref="pc-1-sale-1", items=[{"product_id": "p1", "qty": 1}],
+                                  payments=[{"method": "dinheiro", "amount": 10}],
+                                  send_to_kitchen=False, emit_invoice=False)
 
 
 @pytest.mark.asyncio
@@ -84,3 +85,24 @@ async def test_counter_sale_records_actor_without_credentials(monkeypatch):
     assert event["actor_id"] == "cashier"
     assert event["client_ref"] == "pc-1-sale-1"
     assert "secret" not in str(event)
+
+
+@pytest.mark.asyncio
+async def test_replay_rejects_changed_payment_or_items(monkeypatch):
+    original = sale_body()
+    order = {"id": "order-1", "status": "pago", "waiter_id": "cashier",
+             "request_fingerprint": operations.sale_fingerprint(original)}
+    monkeypatch.setattr(operations.db.orders, "find_one", AsyncMock(return_value=order))
+    changed = original.model_copy(update={"discount": 1})
+    with pytest.raises(HTTPException) as error:
+        await operations.quick_sale(changed, {"id": "cashier", "name": "Cashier", "role": "caixa"})
+    assert error.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_replay_same_request_with_fingerprint_is_idempotent(monkeypatch):
+    body = sale_body()
+    order = {"id": "order-1", "status": "pago", "waiter_id": "cashier",
+             "request_fingerprint": operations.sale_fingerprint(body)}
+    monkeypatch.setattr(operations.db.orders, "find_one", AsyncMock(return_value=order))
+    assert (await operations.quick_sale(body, {"id": "cashier", "name": "Cashier"}))["order"] == order
