@@ -1,4 +1,8 @@
 import re
+import gzip
+import hashlib
+import json
+import uuid
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
@@ -14,7 +18,11 @@ from models.schemas import GeneralSettings, OkOut, Printer, PrinterIn, RestoreIn
 
 router = APIRouter()
 BACKUP_COLLS = ["employees", "suppliers", "categories", "products", "ingredients", "stock_moves", "tables", "orders", "kitchen_tickets",
-                "invoices", "cash_sessions", "expenses", "fiado_customers", "customer_moves", "printers", "settings", "environments", "counters"]
+                "invoices", "cash_sessions", "expenses", "fiado_customers", "customer_moves", "printers", "settings", "environments", "counters",
+                "purchases", "lot_consumptions", "inventory_counts", "production_batches",
+                "bills", "bill_audit", "account_categories", "payment_methods", "supplier_quotes",
+                "employee_audit", "employee_time_entries", "backup_audit", "live_music_events"]
+RESERVED_SETTINGS = {"drive", "selftest_last", "sync_identity"}
 KEEP_ID = {"settings", "counters"}  # these use their own _id
 ISO = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 
@@ -69,15 +77,18 @@ async def put_general(body: GeneralSettings, _: dict = Depends(require())):
 
 
 async def build_backup() -> tuple[str, dict]:
-    """Full JSON export (products incl. images, orders, finance…). PIN hashes, sessions and Drive tokens are excluded."""
+    """Full JSON export (products incl. images, orders, finance…). Credential hashes, sessions and installation-specific settings are excluded."""
     data = {}
     for c in BACKUP_COLLS:
         if c == "employees":
-            proj = {"_id": 0, "pin_hash": 0}
+            proj = {"_id": 0, "pin_hash": 0, "password_hash": 0}
         else:
             proj = None if c in KEEP_ID else {"_id": 0}
-        q = {"_id": {"$nin": ["drive", "selftest_last"]}} if c == "settings" else {}
-        data[c] = await db[c].find(q, proj).to_list(100000)
+        q = {"_id": {"$nin": sorted(RESERVED_SETTINGS)}} if c == "settings" else {}
+        records = await db[c].find(q, proj).to_list(100001)
+        if len(records) > 100000:
+            raise HTTPException(400, f"Coleção {c} excede o limite de exportação; backup incompleto bloqueado")
+        data[c] = records
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M")
     return stamp, jsonable_encoder({"app": "Apollo PDV", "created_at": stamp, "data": data})
 
@@ -91,7 +102,9 @@ async def backup(_: dict = Depends(require())):
 def revive(v):
     """JSON backups store datetimes as ISO strings; turn them back into datetimes so date filters keep working."""
     if isinstance(v, dict):
-        return {k: revive(x) for k, x in v.items()}
+        # Signed audit events use canonical ISO strings. Converting their dates
+        # would change signed bytes after a restore and invalidate the seal.
+        return {k: x if k == "audit_events" else revive(x) for k, x in v.items()}
     if isinstance(v, list):
         return [revive(x) for x in v]
     if isinstance(v, str) and ISO.match(v):
@@ -112,10 +125,39 @@ def validate_restore_data(source: dict) -> dict[str, list[dict]]:
     for name, docs in source.items():
         if not isinstance(docs, list) or any(not isinstance(doc, dict) for doc in docs):
             raise HTTPException(400, f"Coleção {name} deve conter uma lista de registros válidos")
+        keys = [doc.get("_id") if name in KEEP_ID else doc.get("id") for doc in docs]
+        present_keys = [str(key) for key in keys if key is not None]
+        if len(present_keys) != len(set(present_keys)):
+            raise HTTPException(400, f"Coleção {name} contém identificadores duplicados")
         data[name] = docs
     if not data.get("products") and not data.get("orders"):
         raise HTTPException(400, "Arquivo de backup inválido ou vazio")
     return data
+
+
+async def save_restore_safety_snapshot(actor_id: str) -> str:
+    """Persist a recovery copy before the first replacement; failure blocks restore.
+
+    No pruning is performed here. Snapshots retain current credential hashes for
+    recovery and therefore are never exposed by the sanitized export endpoint.
+    """
+    data = {}
+    for name in BACKUP_COLLS:
+        projection = None if name in KEEP_ID else {"_id": 0}
+        records = await db[name].find({}, projection).to_list(100001)
+        if len(records) > 100000:
+            raise HTTPException(400, "Cópia de segurança excede o limite de registros; restauração bloqueada")
+        data[name] = records
+    raw = json.dumps(jsonable_encoder({"data": data}), ensure_ascii=False).encode()
+    compressed = gzip.compress(raw)
+    if len(compressed) > 15 * 1024 * 1024:
+        raise HTTPException(400, "Cópia de segurança anterior à restauração excede o limite; restauração bloqueada")
+    snapshot_id = str(uuid.uuid4())
+    await db.restore_safety_backups.insert_one({
+        "id": snapshot_id, "at": datetime.now(timezone.utc), "actor_id": actor_id,
+        "blob": compressed, "sha256": hashlib.sha256(raw).hexdigest(),
+    })
+    return snapshot_id
 
 
 @router.post("/backup/restore", response_model=RestoreOut)
@@ -123,28 +165,33 @@ async def restore(body: RestoreIn, me: dict = Depends(require())):
     """Replaces each collection present in the backup. Employees keep their current PINs (backups never carry PINs);
     employees that do not exist here are restored inactive until the admin sets a PIN. The logged-in admin is always kept."""
     data = validate_restore_data(body.data)
-    if "settings" in data:  # never overwrite the Google Drive connection of this install
-        data["settings"] = [d for d in data["settings"] if isinstance(d, dict) and d.get("_id") != "drive"]
+    if "settings" in data:  # installation identity and connections never come from a clone
+        data["settings"] = [d for d in data["settings"] if d.get("_id") not in RESERVED_SETTINGS]
     if not data.get("products") and not data.get("orders"):
         raise HTTPException(400, "Arquivo de backup inválido ou vazio")
+    await save_restore_safety_snapshot(me["id"])
     counts: dict[str, int] = {}
     for c, docs in data.items():
         docs = [revive(d) for d in docs if isinstance(d, dict)]
         if c == "employees":
-            pins = {e["id"]: e.get("pin_hash") for e in await db.employees.find({}, {"_id": 0, "id": 1, "pin_hash": 1}).to_list(1000)}
-            keep = [d for d in docs if d.get("id")]
+            credentials = {e["id"]: e for e in await db.employees.find(
+                {}, {"_id": 0, "id": 1, "pin_hash": 1, "password_hash": 1}).to_list(1000)}
+            keep = [d for d in docs if d.get("id") and d["id"] != me["id"]]
             for d in keep:
                 d.pop("pin_hash", None)
-                if pins.get(d["id"]):
-                    d["pin_hash"] = pins[d["id"]]
-                else:
+                d.pop("password_hash", None)
+                current = credentials.get(d["id"], {})
+                for field in ("pin_hash", "password_hash"):
+                    if current.get(field):
+                        d[field] = current[field]
+                if not current.get("pin_hash") and not current.get("password_hash"):
                     d["active"] = False
             await db.employees.delete_many({"id": {"$nin": [d["id"] for d in keep] + [me["id"]]}})
             for d in keep:
                 await db.employees.replace_one({"id": d["id"]}, d, upsert=True)
             counts[c] = len(keep)
             continue
-        await db[c].delete_many({"_id": {"$ne": "drive"}} if c == "settings" else {})
+        await db[c].delete_many({"_id": {"$nin": sorted(RESERVED_SETTINGS)}} if c == "settings" else {})
         if docs:
             await db[c].insert_many(docs)
         counts[c] = len(docs)

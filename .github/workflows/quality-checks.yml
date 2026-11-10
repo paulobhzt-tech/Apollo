@@ -90,3 +90,33 @@ jobs:
           node --check main.js
           node --check preload.js
           node --check scripts/build-web.js
+
+  restore-disposable:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      MONGO_URL: mongodb://127.0.0.1:27017
+      DB_NAME: apollo_restore_test_${{ github.run_id }}_${{ github.run_attempt }}
+      APOLLO_ALLOW_DISPOSABLE_RESTORE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Instalar dependencias dos testes de restauracao isolada
+        run: python -m pip install pytest pytest-xdist pytest-asyncio httpx fastapi motor pymongo python-dotenv bcrypt
+      - name: Iniciar MongoDB descartavel sem dados existentes
+        run: |
+          docker run -d --name apollo-restore-mongo -p 127.0.0.1:27017:27017 mongo:7 --bind_ip_all
+          for i in $(seq 1 40); do
+            if docker exec apollo-restore-mongo mongosh --quiet --eval 'db.adminCommand({ping:1})' >/dev/null 2>&1; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - name: Testar backup e restauracao real apenas no banco descartavel
+        run: python -m pytest -q -n 0 tests/test_restore_disposable_integration.py
+      - name: Remover apenas container descartavel desta execucao
+        if: always()
+        run: docker rm -f apollo-restore-mongo || true
