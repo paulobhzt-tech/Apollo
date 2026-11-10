@@ -132,17 +132,13 @@ async function openBest(offlineOnly = false) {
 }
 
 function watchConnection() {
+  // Never replace the offline renderer just because connectivity returned.
+  // A navigation discards in-memory form state and may force the operator to
+  // log in again. The offline UI can reach the API through the pdv protocol
+  // when the server is back; switching origins must be an explicit action.
   setInterval(async () => {
-    if (!win || mode !== "offline") return;
-    if (await serverReachable()) {
-      const route = new URL(win.webContents.getURL()).pathname || "/pdv";
-      try {
-        await win.loadURL(cfg.serverUrl + route);
-        mode = "online"; // stay offline if loading the remote app fails
-      } catch {
-        mode = "offline";
-      }
-    }
+    if (!win || win.isDestroyed() || mode !== "offline") return;
+    await serverReachable();
   }, CHECK_MS);
 }
 
