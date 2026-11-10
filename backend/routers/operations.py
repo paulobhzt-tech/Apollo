@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pymongo.errors import DuplicateKeyError
 
+from lib.audit_alerts import summarize_audit_alerts
 from lib.audit import audit_event, verify_event
 from lib.auth import cancel_authorizer, current_user, require
 from lib.sync_identity import validate_sync_context
@@ -335,7 +336,8 @@ async def cash_move(body: CashMoveIn, user: dict = Depends(require("caixa"))):
     if body.type == "sangria" and body.amount > (await cash_summary(dict(s)))["expected_cash"]:
         raise HTTPException(400, "Sangria maior que o saldo em dinheiro")
     m = CashMovement(type=body.type, amount=body.amount, note=body.note, by_name=user["name"]).model_dump()
-    result = await db.cash_sessions.update_one({"id": s["id"], "status": "aberto"}, {"$push": {"movements": m, "audit_events": audit_event("cash_" + body.type, user, reason=body.note, values={"amount": body.amount})}})
+    result = await db.cash_sessions.update_one({"id": s["id"], "status": "aberto",
+        "$expr": {"$eq": [{"$size": {"$ifNull": ["$movements", []]}}, len(s.get("movements", []))]}}, {"$push": {"movements": m, "audit_events": audit_event("cash_" + body.type, user, reason=body.note, values={"amount": body.amount})}})
     if not result.modified_count:
         raise HTTPException(409, "O caixa mudou durante a operação. Atualize o saldo antes de tentar novamente.")
     return await cash_summary(await db.cash_sessions.find_one({"id": s["id"]}, {"_id": 0}))
@@ -383,3 +385,12 @@ async def operational_audit(action: Optional[str] = None, record_id: Optional[st
     events.sort(key=event_time, reverse=True)
     return {"events": events[:limit], "limit": limit,
             "signing_configured": len(os.environ.get("AUDIT_SIGNING_KEY", "")) >= 32}
+
+
+@router.get("/audit/alerts")
+async def administrative_audit_alerts(user: dict = Depends(require())):
+    sample = await operational_audit(action=None, record_id=None, limit=500, _=user)
+    return {"alerts": summarize_audit_alerts(sample["events"]),
+            "sample_size": len(sample["events"]), "sample_limit": 500,
+            "sample_limit_reached": len(sample["events"]) == 500,
+            "notice": "Indicadores para revisão na amostra recente; não comprovam fraude e não executam bloqueios."}

@@ -60,7 +60,8 @@ async def test_cash_move_audit_is_part_of_same_write(monkeypatch):
     monkeypatch.setattr(operations, "cash_summary", AsyncMock(side_effect=lambda s: s))
     await operations.cash_move(CashMoveIn(type="suprimento", amount=30, note="Troco inicial"), {"id": "u1", "name": "Operator"})
     query, update = cash.update_one.await_args.args
-    assert query == {"id": "c1", "status": "aberto"}
+    assert query["id"] == "c1" and query["status"] == "aberto"
+    assert "$expr" in query
     assert update["$push"]["audit_events"]["values"]["amount"] == 30
     assert update["$push"]["movements"]["amount"] == 30
 
@@ -110,3 +111,56 @@ async def test_audit_merges_legacy_datetime_and_iso_events_chronologically(monke
     result = await operations.operational_audit(action=None, record_id=None, limit=100, _={"role": "admin"})
     assert [row["event"]["id"] for row in result["events"]] == ["old-schema", "modern"]
     assert any("$set" in stage and "audit_sort_at" in stage["$set"] for stage in collections["orders"].aggregate.call_args.args[0])
+
+
+@pytest.mark.asyncio
+async def test_alert_endpoint_is_admin_only_before_reading_audit(monkeypatch):
+    app = FastAPI()
+    app.include_router(operations.router)
+    app.dependency_overrides[current_user] = lambda: {"id": "u1", "role": "caixa"}
+    history = AsyncMock()
+    monkeypatch.setattr(operations, "operational_audit", history)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        assert (await client.get("/audit/alerts")).status_code == 403
+    history.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_alert_endpoint_is_bounded_and_does_not_enforce_actions(monkeypatch):
+    row = {"source": "cash_sessions", "record_id": "c1", "integrity": "unsigned",
+           "event": {"id": "event", "action": "cash_closed", "actor_id": "u1", "values": {"difference": -30}}}
+    history = AsyncMock(return_value={"events": [row]})
+    monkeypatch.setattr(operations, "operational_audit", history)
+    result = await operations.administrative_audit_alerts({"id": "u1", "role": "admin"})
+    assert result["alerts"][0]["rule"] == "cash_difference"
+    assert result["sample_size"] == 1
+    assert history.await_args.kwargs["limit"] == 500
+
+
+@pytest.mark.asyncio
+async def test_simultaneous_withdrawals_cannot_both_use_stale_movement_balance(monkeypatch):
+    import asyncio
+    snapshot = {"id": "c1", "movements": []}
+    arrived = 0
+    barrier = asyncio.Event()
+    async def current():
+        nonlocal arrived
+        arrived += 1
+        if arrived == 2: barrier.set()
+        await barrier.wait()
+        return deepcopy(snapshot)
+    stored = []
+    async def update(query, changes):
+        expected = query["$expr"]["$eq"][1]
+        if len(stored) != expected: return SimpleNamespace(modified_count=0)
+        stored.append(changes["$push"]["movements"])
+        return SimpleNamespace(modified_count=1)
+    cash = SimpleNamespace(update_one=AsyncMock(side_effect=update), find_one=AsyncMock(return_value=snapshot))
+    monkeypatch.setattr(operations, "db", SimpleNamespace(cash_sessions=cash))
+    monkeypatch.setattr(operations, "current_cash", current)
+    monkeypatch.setattr(operations, "cash_summary", AsyncMock(side_effect=lambda s: {**s, "expected_cash": 100}))
+    user = {"id": "u1", "name": "Cashier"}
+    results = await asyncio.gather(*(operations.cash_move(CashMoveIn(type="sangria", amount=60, note="Retirada teste"), user) for _ in range(2)), return_exceptions=True)
+    assert len(stored) == 1
+    conflicts = [result for result in results if isinstance(result, operations.HTTPException)]
+    assert len(conflicts) == 1 and conflicts[0].status_code == 409

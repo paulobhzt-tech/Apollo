@@ -23,8 +23,17 @@ export default function Auditoria() {
   const [filter, setFilter] = useState("");
   const audit = useQuery({ queryKey: ["operational-audit", action, filter], enabled: me?.role === "admin",
     queryFn: () => apiGet<{ events: Entry[]; signing_configured: boolean }>(`/audit/operations?limit=100&action=${encodeURIComponent(action)}&record_id=${encodeURIComponent(filter)}`) });
+  const alerts = useQuery({ queryKey: ["audit-alerts"], enabled: me?.role === "admin", queryFn: () => apiGet<{ alerts: { id: string; severity: string; reason: string; actor: { id: string; name: string }; count: number }[]; sample_size: number; sample_limit_reached: boolean }>("/audit/alerts") });
   return <AppShell roles={["admin"]}>
     <PageHeader title="Auditoria de operação" subtitle="Caixa, pagamentos, cancelamentos e cozinha/bar" />
+    <section className="mb-4 space-y-2 rounded-lg border p-3" data-testid="audit-alerts">
+      <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-semibold">Alertas para revisão administrativa</h2><Button variant="outline" size="sm" onClick={() => void alerts.refetch()}>Atualizar alertas</Button></div>
+      <p className="text-xs text-muted-foreground">Indicadores não comprovam fraude e não bloqueiam operações. Amostra: {alerts.data?.sample_size ?? "—"} eventos recentes; não representa todo o histórico.</p>
+      {alerts.isError && <p role="alert">Não foi possível consultar os alertas.</p>}
+      {alerts.data?.alerts.map(item => <p key={item.id} className={item.severity === "critical" ? "break-words text-sm font-semibold text-red-500" : "break-words text-sm"}>{item.reason} · Operador: {item.actor.name || item.actor.id || "Não identificado"} · {item.count} ocorrência(s)</p>)}
+      {alerts.data && !alerts.data.alerts.length && <p className="text-sm">Nenhum indicador atingiu os limites na amostra consultada.</p>}
+      {alerts.data?.sample_limit_reached && <p className="text-xs text-amber-500">Limite da amostra atingido; existem eventos que podem não estar nesta revisão.</p>}
+    </section>
     <div className="mb-4 flex flex-wrap gap-2">
       <select aria-label="Filtrar ação" className="max-w-full rounded-md border bg-background px-3 py-2 text-sm" value={action} onChange={e => setAction(e.target.value)}>
         <option value="">Todas as ações</option>{Object.entries(LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
