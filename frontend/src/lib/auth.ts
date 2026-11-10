@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { setQueueContext, type QueueContext } from "./offline";
 import { apiGet } from "./api";
 import { isDesktop, kv } from "./desktop";
 import type { Employee, Role } from "./types";
@@ -7,9 +8,16 @@ const ME_KEY = "pdv_last_operator";
 async function fetchMe(): Promise<Employee> {
   try {
     const me = await apiGet<Employee>("/auth/me");
+    try {
+      setQueueContext(await apiGet<QueueContext>("/auth/sync-context"));
+    } catch {
+      // An older server can still operate online; unknown queues cannot replay.
+      setQueueContext(null);
+    }
     if (isDesktop()) kv.set(ME_KEY, JSON.stringify(me));
     return me;
   } catch (e) {
+    setQueueContext(null);
     // Do not grant access just because this computer remembers an operator.
     // An offline PIN verification flow is required before allowing offline access.
     throw e;

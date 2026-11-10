@@ -2,18 +2,31 @@
 // localStorage and replayed against the idempotent /pdv/sale endpoint (client_ref).
 import { toast } from "sonner";
 import { useSyncExternalStore } from "react";
-import { ApiError, apiPost } from "./api";
+import { ApiError, apiGet, apiPost } from "./api";
 import { queryClient } from "./queryClient";
 import type { Product, QuickSaleIn } from "./types";
 import { deviceTag, kv } from "./desktop";
 
-const KEY = "pdv_offline_queue";
-const MENU_KEY = "pdv_offline_menu";
+import { contextToken, queueKeys, sameContext, validContext, type QueueContext } from "./queue-context";
+export type { QueueContext } from "./queue-context";
+let activeContext: QueueContext | null = null;
+let { KEY, REJ_KEY, ARCHIVE_KEY, LOG_KEY, MENU_KEY } = queueKeys(null);
 export interface QueuedSale { payload: QuickSaleIn; total: number; queued_at: string; attempts?: number; last_attempt_at?: string; last_error?: string; next_retry_at?: string }
 export interface RejectedSale extends QueuedSale { error: string; rejected_at: string }
-const REJ_KEY = "pdv_offline_rejected";
-const ARCHIVE_KEY = "pdv_offline_reviewed";
-const LOG_KEY = "pdv_offline_last_sync";
+/** Bind only after an authenticated server response; never restore authorization from disk. */
+export function setQueueContext(context: QueueContext | null) {
+  if (context && !validContext(context)) throw new Error("Identidade de sincronização inválida");
+  activeContext = context ? { ...context } : null;
+  ({ KEY, REJ_KEY, ARCHIVE_KEY, LOG_KEY, MENU_KEY } = queueKeys(activeContext));
+  emit();
+}
+export function legacyQueueStatus() {
+  const raw = kv.get("pdv_offline_queue");
+  const rejected = kv.get("pdv_offline_rejected");
+  return { pending: readSales<QueuedSale>("pdv_offline_queue").length,
+    rejected: readSales<RejectedSale>("pdv_offline_rejected").length,
+    has_data: !!raw && raw !== "[]" || !!rejected && rejected !== "[]" };
+}
 /** Unique, device-tagged reference: replays are idempotent on the server (client_ref). */
 export const newClientRef = () => `${deviceTag()}-${Date.now().toString(36)}-${typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)}`;
 
@@ -62,6 +75,9 @@ export function setForcedOffline(v: boolean) {
   emit();
 }
 export function enqueue(sale: QueuedSale) {
+  if (!activeContext) throw new Error("Entre novamente para confirmar estabelecimento, servidor e operador antes de salvar offline");
+  if (sale.payload.sync_context && !sameContext(sale.payload.sync_context, activeContext)) throw new Error("Venda pertence a outra fila de sincronização");
+  sale = { ...sale, payload: { ...sale.payload, sync_context: { ...activeContext } } };
   const queued = read(true);
   if (queued.some((item) => item.payload.client_ref === sale.payload.client_ref)) return;
   // A failed write must never be presented as a successfully saved sale.
@@ -71,7 +87,7 @@ export function enqueue(sale: QueuedSale) {
   emit();
 }
 export function cacheMenu(products: Product[]) {
-  kv.set(MENU_KEY, JSON.stringify(products));
+  if (activeContext) kv.set(MENU_KEY, JSON.stringify(products));
 }
 export function cachedMenu(): Product[] {
   try {
@@ -83,29 +99,36 @@ export function cachedMenu(): Product[] {
 
 let syncing = false;
 export async function syncQueue(options: { force?: boolean } = {}): Promise<{ synced: number; failed: number }> {
-  if (syncing || isOffline()) return { synced: 0, failed: 0 };
+  if (syncing || isOffline() || !activeContext) return { synced: 0, failed: 0 };
+  const context = { ...activeContext };
   // Web Locks serialize replay across tabs on the same origin.
   // The backend client_ref protects desktop windows on other origins.
   if (typeof navigator !== "undefined" && navigator.locks?.request) {
-    return navigator.locks.request("apollo-pdv-offline-sync", async () => {
+    return navigator.locks.request(`apollo-pdv-offline-sync:${contextToken(context)}`, async () => {
       if (isOffline()) return { synced: 0, failed: 0 };
-      return performSyncQueue(!!options.force);
+      return performSyncQueue(!!options.force, context);
     });
   }
-  return performSyncQueue(!!options.force);
+  return performSyncQueue(!!options.force, context);
 }
 
-async function performSyncQueue(force: boolean): Promise<{ synced: number; failed: number }> {
-  if (syncing || isOffline()) return { synced: 0, failed: 0 };
+async function performSyncQueue(force: boolean, context: QueueContext): Promise<{ synced: number; failed: number }> {
+  if (syncing || isOffline() || !sameContext(activeContext, context)) return { synced: 0, failed: 0 };
+  const { KEY, REJ_KEY, LOG_KEY } = queueKeys(context);
   syncing = true;
   let synced = 0;
   let failed = 0;
   const remaining: QueuedSale[] = [];
   const rejected: RejectedSale[] = [];
   try {
-    const snapshot = read(true);
-    readRejected(true);
+    const snapshot = readSales<QueuedSale>(KEY, true);
+    readSales<RejectedSale>(REJ_KEY, true);
+    if (!snapshot.length) return { synced: 0, failed: 0 };
+    const authenticated = await apiGet<QueueContext>("/auth/sync-context");
+    if (!sameContext(context, authenticated)) throw new Error("Sessão ou servidor mudou. Entre novamente; a fila original foi preservada.");
     for (const [index, s] of snapshot.entries()) {
+      if (!sameContext(activeContext, context)) { remaining.push(...snapshot.slice(index)); break; }
+      if (!sameContext(s.payload.sync_context, context)) throw new Error("Registro de outra identidade encontrado. Fila preservada para revisão.");
       if (!force && s.next_retry_at && new Date(s.next_retry_at).getTime() > Date.now()) {
         remaining.push(...snapshot.slice(index));
         break;
@@ -135,7 +158,7 @@ async function performSyncQueue(force: boolean): Promise<{ synced: number; faile
     // Write rejected sales to durable storage BEFORE removing anything from the queue.
     // If persistence fails, leave the original queue untouched for safe recovery.
     if (rejected.length) {
-      const previous = readRejected(true);
+      const previous = readSales<RejectedSale>(REJ_KEY, true);
       const knownRefs = new Set(previous.map((s) => s.payload.client_ref));
       const additions = rejected.filter((s) => !knownRefs.has(s.payload.client_ref));
       const nextRejected = JSON.stringify([...additions, ...previous]);
@@ -144,7 +167,7 @@ async function performSyncQueue(force: boolean): Promise<{ synced: number; faile
     }
     // Keep sales added while synchronization was running. Only replace the snapshot we processed.
     const processedRefs = new Set(snapshot.map((s) => s.payload.client_ref));
-    const newlyQueued = read(true).filter((s) => !processedRefs.has(s.payload.client_ref));
+    const newlyQueued = readSales<QueuedSale>(KEY, true).filter((s) => !processedRefs.has(s.payload.client_ref));
     const nextQueue = JSON.stringify([...remaining, ...newlyQueued]);
     kv.set(KEY, nextQueue);
     if (kv.get(KEY) !== nextQueue) throw new Error("Falha ao salvar fila de vendas");
@@ -161,7 +184,7 @@ export function useOffline() {
   const offline = useSyncExternalStore(subscribe, isOffline);
   const queue = useSyncExternalStore(subscribe, () => cachedQueue);
   const rejected = useSyncExternalStore(subscribe, () => cachedRejected);
-  return { offline, forced, queue, rejected };
+  return { offline, forced, queue, rejected, context: activeContext };
 }
 
 export function lastSync(): { at: string; synced: number; failed: number; pending: number } | null {

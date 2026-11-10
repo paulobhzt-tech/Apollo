@@ -10,6 +10,7 @@ from pymongo.errors import DuplicateKeyError
 
 from lib.audit import audit_event, verify_event
 from lib.auth import cancel_authorizer, current_user, require
+from lib.sync_identity import validate_sync_context
 from lib.db import db
 from lib.orders import (MARKET_FEES, build_items, create_ticket, current_cash, emit_invoice, finalize_payment,
                         fiado_reverse, free_table, method_totals, move_stock, new_order, now, pay_key, refresh_totals)
@@ -23,13 +24,14 @@ router = APIRouter()
 # ---------- PDV ----------
 def sale_fingerprint(body: QuickSaleIn) -> str:
     """Bind the idempotency reference to the validated request, without storing PII twice."""
-    payload = body.model_dump(mode="json", exclude={"client_ref"})
+    payload = body.model_dump(mode="json", exclude={"client_ref", "sync_context"})
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
 
 
 @router.post("/pdv/sale", response_model=SaleResult)
 async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
     """Atomic create+pay for counter sales. Idempotent on client_ref (offline queue replays)."""
+    await validate_sync_context(body.sync_context, user)
     existing = await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0})
     if existing:
         # A reference is an idempotency key, never authorization to another
@@ -335,7 +337,7 @@ async def cash_move(body: CashMoveIn, user: dict = Depends(require("caixa"))):
     m = CashMovement(type=body.type, amount=body.amount, note=body.note, by_name=user["name"]).model_dump()
     result = await db.cash_sessions.update_one({"id": s["id"], "status": "aberto"}, {"$push": {"movements": m, "audit_events": audit_event("cash_" + body.type, user, reason=body.note, values={"amount": body.amount})}})
     if not result.modified_count:
-        raise HTTPException(409, "O caixa foi fechado durante a operação")
+        raise HTTPException(409, "O caixa mudou durante a operação. Atualize o saldo antes de tentar novamente.")
     return await cash_summary(await db.cash_sessions.find_one({"id": s["id"]}, {"_id": 0}))
 
 

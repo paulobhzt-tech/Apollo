@@ -330,7 +330,14 @@ class PayIn(BaseModel):
     fiado_customer_id: Optional[str] = None
 
 
+class SyncContext(BaseModel):
+    establishment_id: str = Field(min_length=1, max_length=128)
+    server_id: str = Field(min_length=1, max_length=128)
+    operator_id: str = Field(min_length=1, max_length=128)
+
+
 class QuickSaleIn(PayIn):
+    sync_context: Optional[SyncContext] = None
     client_ref: str = Field(min_length=6)
     items: list[OrderItemIn] = Field(min_length=1)
     customer_name: str = ""

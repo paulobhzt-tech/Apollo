@@ -5,11 +5,12 @@ import { Panel } from "@/pages/Dashboard";
 import { Button } from "@/components/ui/button";
 import { desktop } from "@/lib/desktop";
 import { brl, errMsg, fmtDateTime } from "@/lib/format";
-import { dismissRejected, reviewedSales, lastSync, retryRejected, syncQueue, useOffline } from "@/lib/offline";
+import { dismissRejected, legacyQueueStatus, reviewedSales, lastSync, retryRejected, syncQueue, useOffline } from "@/lib/offline";
 
 /** Sincronização: pending offline sales, rejected ones (kept for review) and the desktop app status. */
 export default function SyncPanel() {
-  const { offline, queue, rejected } = useOffline();
+  const { offline, queue, rejected, context } = useOffline();
+  const legacy = legacyQueueStatus();
   const d = desktop();
   const cfg = useQuery({ queryKey: ["desktop-config"], queryFn: () => d!.config(), enabled: !!d });
   const last = lastSync();
@@ -32,6 +33,9 @@ export default function SyncPanel() {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Panel title="Vendas offline deste computador">
+        {!context && <p role="alert" className="mb-3 text-sm text-amber-300">Confirme seu acesso novamente em um servidor atualizado para habilitar a fila isolada.</p>}
+        {context && <p className="mb-3 text-xs text-zinc-400">Fila exclusiva do estabelecimento, servidor e operador autenticados. Outras filas continuam preservadas no dispositivo.</p>}
+        {legacy.has_data && <p role="alert" className="mb-3 text-sm text-amber-300">Fila anterior preservada: {legacy.pending} pendente(s), {legacy.rejected} recusa(s). O envio automático está bloqueado até revisão do estabelecimento e operador de origem.</p>}
         <div className="flex flex-wrap items-center gap-3">
           <span className={offline ? "text-amber-300" : "text-emerald-300"} data-testid="sync-connection">
             {offline ? <><CloudOff className="mr-1 inline size-4" /> Sem conexão</> : <><CheckCircle2 className="mr-1 inline size-4" /> Conectado</>}

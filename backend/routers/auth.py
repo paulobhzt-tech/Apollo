@@ -270,3 +270,9 @@ async def time_clock_report(start: str, end: str, _: dict = Depends(require())):
         row["shifts"] += 1
     return {"entries": entries, "totals": sorted(totals.values(), key=lambda x: x["employee_name"]),
             "note": "Registro operacional de turnos completos; não calcula horas extras, intervalos ou folha de pagamento."}
+
+
+@router.get("/auth/sync-context")
+async def authenticated_sync_context(user: dict = Depends(current_user)):
+    from lib.sync_identity import sync_context
+    return await sync_context(user)

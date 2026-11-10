@@ -1,14 +1,22 @@
 import { beforeEach, expect, it, vi } from "vitest";
 const storage = new Map<string, string>();
 const post = vi.fn();
+const get = vi.fn();
+const CONTEXT = { establishment_id: "restaurant-a", server_id: "server-a", operator_id: "cashier-a" };
+const suffix = `:v3:${encodeURIComponent(JSON.stringify([CONTEXT.establishment_id, CONTEXT.server_id, CONTEXT.operator_id]))}`;
+const QUEUE_KEY = `pdv_offline_queue${suffix}`;
+const REJECTED_KEY = `pdv_offline_rejected${suffix}`;
+const REVIEWED_KEY = `pdv_offline_reviewed${suffix}`;
 vi.mock("./desktop", () => ({ deviceTag: () => "test", kv: { get: (k: string) => storage.get(k) ?? null, set: (k: string, v: string) => storage.set(k, v) } }));
-vi.mock("./api", () => ({ apiPost: (...args: unknown[]) => post(...args), ApiError: class extends Error { status: number; body: unknown; constructor(status = 503, body: unknown = null) { super("API"); this.status = status; this.body = body; } } }));
+vi.mock("./api", () => ({ apiGet: (...args: unknown[]) => get(...args), apiPost: (...args: unknown[]) => post(...args), ApiError: class extends Error { status: number; body: unknown; constructor(status = 503, body: unknown = null) { super("API"); this.status = status; this.body = body; } } }));
 vi.mock("./queryClient", () => ({ queryClient: { invalidateQueries: vi.fn() } }));
-beforeEach(() => {
-  vi.resetModules(); storage.clear(); post.mockReset();
+beforeEach(async () => {
+  vi.resetModules(); storage.clear(); post.mockReset(); get.mockReset(); get.mockResolvedValue(CONTEXT);
   vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn() });
   vi.stubGlobal("navigator", { onLine: true });
   vi.useFakeTimers();
+  const offline = await import("./offline");
+  offline.setQueueContext(CONTEXT);
 });
 it("stops at a transient failure and preserves FIFO for the next sync", async () => {
   const offline = await import("./offline");
@@ -16,24 +24,24 @@ it("stops at a transient failure and preserves FIFO for the next sync", async ()
   post.mockRejectedValueOnce(new Error("network"));
   expect(await offline.syncQueue()).toEqual({ synced: 0, failed: 0 });
   expect(post).toHaveBeenCalledTimes(1);
-  expect(JSON.parse(storage.get("pdv_offline_queue")!).map((s: {payload: {client_ref: string}}) => s.payload.client_ref)).toEqual(["sale-1", "sale-2"]);
+  expect(JSON.parse(storage.get(QUEUE_KEY)!).map((s: {payload: {client_ref: string}}) => s.payload.client_ref)).toEqual(["sale-1", "sale-2"]);
   post.mockResolvedValue({});
   expect(await offline.syncQueue({ force: true })).toEqual({ synced: 2, failed: 0 });
-  expect(JSON.parse(storage.get("pdv_offline_queue")!)).toEqual([]);
+  expect(JSON.parse(storage.get(QUEUE_KEY)!)).toEqual([]);
 });
 it("does not enqueue the same reference twice", async () => {
   const offline = await import("./offline");
   const sale = { payload: { client_ref: "sale-1" } as never, total: 10, queued_at: "2026-11-10" };
   offline.enqueue(sale); offline.enqueue(sale);
-  expect(JSON.parse(storage.get("pdv_offline_queue")!)).toHaveLength(1);
+  expect(JSON.parse(storage.get(QUEUE_KEY)!)).toHaveLength(1);
 });
 
 it("preserves corrupt storage instead of overwriting it", async () => {
-  storage.set("pdv_offline_queue", "broken-json");
+  storage.set(QUEUE_KEY, "broken-json");
   const offline = await import("./offline");
   expect(() => offline.enqueue({ payload: { client_ref: "new-sale" } as never, total: 10, queued_at: "now" })).toThrow("Fila offline ilegível");
   await expect(offline.syncQueue()).rejects.toThrow("Fila offline ilegível");
-  expect(storage.get("pdv_offline_queue")).toBe("broken-json");
+  expect(storage.get(QUEUE_KEY)).toBe("broken-json");
   expect(post).not.toHaveBeenCalled();
 });
 it("retains authentication failures for retry after login", async () => {
@@ -42,8 +50,8 @@ it("retains authentication failures for retry after login", async () => {
   offline.enqueue({ payload: { client_ref: "sale-1" } as never, total: 10, queued_at: "now" });
   post.mockRejectedValueOnce(new ApiError(401, null));
   await offline.syncQueue();
-  expect(JSON.parse(storage.get("pdv_offline_queue")!)).toHaveLength(1);
-  expect(storage.get("pdv_offline_rejected")).toBeUndefined();
+  expect(JSON.parse(storage.get(QUEUE_KEY)!)).toHaveLength(1);
+  expect(storage.get(REJECTED_KEY)).toBeUndefined();
 });
 it("retains a business rejection for review before removing it from pending", async () => {
   const offline = await import("./offline");
@@ -51,8 +59,8 @@ it("retains a business rejection for review before removing it from pending", as
   offline.enqueue({ payload: { client_ref: "sale-1" } as never, total: 10, queued_at: "now" });
   post.mockRejectedValueOnce(new ApiError(422, { detail: "Dados divergentes" }));
   expect(await offline.syncQueue()).toEqual({ synced: 0, failed: 1 });
-  expect(JSON.parse(storage.get("pdv_offline_rejected")!)[0].error).toBe("Dados divergentes");
-  expect(JSON.parse(storage.get("pdv_offline_queue")!)).toEqual([]);
+  expect(JSON.parse(storage.get(REJECTED_KEY)!)[0].error).toBe("Dados divergentes");
+  expect(JSON.parse(storage.get(QUEUE_KEY)!)).toEqual([]);
 });
 it("preserves a sale enqueued during an in-flight sync", async () => {
   const offline = await import("./offline");
@@ -60,7 +68,7 @@ it("preserves a sale enqueued during an in-flight sync", async () => {
   offline.enqueue(sale("sale-1"));
   post.mockImplementationOnce(async () => { offline.enqueue(sale("sale-2")); return {}; });
   await offline.syncQueue();
-  expect(JSON.parse(storage.get("pdv_offline_queue")!)[0].payload.client_ref).toBe("sale-2");
+  expect(JSON.parse(storage.get(QUEUE_KEY)!)[0].payload.client_ref).toBe("sale-2");
 });
 
 it("backs off automatic retries but lets the operator retry immediately", async () => {
@@ -68,7 +76,7 @@ it("backs off automatic retries but lets the operator retry immediately", async 
   offline.enqueue({ payload: { client_ref: "sale-1" } as never, total: 10, queued_at: "now" });
   post.mockRejectedValueOnce(new Error("network"));
   await offline.syncQueue();
-  const retained = JSON.parse(storage.get("pdv_offline_queue")!)[0];
+  const retained = JSON.parse(storage.get(QUEUE_KEY)!)[0];
   expect(retained.attempts).toBe(1);
   expect(new Date(retained.next_retry_at).getTime()).toBe(Date.now() + 5000);
   post.mockResolvedValue({});
@@ -80,30 +88,72 @@ it("backs off automatic retries but lets the operator retry immediately", async 
 it("archives a reviewed rejection without erasing its original payload", async () => {
   const offline = await import("./offline");
   const sale = { payload: { client_ref: "sale-1", items: [{product_id: "p1"}] }, total: 10, queued_at: "now", rejected_at: "now", error: "Revisar" };
-  storage.set("pdv_offline_rejected", JSON.stringify([sale]));
+  storage.set(REJECTED_KEY, JSON.stringify([sale]));
   offline.dismissRejected("sale-1");
   expect(offline.reviewedSales()[0].payload).toEqual(sale.payload);
-  expect(JSON.parse(storage.get("pdv_offline_rejected")!)).toEqual([]);
+  expect(JSON.parse(storage.get(REJECTED_KEY)!)).toEqual([]);
 });
 it("does not remove a rejection when the archive is corrupt", async () => {
   const offline = await import("./offline");
   const sale = { payload: { client_ref: "sale-1" }, total: 10, queued_at: "now", rejected_at: "now", error: "Revisar" };
-  storage.set("pdv_offline_rejected", JSON.stringify([sale]));
-  storage.set("pdv_offline_reviewed", "corrupt");
+  storage.set(REJECTED_KEY, JSON.stringify([sale]));
+  storage.set(REVIEWED_KEY, "corrupt");
   expect(() => offline.dismissRejected("sale-1")).toThrow("Fila offline ilegível");
-  expect(JSON.parse(storage.get("pdv_offline_rejected")!)).toHaveLength(1);
+  expect(JSON.parse(storage.get(REJECTED_KEY)!)).toHaveLength(1);
 });
 
 it("keeps rejected evidence if saving the retry fails", async () => {
   const offline = await import("./offline");
   const sale = { payload: { client_ref: "sale-1" }, total: 10, queued_at: "now", rejected_at: "now", error: "Revisar" };
-  storage.set("pdv_offline_rejected", JSON.stringify([sale]));
+  storage.set(REJECTED_KEY, JSON.stringify([sale]));
   const save = vi.spyOn(storage, "set").mockImplementation((key, value) => {
-    if (key === "pdv_offline_queue") throw new Error("disk full");
+    if (key === QUEUE_KEY) throw new Error("disk full");
     return Map.prototype.set.call(storage, key, value);
   });
   try {
     expect(() => offline.retryRejected("sale-1")).toThrow("disk full");
-    expect(JSON.parse(storage.get("pdv_offline_rejected")!)).toEqual([sale]);
+    expect(JSON.parse(storage.get(REJECTED_KEY)!)).toEqual([sale]);
   } finally { save.mockRestore(); }
+});
+
+it("isolates every operator server and establishment and preserves legacy bytes", async () => {
+  const offline = await import("./offline");
+  storage.set("pdv_offline_queue", "[{\"payload\":{\"client_ref\":\"legacy-sale\"}}]");
+  offline.enqueue({ payload: { client_ref: "sale-a" } as never, total: 10, queued_at: "now" });
+  for (const context of [
+    { ...CONTEXT, operator_id: "cashier-b" },
+    { ...CONTEXT, server_id: "server-b" },
+    { ...CONTEXT, establishment_id: "restaurant-b" },
+  ]) {
+    offline.setQueueContext(context);
+    expect(await offline.syncQueue()).toEqual({ synced: 0, failed: 0 });
+  }
+  expect(post).not.toHaveBeenCalled();
+  expect(storage.get("pdv_offline_queue")).toContain("legacy-sale");
+  offline.setQueueContext(CONTEXT);
+  post.mockResolvedValue({});
+  expect(await offline.syncQueue()).toEqual({ synced: 1, failed: 0 });
+  expect(post.mock.calls[0][1].client_ref).toBe("sale-a");
+});
+it("refuses replay when server authentication has changed", async () => {
+  const offline = await import("./offline");
+  offline.enqueue({ payload: { client_ref: "sale-a" } as never, total: 10, queued_at: "now" });
+  get.mockResolvedValue({ ...CONTEXT, operator_id: "other" });
+  await expect(offline.syncQueue()).rejects.toThrow("Sessão ou servidor mudou");
+  expect(post).not.toHaveBeenCalled();
+  expect(JSON.parse(storage.get(QUEUE_KEY)!)).toHaveLength(1);
+});
+it("finishes the original queue without touching the next operator after an in-flight switch", async () => {
+  const offline = await import("./offline");
+  for (const ref of ["sale-a", "sale-b"]) offline.enqueue({ payload: { client_ref: ref } as never, total: 10, queued_at: "now" });
+  post.mockImplementationOnce(async () => { offline.setQueueContext({ ...CONTEXT, operator_id: "cashier-b" }); return {}; });
+  expect(await offline.syncQueue()).toEqual({ synced: 1, failed: 0 });
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(storage.get(QUEUE_KEY)!)[0].payload.client_ref).toBe("sale-b");
+});
+it("cannot bind an existing foreign payload to the current queue", async () => {
+  const offline = await import("./offline");
+  expect(() => offline.enqueue({ payload: { client_ref: "foreign", sync_context: { ...CONTEXT, server_id: "other" } } as never, total: 10, queued_at: "now" })).toThrow("outra fila");
+  offline.setQueueContext(null);
+  expect(() => offline.enqueue({ payload: { client_ref: "unknown" } as never, total: 10, queued_at: "now" })).toThrow("Entre novamente");
 });
