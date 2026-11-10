@@ -51,3 +51,20 @@ Branch de trabalho: `feature/seguranca-permissoes-homologacao`. **Não fazer mer
 - `3.0.8`: homologação final. **Planejada.**
 - Antes de publicar cada instalador, alinhar o número de versão no aplicativo, no empacotamento Windows e no nome do artefato; executar build, testes e registrar commit.
 - Atualização limpa é autorizada **somente para a instalação local de homologação** após backup verificado; não apagar banco remoto ou dados de produção.
+
+## Estimativas de esforço e acompanhamento (10/11/2026)
+
+**Importante:** os intervalos abaixo são estimativas de horas/dias de trabalho técnico ativo, não datas de entrega, trabalho autônomo contínuo ou compromissos de liberação. Revisar a cada teste, registrar horas reais e bloqueios. Não converter em data de disponibilidade sem execução e CI confirmados.
+
+| Versão prevista | Escopo | Estimativa inicial | Situação |
+|---|---|---|---|
+| 3.0.1 | Meu Menu e interface | 4–8 horas | Em implementação; instalador não liberado |
+| 3.0.2 | Estoque, compras e fornecedores | 1–2 dias | Parcial; testes pendentes |
+| 3.0.3 | Segurança e permissões | 1–3 dias | Parcial; autorização backend a verificar |
+| 3.0.4 | Mesas, comandas e caixa | 2–4 dias | Pendente de homologação |
+| 3.0.5 | Backup e recuperação | 1–2 dias | Protótipos; restauração pendente |
+| 3.0.6 | Sincronização e offline | 3–5 dias | Pendente de homologação |
+| 3.0.7 | Notificações e atalhos | 1–2 dias | Planejada |
+| 3.0.8 | Testes finais e release | 2–4 dias | Planejada |
+
+Para cada versão, registrar: início, última atualização, tempo efetivamente gasto, previsão revisada, percentual estimado, testes aprovados, bloqueios e link do instalador. Não atribuir progresso numérico como medida objetiva sem critérios definidos.
