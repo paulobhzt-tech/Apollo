@@ -7,12 +7,12 @@ on:
         description: "Tipo do instalador: teste local ou producao HTTPS"
         type: choice
         required: true
-        default: production
+        default: test
         options:
           - test
           - production
   push:
-    branches: ["fix/windows-production-server"]
+    branches: ["fix/windows-production-server", "feat/apollo-3.0.1-caixa-offline-auditoria"]
     tags: ["v*"]
 
 jobs:
@@ -32,9 +32,11 @@ jobs:
         env:
           REQUESTED_CHANNEL: ${{ inputs.channel }}
           PUBLISHED_URL: ${{ vars.PDV_SERVER_URL || 'https://pdv.apollo-pdv.com' }}
+          BUILD_REF: ${{ github.ref_name }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
           $channel = if ($env:EVENT_NAME -eq "workflow_dispatch") { $env:REQUESTED_CHANNEL } else { "production" }
+          if ($env:BUILD_REF -eq "feat/apollo-3.0.1-caixa-offline-auditoria") { $channel = "test" }
           if ($channel -eq "test") {
             "PDV_BUILD_CHANNEL=test" >> $env:GITHUB_ENV
             "PDV_SERVER_URL=http://localhost:18080" >> $env:GITHUB_ENV

@@ -99,7 +99,7 @@ async function performSyncQueue(): Promise<{ synced: number; failed: number }> {
   const rejected: RejectedSale[] = [];
   try {
     const snapshot = read();
-    for (const s of snapshot) {
+    for (const [index, s] of snapshot.entries()) {
       try {
         await apiPost("/pdv/sale", s.payload);
         synced++;
@@ -110,7 +110,12 @@ async function performSyncQueue(): Promise<{ synced: number; failed: number }> {
           failed++;
           const body = e.body as { detail?: unknown } | null;
           rejected.push({ ...s, error: typeof body?.detail === "string" ? body.detail : `Erro ${e.status}`, rejected_at: new Date().toISOString() });
-        } else remaining.push(s);
+        } else {
+          // Preserve FIFO after a connection/authentication failure. Sending the
+          // rest would hammer an unavailable server and reorder cash sales.
+          remaining.push(...snapshot.slice(index));
+          break;
+        }
       }
     }
     // Write rejected sales to durable storage BEFORE removing anything from the queue.

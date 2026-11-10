@@ -22,6 +22,10 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
     """Atomic create+pay for counter sales. Idempotent on client_ref (offline queue replays)."""
     existing = await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0})
     if existing:
+        # A reference is an idempotency key, never authorization to another
+        # cashier's receipt/customer information.
+        if existing.get("waiter_id") and existing["waiter_id"] != user["id"] and user.get("role") != "admin":
+            raise HTTPException(403, "Venda registrada por outro operador. Solicite revisão do administrador.")
         if existing.get("status") != "pago":
             raise HTTPException(409, "Venda ainda em processamento. Tente sincronizar novamente.")
         inv = await db.invoices.find_one({"id": existing.get("invoice_id")}, {"_id": 0}) if existing.get("invoice_id") else None
@@ -32,7 +36,10 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
     try:
         order = await new_order(channel="balcao", source="pdv", items=[i.model_dump() for i in items],
                                 client_ref=body.client_ref, customer={"name": body.customer_name, "cpf": body.customer_cpf},
-                                waiter_id=user["id"], waiter_name=user["name"])
+                                waiter_id=user["id"], waiter_name=user["name"],
+                                audit_events=[{"action": "counter_sale_created", "at": now(),
+                                               "actor_id": user["id"], "actor_name": user["name"],
+                                               "client_ref": body.client_ref}])
     except DuplicateKeyError:
         # Another device/tab is processing this client_ref. Do not return an unpaid
         # order as a completed sale; the client should retry after the first finishes.

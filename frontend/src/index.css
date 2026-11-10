@@ -140,8 +140,8 @@
 :root:not(.dark) .bg-primary.text-white, :root:not(.dark) button.bg-primary { color: #FFFFFF; }
 :root:not(.dark) .text-zinc-400 { color: #475569; }
 :root:not(.dark) .text-zinc-500 { color: #64748B; }
-:root:not(.dark) .border-white\\/5, :root:not(.dark) .border-white\\/8 { border-color: rgba(15, 23, 42, 0.12); }
-:root:not(.dark) .bg-white\\/5 { background-color: rgba(15, 23, 42, 0.04); }
+:root:not(.dark) .border-white\/5, :root:not(.dark) .border-white\/8 { border-color: rgba(15, 23, 42, 0.12); }
+:root:not(.dark) .bg-white\/5 { background-color: rgba(15, 23, 42, 0.04); }
 
 @layer base {
   * {

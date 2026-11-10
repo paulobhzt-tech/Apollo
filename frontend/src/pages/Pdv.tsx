@@ -74,7 +74,7 @@ export default function Pdv() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "F2" && cart.length && !payOpen && !sale.isPending) { e.preventDefault(); setPayOpen(true); }
-      if (e.key === "F4" && !payOpen && !sale.isPending && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) { e.preventDefault(); setCart([]); }
+      if (e.key === "F4" && !payOpen && !sale.isPending && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) { e.preventDefault(); if (window.confirm("Limpar todos os itens da venda atual?")) setCart([]); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
