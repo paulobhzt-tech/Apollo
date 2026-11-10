@@ -181,15 +181,15 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
               <LogOut className="size-4" aria-hidden="true" /><span className="hidden xl:inline">Trocar operador</span>
             </button>
           </div>
-          <nav aria-label="Atalhos do sistema" className="flex min-h-20 flex-wrap items-stretch gap-1 bg-[#303034] px-2 py-1.5 sm:px-4">
+          <nav aria-label="Atalhos do sistema" className="flex min-h-12 flex-wrap items-stretch gap-1 bg-[#303034] px-2 py-1.5 sm:px-4">
             {NAV.filter(n => n.roles.includes(me.role) && (
               activeRibbon ? n.group === activeRibbon :
               (NAV.find(item => item.to === loc.pathname)?.group ?? "Operação") === n.group
             )).map(n => {
               const Icon = ICONS[n.icon] ?? LayoutDashboard;
               return <NavLink key={n.to} to={n.to} title={n.label} onClick={() => setActiveRibbon(n.group)}
-                className={({isActive}) => cn("flex min-w-20 max-w-28 flex-1 flex-col items-center justify-center gap-1 rounded-sm px-2 py-2 text-center text-[11px] leading-tight transition-colors hover:bg-white/10",isActive ? "bg-[#414147] text-white" : "text-zinc-200")}>
-                <Icon className="size-6 text-[#e6b44d]" strokeWidth={1.8} /><span>{n.label}</span>
+                className={({isActive}) => cn("flex min-w-24 flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-center text-[11px] leading-tight transition-colors hover:bg-white/10",isActive ? "bg-[#414147] text-white" : "text-zinc-200")}>
+                <Icon className="size-4 shrink-0 text-[#e6b44d]" strokeWidth={1.8} /><span>{n.label}</span>
               </NavLink>;
             })}
           </nav>
