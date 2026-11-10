@@ -1,6 +1,7 @@
 from datetime import date
+import math
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from lib.auth import current_user, require
 from lib.db import db
@@ -291,6 +292,55 @@ async def inventory_alerts(_: dict = Depends(require("caixa", "cozinha"))):
             "low_stock": sum(a["severity"] == "baixo" for a in alerts),
             "estimated_minimum_cost": round(sum(a["estimated_minimum_cost"] for a in alerts), 2),
             "items": alerts}
+
+
+def replenishment_plan(ingredients: list[dict], target_multiplier: int = 2) -> dict:
+    """Read-only threshold plan. Costs are estimates, never supplier quotes or purchase orders."""
+    if target_multiplier not in (1, 2, 3):
+        raise ValueError("Target multiplier must be 1, 2 or 3")
+    items = []
+    for ing in ingredients:
+        try:
+            stock = float(ing.get("stock") or 0)
+            minimum = float(ing.get("min_stock") or 0)
+        except (ValueError, TypeError):
+            continue
+        if not math.isfinite(stock) or not math.isfinite(minimum):
+            continue
+        minimum = max(0, minimum)
+        if stock > 0 and (minimum == 0 or stock >= minimum):
+            continue
+        target = minimum * target_multiplier if minimum > 0 else None
+        if target is not None and not math.isfinite(target - stock):
+            continue
+        suggested = max(0, target - stock) if target is not None else None
+        if suggested is not None:
+            suggested = math.ceil(suggested) if ing.get("unit") == "un" else round(suggested, 4)
+        try:
+            unit_cost = float(ing.get("cost_per_unit") or 0)
+        except (ValueError, TypeError):
+            unit_cost = 0
+        has_cost = math.isfinite(unit_cost) and unit_cost > 0
+        items.append({
+            "ingredient_id": ing["id"], "name": ing["name"], "unit": ing.get("unit", ""),
+            "stock": stock, "min_stock": minimum, "target_stock": target, "suggested": suggested,
+            "estimated_cost": round(suggested * unit_cost, 2) if suggested is not None and has_cost and math.isfinite(suggested * unit_cost) else None,
+            "review_required": minimum == 0 or stock < 0,
+            "reason": "configure_minimum" if minimum == 0 else "negative_stock" if stock < 0 else "out_of_stock" if stock == 0 else "below_minimum",
+        })
+    items.sort(key=lambda i: (i["stock"] > 0, i["name"].casefold()))
+    return {"target_multiplier": target_multiplier, "items": items, "total": len(items),
+            "estimated_known_cost": round(sum(i["estimated_cost"] or 0 for i in items), 2),
+            "items_without_cost": sum(i["estimated_cost"] is None for i in items),
+            "review_required": sum(i["review_required"] for i in items)}
+
+
+@router.get("/inventory/replenishment")
+async def inventory_replenishment(target_multiplier: int = Query(default=2, ge=1, le=3),
+                                  _: dict = Depends(require("caixa", "cozinha"))):
+    ingredients = await db.ingredients.find({}, {"_id": 0, "id": 1, "name": 1, "unit": 1,
+                                                "stock": 1, "min_stock": 1, "cost_per_unit": 1}).to_list(5000)
+    return replenishment_plan(ingredients, target_multiplier)
 
 
 @router.post("/ingredients", response_model=Ingredient)

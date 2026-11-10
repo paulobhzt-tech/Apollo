@@ -20,7 +20,7 @@ import { ingredientValues } from "@/lib/catalog-form";
 
 const UNITS: Unit[] = ["kg", "g", "L", "ml", "un"];
 const MOVE_LABEL: Record<StockMove["type"], string> = { entrada: "Entrada", saida: "Saída", ajuste: "Ajuste/Inventário", venda: "Baixa por venda", estorno: "Estorno", perda: "Perda / Descarte" };
-const inv = () => { void queryClient.invalidateQueries({ queryKey: ["ingredients"] }); void queryClient.invalidateQueries({ queryKey: ["stock-moves"] }); };
+const inv = () => { void queryClient.invalidateQueries({ queryKey: ["inventory-replenishment"] }); void queryClient.invalidateQueries({ queryKey: ["ingredients"] }); void queryClient.invalidateQueries({ queryKey: ["stock-moves"] }); };
 
 type ProductionBatch = {
   id: string; production_type?: "espetinho" | "porcao"; ingredient_id: string; product_id?: string; ingredient_name: string; kg: number; units: number;
@@ -161,8 +161,16 @@ function InventoryPanel({ ingredients, onSaved }: { ingredients: Ingredient[]; o
   </div>;
 }
 
+type ReplenishmentPlan = {
+  target_multiplier: number; total: number; estimated_known_cost: number; items_without_cost: number; review_required: number;
+  items: { ingredient_id: string; name: string; unit: Unit; stock: number; min_stock: number; target_stock: number | null;
+    suggested: number | null; estimated_cost: number | null; review_required: boolean; reason: string }[];
+};
+
 export default function Estoque() {
   const { data: me } = useMe();
+  const [targetMultiplier, setTargetMultiplier] = useState("2");
+  const replenishment = useQuery({ queryKey: ["inventory-replenishment", targetMultiplier], queryFn: () => apiGet<ReplenishmentPlan>(`/inventory/replenishment?target_multiplier=${targetMultiplier}`), refetchInterval: 15000 });
   const ings = useQuery({ queryKey: ["ingredients"], queryFn: () => apiGet<Ingredient[]>("/ingredients"), refetchInterval: 15000 });
   const alerts = useQuery({ queryKey: ["inventory-alerts"], queryFn: () => apiGet<{ total: number; out_of_stock: number; low_stock: number; estimated_minimum_cost: number }>("/inventory/alerts"), refetchInterval: 15000 });
   const moves = useQuery({ queryKey: ["stock-moves"], queryFn: () => apiGet<StockMove[]>("/stock/moves") });
@@ -172,8 +180,8 @@ export default function Estoque() {
   const [moving, setMoving] = useState<Ingredient | null>(null);
   const list = ings.data ?? [];
   const low = list.filter((i) => i.stock <= 0 || (i.min_stock > 0 && i.stock < i.min_stock)).sort((a, b) => a.stock / a.min_stock - b.stock / b.min_stock);
-  const shopping = low.filter((i) => i.min_stock > 0).map((i) => ({ ...i, suggested: Math.max(0, i.min_stock * 2 - i.stock) }));
-  const shoppingText = shopping.map((i) => `${i.name}: comprar ${i.suggested.toFixed(2)} ${i.unit} (atual ${i.stock.toFixed(2)}, mínimo ${i.min_stock.toFixed(2)})`).join("\n");
+  const shopping = replenishment.data?.items ?? [];
+  const shoppingText = shopping.map((i) => `${i.name}: ${i.suggested === null ? "definir estoque mínimo" : `planejar ${i.suggested.toFixed(4)} ${i.unit}`} (atual ${i.stock}, mínimo ${i.min_stock})${i.review_required ? " · conferir saldo/mínimo" : ""}`).join("\n");
   const losses = (moves.data ?? []).filter((m) => m.type === "perda");
   const lossTotal = losses.reduce((sum, m) => sum + (m.cost_total ?? 0), 0);
   const value = list.reduce((s, i) => s + Math.max(0, i.stock) * i.cost_per_unit, 0);
@@ -189,13 +197,16 @@ export default function Estoque() {
         <div className="rounded-2xl border border-red-400/20 bg-red-400/5 p-4"><p className="text-[11px] uppercase tracking-[0.15em] text-red-300">Reposição urgente</p><p className="mt-1 font-mono text-2xl text-red-200" data-testid="stock-low-count">{low.length}</p></div>
       </div>
       {alerts.data && alerts.data.total > 0 && <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/5 p-3 text-sm" data-testid="inventory-alert-summary"><strong className="text-red-200">Alertas de estoque:</strong> {alerts.data.out_of_stock} sem estoque · {alerts.data.low_stock} abaixo do mínimo · Custo estimado para atingir os mínimos: <strong>{brl(alerts.data.estimated_minimum_cost)}</strong></div>}
+      {replenishment.isError && <p role="alert" className="mb-4 text-sm text-amber-300">Não foi possível carregar o planejamento de reposição. Confira a conexão e tente novamente.</p>}
       {shopping.length > 0 && <div className="mb-4 rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4" data-testid="stock-shopping-list">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-200"><ClipboardList className="size-4" /> Lista de compras sugerida ({shopping.length})</h3>
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-200"><ClipboardList className="size-4" /> Planejamento de reposição ({shopping.length})</h3>
           <Button size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(shoppingText).then(() => toast.success("Lista copiada")).catch(() => toast.error("Não foi possível copiar a lista"))} data-testid="stock-copy-shopping">Copiar lista</Button>
         </div>
-        <p className="mb-2 text-xs text-zinc-400">Sugestão: repor até o dobro do estoque mínimo. Ajuste a quantidade antes de comprar.</p>
-        <ul className="space-y-1 text-sm">{shopping.map((i) => <li key={i.id} className="flex flex-wrap justify-between gap-2"><span>{i.name}</span><span className="font-mono text-amber-200">Comprar {i.suggested.toFixed(2)} {i.unit}</span></li>)}</ul>
+        <div className="mb-3 flex flex-wrap items-center gap-2"><Label htmlFor="replenishment-target">Meta de reposição</Label><select id="replenishment-target" value={targetMultiplier} onChange={(e) => setTargetMultiplier(e.target.value)} className="rounded-md border border-white/20 bg-panel p-2" data-testid="replenishment-target"><option value="1">1 × estoque mínimo</option><option value="2">2 × estoque mínimo</option><option value="3">3 × estoque mínimo</option></select></div>
+        <p className="mb-2 text-xs text-zinc-400">Consulta para planejamento: não registra compras nem altera estoque. Confira saldos negativos e defina mínimos antes de comprar. Custos usam o cadastro, sem cotação de fornecedor.</p>
+        <p className="mb-2 text-sm">Custo conhecido estimado: <strong>{brl(replenishment.data?.estimated_known_cost ?? 0)}</strong>{!!replenishment.data?.items_without_cost && ` · ${replenishment.data.items_without_cost} item(ns) sem estimativa`}</p>
+        <ul className="space-y-2 text-sm">{shopping.map((i) => <li key={i.ingredient_id} className="flex flex-wrap justify-between gap-2"><span>{i.name}{i.review_required && <span className="block text-xs text-amber-200">{i.reason === "configure_minimum" ? "Defina o estoque mínimo" : "Confira o saldo negativo"}</span>}</span><span className="font-mono text-amber-200">{i.suggested === null ? "Quantidade a definir" : `${i.suggested} ${i.unit}`}{i.estimated_cost !== null && ` · ${brl(i.estimated_cost)}`}</span></li>)}</ul>
       </div>}
       <div className="mb-4 rounded-2xl border border-white/5 bg-panel p-4"><p className="text-xs text-zinc-400">Prejuízo por perdas (últimas 300 movimentações)</p><p className="font-mono text-xl text-red-300">{brl(lossTotal)}</p><p className="text-xs text-zinc-500">{losses.length} ocorrências</p></div>
       <Tabs defaultValue="insumos">
