@@ -56,14 +56,19 @@ export default function Kds() {
     onError: (e) => toast.error(errMsg(e)),
   });
 
-  const list = (tickets.isError ? [] : tickets.data ?? [])
+  const stationTickets = (tickets.isError ? [] : tickets.data ?? [])
     .map((t) => ({ ...t, items: t.items.filter((i) => station === "all" || i.station === station) }))
-    .filter((t) => t.items.length && (!onlyLate || (t.status !== "pronto" && minutesSince(t.created_at) >= 15)))
+    .filter((t) => t.items.length && ["novo", "preparo", "pronto"].includes(t.status));
+  const list = stationTickets
+    .filter((t) => !onlyLate || (t.status !== "pronto" && minutesSince(t.created_at) >= 15))
     .sort((a, b) => oldestFirst ? new Date(a.created_at).getTime() - new Date(b.created_at).getTime() : new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  const waiting = list.filter((t) => t.status === "novo").length;
-  const preparing = list.filter((t) => t.status === "preparo").length;
-  const delayed = list.filter((t) => t.status !== "pronto" && minutesSince(t.created_at) >= 15).length;
-  const critical = list.filter((t) => t.status !== "pronto" && minutesSince(t.created_at) > 25).length;
+  const waiting = stationTickets.filter((t) => t.status === "novo").length;
+  const preparing = stationTickets.filter((t) => t.status === "preparo").length;
+  const delayed = stationTickets.filter((t) => t.status !== "pronto" && minutesSince(t.created_at) >= 15).length;
+  const critical = stationTickets.filter((t) => t.status !== "pronto" && minutesSince(t.created_at) > 25).length;
+
+  const ready = stationTickets.filter((t) => t.status === "pronto").length;
+  const oldestWaiting = stationTickets.filter((t) => t.status !== "pronto").reduce((age, t) => Math.max(age, minutesSince(t.created_at)), 0);
 
   return (
     <AppShell roles={["cozinha", "garcom", "caixa"]}>
@@ -71,7 +76,7 @@ export default function Kds() {
         <>
           <div className="flex flex-wrap gap-1 rounded-xl border border-white/8 p-1">
             {STATIONS.map((s) => (
-              <button key={s.key} type="button" onClick={() => setStation(s.key)} data-testid={`kds-station-${s.key}`}
+              <button key={s.key} type="button" onClick={() => setStation(s.key)} data-testid={`kds-station-${s.key}`} aria-pressed={station === s.key}
                 className={cn("rounded-lg px-3 py-1.5 text-xs transition-colors duration-150", station === s.key ? "bg-primary text-white" : "text-zinc-400 hover:text-white")}>
                 {s.label}
               </button>
@@ -80,7 +85,7 @@ export default function Kds() {
           <Button variant="outline" size="icon" onClick={() => setSound(!sound)} data-testid="kds-sound-toggle">{sound ? <Volume2 /> : <VolumeX />}</Button>
         </>
       } />
-      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm" data-testid="kds-summary"><span>Novos: <strong>{waiting}</strong></span><span>Em preparo: <strong>{preparing}</strong></span><span className={delayed ? "font-semibold text-amber-300" : ""}>Atrasados (15min+): <strong>{delayed}</strong></span><span className={critical ? "font-semibold text-red-300" : ""}>Críticos (25min+): <strong>{critical}</strong></span><Button size="sm" variant={onlyLate ? "default" : "outline"} onClick={() => setOnlyLate((v) => !v)} data-testid="kds-late-filter">{onlyLate ? "Mostrar todos" : "Ver atrasados"}</Button><Button size="sm" variant="outline" onClick={() => setOldestFirst((v) => !v)} data-testid="kds-sort-toggle">{oldestFirst ? "Mais antigos primeiro" : "Mais recentes primeiro"}</Button><Button size="sm" variant="outline" onClick={() => void tickets.refetch()}>Atualizar</Button></div>
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm" data-testid="kds-summary"><span>Novos: <strong>{waiting}</strong></span><span>Em preparo: <strong>{preparing}</strong></span><span>Prontos: <strong>{ready}</strong></span><span>Maior espera: <strong>{oldestWaiting} min</strong></span><span className={delayed ? "font-semibold text-amber-300" : ""}>Atrasados (15min+): <strong>{delayed}</strong></span><span className={critical ? "font-semibold text-red-300" : ""}>Críticos (25min+): <strong>{critical}</strong></span><Button size="sm" variant={onlyLate ? "default" : "outline"} onClick={() => setOnlyLate((v) => !v)} data-testid="kds-late-filter" aria-pressed={onlyLate}>{onlyLate ? "Mostrar todos" : "Ver atrasados"}</Button><Button size="sm" variant="outline" onClick={() => setOldestFirst((v) => !v)} data-testid="kds-sort-toggle">{oldestFirst ? "Mais antigos primeiro" : "Mais recentes primeiro"}</Button><Button size="sm" variant="outline" onClick={() => void tickets.refetch()}>Atualizar</Button></div>
       <div className="grid gap-4 lg:grid-cols-3">
         {COLS.map((c) => {
           const col = list.filter((t) => t.status === c.key);
