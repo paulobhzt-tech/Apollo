@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from lib.audit import audit_event
 from lib.auth import cancel_authorizer, current_user, require
 from lib.db import client, db
 from lib.orders import (build_items, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods,
@@ -369,7 +370,7 @@ class PartialPaymentIn(PartialBillIn):
 
 
 @router.post("/tables/{id}/partial-bill/pay", response_model=SaleResult)
-async def pay_partial_bill(id: str, body: PartialPaymentIn, _: dict = Depends(require("caixa"))):
+async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends(require("caixa"))):
     """Atomically move selected units to a separate paid order; never deduct stock twice.
 
     Requires MongoDB replica-set transactions. Standalone databases fail closed.
@@ -440,6 +441,9 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, _: dict = Depends(re
                     change=max(0, change), paid_at=now(), cash_session_id=cash["id"],
                     client_ref=body.client_ref, waiter_id=order.get("waiter_id"),
                     waiter_name=order.get("waiter_name", ""),
+                    audit_events=[audit_event("partial_payment_recorded", user, correlation=body.client_ref,
+                        values={"total": total, "discount": body.payment.discount, "service_fee": service_fee,
+                                "change": max(0, change)})],
                     cmv=round(sum(i["qty"] * i.get("unit_cost", 0) for i in chosen), 2)).model_dump()
                 receipt["parent_order_id"] = order["id"]
                 await db.orders.insert_one(dict(receipt), session=session)
@@ -456,10 +460,10 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, _: dict = Depends(re
 
 
 @router.post("/tables/{id}/pay", response_model=SaleResult)
-async def pay_table(id: str, body: PayIn, _: dict = Depends(require("caixa"))):
+async def pay_table(id: str, body: PayIn, user: dict = Depends(require("caixa"))):
     t = await get_table(id)
     order = await db.orders.find_one({"id": t.get("order_id")}, {"_id": 0}) if t.get("order_id") else None
     if not order:
         raise HTTPException(400, "Mesa sem comanda aberta")
-    order, inv = await finalize_payment(order, body)
+    order, inv = await finalize_payment(order, body, actor=user)
     return {"order": order, "invoice": inv}

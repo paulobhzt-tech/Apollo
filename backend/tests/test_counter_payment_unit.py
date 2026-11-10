@@ -133,3 +133,16 @@ async def test_cashier_cannot_access_admin_backup_dependency():
     with pytest.raises(HTTPException) as exc:
         await require()({"role": "caixa"})
     assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_payment_audit_is_written_with_settlement_and_actor(payment_context):
+    order, collection, _, _ = payment_context
+    await orders.finalize_payment(order, PayIn(payments=[Payment(method="dinheiro", amount=20)], emit_invoice=False),
+                                  actor={"id": "cashier-1", "name": "Cashier", "role": "caixa", "pin_hash": "secret"})
+    update = collection.update_one.await_args.args[1]
+    assert update["$set"]["status"] == "pago"
+    event = update["$push"]["audit_events"]
+    assert event["actor_id"] == "cashier-1"
+    assert event["values"]["total"] == 20
+    assert "secret" not in str(event)

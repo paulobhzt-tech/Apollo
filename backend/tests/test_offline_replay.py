@@ -83,7 +83,7 @@ async def test_counter_sale_records_actor_without_credentials(monkeypatch):
     await operations.quick_sale(sale_body(), {"id": "cashier", "name": "Cashier", "pin_hash": "secret"})
     event = create.call_args.kwargs["audit_events"][0]
     assert event["actor_id"] == "cashier"
-    assert event["client_ref"] == "pc-1-sale-1"
+    assert event["correlation"] == "pc-1-sale-1"
     assert "secret" not in str(event)
 
 

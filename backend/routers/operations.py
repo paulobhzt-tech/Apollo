@@ -1,12 +1,14 @@
 import hashlib
 import json
+import os
 import secrets
 from datetime import timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pymongo.errors import DuplicateKeyError
 
+from lib.audit import audit_event, verify_event
 from lib.auth import cancel_authorizer, current_user, require
 from lib.db import db
 from lib.orders import (MARKET_FEES, build_items, create_ticket, current_cash, emit_invoice, finalize_payment,
@@ -47,16 +49,14 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
         order = await new_order(channel="balcao", source="pdv", items=[i.model_dump() for i in items],
                                 client_ref=body.client_ref, request_fingerprint=sale_fingerprint(body), customer={"name": body.customer_name, "cpf": body.customer_cpf},
                                 waiter_id=user["id"], waiter_name=user["name"],
-                                audit_events=[{"action": "counter_sale_created", "at": now(),
-                                               "actor_id": user["id"], "actor_name": user["name"],
-                                               "client_ref": body.client_ref}])
+                                audit_events=[audit_event("counter_sale_created", user, correlation=body.client_ref)])
     except DuplicateKeyError:
         # Another device/tab is processing this client_ref. Do not return an unpaid
         # order as a completed sale; the client should retry after the first finishes.
         raise HTTPException(409, "Venda em processamento. Tente sincronizar novamente.") from None
     inv = None
     try:
-        order, inv = await finalize_payment(order, body)
+        order, inv = await finalize_payment(order, body, actor=user)
     except HTTPException:
         # Fiscal/post-payment failures must not erase an already paid sale.
         # The same client_ref can then recover it on the next attempt.
@@ -88,8 +88,12 @@ async def cancel_order(id: str, body: CancelIn, user: dict = Depends(current_use
         raise HTTPException(400, "Pedido já cancelado")
     auth = await cancel_authorizer(user, body.manager_pin)
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
-    await db.orders.update_one({"id": id}, {"$set": {"status": "cancelado", "cancel_reason": body.reason,
-                                                     "cancelled_by": who, "cancelled_at": now()}})
+    result = await db.orders.update_one({"id": id, "status": o["status"]},
+        {"$set": {"status": "cancelado", "cancel_reason": body.reason, "cancelled_by": who, "cancelled_at": now()},
+         "$push": {"audit_events": audit_event("order_cancelled", user, reason=body.reason, authorized_by=auth,
+                                               values={"from": o["status"], "to": "cancelado", "total": o.get("total", 0)})}})
+    if not result.modified_count:
+        raise HTTPException(409, "Pedido alterado por outro operador. Atualize antes de cancelar.")
     if o["status"] == "pago":
         fiado = sum(p["amount"] for p in o.get("payments", []) if p["method"] == "fiado") - \
             sum(r["amount"] for r in o.get("refunds", []) if r["method"] == "fiado")
@@ -117,9 +121,12 @@ async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
     auth = await cancel_authorizer(user, body.manager_pin)
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
     await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1)
+    event = audit_event("item_refunded" if o["status"] == "pago" else "item_cancelled", user,
+                        reason=body.reason, authorized_by=auth,
+                        values={"item_id": item_id, "qty": item["qty"], "from": o["status"]})
     set_item = {"items.$.cancelled": True, "items.$.cancel_reason": body.reason}
     if o["status"] == "aberto":
-        await db.orders.update_one({"id": id, "items.id": item_id}, {"$set": set_item})
+        await db.orders.update_one({"id": id, "items.id": item_id}, {"$set": set_item, "$push": {"audit_events": event}})
         return await refresh_totals(id)
     live = [i for i in o["items"] if not i.get("cancelled") and i["id"] != item_id]
     old_sub = o["subtotal"] or 1
@@ -139,7 +146,7 @@ async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
         if o.get("invoice_id"):
             await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}})
     await db.orders.update_one({"id": id, "items.id": item_id},
-                               {"$set": upd, "$push": {"refunds": refund}, "$inc": {"refunded_total": amount}})
+                               {"$set": upd, "$push": {"refunds": refund, "audit_events": event}, "$inc": {"refunded_total": amount}})
     if main["method"] == "fiado":
         await fiado_reverse(o, amount, who, f"Estorno de {refund['item_name']} (#{o['number']})")
     return await db.orders.find_one({"id": id}, {"_id": 0})
@@ -186,7 +193,7 @@ def kds_transition_allowed(current: str, target: str) -> bool:
 
 
 @router.patch("/kds/tickets/{id}", response_model=KitchenTicket)
-async def kds_update(id: str, body: TicketStatusIn, _: dict = Depends(require("cozinha", "garcom", "caixa"))):
+async def kds_update(id: str, body: TicketStatusIn, user: dict = Depends(require("cozinha", "garcom", "caixa"))):
     ticket = await db.kitchen_tickets.find_one({"id": id}, {"_id": 0})
     if not ticket:
         raise HTTPException(404, "Ticket não encontrado")
@@ -199,7 +206,8 @@ async def kds_update(id: str, body: TicketStatusIn, _: dict = Depends(require("c
     t = await db.kitchen_tickets.find_one_and_update(
         {"id": id, "status": previous},
         {"$set": {"status": body.status, "updated_at": timestamp},
-         "$push": {"status_history": {"from": previous, "to": body.status, "at": timestamp}}},
+         "$push": {"status_history": {"from": previous, "to": body.status, "at": timestamp},
+                   "audit_events": audit_event("kds_status_changed", user, values={"from": previous, "to": body.status})}},
         projection={"_id": 0}, return_document=True)
     if not t:
         raise HTTPException(409, "Pedido atualizado por outro operador. Atualize a cozinha.")
@@ -306,7 +314,8 @@ async def cash_history(_: dict = Depends(require("caixa"))):
 async def cash_open(body: CashOpenIn, user: dict = Depends(require("caixa"))):
     if await current_cash():
         raise HTTPException(400, "Já existe um caixa aberto")
-    s = CashSession(opened_by_name=user["name"], opening_amount=body.opening_amount).model_dump()
+    s = CashSession(opened_by_name=user["name"], opening_amount=body.opening_amount,
+                    audit_events=[audit_event("cash_opened", user, values={"opening_amount": body.opening_amount})]).model_dump()
     try:
         await db.cash_sessions.insert_one(dict(s))
     except DuplicateKeyError:
@@ -324,7 +333,7 @@ async def cash_move(body: CashMoveIn, user: dict = Depends(require("caixa"))):
     if body.type == "sangria" and body.amount > (await cash_summary(dict(s)))["expected_cash"]:
         raise HTTPException(400, "Sangria maior que o saldo em dinheiro")
     m = CashMovement(type=body.type, amount=body.amount, note=body.note, by_name=user["name"]).model_dump()
-    result = await db.cash_sessions.update_one({"id": s["id"], "status": "aberto"}, {"$push": {"movements": m}})
+    result = await db.cash_sessions.update_one({"id": s["id"], "status": "aberto"}, {"$push": {"movements": m, "audit_events": audit_event("cash_" + body.type, user, reason=body.note, values={"amount": body.amount})}})
     if not result.modified_count:
         raise HTTPException(409, "O caixa foi fechado durante a operação")
     return await cash_summary(await db.cash_sessions.find_one({"id": s["id"]}, {"_id": 0}))
@@ -339,7 +348,29 @@ async def cash_close(body: CashCloseIn, user: dict = Depends(require("caixa"))):
     s = await cash_summary(s)
     upd = {k: s[k] for k in ("totals_by_method", "sales_count", "sales_total", "expected_cash", "difference", "counted_amount")}
     upd.update(status="fechado", closed_at=now(), closed_by_name=user["name"])
-    result = await db.cash_sessions.update_one({"id": s["id"], "status": "aberto"}, {"$set": upd})
+    result = await db.cash_sessions.update_one({"id": s["id"], "status": "aberto"}, {"$set": upd, "$push": {"audit_events": audit_event("cash_closed", user, values=upd)}})
     if not result.modified_count:
         raise HTTPException(409, "O caixa já foi fechado por outro operador")
     return await db.cash_sessions.find_one({"id": s["id"]}, {"_id": 0})
+
+
+@router.get("/audit/operations")
+async def operational_audit(action: Optional[str] = None, record_id: Optional[str] = None,
+                            limit: int = Query(default=100, ge=1, le=500),
+                            _: dict = Depends(require())):
+    """Admin-only read view; never expose order/customer/payment payloads."""
+    events = []
+    for name in ("orders", "cash_sessions", "kitchen_tickets"):
+        match = {"id": record_id} if record_id else {}
+        pipeline = [{"$match": match}, {"$project": {"_id": 0, "id": 1, "audit_events": 1}},
+                    {"$unwind": "$audit_events"}]
+        if action:
+            pipeline.append({"$match": {"audit_events.action": action}})
+        pipeline.extend([{"$sort": {"audit_events.at": -1}}, {"$limit": limit}])
+        rows = await db[name].aggregate(pipeline).to_list(limit)
+        for row in rows:
+            event = row["audit_events"]
+            events.append({"source": name, "record_id": row["id"], "event": event, "integrity": verify_event(event)})
+    events.sort(key=lambda row: str(row["event"].get("at", "")), reverse=True)
+    return {"events": events[:limit], "limit": limit,
+            "signing_configured": len(os.environ.get("AUDIT_SIGNING_KEY", "")) >= 32}

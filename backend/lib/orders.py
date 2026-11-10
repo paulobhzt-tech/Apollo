@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from fastapi import HTTPException
 from pymongo import ReturnDocument
 
+from lib.audit import audit_event
 from lib.db import db
 from models.schemas import Invoice, InvoiceItem, KitchenItem, KitchenTicket, OrderItem, OrderItemIn, PayIn, StockMove
 
@@ -285,7 +286,7 @@ async def emit_invoice(order: dict, doc_type: str = "nfce", cpf: str = "") -> di
     return inv
 
 
-async def finalize_payment(order: dict, pay: PayIn) -> tuple[dict, dict | None]:
+async def finalize_payment(order: dict, pay: PayIn, actor: dict | None = None) -> tuple[dict, dict | None]:
     if order["status"] != "aberto":
         raise HTTPException(400, "Este pedido já foi fechado")
     cash = await current_cash()
@@ -330,7 +331,9 @@ async def finalize_payment(order: dict, pay: PayIn) -> tuple[dict, dict | None]:
         from models.schemas import CustomerMove
         await db.customer_moves.insert_one(CustomerMove(customer_id=cust["id"], type="compra", amount=fiado,
                                                         order_number=order["number"], note="Venda no fiado").model_dump())
-    await db.orders.update_one({"id": order["id"]}, {"$set": upd})
+    await db.orders.update_one({"id": order["id"]}, {"$set": upd, "$push": {"audit_events":
+        audit_event("payment_recorded", actor or {}, correlation=order.get("client_ref") or "",
+                    values={k: upd[k] for k in ("total", "discount", "service_fee", "change")})}})
     if order.get("table_id"):
         await free_table(order["table_id"])
     order = await db.orders.find_one({"id": order["id"]}, {"_id": 0})

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import Login from "@/pages/Login";
+import Auditoria from "@/pages/Auditoria";
 import ApolloIA from "@/pages/ApolloIA";
 import Dashboard from "@/pages/Dashboard";
 import Pdv from "@/pages/Pdv";
@@ -58,6 +59,7 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/pdv" element={<Pdv />} />
+      <Route path="/auditoria" element={<Auditoria />} />
       <Route path="/apollo-ia" element={<ApolloIA />} />
       <Route path="/mesas" element={<Mesas />} />
       <Route path="/comanda-mobile" element={<Mesas />} />

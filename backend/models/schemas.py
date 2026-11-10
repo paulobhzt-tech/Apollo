@@ -360,6 +360,7 @@ class KitchenItem(BaseModel):
 
 
 class KitchenTicket(BaseModel):
+    audit_events: list[dict] = Field(default_factory=list)
     id: str = Field(default_factory=_id)
     order_id: str
     order_number: int
@@ -475,6 +476,7 @@ class CashMovement(BaseModel):
 
 
 class CashSession(BaseModel):
+    audit_events: list[dict] = Field(default_factory=list)
     id: str = Field(default_factory=_id)
     opened_by_name: str
     opened_at: datetime = Field(default_factory=_now)
