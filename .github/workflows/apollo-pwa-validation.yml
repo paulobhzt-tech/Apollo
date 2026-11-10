@@ -33,7 +33,7 @@ jobs:
           npm pkg delete 'devDependencies.@emergentbase/overlay' 'devDependencies.@emergentbase/visual-edits'
           npm install --no-audit --no-fund --legacy-peer-deps
       - name: Testar fila offline
-        run: npx vitest run src/lib/offline.test.ts
+        run: npx vitest run
       - name: TypeScript typecheck
         run: npm run typecheck
       - name: Production build
