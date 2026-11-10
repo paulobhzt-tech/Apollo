@@ -42,7 +42,7 @@ export const NAV: NavItem[] = [
   { to: "/contas-receber", label: "Contas a Receber", icon: "ArrowDownCircle", roles: ["admin", "caixa"], group: "Financeiro" },
   { to: "/categorias-contas", label: "Categorias de Contas", icon: "Tags", roles: ["admin"], group: "Financeiro" },
   { to: "/formas-pagamento", label: "Formas de Pagamento", icon: "CreditCard", roles: ["admin"], group: "Financeiro" },
-  { to: "/musica-ao-vivo", label: "Música ao Vivo", icon: "Music", roles: ["admin"], group: "Cadastros" },
+  { to: "/musica-ao-vivo", label: "Música ao Vivo", icon: "Music", roles: ["admin"], group: "Operação" },
   { to: "/financeiro", label: "DRE & Despesas", icon: "LineChart", roles: ["admin"], group: "Relatórios" },
   { to: "/vendas", label: "Histórico de Vendas", icon: "History", roles: ["admin", "caixa"], group: "Relatórios" },
   { to: "/fiado", label: "Conta Fiado", icon: "HandCoins", roles: ["admin", "caixa"], group: "Financeiro" },
@@ -51,7 +51,7 @@ export const NAV: NavItem[] = [
   { to: "/estoque", label: "Estoque & Insumos", icon: "Boxes", roles: ["admin", "caixa", "cozinha"], group: "Cadastros" },
   { to: "/clientes", label: "Clientes & Fornecedores", icon: "Contact", roles: ["admin", "caixa"], group: "Cadastros" },
   { to: "/funcionarios", label: "Funcionários", icon: "Users", roles: ["admin"], group: "Cadastros" },
-  { to: "/qrcodes", label: "QR Codes & Site", icon: "QrCode", roles: ["admin", "caixa", "garcom"], group: "Cadastros" },
+  { to: "/qrcodes", label: "QR Codes & Site", icon: "QrCode", roles: ["admin", "caixa", "garcom"], group: "Operação" },
   { to: "/config", label: "Configurações", icon: "Settings", roles: ["admin"], group: "Sistema" },
 ];
 
