@@ -3,11 +3,22 @@ import gzip
 import hashlib
 import json
 from unittest.mock import AsyncMock
+from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
 
 from routers import serverbackup
+
+
+@pytest.fixture(autouse=True)
+def isolated_backup_database(monkeypatch):
+    # Motor collection properties return fresh handles. Replace the database
+    # boundary so no test can accidentally connect to a live MongoDB instance.
+    monkeypatch.setattr(serverbackup, "db", SimpleNamespace(
+        server_backups=SimpleNamespace(find_one=AsyncMock()),
+        backup_audit=SimpleNamespace(insert_one=AsyncMock()),
+    ))
 
 
 @pytest.mark.asyncio
@@ -63,7 +74,7 @@ async def test_verify_backup_does_not_restore_or_modify_data(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_verify_legacy_backup_reports_missing_checksum(monkeypatch):
-    raw = json.dumps({"data": {"tables": []}}).encode()
+    raw = json.dumps({"data": {"tables": [], "orders": [{"id": "legacy-order"}]}}).encode()
     monkeypatch.setattr(serverbackup.db.server_backups, "find_one", AsyncMock(return_value={"blob": gzip.compress(raw)}))
     result = await serverbackup.verify_server_backup("backup-legacy", {"role": "admin"})
     assert result["integrity"] == "legacy_without_checksum"
