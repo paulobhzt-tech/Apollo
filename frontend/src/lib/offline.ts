@@ -173,10 +173,10 @@ export function retryRejected(ref: string) {
   const r = readRejected(true);
   const item = r.find((x) => x.payload.client_ref === ref);
   if (!item) return;
-  const { error: _e, rejected_at: _r, ...sale } = item;
+  const { error: _e, rejected_at: _r, next_retry_at: _retry, ...sale } = item;
   // Persist the sale back into the pending queue BEFORE removing the rejected copy.
   // If storage is full or unavailable, the rejected record remains recoverable.
-  enqueue({ ...sale, next_retry_at: undefined });
+  enqueue(sale);
   const next = JSON.stringify(r.filter((x) => x.payload.client_ref !== ref));
   kv.set(REJ_KEY, next);
   if (kv.get(REJ_KEY) !== next) throw new Error("Falha ao atualizar vendas rejeitadas");

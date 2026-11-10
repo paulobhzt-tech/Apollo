@@ -93,3 +93,17 @@ it("does not remove a rejection when the archive is corrupt", async () => {
   expect(() => offline.dismissRejected("sale-1")).toThrow("Fila offline ilegível");
   expect(JSON.parse(storage.get("pdv_offline_rejected")!)).toHaveLength(1);
 });
+
+it("keeps rejected evidence if saving the retry fails", async () => {
+  const offline = await import("./offline");
+  const sale = { payload: { client_ref: "sale-1" }, total: 10, queued_at: "now", rejected_at: "now", error: "Revisar" };
+  storage.set("pdv_offline_rejected", JSON.stringify([sale]));
+  const save = vi.spyOn(storage, "set").mockImplementation((key, value) => {
+    if (key === "pdv_offline_queue") throw new Error("disk full");
+    return Map.prototype.set.call(storage, key, value);
+  });
+  try {
+    expect(() => offline.retryRejected("sale-1")).toThrow("disk full");
+    expect(JSON.parse(storage.get("pdv_offline_rejected")!)).toEqual([sale]);
+  } finally { save.mockRestore(); }
+});
