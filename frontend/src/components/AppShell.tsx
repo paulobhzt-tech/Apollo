@@ -1,10 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import { Link, NavLink, Navigate, useLocation } from "react-router-dom";
 import {
   Bot, Armchair, Bike, Boxes, ChefHat, LayoutDashboard, LineChart, LogOut, Menu, Music, QrCode, Receipt, ShoppingCart,
-  Users, UtensilsCrossed, Wallet, WifiOff, Wifi, Flame, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone,
+  Users, UtensilsCrossed, Wallet, WifiOff, Wifi, Flame, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone, Star,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -121,7 +121,26 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
   const [open, setOpen] = useState(false);
   const [menuSearch, setMenuSearch] = useState("");
   const [desktopSearch, setDesktopSearch] = useState("");
-  const [activeRibbon, setActiveRibbon] = useState<string | null>(null);
+  const [activeRibbon, setActiveRibbon] = useState<string | null>("Favoritos");
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [editingFavorites, setEditingFavorites] = useState(false);
+  useEffect(() => {
+    if (!me?.id) return;
+    try {
+      const stored = localStorage.getItem(`apollo-menu-favorites:${me.id}`);
+      const parsed: unknown = stored ? JSON.parse(stored) : null;
+      setFavorites(Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : ["/mesas", "/pdv", "/produtos", "/estoque", "/delivery"]);
+    } catch {
+      setFavorites(["/mesas", "/pdv", "/produtos", "/estoque", "/delivery"]);
+    }
+  }, [me?.id]);
+  const toggleFavorite = (path: string) => {
+    if (!me?.id) return;
+    const next = favorites.includes(path) ? favorites.filter(x => x !== path) : [...favorites, path];
+    setFavorites(next);
+    try { localStorage.setItem(`apollo-menu-favorites:${me.id}`, JSON.stringify(next)); }
+    catch { toast.error("Não foi possível salvar os favoritos neste dispositivo"); }
+  };
   const loc = useLocation();
   const { resolvedTheme, setTheme } = useTheme();
   const backupChoice = useQuery({ queryKey: ["backup-destination"], queryFn: () => apiGet<{ destination: "pc" | "google_drive" | null }>("/settings/backup-destination"), enabled: me?.role === "admin", staleTime: 60000 });
@@ -160,10 +179,13 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
           </Link>
         )}
         <header className="sticky top-0 z-30 border-b border-white/10 bg-[#252527] text-white" data-testid="apollo-ribbon">
-          <div className="flex min-h-10 items-center gap-2 border-b border-white/10 px-2 sm:px-4">
+          <div className="flex min-h-10 flex-wrap items-center gap-2 border-b border-white/10 px-2 sm:px-4">
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)} data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
             <div className="mr-2 hidden shrink-0 sm:block lg:hidden"><Brand /></div>
-            <nav aria-label="Seções do sistema" className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto">
+            <nav aria-label="Seções do sistema" className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">
+              <button type="button" onClick={() => setActiveRibbon("Favoritos")}
+                className={cn("flex shrink-0 items-center gap-1.5 px-3 py-3 text-[10px] font-medium transition-colors hover:bg-white/10 sm:text-xs", activeRibbon === "Favoritos" ? "bg-[#36363a] text-white" : "text-zinc-300")}
+                aria-pressed={activeRibbon === "Favoritos"} data-testid="ribbon-favorites"><Star className="size-4 text-[#e6b44d]" />MEU MENU</button>
               {RIBBON_GROUPS.filter(({group}) => NAV.some(n => n.group === group && n.roles.includes(me.role))).map(({label, group, icon: GroupIcon}) => {
                 const selected = activeRibbon ? activeRibbon === group : NAV.some(n => n.group === group && n.to === loc.pathname) || (group === "Operação" && loc.pathname === "/");
                 return <button key={group} type="button" onClick={() => setActiveRibbon(group)}
@@ -177,19 +199,31 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
               <span className="hidden xl:inline">Modo {resolvedTheme === "dark" ? "Escuro" : "Claro"}</span>
             </button>
             <OfflineBadge />
-            <button type="button" onClick={() => void endSession()} className="hidden shrink-0 items-center gap-1.5 text-xs text-zinc-200 hover:text-white lg:flex" title={`Operador atual: ${me.name}`}>
-              <LogOut className="size-4" aria-hidden="true" /><span>Trocar operador</span>
+            <button type="button" onClick={() => void endSession()} className="flex shrink-0 items-center gap-1.5 rounded-md border border-white/20 px-2 py-2 text-xs text-zinc-200 hover:bg-white/10 hover:text-white" title={`Trocar operador — atual: ${me.name}`} data-testid="header-switch-operator" aria-label={`Trocar operador. Operador atual: ${me.name}`}>
+              <LogOut className="size-4" aria-hidden="true" /><span className="hidden xl:inline">Trocar operador</span>
             </button>
           </div>
-          <nav aria-label="Atalhos do sistema" className="flex min-h-20 items-stretch gap-1 overflow-x-auto bg-[#303034] px-2 py-1.5 sm:px-4">
+          {activeRibbon === "Favoritos" && <div className="flex items-center justify-end bg-[#303034] px-3 pt-1">
+            <button type="button" onClick={() => setEditingFavorites(!editingFavorites)} data-testid="edit-favorites"
+              className="rounded px-2 py-1 text-xs text-[#e6b44d] hover:bg-white/10">{editingFavorites ? "Concluir personalização" : "Personalizar meu menu"}</button>
+          </div>}
+          <nav aria-label="Atalhos do sistema" className="flex min-h-12 flex-wrap items-stretch gap-1 bg-[#303034] px-2 py-1.5 sm:px-4">
             {NAV.filter(n => n.roles.includes(me.role) && (
+              activeRibbon === "Favoritos" ? (editingFavorites || favorites.includes(n.to)) :
               activeRibbon ? n.group === activeRibbon :
               (NAV.find(item => item.to === loc.pathname)?.group ?? "Operação") === n.group
-            )).map(n => {
+            )).sort((a, b) => activeRibbon === "Favoritos" && !editingFavorites
+              ? favorites.indexOf(a.to) - favorites.indexOf(b.to) : 0).map(n => {
               const Icon = ICONS[n.icon] ?? LayoutDashboard;
-              return <NavLink key={n.to} to={n.to} title={n.label} onClick={() => setActiveRibbon(n.group)}
-                className={({isActive}) => cn("flex min-w-20 max-w-28 shrink-0 flex-col items-center justify-center gap-1 rounded-sm px-2 py-2 text-center text-[11px] leading-tight transition-colors hover:bg-white/10",isActive ? "bg-[#414147] text-white" : "text-zinc-200")}>
-                <Icon className="size-6 text-[#e6b44d]" strokeWidth={1.8} /><span>{n.label}</span>
+              return activeRibbon === "Favoritos" && editingFavorites
+                ? <button key={n.to} type="button" onClick={() => toggleFavorite(n.to)} aria-pressed={favorites.includes(n.to)}
+                    className={cn("flex min-w-24 flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-center text-[11px] leading-tight", favorites.includes(n.to) ? "bg-[#414147] text-white" : "text-zinc-400 hover:bg-white/10")}
+                    data-testid={`favorite-toggle-${n.to.slice(1) || "painel"}`}>
+                    <Star className={cn("size-4 shrink-0", favorites.includes(n.to) ? "fill-[#e6b44d] text-[#e6b44d]" : "text-zinc-500")} /><span>{n.label}</span>
+                  </button>
+                : <NavLink key={n.to} to={n.to} title={n.label} onClick={() => { if (activeRibbon !== "Favoritos") setActiveRibbon(n.group); }}
+                className={({isActive}) => cn("flex min-w-24 flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-center text-[11px] leading-tight transition-colors hover:bg-white/10",isActive ? "bg-[#414147] text-white" : "text-zinc-200")}>
+                <Icon className="size-4 shrink-0 text-[#e6b44d]" strokeWidth={1.8} /><span>{n.label}</span>
               </NavLink>;
             })}
           </nav>
