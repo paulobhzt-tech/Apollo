@@ -25,7 +25,7 @@ jobs:
       - name: Instalar dependencias (incluindo indice Emergent)
         run: python -m pip install -r requirements.txt --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
       - name: Testes isolados de autenticacao, CSRF e protecao de dados
-        run: python -m pytest -q -n 0 tests/test_auth_security.py tests/test_csrf_origin.py tests/test_demo_guard.py tests/test_offline_replay.py tests/test_counter_payment_unit.py tests/test_serverbackup_integrity.py tests/test_ingredient_edit_concurrency.py tests/test_operational_audit.py tests/test_kds_workflow.py tests/test_stock_replenishment.py tests/test_backup_health.py
+        run: python -m pytest -q -n 0 tests/test_auth_security.py tests/test_csrf_origin.py tests/test_demo_guard.py tests/test_offline_replay.py tests/test_counter_payment_unit.py tests/test_serverbackup_integrity.py tests/test_ingredient_edit_concurrency.py tests/test_operational_audit.py tests/test_kds_workflow.py tests/test_stock_replenishment.py tests/test_backup_health.py tests/test_sync_identity.py tests/test_audit_alerts.py tests/test_inventory_forecast.py tests/test_restore_disposable_integration.py
 
   pagamentos:
     runs-on: ubuntu-latest
@@ -90,6 +90,8 @@ jobs:
           node --check main.js
           node --check preload.js
           node --check scripts/build-web.js
+          node --check durable-store.js
+          node --test scripts/server-connection.test.js scripts/durable-store.test.js
 
   restore-disposable:
     runs-on: ubuntu-latest

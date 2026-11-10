@@ -80,7 +80,7 @@ jobs:
           node --check preload.js
       - name: Testar deteccao do servidor e atualizacao da configuracao
         working-directory: desktop
-        run: node --test scripts/server-connection.test.js
+        run: node --test scripts/server-connection.test.js scripts/durable-store.test.js
       - name: Gerar instalador
         working-directory: desktop
         run: npm run dist
