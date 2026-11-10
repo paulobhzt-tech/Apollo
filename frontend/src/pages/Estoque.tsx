@@ -20,7 +20,7 @@ import { ingredientValues } from "@/lib/catalog-form";
 
 const UNITS: Unit[] = ["kg", "g", "L", "ml", "un"];
 const MOVE_LABEL: Record<StockMove["type"], string> = { entrada: "Entrada", saida: "Saída", ajuste: "Ajuste/Inventário", venda: "Baixa por venda", estorno: "Estorno", perda: "Perda / Descarte" };
-const inv = () => { void queryClient.invalidateQueries({ queryKey: ["inventory-replenishment"] }); void queryClient.invalidateQueries({ queryKey: ["ingredients"] }); void queryClient.invalidateQueries({ queryKey: ["stock-moves"] }); };
+const inv = () => { void queryClient.invalidateQueries({ queryKey: ["inventory-forecast"] }); void queryClient.invalidateQueries({ queryKey: ["inventory-replenishment"] }); void queryClient.invalidateQueries({ queryKey: ["ingredients"] }); void queryClient.invalidateQueries({ queryKey: ["stock-moves"] }); };
 
 type ProductionBatch = {
   id: string; production_type?: "espetinho" | "porcao"; ingredient_id: string; product_id?: string; ingredient_name: string; kg: number; units: number;
@@ -167,6 +167,45 @@ type ReplenishmentPlan = {
     suggested: number | null; estimated_cost: number | null; review_required: boolean; reason: string }[];
 };
 
+type InventoryForecast = {
+  window_days: number; lead_days: number; buffer_days: number; history_truncated: boolean; insufficient_history_count: number;
+  items: { ingredient_id: string; name: string; unit: Unit; stock: number; sales_consumption: number; loss_qty: number;
+    sales_days: number; daily_average: number; coverage_days: number | null; suggested: number | null;
+    insufficient_history: boolean; review_negative_stock: boolean }[];
+};
+
+function ConsumptionForecastPanel() {
+  const [open, setOpen] = useState(false);
+  const [windowDays, setWindowDays] = useState("28");
+  const [leadDays, setLeadDays] = useState("7");
+  const [bufferDays, setBufferDays] = useState("2");
+  const valid = [[windowDays, 7, 90], [leadDays, 1, 60], [bufferDays, 0, 30]].every(([value, min, max]) => String(value).trim() !== "" && Number.isInteger(Number(value)) && Number(value) >= Number(min) && Number(value) <= Number(max));
+  const forecast = useQuery({ queryKey: ["inventory-forecast", windowDays, leadDays, bufferDays],
+    queryFn: () => apiGet<InventoryForecast>(`/inventory/forecast?window_days=${windowDays}&lead_days=${leadDays}&buffer_days=${bufferDays}`), enabled: open && valid, staleTime: 60_000 });
+  return <details className="mb-4 rounded-2xl border border-white/10 bg-panel p-4" onToggle={(e) => setOpen(e.currentTarget.open)} data-testid="consumption-forecast">
+    <summary className="cursor-pointer font-semibold">Previsão por consumo · planejamento opcional</summary>
+    <p className="mt-3 text-xs text-zinc-400">Média de saídas por venda dividida pela janela informada; dias sem movimentos contam como zero. Perdas aparecem separadas e estornos não reduzem esta média bruta. Prazo e margem são parâmetros desta consulta, sem alteração no cadastro do fornecedor. Nenhuma compra é registrada.</p>
+    <div className="my-3 grid gap-3 sm:grid-cols-3">
+      <div><Label htmlFor="forecast-window">Histórico (7 a 90 dias)</Label><Input id="forecast-window" type="number" min="7" max="90" step="1" value={windowDays} onChange={(e) => setWindowDays(e.target.value)} /></div>
+      <div><Label htmlFor="forecast-lead">Prazo informado de entrega (1 a 60 dias)</Label><Input id="forecast-lead" type="number" min="1" max="60" step="1" value={leadDays} onChange={(e) => setLeadDays(e.target.value)} /></div>
+      <div><Label htmlFor="forecast-buffer">Margem de segurança (0 a 30 dias)</Label><Input id="forecast-buffer" type="number" min="0" max="30" step="1" value={bufferDays} onChange={(e) => setBufferDays(e.target.value)} /></div>
+    </div>
+    {!valid && <p role="alert" className="text-sm text-amber-300">Informe dias inteiros dentro dos intervalos indicados.</p>}
+    {valid && forecast.isFetching && <p className="text-sm text-zinc-400">Calculando previsão…</p>}
+    {valid && forecast.isError && <p role="alert" className="text-sm text-amber-300">Não foi possível consultar o histórico. Confira a conexão.</p>}
+    {valid && forecast.data && <div className="space-y-3">
+      <p className="text-xs text-zinc-400">Meta: maior valor entre estoque mínimo e consumo previsto para prazo + margem. Unidades inteiras são arredondadas para cima. Exige vendas registradas em pelo menos 3 dias distintos; histórico incompleto não gera quantidade sugerida.</p>
+      {forecast.data.history_truncated && <p role="alert" className="text-sm text-amber-300">A janela excedeu 50 mil movimentos. Reduza o período para calcular sugestões completas.</p>}
+      {forecast.data.items.length === 0 && <p className="text-sm text-zinc-400">Nenhum insumo disponível para previsão.</p>}
+      {forecast.data.items.map((i) => <div key={i.ingredient_id} className="rounded-lg border border-white/10 p-3 text-sm">
+        <div className="flex flex-wrap justify-between gap-2"><strong>{i.name}</strong><span>{i.insufficient_history ? "Histórico insuficiente para sugestão" : `Planejar ${i.suggested} ${i.unit}`}</span></div>
+        <p className="mt-1 text-xs text-zinc-400">Vendas: {i.sales_consumption} {i.unit} em {i.sales_days} dia(s) com registro · média {i.daily_average} {i.unit}/dia · perdas separadas: {i.loss_qty} {i.unit} · cobertura estimada: {i.coverage_days === null ? "indisponível" : `${i.coverage_days} dias`}</p>
+        {i.review_negative_stock && <p className="mt-1 text-xs text-amber-300">Confira o saldo negativo antes de decidir a reposição.</p>}
+      </div>)}
+    </div>}
+  </details>;
+}
+
 export default function Estoque() {
   const { data: me } = useMe();
   const [targetMultiplier, setTargetMultiplier] = useState("2");
@@ -208,6 +247,7 @@ export default function Estoque() {
         <p className="mb-2 text-sm">Custo conhecido estimado: <strong>{brl(replenishment.data?.estimated_known_cost ?? 0)}</strong>{!!replenishment.data?.items_without_cost && ` · ${replenishment.data.items_without_cost} item(ns) sem estimativa`}</p>
         <ul className="space-y-2 text-sm">{shopping.map((i) => <li key={i.ingredient_id} className="flex flex-wrap justify-between gap-2"><span>{i.name}{i.review_required && <span className="block text-xs text-amber-200">{i.reason === "configure_minimum" ? "Defina o estoque mínimo" : "Confira o saldo negativo"}</span>}</span><span className="font-mono text-amber-200">{i.suggested === null ? "Quantidade a definir" : `${i.suggested} ${i.unit}`}{i.estimated_cost !== null && ` · ${brl(i.estimated_cost)}`}</span></li>)}</ul>
       </div>}
+      <ConsumptionForecastPanel />
       <div className="mb-4 rounded-2xl border border-white/5 bg-panel p-4"><p className="text-xs text-zinc-400">Prejuízo por perdas (últimas 300 movimentações)</p><p className="font-mono text-xl text-red-300">{brl(lossTotal)}</p><p className="text-xs text-zinc-500">{losses.length} ocorrências</p></div>
       <Tabs defaultValue="insumos">
         <TabsList className="w-full flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto [&_[data-slot=tabs-trigger]]:h-8"><TabsTrigger value="insumos" data-testid="tab-insumos">Insumos</TabsTrigger><TabsTrigger value="movs" data-testid="tab-movimentacoes">Movimentações</TabsTrigger><TabsTrigger value="producao" data-testid="tab-producao">Produção por lote</TabsTrigger><TabsTrigger value="compras" data-testid="tab-compras">Compras e validade</TabsTrigger><TabsTrigger value="inventario" data-testid="tab-inventario">Inventário</TabsTrigger></TabsList>

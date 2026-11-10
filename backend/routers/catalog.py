@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 import math
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -341,6 +341,88 @@ async def inventory_replenishment(target_multiplier: int = Query(default=2, ge=1
     ingredients = await db.ingredients.find({}, {"_id": 0, "id": 1, "name": 1, "unit": 1,
                                                 "stock": 1, "min_stock": 1, "cost_per_unit": 1}).to_list(5000)
     return replenishment_plan(ingredients, target_multiplier)
+
+
+def inventory_consumption_forecast(ingredients: list[dict], moves: list[dict], *, window_days: int,
+                                   lead_days: int, buffer_days: int, as_of: datetime,
+                                   history_truncated: bool = False) -> dict:
+    """Planning only: gross sales consumption and losses are deliberately separate."""
+    if not (7 <= window_days <= 90 and 1 <= lead_days <= 60 and 0 <= buffer_days <= 30):
+        raise ValueError("Invalid forecast planning window")
+    end = as_of.replace(tzinfo=timezone.utc) if as_of.tzinfo is None else as_of
+    start = end - timedelta(days=window_days)
+    totals = {}
+    for move in moves:
+        kind = move.get("type")
+        if kind not in ("venda", "perda"):
+            continue
+        try:
+            at = move["created_at"]
+            if isinstance(at, str):
+                at = datetime.fromisoformat(at.replace("Z", "+00:00"))
+            if not isinstance(at, datetime):
+                continue
+            if at.tzinfo is None:
+                at = at.replace(tzinfo=timezone.utc)
+            qty = abs(float(move.get("qty", 0)))
+        except (KeyError, ValueError, TypeError, OverflowError):
+            continue
+        if not (start <= at <= end) or not math.isfinite(qty) or qty == 0:
+            continue
+        total = totals.setdefault(move.get("ingredient_id"), {"sales": 0., "losses": 0., "days": set()})
+        if kind == "venda":
+            total["sales"] += qty
+            total["days"].add(at.astimezone(timezone.utc).date())
+        else:
+            total["losses"] += qty
+    items = []
+    for ing in ingredients:
+        try:
+            stock = float(ing.get("stock") or 0)
+            minimum = max(0, float(ing.get("min_stock") or 0))
+        except (ValueError, TypeError, OverflowError):
+            continue
+        total = totals.get(ing["id"], {"sales": 0., "losses": 0., "days": set()})
+        if not all(math.isfinite(v) for v in (stock, minimum, total["sales"], total["losses"])):
+            continue
+        average = total["sales"] / window_days
+        insufficient = history_truncated or len(total["days"]) < 3
+        target = max(minimum, average * (lead_days + buffer_days))
+        needed = max(0, target - stock)
+        if not math.isfinite(target) or not math.isfinite(needed * 10000):
+            continue
+        coverage = max(0, stock) / average if average > 0 else None
+        if coverage is not None and not math.isfinite(coverage):
+            coverage = None
+        suggested = None if insufficient else math.ceil(needed) if ing.get("unit") == "un" else math.ceil(needed * 10000) / 10000
+        items.append({"ingredient_id": ing["id"], "name": ing["name"], "unit": ing.get("unit", ""),
+                      "stock": stock, "min_stock": minimum, "sales_consumption": round(total["sales"], 4),
+                      "loss_qty": round(total["losses"], 4), "sales_days": len(total["days"]),
+                      "daily_average": round(average, 4),
+                      "coverage_days": round(coverage, 1) if coverage is not None else None,
+                      "target_stock": round(target, 4) if not insufficient else None,
+                      "suggested": suggested, "insufficient_history": insufficient,
+                      "review_negative_stock": stock < 0})
+    items.sort(key=lambda i: (i["insufficient_history"], -(i["suggested"] or 0), i["name"].casefold()))
+    return {"window_days": window_days, "lead_days": lead_days, "buffer_days": buffer_days,
+            "as_of": end, "history_truncated": history_truncated, "minimum_sales_days": 3,
+            "insufficient_history_count": sum(i["insufficient_history"] for i in items), "items": items}
+
+
+@router.get("/inventory/forecast")
+async def inventory_forecast(window_days: int = Query(default=28, ge=7, le=90),
+                             lead_days: int = Query(default=7, ge=1, le=60),
+                             buffer_days: int = Query(default=2, ge=0, le=30),
+                             _: dict = Depends(require("caixa", "cozinha"))):
+    as_of = now()
+    ingredients = await db.ingredients.find({}, {"_id": 0, "id": 1, "name": 1, "unit": 1,
+                                                "stock": 1, "min_stock": 1}).to_list(5000)
+    moves = await db.stock_moves.find({"type": {"$in": ["venda", "perda"]},
+                                      "created_at": {"$gte": as_of - timedelta(days=window_days), "$lte": as_of}},
+                                     {"_id": 0, "ingredient_id": 1, "type": 1, "qty": 1, "created_at": 1}).to_list(50001)
+    return inventory_consumption_forecast(ingredients, moves[:50000], window_days=window_days,
+                                          lead_days=lead_days, buffer_days=buffer_days, as_of=as_of,
+                                          history_truncated=len(moves) > 50000)
 
 
 @router.post("/ingredients", response_model=Ingredient)
