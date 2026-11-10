@@ -15,15 +15,22 @@ import type { LocalBackupSettings, OkOut, RestoreOut, ServerBackupInfo } from "@
 /** Backup automático guardado no próprio servidor (local da loja ou nuvem). */
 export function ServerBackups() {
   const list = useQuery({ queryKey: ["server-backups"], queryFn: () => apiGet<ServerBackupInfo[]>("/backups/server") });
+  const health = useQuery({ queryKey: ["server-backup-health"], queryFn: () => apiGet<{ status: string; overdue_hours: number; latest: { at: string; age_hours: number; checksum_available: boolean } | null }>("/backups/server/health"), refetchInterval: 60_000 });
+  const verify = useMutation({ mutationFn: (id: string) => apiGet<{ valid: boolean; integrity: string }>(`/backups/server/${id}/verify`),
+    onSuccess: r => toast.success(r.integrity === "sha256" ? "Integridade SHA256 conferida. A restauração ainda precisa ser testada separadamente." : "Arquivo legível, mas sem checksum de origem. A integridade não foi comprovada."), onError: e => toast.error(errMsg(e)) });
   const cfg = useQuery({ queryKey: ["server-backup-settings"], queryFn: () => apiGet<LocalBackupSettings>("/backups/server/settings") });
-  const inv = () => void queryClient.invalidateQueries({ queryKey: ["server-backups"] });
+  const inv = () => { void queryClient.invalidateQueries({ queryKey: ["server-backups"] }); void queryClient.invalidateQueries({ queryKey: ["server-backup-health"] }); };
   const now = useMutation({ mutationFn: () => apiPost<ServerBackupInfo>("/backups/server"), onSuccess: (b) => { toast.success(`Backup salvo no servidor (${b.size_kb} KB)`); inv(); }, onError: (e) => toast.error(errMsg(e)) });
-  const save = useMutation({ mutationFn: (b: LocalBackupSettings) => apiPut<LocalBackupSettings>("/backups/server/settings", b), onSuccess: () => { toast.success("Preferência salva"); void queryClient.invalidateQueries({ queryKey: ["server-backup-settings"] }); }, onError: (e) => toast.error(errMsg(e)) });
+  const save = useMutation({ mutationFn: (b: LocalBackupSettings) => apiPut<LocalBackupSettings>("/backups/server/settings", b), onSuccess: () => { toast.success("Preferência salva"); void queryClient.invalidateQueries({ queryKey: ["server-backup-settings"] }); void queryClient.invalidateQueries({ queryKey: ["server-backup-health"] }); }, onError: (e) => toast.error(errMsg(e)) });
   const restore = useMutation({ mutationFn: (id: string) => apiPost<RestoreOut>(`/backups/server/${id}/restore`), onSuccess: (r) => { toast.success(r.message); void queryClient.invalidateQueries(); }, onError: (e) => toast.error(errMsg(e)) });
   const del = useMutation({ mutationFn: (id: string) => apiDelete<OkOut>(`/backups/server/${id}`), onSuccess: inv, onError: (e) => toast.error(errMsg(e)) });
   const c = cfg.data;
   return (
     <Panel title="Backup automático no servidor (conta local)" className="lg:col-span-2">
+      <div className="mb-3 rounded-md border p-3 text-sm" role="status" data-testid="backup-health">
+        {health.isLoading ? "Conferindo a situação do backup…" : health.isError ? "Não foi possível consultar a situação do backup." : health.data?.status === "missing" ? "Nenhum backup encontrado no servidor." : health.data?.status === "overdue" ? `Backup atrasado: última cópia há ${health.data.latest?.age_hours} horas.` : health.data?.status === "invalid_metadata" ? "Dados do último backup precisam de revisão." : `Backup recente: ${fmtDateTime(health.data?.latest?.at ?? null)}.`}
+        <p className="mt-1 text-xs text-zinc-400">Esta consulta confere apenas a idade da cópia. Use Verificar para conferir o arquivo sem restaurar dados.</p>
+      </div>
       <div className="flex flex-wrap items-center gap-4">
         {c && (
           <label className="flex items-center gap-2 text-sm text-zinc-300">
@@ -41,6 +48,7 @@ export function ServerBackups() {
           <li key={b.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-white/5 px-3 py-2 text-sm" data-testid="server-backup-item">
             <span className="flex-1 text-zinc-200">{fmtDateTime(b.at)} · <span className="text-zinc-400">{b.trigger}{b.by_name && ` · ${b.by_name}`}</span></span>
             <span className="font-mono text-xs text-zinc-500">{b.size_kb} KB</span>
+            <Button size="xs" variant="outline" disabled={verify.isPending} onClick={() => verify.mutate(b.id)} data-testid="server-backup-verify">Verificar</Button>
             <a href={`/api/backups/server/${b.id}/download`} download><Button size="xs" variant="outline" data-testid="server-backup-download"><Download className="size-3" /> Baixar</Button></a>
             <Button size="xs" variant="outline" disabled={restore.isPending} onClick={() => window.confirm("Restaurar este backup? Os dados atuais serão substituídos (uma cópia de segurança é feita antes).") && restore.mutate(b.id)} data-testid="server-backup-restore"><RotateCcw className="size-3" /> Restaurar</Button>
             <Button size="icon-sm" variant="ghost" onClick={() => window.confirm("Apagar este backup?") && del.mutate(b.id)} data-testid="server-backup-delete"><Trash2 /></Button>

@@ -33,7 +33,7 @@ export default function Config() {
     <AppShell roles={[]}>
       <PageHeader title="Configurações" subtitle="Impressoras, dados da empresa e PIX, taxas de cartão, backup e auto teste" />
       <Tabs defaultValue={params.get("tab") ?? "impressoras"}>
-        <TabsList>
+        <TabsList className="max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto">
           <TabsTrigger value="impressoras" data-testid="config-tab-printers">Impressoras</TabsTrigger>
           <TabsTrigger value="empresa" data-testid="config-tab-company">Empresa & PIX</TabsTrigger>
           <TabsTrigger value="taxas" data-testid="config-tab-fees">Taxas de cartão</TabsTrigger>
