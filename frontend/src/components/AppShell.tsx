@@ -209,9 +209,11 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
           </div>}
           <nav aria-label="Atalhos do sistema" className="flex min-h-12 flex-wrap items-stretch gap-1 bg-[#303034] px-2 py-1.5 sm:px-4">
             {NAV.filter(n => n.roles.includes(me.role) && (
+              activeRibbon === "Favoritos" ? (editingFavorites || favorites.includes(n.to)) :
               activeRibbon ? n.group === activeRibbon :
               (NAV.find(item => item.to === loc.pathname)?.group ?? "Operação") === n.group
-            )).map(n => {
+            )).sort((a, b) => activeRibbon === "Favoritos" && !editingFavorites
+              ? favorites.indexOf(a.to) - favorites.indexOf(b.to) : 0).map(n => {
               const Icon = ICONS[n.icon] ?? LayoutDashboard;
               return activeRibbon === "Favoritos" && editingFavorites
                 ? <button key={n.to} type="button" onClick={() => toggleFavorite(n.to)} aria-pressed={favorites.includes(n.to)}
