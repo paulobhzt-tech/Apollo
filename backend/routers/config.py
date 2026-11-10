@@ -170,6 +170,9 @@ async def restore(body: RestoreIn, me: dict = Depends(require())):
     if not data.get("products") and not data.get("orders"):
         raise HTTPException(400, "Arquivo de backup inválido ou vazio")
     await save_restore_safety_snapshot(me["id"])
+    # A restored older snapshot must not reuse numbers already issued before it.
+    prior_counters = await db.counters.find({}, {"_id": 1, "seq": 1}).to_list(1000)
+    prior_order = await db.orders.find_one({}, {"_id": 0, "number": 1}, sort=[("number", -1)])
     counts: dict[str, int] = {}
     for c, docs in data.items():
         docs = [revive(d) for d in docs if isinstance(d, dict)]
@@ -196,8 +199,12 @@ async def restore(body: RestoreIn, me: dict = Depends(require())):
             await db[c].insert_many(docs)
         counts[c] = len(docs)
     last = await db.orders.find_one({}, {"_id": 0, "number": 1}, sort=[("number", -1)])
-    if last:  # never reuse order numbers even if the backup had no counters
-        await db.counters.update_one({"_id": "order"}, {"$max": {"seq": int(last["number"])}}, upsert=True)
+    for counter in prior_counters:
+        if counter.get("_id") is not None and isinstance(counter.get("seq"), int):
+            await db.counters.update_one({"_id": counter["_id"]}, {"$max": {"seq": counter["seq"]}}, upsert=True)
+    maximum = max(int((last or {}).get("number", 0)), int((prior_order or {}).get("number", 0)))
+    if maximum:
+        await db.counters.update_one({"_id": "order"}, {"$max": {"seq": maximum}}, upsert=True)
     from routers.production import ensure_environments
     await ensure_environments()
     total = sum(counts.values())

@@ -88,11 +88,12 @@ async def test_business_inventory_and_audit_restore_roundtrip(disposable_databas
     assert {d["_id"] for d in backup["data"]["settings"]} == {"general"}
     # Simulate foreign/legacy backup attempting to overwrite install identity and actor.
     backup["data"]["settings"] += [{"_id": "sync_identity", "id": "foreign-installation"}, {"_id": "drive", "refresh_token": "foreign"}]
-    backup["data"]["employees"][0].update(active=False, role="garcom", pin_hash="injected", password_hash="injected")
+    next(e for e in backup["data"]["employees"] if e["id"] == "admin").update(active=False, role="garcom", pin_hash="injected", password_hash="injected")
     cashier = next(e for e in backup["data"]["employees"] if e["id"] == "cashier")
     cashier.update(pin_hash="injected", password_hash="injected")
     await db.products.update_one({"id": "product"}, {"$set": {"price": 99}})
     await db.orders.insert_one({"id": "post-backup", "number": 124})
+    await db.counters.update_one({"_id": "order"}, {"$set": {"seq": 600}}, upsert=True)
     restored = await config.restore(RestoreIn(data=backup["data"]), {"id": "admin"})
     assert restored.counts["purchases"] == 1
     for collection, documents in source.items():
@@ -105,7 +106,7 @@ async def test_business_inventory_and_audit_restore_roundtrip(disposable_databas
     assert (await db.employees.find_one({"id": "new-employee"}))["active"] is False
     assert (await db.settings.find_one({"_id": "sync_identity"}))["id"] == "local-installation"
     assert (await db.settings.find_one({"_id": "drive"}))["refresh_token"] == "local-drive-secret"
-    assert (await db.counters.find_one({"_id": "order"}))["seq"] >= 123
+    assert (await db.counters.find_one({"_id": "order"}))["seq"] >= 600
     assert verify_event((await db.orders.find_one({"id": "order"}))["audit_events"][0]) == "valid"
     snapshot = await db.restore_safety_backups.find_one({})
     raw = gzip.decompress(snapshot["blob"])
