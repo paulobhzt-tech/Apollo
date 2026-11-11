@@ -140,13 +140,21 @@ async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
         raise HTTPException(404, "Item não encontrado ou já cancelado")
     auth = await cancel_authorizer(user, body.manager_pin)
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
-    await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1)
     event = audit_event("item_refunded" if o["status"] == "pago" else "item_cancelled", user,
                         reason=body.reason, authorized_by=auth,
                         values={"item_id": item_id, "qty": item["qty"], "from": o["status"]})
-    set_item = {"items.$.cancelled": True, "items.$.cancel_reason": body.reason}
+    # Compare the item snapshot as well as status so simultaneous refunds of
+    # different items cannot overwrite the totals computed below.
+    criteria = {"id": id, "status": o["status"], "items": o["items"]}
+    set_item = {"items": [
+        {**entry, "cancelled": True, "cancel_reason": body.reason}
+        if entry["id"] == item_id else entry for entry in o["items"]
+    ]}
     if o["status"] == "aberto":
-        await db.orders.update_one({"id": id, "items.id": item_id}, {"$set": set_item, "$push": {"audit_events": event}})
+        result = await db.orders.update_one(criteria, {"$set": set_item, "$push": {"audit_events": event}})
+        if not result.modified_count:
+            raise HTTPException(409, "O pedido mudou. Atualize antes de cancelar o item.")
+        await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1)
         return await refresh_totals(id)
     live = [i for i in o["items"] if not i.get("cancelled") and i["id"] != item_id]
     old_sub = o["subtotal"] or 1
@@ -163,10 +171,13 @@ async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
            "cmv": round(sum(i["qty"] * i.get("unit_cost", 0) for i in live), 2)}
     if not live:
         upd.update(status="cancelado", cancel_reason=body.reason, cancelled_by=who, cancelled_at=now())
-        if o.get("invoice_id"):
-            await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}})
-    await db.orders.update_one({"id": id, "items.id": item_id},
-                               {"$set": upd, "$push": {"refunds": refund, "audit_events": event}, "$inc": {"refunded_total": amount}})
+    result = await db.orders.update_one(criteria,
+        {"$set": upd, "$push": {"refunds": refund, "audit_events": event}, "$inc": {"refunded_total": amount}})
+    if not result.modified_count:
+        raise HTTPException(409, "O pedido mudou. Atualize antes de estornar o item.")
+    await move_stock([OrderItem(**item)], user["name"], f"Estorno #{o['number']}: {body.reason}", sign=1)
+    if not live and o.get("invoice_id"):
+        await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}})
     if main["method"] == "fiado":
         await fiado_reverse(o, amount, who, f"Estorno de {refund['item_name']} (#{o['number']})")
     return await db.orders.find_one({"id": id}, {"_id": 0})
