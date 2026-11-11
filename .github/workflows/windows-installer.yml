@@ -81,6 +81,14 @@ jobs:
       - name: Testar deteccao do servidor e atualizacao da configuracao
         working-directory: desktop
         run: node --test scripts/server-connection.test.js scripts/durable-store.test.js
+      - name: Validar frontend antes de gerar o instalador
+        working-directory: frontend
+        shell: pwsh
+        run: |
+          corepack enable
+          yarn install --non-interactive
+          yarn typecheck
+          yarn vitest run src/lib/offline.test.ts src/lib/queue-context.test.ts src/lib/legacy-reconciliation.test.ts
       - name: Gerar instalador
         working-directory: desktop
         run: npm run dist
