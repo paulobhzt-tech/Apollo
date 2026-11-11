@@ -70,6 +70,8 @@ jobs:
           node-version: '22'
       - name: Instalar dependencias com Yarn (gerenciador do projeto)
         run: yarn install --non-interactive
+      - name: Executar testes de filas offline e reconciliacao (Vitest)
+        run: yarn vitest run src/lib/offline.test.ts src/lib/queue-context.test.ts src/lib/legacy-reconciliation.test.ts
       - name: Verificar tipos TypeScript
         run: yarn typecheck
       - name: Compilar interface
