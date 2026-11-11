@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 
 from lib.auth import current_user, require
 from lib.db import db
+from lib.restore_recovery import inspect_restore_snapshot
 from models.schemas import GeneralSettings, OkOut, Printer, PrinterIn, RestoreIn, RestoreOut
 
 router = APIRouter()
@@ -158,6 +159,31 @@ async def save_restore_safety_snapshot(actor_id: str) -> str:
         "blob": compressed, "sha256": hashlib.sha256(raw).hexdigest(),
     })
     return snapshot_id
+
+
+@router.get("/backup/recovery-snapshots")
+async def recovery_snapshots(_: dict = Depends(require("admin"))):
+    """List safe metadata only; never expose compressed blobs or credentials."""
+    cursor = db.restore_safety_backups.find(
+        {}, {"_id": 0, "id": 1, "at": 1, "actor_id": 1, "sha256": 1}
+    ).sort("at", -1)
+    records = await cursor.to_list(50)
+    return {"snapshots": records}
+
+
+@router.get("/backup/recovery-snapshots/{snapshot_id}/inspect")
+async def inspect_recovery_snapshot(snapshot_id: str, _: dict = Depends(require("admin"))):
+    """Read-only integrity check. A recovery requires a separate approved process."""
+    if not re.fullmatch(r"[0-9a-fA-F-]{36}", snapshot_id):
+        raise HTTPException(400, "Identificador da copia invalido")
+    snapshot = await db.restore_safety_backups.find_one({"id": snapshot_id})
+    if not snapshot:
+        raise HTTPException(404, "Copia de seguranca nao encontrada")
+    try:
+        result = inspect_restore_snapshot(snapshot)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return {"snapshot_id": snapshot_id, **result, "restored": False}
 
 
 @router.post("/backup/restore", response_model=RestoreOut)
