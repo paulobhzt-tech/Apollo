@@ -5,13 +5,18 @@ import { Panel } from "@/pages/Dashboard";
 import { Button } from "@/components/ui/button";
 import { desktop } from "@/lib/desktop";
 import { brl, errMsg, fmtDateTime } from "@/lib/format";
-import { dismissRejected, legacyQueuePreview, legacyQueueStatus, reviewedSales, lastSync, retryRejected, syncQueue, useOffline } from "@/lib/offline";
+import { dismissRejected, legacyQueuePreview, legacyQueueStatus, legacyReconciliationStatus, reviewedSales, lastSync, retryRejected, syncQueue, useOffline } from "@/lib/offline";
 
 /** Sincronização: pending offline sales, rejected ones (kept for review) and the desktop app status. */
 export default function SyncPanel() {
   const { offline, queue, rejected, context } = useOffline();
   const legacy = legacyQueueStatus();
   const legacyPreview = legacyQueuePreview();
+  const legacyReview = legacyReconciliationStatus();
+  const legacyCounts = legacyReview.items.reduce<Record<string, number>>((counts, item) => {
+    counts[item.decision] = (counts[item.decision] ?? 0) + 1;
+    return counts;
+  }, {});
   const d = desktop();
   const cfg = useQuery({ queryKey: ["desktop-config"], queryFn: () => d!.config(), enabled: !!d });
   const last = lastSync();
@@ -42,6 +47,12 @@ export default function SyncPanel() {
           <p>{legacyPreview.pending} pendente(s) · {legacyPreview.rejected} recusa(s) · Total informado: {brl(legacyPreview.total)}</p>
           <p>{legacyPreview.duplicate_refs} referência(s) repetida(s) · {legacyPreview.missing_refs} referência(s) ausente(s)</p>
           {legacyPreview.invalid && <p role="alert" className="font-semibold text-red-300">Dados inválidos ou ilegíveis detectados. Não tente importar; preserve o dispositivo e solicite revisão técnica.</p>}
+          <div className="mt-2 space-y-1" data-testid="legacy-reconciliation-status">
+            <p>Revisão de origem pendente: {legacyCounts.needs_origin_confirmation ?? 0}</p>
+            <p>Referências duplicadas: {legacyCounts.duplicate_reference ?? 0} · Identidade divergente: {legacyCounts.foreign_identity ?? 0}</p>
+            <p>Registros inválidos: {legacyCounts.invalid ?? 0}</p>
+            {legacyReview.unreadable && <p role="alert" className="font-semibold text-red-300">Fila antiga ilegível: preserve o dispositivo e procure suporte antes de qualquer migração.</p>}
+          </div>
           <p>Este diagnóstico não valida pagamentos, não confirma origem e não autoriza migração. Nenhum registro antigo foi enviado ou excluído.</p>
         </div>}
         <div className="flex flex-wrap items-center gap-3">
