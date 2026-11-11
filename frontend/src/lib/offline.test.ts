@@ -202,3 +202,30 @@ it("does not mistake old records for sales in the authenticated queue", async ()
   expect(post).not.toHaveBeenCalled();
   expect(storage.get("pdv_offline_queue")).toContain("legacy-a");
 });
+
+it("migrates an individually confirmed reference without rewriting legacy bytes", async () => {
+  const offline = await import("./offline");
+  const original = JSON.stringify([{ payload: { client_ref: "legacy-1", items: [{ product_id: "p1" }] }, total: 10, queued_at: "2026-11-10" }]);
+  storage.set("pdv_offline_queue", original);
+  const [item] = offline.legacyReconciliationStatus().items;
+  await expect(offline.migrateLegacySale(item, { ...CONTEXT, operator_id: "other" })).rejects.toThrow("origem");
+  expect(post).not.toHaveBeenCalled();
+  post.mockResolvedValueOnce({ status: "missing" });
+  await expect(offline.migrateLegacySale(item, CONTEXT)).resolves.toBe("queued");
+  expect(post).toHaveBeenCalledWith("/pdv/legacy-reconciliation", expect.objectContaining({ client_ref: "legacy-1", sync_context: CONTEXT }));
+  expect(storage.get("pdv_offline_queue")).toBe(original);
+  expect(JSON.parse(storage.get(QUEUE_KEY)!)).toHaveLength(1);
+  post.mockResolvedValueOnce({ status: "registered" });
+  await expect(offline.migrateLegacySale(item, CONTEXT)).resolves.toBe("registered");
+  expect(JSON.parse(storage.get(QUEUE_KEY)!)).toHaveLength(1);
+});
+
+it("blocks both copies of duplicate legacy references before asking the server", async () => {
+  const offline = await import("./offline");
+  const original = JSON.stringify([{ payload: { client_ref: "legacy-1", items: [{ product_id: "p1" }] }, total: 10, queued_at: "2026-11-10" }]);
+  storage.set("pdv_offline_queue", original);
+  storage.set("pdv_offline_rejected", original);
+  await expect(offline.migrateLegacySale(offline.legacyReconciliationStatus().items[0], CONTEXT)).rejects.toThrow("duplicado");
+  expect(post).not.toHaveBeenCalled();
+  expect(storage.get(QUEUE_KEY)).toBeUndefined();
+});

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { getReceiptPref, printSimpleReceipt } from "@/lib/receipt";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -104,6 +105,7 @@ export default function Pdv() {
 
   return (
     <AppShell roles={["caixa"]}>
+      <Link to="/config?tab=sync" className="mb-2 inline-block text-sm text-primary underline underline-offset-4">Fila offline e diagnóstico</Link>
       <PageHeader title="Frente de Caixa" subtitle="F2 pagamento · F3 buscar · F4 limpar · Enter na busca adiciona o item" actions={
         offline ? <span className="flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs text-amber-200" data-testid="pdv-offline-banner"><WifiOff className="size-3.5" /> Contingência offline · {queue.length} na fila</span> : null
       } />

@@ -6,6 +6,7 @@ import pytest
 from fastapi import HTTPException
 from pymongo.errors import DuplicateKeyError
 
+from models.schemas import SyncContext
 from routers import operations
 
 
@@ -118,3 +119,23 @@ async def test_payment_failure_cleanup_cannot_delete_a_paid_sale(monkeypatch):
     with pytest.raises(HTTPException):
         await operations.quick_sale(sale_body(), {"id": "cashier", "name": "Cashier"})
     operations.db.orders.delete_one.assert_awaited_once_with({"id": "order-1", "status": "aberto"})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("state", ["missing", "registered", "manual_review"])
+async def test_legacy_preflight_preserves_orders_and_hides_foreign_records(monkeypatch, state):
+    body = sale_body()
+    body.sync_context = SyncContext(
+        establishment_id="loja", server_id="servidor", operator_id="cashier",
+    )
+    monkeypatch.setattr(operations, "validate_sync_context", AsyncMock())
+    existing = None if state == "missing" else {
+        "status": "pago",
+        "waiter_id": "cashier" if state == "registered" else "other",
+        "request_fingerprint": operations.sale_fingerprint(body),
+    }
+    operations.db.orders.find_one.return_value = existing
+    result = await operations.reconcile_legacy_sale(body, {"id": "cashier"})
+    assert result == {"status": state}
+    operations.validate_sync_context.assert_awaited_once()
+    operations.db.orders.delete_one.assert_not_awaited()

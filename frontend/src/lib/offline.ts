@@ -17,9 +17,13 @@ export interface RejectedSale extends QueuedSale { error: string; rejected_at: s
 /** Bind only after an authenticated server response; never restore authorization from disk. */
 export function setQueueContext(context: QueueContext | null) {
   if (context && !validContext(context)) throw new Error("Identidade de sincronização inválida");
+  const changed = !sameContext(activeContext, context);
   activeContext = context ? { ...context } : null;
   ({ KEY, REJ_KEY, ARCHIVE_KEY, LOG_KEY, MENU_KEY } = queueKeys(activeContext));
   emit();
+  if (changed && activeContext && cachedQueue.length && !isOffline()) {
+    setTimeout(() => void backgroundSync(), 3000);
+  }
 }
 export function legacyQueueStatus() {
   const raw = kv.get("pdv_offline_queue");
@@ -66,6 +70,50 @@ export function legacyReconciliationStatus(): { items: LegacyReviewItem[]; unrea
   const pending = parse("pdv_offline_queue");
   const rejected = parse("pdv_offline_rejected");
   return { items: reconcileLegacyPreview(pending, rejected, activeContext), unreadable };
+}
+
+/** Move one confirmed record into the authenticated queue, preserving the legacy bytes. */
+export async function migrateLegacySale(item: LegacyReviewItem, confirmedOrigin: QueueContext) {
+  const context = activeContext;
+  if (!sameContext(context, confirmedOrigin) || !context || isOffline()) {
+    throw new Error("Confirme a origem e reconecte o operador original antes de importar.");
+  }
+  const { items, unreadable } = legacyReconciliationStatus();
+  const matches = items.filter((candidate) => candidate.client_ref === item.client_ref);
+  if (unreadable || matches.length !== 1 || matches[0].decision !== "needs_origin_confirmation" ||
+      matches[0].source !== item.source || matches[0].index !== item.index) {
+    throw new Error("Registro alterado, duplicado ou inválido. Confira a fila original.");
+  }
+  const key = item.source === "pending" ? "pdv_offline_queue" : "pdv_offline_rejected";
+  const original = kv.get(key);
+  const sale = (JSON.parse(original ?? "[]") as QueuedSale[])[item.index];
+  if (!sale || !Number.isFinite(Date.parse(sale.queued_at))) throw new Error("Data do registro inválida.");
+  const payload = { ...sale.payload, sync_context: { ...context } };
+  const { status } = await apiPost<{ status: "missing" | "registered" | "manual_review" }>(
+    "/pdv/legacy-reconciliation", payload,
+  );
+  if (!sameContext(activeContext, context) || kv.get(key) !== original) {
+    throw new Error("A sessão ou a fila mudou durante a conferência. Repita a revisão.");
+  }
+  if (status === "registered") return status;
+  if (status !== "missing") throw new Error("O servidor já tem esta referência. Confira o histórico antes de prosseguir.");
+  if ([...readRejected(true), ...readSales<RejectedSale>(ARCHIVE_KEY, true)].some(
+    (entry) => entry.payload.client_ref === payload.client_ref,
+  )) throw new Error("Esta referência já está na revisão da fila atual.");
+  enqueue({ payload, total: sale.total, queued_at: sale.queued_at });
+  return "queued" as const;
+}
+
+export async function diagnoseSync() {
+  if (isOffline()) throw new Error("A sincronização está pausada pelo modo offline ou pela falta de rede.");
+  const context = activeContext;
+  if (!context) throw new Error("Entre novamente para confirmar a identidade da fila.");
+  const start = Date.now();
+  const authenticated = await apiGet<QueueContext>("/auth/sync-context");
+  if (!sameContext(context, authenticated) || !sameContext(activeContext, context)) {
+    throw new Error("A sessão ou a identidade do servidor mudou.");
+  }
+  return { latency: Date.now() - start, pending: read(true).length, rejected: readRejected(true).length };
 }
 
 /** Unique, device-tagged reference: replays are idempotent on the server (client_ref). */
@@ -291,6 +339,4 @@ window.addEventListener("storage", (event) => {
 });
 window.addEventListener("online", () => { emit(); void backgroundSync(); });
 window.addEventListener("offline", emit);
-// desktop app: the online window flushes whatever the offline window recorded
-if (read().length) setTimeout(() => void backgroundSync(), 3000);
 setInterval(() => { if (read().length) void backgroundSync(); }, 60_000);

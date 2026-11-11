@@ -29,6 +29,23 @@ def sale_fingerprint(body: QuickSaleIn) -> str:
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
 
 
+@router.post("/pdv/legacy-reconciliation")
+async def reconcile_legacy_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
+    """Validate a legacy payload and look up its reference without creating a sale."""
+    if body.sync_context is None:
+        raise HTTPException(400, "Confirme a identidade de origem da fila.")
+    await validate_sync_context(body.sync_context, user)
+    existing = await db.orders.find_one(
+        {"client_ref": body.client_ref}, {"_id": 0, "status": 1, "waiter_id": 1, "request_fingerprint": 1},
+    )
+    if existing is None:
+        return {"status": "missing"}
+    if (existing.get("waiter_id") == user["id"] and existing.get("status") == "pago"
+            and existing.get("request_fingerprint") == sale_fingerprint(body)):
+        return {"status": "registered"}
+    return {"status": "manual_review"}
+
+
 @router.post("/pdv/sale", response_model=SaleResult)
 async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
     """Atomic create+pay for counter sales. Idempotent on client_ref (offline queue replays)."""

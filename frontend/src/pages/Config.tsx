@@ -29,6 +29,12 @@ const invP = () => void queryClient.invalidateQueries({ queryKey: ["printers"] }
 
 export default function Config() {
   const [params] = useSearchParams();
+  if (params.get("tab") === "sync") return (
+    <AppShell roles={["caixa"]}>
+      <PageHeader title="Sincronização" />
+      <SyncPanel />
+    </AppShell>
+  );
   return (
     <AppShell roles={[]}>
       <PageHeader title="Configurações" subtitle="Impressoras, dados da empresa e PIX, taxas de cartão, backup e auto teste" />
