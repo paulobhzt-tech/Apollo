@@ -229,3 +229,17 @@ it("blocks both copies of duplicate legacy references before asking the server",
   expect(post).not.toHaveBeenCalled();
   expect(storage.get(QUEUE_KEY)).toBeUndefined();
 });
+
+it("resumes a durable pending sale once its operator authenticates after restart", async () => {
+  const offline = await import("./offline");
+  offline.enqueue({ payload: { client_ref: "restart-sale" } as never, total: 10, queued_at: "now" });
+  vi.resetModules();
+  const restarted = await import("./offline");
+  expect(await restarted.syncQueue()).toEqual({ synced: 0, failed: 0 });
+  expect(post).not.toHaveBeenCalled();
+  post.mockResolvedValueOnce({});
+  restarted.setQueueContext(CONTEXT);
+  await vi.advanceTimersByTimeAsync(3000);
+  expect(post).toHaveBeenCalledOnce();
+  expect(JSON.parse(storage.get(QUEUE_KEY)!)).toEqual([]);
+});

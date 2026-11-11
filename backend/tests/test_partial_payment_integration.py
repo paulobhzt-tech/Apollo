@@ -96,3 +96,31 @@ async def test_concurrent_partial_payments_cannot_oversell(scenario):
         await db.orders.delete_many({"$or": [{"id": order["id"]}, {"parent_order_id": order["id"]}]})
         await db.tables.delete_one({"id": table["id"]})
         await db.cash_sessions.delete_one({"id": cash_id})
+
+
+async def test_backup_restore_rolls_back_after_replacement_failure(monkeypatch):
+    from models.schemas import RestoreIn
+    from routers import config, production
+
+    if db.name != "apollo_partial_payment_ci" and db.name != "apollo_partial_ci":
+        pytest.skip("Rollback integration runs only on the isolated CI replica set")
+    name = "apollo_restore_rollback_" + uuid.uuid4().hex
+    isolated = db.client[name]
+    monkeypatch.setattr(config, "db", isolated)
+    original = {"id": "original", "name": "Antes da restauração"}
+    await isolated.products.insert_one(dict(original))
+
+    async def fail_after_replacement(session):
+        updated = await isolated.products.find_one({"id": "replacement"}, session=session)
+        assert updated is not None
+        raise RuntimeError("simulated restore failure")
+
+    monkeypatch.setattr(production, "ensure_environments", fail_after_replacement)
+    try:
+        with pytest.raises(RuntimeError, match="simulated restore failure"):
+            await config.restore(RestoreIn(data={"products": [{"id": "replacement"}]}), {"id": "test-admin"})
+        assert await isolated.products.find_one({}, {"_id": 0}) == original
+        assert await isolated.products.count_documents({}) == 1
+        assert await isolated.restore_safety_backups.count_documents({}) == 1
+    finally:
+        await db.client.drop_database(name)
