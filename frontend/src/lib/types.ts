@@ -310,7 +310,7 @@ export interface Printer { id: string; name: string; purpose: PrinterPurpose; pa
 export type PrinterIn = Omit<Printer, "id">;
 export interface GeneralSettings { company_name: string; trade_name: string; logo_url: string; cnpj: string; ie: string; city: string; receipt_footer: string; alert_phone: string; pix_key: string; pix_holder: string; phone: string; address: string }
 export interface OptionRank { group: string; name: string; qty: number; products: string[] }
-export interface RestoreIn { data: Record<string, unknown[]> }
+export interface RestoreIn { data: Record<string, unknown[]>; data_sha256?: string }
 export interface RestoreOut { ok: boolean; counts: Record<string, number>; message: string }
 export interface OkOut { ok: boolean; message: string }
 export interface DriveBackupInfo { at: string | null; ok: boolean; file_name: string; size_kb: number; trigger: string; error: string }

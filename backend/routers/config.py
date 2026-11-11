@@ -1,6 +1,8 @@
 import re
 import gzip
 import hashlib
+import hmac
+import math
 import json
 import uuid
 from datetime import datetime, timezone
@@ -77,6 +79,21 @@ async def put_general(body: GeneralSettings, _: dict = Depends(require())):
     return body
 
 
+def backup_data_checksum(data: dict) -> str:
+    def normalize(value):
+        if isinstance(value, dict):
+            return {key: normalize(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [normalize(item) for item in value]
+        # A browser can round-trip 1.0 as 1. Normalize that representation only.
+        if isinstance(value, float) and math.isfinite(value) and value.is_integer():
+            return int(value)
+        return value
+
+    raw = json.dumps(normalize(data), ensure_ascii=True, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
 async def build_backup() -> tuple[str, dict]:
     """Full JSON export (products incl. images, orders, finance…). Credential hashes, sessions and installation-specific settings are excluded."""
     data = {}
@@ -91,7 +108,9 @@ async def build_backup() -> tuple[str, dict]:
             raise HTTPException(400, f"Coleção {c} excede o limite de exportação; backup incompleto bloqueado")
         data[c] = records
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M")
-    return stamp, jsonable_encoder({"app": "Apollo PDV", "created_at": stamp, "data": data})
+    payload = jsonable_encoder({"app": "Apollo PDV", "created_at": stamp, "data": data})
+    payload["data_sha256"] = backup_data_checksum(payload["data"])
+    return stamp, payload
 
 
 @router.get("/backup")
@@ -190,6 +209,13 @@ async def inspect_recovery_snapshot(snapshot_id: str, _: dict = Depends(require(
 async def restore(body: RestoreIn, me: dict = Depends(require())):
     """Replaces each collection present in the backup. Employees keep their current PINs (backups never carry PINs);
     employees that do not exist here are restored inactive until the admin sets a PIN. The logged-in admin is always kept."""
+    if body.data_sha256 is not None:
+        try:
+            checksum = backup_data_checksum(body.data)
+        except (ValueError, TypeError):
+            raise HTTPException(400, "O backup contém dados incompatíveis com a verificação de integridade") from None
+        if not hmac.compare_digest(body.data_sha256, checksum):
+            raise HTTPException(400, "O conteúdo do backup diverge da soma SHA-256 registrada")
     data = validate_restore_data(body.data)
     if "settings" in data:  # installation identity and connections never come from a clone
         data["settings"] = [d for d in data["settings"] if d.get("_id") not in RESERVED_SETTINGS]

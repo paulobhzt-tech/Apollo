@@ -182,7 +182,7 @@ async def restore_backup(id: str, me: dict = Depends(require())):
     from routers.config import validate_restore_data
     validate_restore_data(payload["data"])
     await make_server_backup("antes da restauração", me["name"])  # safety copy of the current data
-    result = await restore(RestoreIn(data=payload["data"]), me)
+    result = await restore(RestoreIn(data=payload["data"], data_sha256=payload.get("data_sha256")), me)
     await audit_backup("restored", me, id)
     return result
 

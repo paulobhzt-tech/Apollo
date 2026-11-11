@@ -819,6 +819,7 @@ class OptionRank(BaseModel):
 
 class RestoreIn(BaseModel):
     data: dict[str, list[dict]]
+    data_sha256: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 
 
 class RestoreOut(BaseModel):

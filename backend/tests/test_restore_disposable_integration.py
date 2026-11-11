@@ -143,3 +143,17 @@ def test_revive_preserves_signed_event_bytes():
     restored = config.revive({"paid_at": "2026-11-10T23:00:00+00:00", "audit_events": [event]})
     assert restored["audit_events"][0] == event
     assert not isinstance(restored["paid_at"], str)
+
+
+@pytest.mark.asyncio
+async def test_checksum_mismatch_blocks_restore_before_snapshot(monkeypatch):
+    data = {"products": [{"id": "produto", "price": 10.0}]}
+    checksum = config.backup_data_checksum(data)
+    assert checksum == config.backup_data_checksum({"products": [{"price": 10, "id": "produto"}]})
+    snapshot = AsyncMock()
+    monkeypatch.setattr(config, "save_restore_safety_snapshot", snapshot)
+    with pytest.raises(HTTPException) as error:
+        await config.restore(RestoreIn(data={"products": [{"id": "produto", "price": 11}]},
+                                       data_sha256=checksum), {"id": "admin"})
+    assert error.value.status_code == 400
+    snapshot.assert_not_awaited()
