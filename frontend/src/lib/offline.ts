@@ -27,6 +27,32 @@ export function legacyQueueStatus() {
     rejected: readSales<RejectedSale>("pdv_offline_rejected").length,
     has_data: !!raw && raw !== "[]" || !!rejected && rejected !== "[]" };
 }
+/** Read-only inventory for assisted migration. Never infers a tenant or sends legacy sales. */
+export function legacyQueuePreview(): { pending: number; rejected: number; invalid: boolean; duplicate_refs: number; missing_refs: number; total: number } {
+  const keys = ["pdv_offline_queue", "pdv_offline_rejected"];
+  const seen = new Set<string>();
+  let pending = 0, rejected = 0, duplicate_refs = 0, missing_refs = 0, total = 0, invalid = false;
+  for (const [index, key] of keys.entries()) {
+    const raw = kv.get(key);
+    if (raw === null || raw === "") continue;
+    let entries: unknown;
+    try { entries = JSON.parse(raw); } catch { invalid = true; continue; }
+    if (!Array.isArray(entries)) { invalid = true; continue; }
+    if (index === 0) pending = entries.length; else rejected = entries.length;
+    for (const item of entries) {
+      if (!item || typeof item !== "object") { invalid = true; missing_refs++; continue; }
+      const sale = item as Partial<QueuedSale>;
+      const ref = sale.payload?.client_ref;
+      if (typeof ref !== "string" || !ref.trim()) { missing_refs++; invalid = true; continue; }
+      if (seen.has(ref)) duplicate_refs++;
+      seen.add(ref);
+      if (typeof sale.total === "number" && Number.isFinite(sale.total) && sale.total >= 0) total += sale.total;
+      else invalid = true;
+    }
+  }
+  return { pending, rejected, invalid, duplicate_refs, missing_refs, total };
+}
+
 /** Unique, device-tagged reference: replays are idempotent on the server (client_ref). */
 export const newClientRef = () => `${deviceTag()}-${Date.now().toString(36)}-${typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)}`;
 
