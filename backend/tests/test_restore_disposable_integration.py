@@ -157,3 +157,31 @@ async def test_checksum_mismatch_blocks_restore_before_snapshot(monkeypatch):
                                        data_sha256=checksum), {"id": "admin"})
     assert error.value.status_code == 400
     snapshot.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_replica_restore_uses_transaction_without_fallback_on_failure(monkeypatch):
+    from unittest.mock import MagicMock
+
+    session = MagicMock()
+    session.__aenter__.return_value = session
+    session.with_transaction = AsyncMock()
+
+    async def run_transaction(callback):
+        return await callback(session)
+
+    session.with_transaction.side_effect = run_transaction
+    database = SimpleNamespace(command=AsyncMock(return_value={"setName": "rs0"}),
+                               client=SimpleNamespace(start_session=AsyncMock(return_value=session)))
+    snapshot = AsyncMock()
+    replace = AsyncMock(side_effect=RuntimeError("failure in transaction"))
+    monkeypatch.setattr(config, "db", database)
+    monkeypatch.setattr(config, "save_restore_safety_snapshot", snapshot)
+    monkeypatch.setattr(config, "replace_backup_collections", replace)
+    data = {"products": [{"id": "test-product"}]}
+
+    with pytest.raises(RuntimeError, match="failure in transaction"):
+        await config.restore(RestoreIn(data=data), {"id": "admin"})
+    snapshot.assert_awaited_once_with("admin")
+    session.with_transaction.assert_awaited_once()
+    replace.assert_awaited_once_with(data, "admin", session)

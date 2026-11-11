@@ -222,16 +222,28 @@ async def restore(body: RestoreIn, me: dict = Depends(require())):
     if not data.get("products") and not data.get("orders"):
         raise HTTPException(400, "Arquivo de backup inválido ou vazio")
     await save_restore_safety_snapshot(me["id"])
+    topology = await db.command("hello")
+    if topology.get("setName") or topology.get("msg") == "isdbgrid":
+        async with await db.client.start_session() as session:
+            async def apply(active_session):
+                return await replace_backup_collections(data, me["id"], active_session)
+
+            return await session.with_transaction(apply)
+    return await replace_backup_collections(data, me["id"])
+
+
+async def replace_backup_collections(data: dict, actor_id: str, session=None) -> RestoreOut:
+    options = {"session": session} if session is not None else {}
     # A restored older snapshot must not reuse numbers already issued before it.
-    prior_counters = await db.counters.find({}, {"_id": 1, "seq": 1}).to_list(1000)
-    prior_order = await db.orders.find_one({}, {"_id": 0, "number": 1}, sort=[("number", -1)])
+    prior_counters = await db.counters.find({}, {"_id": 1, "seq": 1}, **options).to_list(1000)
+    prior_order = await db.orders.find_one({}, {"_id": 0, "number": 1}, sort=[("number", -1)], **options)
     counts: dict[str, int] = {}
     for c, docs in data.items():
         docs = [revive(d) for d in docs if isinstance(d, dict)]
         if c == "employees":
             credentials = {e["id"]: e for e in await db.employees.find(
-                {}, {"_id": 0, "id": 1, "pin_hash": 1, "password_hash": 1}).to_list(1000)}
-            keep = [d for d in docs if d.get("id") and d["id"] != me["id"]]
+                {}, {"_id": 0, "id": 1, "pin_hash": 1, "password_hash": 1}, **options).to_list(1000)}
+            keep = [d for d in docs if d.get("id") and d["id"] != actor_id]
             for d in keep:
                 d.pop("pin_hash", None)
                 d.pop("password_hash", None)
@@ -241,24 +253,24 @@ async def restore(body: RestoreIn, me: dict = Depends(require())):
                         d[field] = current[field]
                 if not current.get("pin_hash") and not current.get("password_hash"):
                     d["active"] = False
-            await db.employees.delete_many({"id": {"$nin": [d["id"] for d in keep] + [me["id"]]}})
+            await db.employees.delete_many({"id": {"$nin": [d["id"] for d in keep] + [actor_id]}}, **options)
             for d in keep:
-                await db.employees.replace_one({"id": d["id"]}, d, upsert=True)
+                await db.employees.replace_one({"id": d["id"]}, d, upsert=True, **options)
             counts[c] = len(keep)
             continue
-        await db[c].delete_many({"_id": {"$nin": sorted(RESERVED_SETTINGS)}} if c == "settings" else {})
+        await db[c].delete_many({"_id": {"$nin": sorted(RESERVED_SETTINGS)}} if c == "settings" else {}, **options)
         if docs:
-            await db[c].insert_many(docs)
+            await db[c].insert_many(docs, **options)
         counts[c] = len(docs)
-    last = await db.orders.find_one({}, {"_id": 0, "number": 1}, sort=[("number", -1)])
+    last = await db.orders.find_one({}, {"_id": 0, "number": 1}, sort=[("number", -1)], **options)
     for counter in prior_counters:
         if counter.get("_id") is not None and isinstance(counter.get("seq"), int):
-            await db.counters.update_one({"_id": counter["_id"]}, {"$max": {"seq": counter["seq"]}}, upsert=True)
+            await db.counters.update_one({"_id": counter["_id"]}, {"$max": {"seq": counter["seq"]}}, upsert=True, **options)
     maximum = max(int((last or {}).get("number", 0)), int((prior_order or {}).get("number", 0)))
     if maximum:
-        await db.counters.update_one({"_id": "order"}, {"$max": {"seq": maximum}}, upsert=True)
+        await db.counters.update_one({"_id": "order"}, {"$max": {"seq": maximum}}, upsert=True, **options)
     from routers.production import ensure_environments
-    await ensure_environments()
+    await ensure_environments(**options)
     total = sum(counts.values())
     return RestoreOut(counts=counts, message=f"Backup restaurado: {total} registros em {len(counts)} tabelas")
 

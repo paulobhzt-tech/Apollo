@@ -19,11 +19,12 @@ def slug(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s).strip("-") or "ambiente"
 
 
-async def ensure_environments() -> None:
+async def ensure_environments(session=None) -> None:
     """Idempotent: default environments always exist (also keys referenced by old categories)."""
+    options = {"session": session} if session is not None else {}
     for i, (key, name) in enumerate(DEFAULT_ENVS):
-        if not await db.environments.find_one({"key": key}):
-            await db.environments.insert_one(Environment(key=key, name=name, sort=i).model_dump())
+        if not await db.environments.find_one({"key": key}, **options):
+            await db.environments.insert_one(Environment(key=key, name=name, sort=i).model_dump(), **options)
 
 
 async def env_keys() -> set[str]:
