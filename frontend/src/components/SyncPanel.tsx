@@ -5,12 +5,13 @@ import { Panel } from "@/pages/Dashboard";
 import { Button } from "@/components/ui/button";
 import { desktop } from "@/lib/desktop";
 import { brl, errMsg, fmtDateTime } from "@/lib/format";
-import { dismissRejected, legacyQueueStatus, reviewedSales, lastSync, retryRejected, syncQueue, useOffline } from "@/lib/offline";
+import { dismissRejected, legacyQueuePreview, legacyQueueStatus, reviewedSales, lastSync, retryRejected, syncQueue, useOffline } from "@/lib/offline";
 
 /** Sincronização: pending offline sales, rejected ones (kept for review) and the desktop app status. */
 export default function SyncPanel() {
   const { offline, queue, rejected, context } = useOffline();
   const legacy = legacyQueueStatus();
+  const legacyPreview = legacyQueuePreview();
   const d = desktop();
   const cfg = useQuery({ queryKey: ["desktop-config"], queryFn: () => d!.config(), enabled: !!d });
   const last = lastSync();
@@ -36,6 +37,13 @@ export default function SyncPanel() {
         {!context && <p role="alert" className="mb-3 text-sm text-amber-300">Confirme seu acesso novamente em um servidor atualizado para habilitar a fila isolada.</p>}
         {context && <p className="mb-3 text-xs text-zinc-400">Fila exclusiva do estabelecimento, servidor e operador autenticados. Outras filas continuam preservadas no dispositivo.</p>}
         {legacy.has_data && <p role="alert" className="mb-3 text-sm text-amber-300">Fila anterior preservada: {legacy.pending} pendente(s), {legacy.rejected} recusa(s). O envio automático está bloqueado até revisão do estabelecimento e operador de origem.</p>}
+        {legacy.has_data && <div className="mb-3 rounded-lg border border-amber-400/25 p-3 text-xs text-amber-100" data-testid="legacy-queue-preview">
+          <strong>Diagnóstico da fila antiga (somente leitura)</strong>
+          <p>{legacyPreview.pending} pendente(s) · {legacyPreview.rejected} recusa(s) · Total informado: {brl(legacyPreview.total)}</p>
+          <p>{legacyPreview.duplicate_refs} referência(s) repetida(s) · {legacyPreview.missing_refs} referência(s) ausente(s)</p>
+          {legacyPreview.invalid && <p role="alert" className="font-semibold text-red-300">Dados inválidos ou ilegíveis detectados. Não tente importar; preserve o dispositivo e solicite revisão técnica.</p>}
+          <p>Este diagnóstico não valida pagamentos, não confirma origem e não autoriza migração. Nenhum registro antigo foi enviado ou excluído.</p>
+        </div>}
         <div className="flex flex-wrap items-center gap-3">
           <span className={offline ? "text-amber-300" : "text-emerald-300"} data-testid="sync-connection">
             {offline ? <><CloudOff className="mr-1 inline size-4" /> Sem conexão</> : <><CheckCircle2 className="mr-1 inline size-4" /> Conectado</>}
