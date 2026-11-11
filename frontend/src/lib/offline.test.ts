@@ -164,3 +164,41 @@ it("does not acknowledge changed data under an already queued reference", async 
   expect(() => offline.enqueue({ payload: { client_ref: "sale-a", discount: 1 } as never, total: 9, queued_at: "now" })).toThrow("dados diferentes");
   expect(JSON.parse(storage.get(QUEUE_KEY)!)[0].payload.discount).toBe(0);
 });
+
+it("previews legacy queues without changing bytes or sending any sale", async () => {
+  const offline = await import("./offline");
+  const pending = JSON.stringify([
+    { payload: { client_ref: "legacy-a" }, total: 12.5 },
+    { payload: { client_ref: "legacy-b" }, total: 7.5 },
+  ]);
+  const rejected = JSON.stringify([{ payload: { client_ref: "legacy-a" }, total: 12.5 }]);
+  storage.set("pdv_offline_queue", pending);
+  storage.set("pdv_offline_rejected", rejected);
+  expect(offline.legacyQueuePreview()).toEqual({
+    pending: 2, rejected: 1, invalid: false, duplicate_refs: 1, missing_refs: 0, total: 32.5,
+  });
+  expect(storage.get("pdv_offline_queue")).toBe(pending);
+  expect(storage.get("pdv_offline_rejected")).toBe(rejected);
+  expect(post).not.toHaveBeenCalled();
+});
+
+it("marks corrupt legacy storage as unsafe and does not overwrite it", async () => {
+  const offline = await import("./offline");
+  storage.set("pdv_offline_queue", "{bad-json");
+  storage.set("pdv_offline_rejected", JSON.stringify([{ payload: {}, total: -1 }]));
+  const before = new Map(storage);
+  expect(offline.legacyQueuePreview()).toEqual({
+    pending: 0, rejected: 1, invalid: true, duplicate_refs: 0, missing_refs: 1, total: 0,
+  });
+  expect(storage).toEqual(before);
+  expect(post).not.toHaveBeenCalled();
+});
+
+it("does not mistake old records for sales in the authenticated queue", async () => {
+  const offline = await import("./offline");
+  storage.set("pdv_offline_queue", JSON.stringify([{ payload: { client_ref: "legacy-a" }, total: 20 }]));
+  expect(offline.legacyQueuePreview().pending).toBe(1);
+  expect(await offline.syncQueue({ force: true })).toEqual({ synced: 0, failed: 0 });
+  expect(post).not.toHaveBeenCalled();
+  expect(storage.get("pdv_offline_queue")).toContain("legacy-a");
+});
