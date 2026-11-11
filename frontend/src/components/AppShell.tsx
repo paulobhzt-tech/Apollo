@@ -123,6 +123,23 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
   const [activeRibbon, setActiveRibbon] = useState<string | null>(null);
   const loc = useLocation();
   useEffect(() => { setActiveRibbon(null); }, [loc.pathname]);
+  // Keyboard-first navigation without changing the currently selected operator.
+  useEffect(() => {
+    const openSearch = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setMenuSearch("");
+        setOpen(true);
+      }
+    };
+    window.addEventListener("keydown", openSearch);
+    return () => window.removeEventListener("keydown", openSearch);
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    const input = document.getElementById("apollo-menu-search");
+    if (input instanceof HTMLInputElement) input.focus();
+  }, [open]);
   const { resolvedTheme, setTheme } = useTheme();
   const backupChoice = useQuery({ queryKey: ["backup-destination"], queryFn: () => apiGet<{ destination: "pc" | "google_drive" | null }>("/settings/backup-destination"), enabled: me?.role === "admin", staleTime: 60000 });
 
@@ -153,7 +170,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
         )}
         <header className="sticky top-0 z-30 border-b border-white/10 bg-[#252527] text-white" data-testid="apollo-ribbon">
           <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-white/10 px-3 py-2 sm:px-4">
-            <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={() => setOpen(true)} aria-label="Abrir todas as funções" data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
+            <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={() => setOpen(true)} aria-label="Abrir todas as funções (Ctrl+K)" title="Buscar funções (Ctrl+K)" data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
             <Brand />
             <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
               <button type="button" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
