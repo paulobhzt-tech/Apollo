@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Download, ImagePlus, Pencil, Plus, Printer as PrinterIcon, Search, Trash2 } from "lucide-react";
 import { fileToDataUrl } from "@/lib/image";
 import { toast } from "sonner";
+import { catalogNumber } from "@/lib/catalog-form";
 import AppShell, { PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -162,12 +163,13 @@ function Categorias({ cats }: { cats: Category[] }) {
       </div>
       <div className="space-y-3 rounded-2xl border border-white/5 bg-panel p-4">
         <p className="text-sm font-medium text-white">Nova categoria</p>
-        <Input placeholder="Nome" value={name} onChange={(e) => setName(e.target.value)} data-testid="category-name-input" />
+        <Label htmlFor="category-name">Nome</Label>
+        <Input id="category-name" placeholder="Nome da categoria" value={name} onChange={(e) => setName(e.target.value)} data-testid="category-name-input" />
         <Select value={station} onValueChange={(v: string) => setStation(v as Station)}>
           <SelectTrigger className="w-full" data-testid="category-station-select"><SelectValue>{(v) => envName(envs.data, v as string)}</SelectValue></SelectTrigger>
           <SelectContent>{(envs.data ?? []).map((e) => <SelectItem key={e.key} value={e.key}>{e.name}</SelectItem>)}</SelectContent>
         </Select>
-        <Button className="w-full" disabled={!name.trim()} onClick={() => create.mutate({ name, station, sort: cats.length })} data-testid="category-save-button">Salvar</Button>
+        <Button className="w-full" disabled={!name.trim() || create.isPending} onClick={() => create.mutate({ name: name.trim(), station, sort: cats.length })} data-testid="category-save-button">Salvar</Button>
       </div>
     </div>
   );
@@ -200,9 +202,13 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
   const [targetMargin, setTargetMargin] = useState("60");
   const ingMap = Object.fromEntries(ings.map((i) => [i.id, i]));
   const recipeCost = f.recipe.reduce((s, r) => s + (ingMap[r.ingredient_id]?.cost_per_unit ?? 0) * r.qty, 0);
-  const manualCost = Number(costStr.replace(",", ".")) || 0;
+  const parsedCost = costStr.trim() ? catalogNumber(costStr) : 0;
+  const manualCost = parsedCost ?? 0;
   const cost = manualCost > 0 ? manualCost : recipeCost;
-  const price = Number(priceStr.replace(",", ".")) || 0;
+  const parsedPrice = catalogNumber(priceStr);
+  const price = parsedPrice ?? 0;
+  const categoryExists = cats.some((category) => category.id === f.category_id);
+  const invalidAmounts = parsedPrice === null || price < 0 || parsedCost === null || manualCost < 0;
   const margin = price ? ((price - cost) / price) * 100 : 0;
   const desiredMargin = Number(targetMargin.replace(",", "."));
   const suggestedPrice = cost > 0 && Number.isFinite(desiredMargin) && desiredMargin >= 0 && desiredMargin < 100 ? cost / (1 - desiredMargin / 100) : 0;
@@ -213,8 +219,8 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
     onError: (e) => toast.error(errMsg(e)),
   });
   const addRecipe = () => {
-    const q = Number(qty.replace(",", "."));
-    if (!ingId || !(q > 0)) return;
+    const q = catalogNumber(qty);
+    if (!ingId || q === null || q <= 0) return;
     const r: RecipeItem = { ingredient_id: ingId, qty: q };
     setF({ ...f, recipe: [...f.recipe.filter((x) => x.ingredient_id !== ingId), r] });
     setIngId(""); setQty("");
@@ -308,7 +314,10 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
         {cost > 0 && price > 0 && margin < desiredMargin && <p className="mt-2 text-xs text-amber-300" role="status">Atenção: margem atual de {margin.toFixed(1)}% abaixo da meta de {desiredMargin}%.</p>}
         <p className="mt-2 text-xs text-zinc-400">Custo calculado pela ficha técnica e preços atuais dos insumos, salvo quando houver custo manual. Margem bruta não inclui impostos, taxas e despesas fixas.</p>
       </div>
-      <Button className="mt-2" disabled={!f.name.trim() || !f.category_id || save.isPending} onClick={() => save.mutate({ ...f, price, cost_price: manualCost, options: f.options.filter((g) => g.name.trim() && g.choices.length) })} data-testid="product-save-button">Salvar produto</Button>
+      {!f.name.trim() && <p className="text-sm text-zinc-400">Informe o nome do produto.</p>}
+      {!categoryExists && <p className="text-sm text-amber-300">{cats.length ? "Selecione uma categoria válida." : "Cadastre uma categoria na aba Categorias antes de salvar o produto."}</p>}
+      {invalidAmounts && <p className="text-sm text-amber-300">Informe um preço válido. Preço e custo devem ser zero ou maiores.</p>}
+      <Button className="mt-2" disabled={!f.name.trim() || !categoryExists || invalidAmounts || save.isPending} onClick={() => save.mutate({ ...f, name: f.name.trim(), price, cost_price: manualCost, options: f.options.filter((g) => g.name.trim() && g.choices.length) })} data-testid="product-save-button">Salvar produto</Button>
     </>
   );
 }

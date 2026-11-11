@@ -17,9 +17,9 @@ import { useMe } from "@/lib/auth";
 import { brl, errMsg } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
 import type { FiadoCustomer, FiadoCustomerIn, OkOut, Supplier, SupplierIn } from "@/lib/types";
+import { catalogNumber } from "@/lib/catalog-form";
 import { cn } from "@/lib/utils";
 
-const num = (s: string) => Number(s.replace(",", ".")) || 0;
 const match = (q: string, ...v: (string | null | undefined)[]) => !q || v.some((x) => (x ?? "").toLowerCase().includes(q.toLowerCase()));
 
 export default function Pessoas() {
@@ -44,8 +44,8 @@ export default function Pessoas() {
 function Toolbar({ search, setSearch, onNew, label, testid, canCreate = true }: { search: string; setSearch: (s: string) => void; onNew: () => void; label: string; testid: string; canCreate?: boolean }) {
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2">
-      <div className="relative"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
-        <Input placeholder="Buscar por nome, telefone ou documento" value={search} onChange={(e) => setSearch(e.target.value)} className="w-72 pl-9" data-testid={`${testid}-search-input`} /></div>
+      <div className="relative w-full sm:w-72"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
+        <Input placeholder="Buscar por nome, telefone ou documento" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9" data-testid={`${testid}-search-input`} /></div>
       {canCreate && <Button onClick={onNew} data-testid={`${testid}-new-button`}><Plus className="size-4" /> {label}</Button>}
     </div>
   );
@@ -87,7 +87,7 @@ function Clientes() {
         </Table>
       </div>
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
-        <DialogContent className="border-white/10 bg-elevated sm:max-w-lg" data-testid="customer-dialog">
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto border-white/10 bg-elevated sm:max-w-lg" data-testid="customer-dialog">
           {editing && <CustomerForm c={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
         </DialogContent>
       </Dialog>
@@ -97,17 +97,18 @@ function Clientes() {
 
 function CustomerForm({ c, onClose }: { c: FiadoCustomer | null; onClose: () => void }) {
   const [f, setF] = useState({ name: c?.name ?? "", phone: c?.phone ?? "", cpf: c?.cpf ?? "", cnpj: c?.cnpj ?? "", email: c?.email ?? "", address: c?.address ?? "", notes: c?.notes ?? "", limit: c?.credit_limit ? String(c.credit_limit) : "" });
+  const creditLimit = f.limit.trim() ? catalogNumber(f.limit) : 0;
   const save = useMutation({
-    mutationFn: () => {
-      const body: FiadoCustomerIn = { name: f.name, phone: f.phone, cpf: f.cpf, cnpj: f.cnpj, email: f.email, address: f.address, notes: f.notes, credit_limit: num(f.limit) };
+    mutationFn: (credit_limit: number) => {
+      const body: FiadoCustomerIn = { name: f.name.trim(), phone: f.phone, cpf: f.cpf, cnpj: f.cnpj, email: f.email, address: f.address, notes: f.notes, credit_limit };
       return c ? apiPut<FiadoCustomer>(`/customers/${c.id}`, body) : apiPost<FiadoCustomer>("/customers", body);
     },
     onSuccess: () => { toast.success(c ? "Cliente atualizado" : "Cliente cadastrado"); void queryClient.invalidateQueries({ queryKey: ["customers"] }); onClose(); },
     onError: (e) => toast.error(errMsg(e)),
   });
   const field = (k: keyof typeof f, label: string, ph = "", full = false) => (
-    <div className={cn(full && "sm:col-span-2")}><Label className="text-xs text-zinc-400">{label}</Label>
-      <Input value={f[k]} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} className="mt-1" data-testid={`customer-${k}-input`} /></div>
+    <div className={cn(full && "sm:col-span-2")}><Label htmlFor={`customer-${k}`} className="text-xs text-zinc-400">{label}</Label>
+      <Input id={`customer-${k}`} value={f[k]} inputMode={k === "limit" ? "decimal" : undefined} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} className="mt-1" data-testid={`customer-${k}-input`} /></div>
   );
   return (
     <>
@@ -120,10 +121,12 @@ function CustomerForm({ c, onClose }: { c: FiadoCustomer | null; onClose: () => 
         {field("email", "E-mail")}
         {field("limit", "Limite de fiado (R$)", "0 = sem limite")}
         {field("address", "Endereço", "Rua, número, bairro", true)}
-        <div className="sm:col-span-2"><Label className="text-xs text-zinc-400">Observações</Label>
-          <Textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} className="mt-1" data-testid="customer-notes-input" /></div>
+        <div className="sm:col-span-2"><Label htmlFor="customer-notes" className="text-xs text-zinc-400">Observações</Label>
+          <Textarea id="customer-notes" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} className="mt-1" data-testid="customer-notes-input" /></div>
       </div>
-      <Button className="mt-2 h-11" disabled={f.name.trim().length < 2 || save.isPending} onClick={() => save.mutate()} data-testid="customer-save-button">Salvar cliente</Button>
+      {f.name.trim().length < 2 && <p className="text-sm text-zinc-400">Informe um nome com pelo menos 2 caracteres.</p>}
+      {(creditLimit === null || creditLimit < 0) && <p role="alert" className="text-sm text-amber-300">Informe um limite de fiado válido, zero ou maior.</p>}
+      <Button className="mt-2 h-11" disabled={f.name.trim().length < 2 || creditLimit === null || creditLimit < 0 || save.isPending} onClick={() => { if (creditLimit !== null && creditLimit >= 0) save.mutate(creditLimit); }} data-testid="customer-save-button">Salvar cliente</Button>
     </>
   );
 }
@@ -176,7 +179,7 @@ function Fornecedores() {
         </DialogContent>
       </Dialog>
       <Dialog open={!!billFor} onOpenChange={(v) => !v && setBillFor(null)}>
-        <DialogContent className="border-white/10 bg-elevated sm:max-w-lg" data-testid="supplier-bill-dialog">
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto border-white/10 bg-elevated sm:max-w-lg" data-testid="supplier-bill-dialog">
           {billFor && <BillForm kind="pagar" bill={null} partyLabel="Fornecedor" initialParty={billFor.name} onClose={() => setBillFor(null)} />}
         </DialogContent>
       </Dialog>
@@ -195,8 +198,8 @@ function SupplierForm({ s, onClose }: { s: Supplier | null; onClose: () => void 
     onError: (e) => toast.error(errMsg(e)),
   });
   const field = (k: keyof SupplierIn, label: string, ph = "", full = false) => (
-    <div className={cn(full && "sm:col-span-2")}><Label className="text-xs text-zinc-400">{label}</Label>
-      <Input value={f[k]} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} className="mt-1" data-testid={`supplier-${k}-input`} /></div>
+    <div className={cn(full && "sm:col-span-2")}><Label htmlFor={`supplier-${k}`} className="text-xs text-zinc-400">{label}</Label>
+      <Input id={`supplier-${k}`} value={f[k]} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} className="mt-1" data-testid={`supplier-${k}-input`} /></div>
   );
   return (
     <>
@@ -211,9 +214,10 @@ function SupplierForm({ s, onClose }: { s: Supplier | null; onClose: () => void 
         {field("phone", "Telefone / WhatsApp")}
         {field("email", "E-mail", "", true)}
         {field("address", "Endereço", "", true)}
-        <div className="sm:col-span-2"><Label className="text-xs text-zinc-400">Observações</Label>
-          <Textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} className="mt-1" placeholder="Dia de entrega, prazo de pagamento…" data-testid="supplier-notes-input" /></div>
+        <div className="sm:col-span-2"><Label htmlFor="supplier-notes" className="text-xs text-zinc-400">Observações</Label>
+          <Textarea id="supplier-notes" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} className="mt-1" placeholder="Dia de entrega, prazo de pagamento…" data-testid="supplier-notes-input" /></div>
       </div>
+      {f.name.trim().length < 2 && <p className="text-sm text-zinc-400">Informe um nome ou razão social com pelo menos 2 caracteres.</p>}
       <Button className="mt-2 h-11" disabled={f.name.trim().length < 2 || save.isPending} onClick={() => save.mutate()} data-testid="supplier-save-button">Salvar fornecedor</Button>
     </>
   );
