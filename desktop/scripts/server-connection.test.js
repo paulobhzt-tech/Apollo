@@ -55,3 +55,48 @@ test("the loopback probe recognizes both Apollo responses and rejects unrelated 
   reply = { status: 302, headers: { Location: "/api/" } };
   assert.equal((await probeServer(url, fetch)).ok, false);
 });
+
+test("the homologation installer replaces the obsolete tunnel default and rejects saved production URLs", () => {
+  const { HOMOLOGATION_URL, allowedServerUrl } = require("../server-connection");
+  const testDefaults = { serverUrl: HOMOLOGATION_URL, testBuild: true };
+  const config = resolveServerConfig(testDefaults, {
+    serverUrl: local, testBuild: true, startWithWindows: false,
+    servers: [{ name: "Produção", url: defaults.serverUrl }, { name: "Túnel", url: local }],
+  });
+  assert.equal(config.serverUrl, HOMOLOGATION_URL);
+  assert.equal(config.startWithWindows, false);
+  assert.equal(config.servers.some((server) => server.url === defaults.serverUrl), false);
+  assert.equal(resolveServerConfig(testDefaults, { serverUrl: local, testBuild: true, serverSelected: true }).serverUrl, local);
+  assert.equal(resolveServerConfig(testDefaults, { serverUrl: defaults.serverUrl }).serverUrl, HOMOLOGATION_URL);
+  assert.equal(allowedServerUrl("http://192.168.0.10:8001", testDefaults), false);
+  assert.equal(allowedServerUrl("https://teste.apollo-pdv.com.evil.example", testDefaults), false);
+});
+
+test("the readiness probe blocks login when the API can identify itself but the database route fails", async () => {
+  const visited = [];
+  const reply = (data, status = 200) => new Response(JSON.stringify(data), {
+    status, headers: { "Content-Type": "application/json" },
+  });
+  let profiles = reply({}, 503);
+  const mockedFetch = async (url) => {
+    visited.push(new URL(url).pathname);
+    return url.endsWith("/api/") ? reply({ message: "Apollo PDV API" }) : profiles;
+  };
+  assert.match((await probeServer(local, mockedFetch, { checkLogin: true })).error, /serviço de login/);
+  assert.deepEqual(visited, ["/api/", "/api/auth/profiles"]);
+  profiles = reply([]);
+  assert.deepEqual(await probeServer(local, mockedFetch, { checkLogin: true }), { ok: true });
+});
+
+test("connection errors distinguish an absent listener, timeout and invalid certificate", async () => {
+  for (const [code, expected] of [
+    ["ECONNREFUSED", /Conexão recusada/],
+    ["ERR_TIMED_OUT", /Tempo limite/],
+    ["ERR_CERT_AUTHORITY_INVALID", /certificado HTTPS/],
+    ["ERR_NAME_NOT_RESOLVED", /Confira o DNS/],
+  ]) {
+    const result = await probeServer(local, async () => { throw Object.assign(new Error("network"), { code }); });
+    assert.equal(result.ok, false);
+    assert.match(result.error, expected);
+  }
+});

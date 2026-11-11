@@ -8,7 +8,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const { autoUpdater } = require("electron-updater");
-const { cleanUrl, validServerUrl, resolveServerConfig, probeServer } = require("./server-connection");
+const { cleanUrl, allowedServerUrl, resolveServerConfig, probeServer, HOMOLOGATION_URL } = require("./server-connection");
 
 const CHECK_MS = 15000;
 let win = null;
@@ -107,31 +107,47 @@ function registerAppProtocol() {
   });
 }
 
-async function serverReachable() {
-  return (await probeServer(cfg.serverUrl, net.fetch)).ok;
-}
+let connectionError = "";
+const testConnection = (url = cfg.serverUrl) => probeServer(url, net.fetch, { checkLogin: cfg.testBuild });
 
-async function openBest(offlineOnly = false) {
-  const online = !offlineOnly && await serverReachable();
-  const target = online ? cfg.serverUrl + "/pdv" : "pdv://app/pdv";
-  mode = online ? "online" : "offline";
-  await win.loadURL(target).catch(() => {
-    mode = "offline";
-    return win.loadURL("pdv://app/pdv");
-  });
+async function openBest(offlineOnly = false, confirmed = null) {
+  if (!offlineOnly) {
+    const result = confirmed ?? await testConnection();
+    if (result.ok) {
+      try {
+        await win.loadURL(cfg.serverUrl + "/pdv");
+        mode = "online";
+        return;
+      } catch {
+        connectionError = "A API respondeu, mas o painel não carregou. Confira a instalação do frontend no servidor.";
+      }
+    } else {
+      connectionError = result.error;
+    }
+    if (cfg.testBuild) {
+      mode = "diagnostic";
+      await win.loadFile(path.join(__dirname, "offline.html"), { query: { diagnose: "1" } });
+      return;
+    }
+  }
+  mode = "offline";
+  await win.loadURL("pdv://app/pdv");
 }
 
 function watchConnection() {
+  let probing = false;
   setInterval(async () => {
-    if (!win || mode !== "offline") return;
-    if (await serverReachable()) {
+    if (!win || mode !== "offline" || probing) return;
+    probing = true;
+    try {
+      if (!(await testConnection()).ok || mode !== "offline" || win.isDestroyed()) return;
       const route = new URL(win.webContents.getURL()).pathname || "/pdv";
-      try {
-        await win.loadURL(cfg.serverUrl + route);
-        mode = "online"; // stay offline if loading the remote app fails
-      } catch {
-        mode = "offline";
-      }
+      await win.loadURL(cfg.serverUrl + route);
+      mode = "online";
+    } catch {
+      mode = "offline";
+    } finally {
+      probing = false;
     }
   }, CHECK_MS);
 }
@@ -171,17 +187,37 @@ function createWindow() {
   // external links (Google Drive, WhatsApp, Google login) open in the normal browser
   win.webContents.setWindowOpenHandler(({ url }) => { if (!isInternal(url)) openTrustedExternal(url); return { action: "deny" }; });
   win.webContents.on("will-navigate", (e, url) => { if (!isInternal(url)) { e.preventDefault(); openTrustedExternal(url); } });
+  win.webContents.on("will-redirect", (event, url) => {
+    if (!isInternal(url)) event.preventDefault();
+  });
   win.webContents.on("did-fail-load", (_e, code, _d, url, isMain) => {
-    if (isMain && code !== -3 && url.startsWith(cfg.serverUrl)) { mode = "offline"; win.loadURL("pdv://app/pdv"); }
+    if (isMain && code !== -3 && mode === "online" && !cfg.testBuild && isInternal(url)) {
+      mode = "offline";
+      void win.loadURL("pdv://app/pdv");
+    }
   });
   win.webContents.on("before-input-event", (_e, input) => {
     if (input.type === "keyDown" && input.key === "F11") win.setFullScreen(!win.isFullScreen());
-    if (input.type === "keyDown" && input.key === "F5") win.webContents.reload();
+    if (input.type === "keyDown" && input.key === "F5" && mode !== "diagnostic") win.webContents.reload();
   });
   if (process.env.PDV_SMOKE) {
     // CI/dev smoke test: report what loaded and whether the bridge is present, then quit
     win.webContents.on("did-finish-load", async () => {
       const url = win.webContents.getURL();
+      if (process.env.PDV_SMOKE === "diagnostic") {
+        if (url.includes("offline.html?diagnose=1")) {
+          const ready = await win.webContents.executeJavaScript(
+            'new Promise(resolve => { const wait = () => { const form = document.querySelector("#connection"); if (form && !form.hidden) { const expected = document.querySelector("#status").textContent.includes("serviço de login"); if (expected) document.querySelector("#connect").click(); resolve(expected); } else setTimeout(wait, 50); }; wait(); })',
+          ).catch(() => false);
+          if (!ready && mode === "diagnostic") app.exit(2);
+        } else if (url === cfg.serverUrl + "/pdv") {
+          const connected = await win.webContents.executeJavaScript('!!document.querySelector("#smoke-connected") && typeof window.pdvDesktop === "object"');
+          if (!connected) { app.exit(2); return; }
+          console.log("PDV_SMOKE_DIAGNOSTIC_PASS");
+          setTimeout(() => app.quit(), 500);
+        }
+        return;
+      }
       if (url.endsWith("offline.html")) return;
       const bridge = await win.webContents.executeJavaScript("typeof window.pdvDesktop + ' ' + (window.pdvDesktop && window.pdvDesktop.deviceId)");
       console.log("PDV_SMOKE", mode, url, bridge);
@@ -195,7 +231,7 @@ function createWindow() {
       setTimeout(() => app.quit(), 1500);
     });
   }
-  openBest(process.env.PDV_SMOKE?.startsWith("offline"));
+  void openBest(process.env.PDV_SMOKE?.startsWith("offline"));
 }
 
 // ---------- IPC ----------
@@ -223,15 +259,34 @@ ipcMain.on("pdv:kv-set", (e, key, value) => {
     e.returnValue = false;
   }
 });
-ipcMain.handle("pdv:config", () => ({ serverUrl: cfg.serverUrl, servers: cfg.servers, startWithWindows: !!cfg.startWithWindows, mode }));
+ipcMain.handle("pdv:config", () => ({ serverUrl: cfg.serverUrl, servers: cfg.servers, startWithWindows: !!cfg.startWithWindows, mode, connectionError, defaultServerUrl: HOMOLOGATION_URL }));
+ipcMain.handle("pdv:connect-server", async (event, value) => {
+  const source = event.senderFrame?.url;
+  if (!cfg.testBuild || mode !== "diagnostic" || event.sender !== win?.webContents
+      || !source?.startsWith("file:") || new URL(source).pathname.split("/").pop() !== "offline.html") {
+    return { ok: false, error: "Abra o diagnóstico de homologação no aplicativo." };
+  }
+  const url = cleanUrl(value);
+  if (!allowedServerUrl(url, cfg)) {
+    return { ok: false, error: "Use o endereço HTTPS de homologação ou um túnel local autorizado." };
+  }
+  const result = await testConnection(url);
+  if (!result.ok) return result;
+  cfg.serverUrl = url;
+  cfg.serverSelected = true;
+  if (!cfg.servers.some((server) => server.url === url)) cfg.servers.push({ name: "Homologação", url });
+  saveConfig();
+  await openBest(false, result);
+  return { ok: mode === "online", error: connectionError };
+});
 ipcMain.handle("pdv:test-server", (_e, url) => {
   const serverUrl = cleanUrl(url);
-  if (!validServerUrl(serverUrl, cfg.testBuild)) return { ok: false, error: "Endereço inválido: use HTTPS (HTTP apenas para testes locais)" };
-  return probeServer(serverUrl, net.fetch);
+  if (!allowedServerUrl(serverUrl, cfg)) return { ok: false, error: "Endereço inválido: use HTTPS (HTTP apenas para testes locais)" };
+  return testConnection(serverUrl);
 });
 ipcMain.handle("pdv:add-server", (_e, s) => {
   const url = cleanUrl(s.url);
-  if (!validServerUrl(url, cfg.testBuild)) return false;
+  if (!allowedServerUrl(url, cfg)) return false;
   cfg.servers = [...cfg.servers.filter((x) => x.url !== url), { name: s.name || url, url }];
   saveConfig();
   return true;
@@ -244,8 +299,10 @@ ipcMain.handle("pdv:remove-server", (_e, url) => {
 });
 ipcMain.handle("pdv:use-server", async (_e, url) => {
   const u = cleanUrl(url);
-  if (!validServerUrl(u, cfg.testBuild) || !cfg.servers.some((x) => x.url === u)) return false;
+  if (!allowedServerUrl(u, cfg) || !cfg.servers.some((x) => x.url === u)) return false;
+  if (!(await testConnection(u)).ok) return false;
   cfg.serverUrl = u;
+  cfg.serverSelected = true;
   saveConfig();
   await openBest();
   return true;
@@ -275,6 +332,11 @@ if (!app.requestSingleInstanceLock()) app.quit();
 app.on("second-instance", () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
 app.whenReady().then(async () => {
   cfg = loadConfig();
+  if (process.env.PDV_SMOKE === "diagnostic" && cfg.testBuild) {
+    const url = process.env.PDV_SMOKE_SERVER || "";
+    if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(url)) { app.exit(2); return; }
+    cfg.serverUrl = url;
+  }
   if (process.env.PDV_SMOKE === "offline-with-server") {
     if (cfg.testBuild || cfg.startWithWindows !== false || !cfg.serverUrl.startsWith("https://")) {
       console.error("PDV_SMOKE_FAIL: configuracao antiga nao foi recuperada corretamente");

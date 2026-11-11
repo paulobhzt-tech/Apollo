@@ -9,28 +9,16 @@ const root = path.resolve(__dirname, "..");
 const front = path.resolve(root, "..", "frontend");
 const out = path.join(root, "web");
 
+const { allowedServerUrl, cleanUrl, HOMOLOGATION_URL } = require("../server-connection");
 const channel = process.env.PDV_BUILD_CHANNEL || "production";
-const url = String(process.env.PDV_SERVER_URL || "").trim().replace(/[/]+$/, "");
 if (!["production", "test"].includes(channel)) {
   throw new Error("PDV_BUILD_CHANNEL deve ser production ou test.");
 }
-function allowedServer(value, mode) {
-  try {
-    const target = new URL(value);
-    if (target.username || target.password || target.search || target.hash) return false;
-    if (target.pathname !== "/") return false;
-    if (mode === "production") return target.protocol === "https:" && !!target.hostname;
-    return (target.protocol === "http:" &&
-      ["localhost", "127.0.0.1", "[::1]"].includes(target.hostname)) ||
-      (target.protocol === "https:" && !!target.hostname);
-  } catch {
-    return false;
-  }
-}
-if (!allowedServer(url, channel)) {
-  throw new Error(channel === "production"
-    ? "Versao comercial exige PDV_SERVER_URL HTTPS real."
-    : "Versao de teste aceita apenas HTTPS ou HTTP local (localhost/127.0.0.1).");
+// A test package starts on the isolated HTTPS endpoint. A tunnel can be
+// selected in the app once the operator has started it.
+const url = channel === "test" ? HOMOLOGATION_URL : cleanUrl(process.env.PDV_SERVER_URL || "");
+if (!allowedServerUrl(url, { testBuild: channel === "test" })) {
+  throw new Error("PDV_SERVER_URL deve apontar a uma origem HTTPS válida.");
 }
 const configPath = path.join(root, "config.default.json");
 const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));

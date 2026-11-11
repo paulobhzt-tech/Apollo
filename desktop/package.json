@@ -29,6 +29,7 @@
       "durable-store.js",
       "preload.js",
       "offline.html",
+      "connection-screen.js",
       "config.default.json",
       "web/**/*",
       "package.json"

@@ -58,6 +58,33 @@ try {
   if ($output -notmatch "(?m)^PDV_SMOKE_VERSION $([regex]::Escape($version))\s*$") {
     throw "O aplicativo instalado nao confirmou a versao $version"
   }
+  if ($Channel -eq 'test') {
+    $portFile = Join-Path $env:RUNNER_TEMP 'apollo-smoke-port.txt'
+    $fixtureScript = Join-Path $PSScriptRoot 'smoke-connection-server.js'
+    $fixture = Start-Process -FilePath (Get-Command node).Source -ArgumentList @('"' + $fixtureScript + '"', '"' + $portFile + '"') -PassThru -WindowStyle Hidden
+    try {
+      $fixtureDeadline = (Get-Date).AddSeconds(10)
+      while (-not (Test-Path -LiteralPath $portFile) -and (Get-Date) -lt $fixtureDeadline) {
+        Start-Sleep -Milliseconds 200
+      }
+      $port = Get-Content -LiteralPath $portFile -Raw
+      if ($port -notmatch '^\d+$') { throw 'Servidor simulado de homologacao nao iniciou' }
+      $env:PDV_SMOKE = 'diagnostic'
+      $env:PDV_SMOKE_SERVER = "http://127.0.0.1:$port"
+      $diagnosticOut = Join-Path $env:RUNNER_TEMP 'apollo-diagnostic-out.txt'
+      $diagnosticErr = Join-Path $env:RUNNER_TEMP 'apollo-diagnostic-err.txt'
+      $diagnostic = Start-Process -FilePath $app -PassThru -RedirectStandardOutput $diagnosticOut -RedirectStandardError $diagnosticErr
+      if (-not $diagnostic.WaitForExit(30000)) { throw 'Apollo nao concluiu o teste da tela de conexao' }
+      $outputDiagnostic = Get-Content $diagnosticOut -Raw -ErrorAction SilentlyContinue
+      Write-Host $outputDiagnostic
+      if ($diagnostic.ExitCode -ne 0 -or $outputDiagnostic -notmatch 'PDV_SMOKE_DIAGNOSTIC_PASS') {
+        throw 'Apollo nao confirmou o diagnostico e a reconexao com a API de teste'
+      }
+    } finally {
+      Stop-Process -Id $fixture.Id -ErrorAction SilentlyContinue
+      Remove-Item Env:PDV_SMOKE_SERVER -ErrorAction SilentlyContinue
+    }
+  }
   Write-Host "HOMOLOGACAO BASICA WINDOWS APROVADA: $version"
 } finally {
   Get-CimInstance Win32_Process | Where-Object {

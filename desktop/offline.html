@@ -1,6 +1,35 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><title>Apollo PDV</title>
-<style>body{margin:0;height:100vh;display:grid;place-items:center;background:#0b0b0f;color:#e4e4e7;font-family:Segoe UI,sans-serif}
-.c{text-align:center;max-width:420px}h1{color:#f97316;font-size:22px}p{color:#a1a1aa;font-size:14px}</style></head>
-<body><div class="c"><h1>Apollo PDV</h1>
-<p>Conectando ao servidor… Se a internet estiver fora, o sistema abre no modo offline em instantes.</p></div></body></html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; form-action 'none'; base-uri 'none'">
+  <title>Apollo PDV</title>
+  <style>
+    body{margin:0;min-height:100vh;display:grid;place-items:center;background:#101114;color:#f4f4f5;font:16px Segoe UI,sans-serif}
+    main{width:min(520px,calc(100% - 64px));padding:28px;border:1px solid #36363e;border-radius:14px;background:#18191d}
+    h1{margin:0;color:#fb923c;font-size:25px}
+    p{line-height:1.55;color:#d4d4d8}
+    label{display:block;margin-top:20px;font-weight:600}
+    input{box-sizing:border-box;width:100%;margin:8px 0 16px;padding:12px;border:1px solid #71717a;border-radius:8px;background:#101114;color:#fafafa;font:inherit}
+    button{padding:11px 14px;border:1px solid #71717a;border-radius:8px;background:#27272a;color:#fafafa;font:inherit;cursor:pointer}
+    button[type=submit]{background:#fb923c;border-color:#fb923c;color:#18181b;font-weight:700}
+    button:disabled{opacity:.55;cursor:wait}
+    #status{min-height:50px;overflow-wrap:anywhere}
+  </style>
+  <script defer src="connection-screen.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Apollo PDV</h1>
+    <p id="startup">Verificando a conexão com o servidor…</p>
+    <form id="connection" hidden>
+      <p id="status" role="status" aria-live="polite"></p>
+      <label for="server">Endereço do servidor de homologação</label>
+      <input id="server" type="url" required autocomplete="off" spellcheck="false" aria-describedby="instructions">
+      <button id="connect" type="submit">Verificar e conectar</button>
+      <button id="restore-address" type="button">Usar endereço padrão</button>
+      <p id="instructions">Use o servidor HTTPS de homologação ou o endereço do túnel local autorizado. A API e o banco são iniciados separadamente pelo responsável pelo ambiente.</p>
+    </form>
+  </main>
+</body>
+</html>

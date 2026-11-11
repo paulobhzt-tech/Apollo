@@ -10,7 +10,7 @@ export interface DesktopBridge {
   kvSet: (key: string, value: string) => void;
   printers: () => Promise<DesktopPrinter[]>;
   print: (opts: { html: string; deviceName?: string; copies?: number; paper?: string }) => Promise<{ ok: boolean; error?: string }>;
-  config: () => Promise<{ serverUrl: string; servers: { name: string; url: string }[]; startWithWindows: boolean; mode: "online" | "offline" }>;
+  config: () => Promise<{ serverUrl: string; servers: { name: string; url: string }[]; startWithWindows: boolean; mode: "online" | "offline" | "diagnostic" }>;
   testServer: (url: string) => Promise<{ ok: boolean; error?: string }>;
   addServer: (s: { name: string; url: string }) => Promise<boolean>;
   removeServer: (url: string) => Promise<boolean>;

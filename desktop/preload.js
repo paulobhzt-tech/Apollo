@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld("pdvDesktop", {
   printers: () => ipcRenderer.invoke("pdv:printers"),
   print: (opts) => ipcRenderer.invoke("pdv:print", opts),
   config: () => ipcRenderer.invoke("pdv:config"),
+  connectServer: (url) => ipcRenderer.invoke("pdv:connect-server", String(url)),
   testServer: (url) => ipcRenderer.invoke("pdv:test-server", String(url)),
   addServer: (s) => ipcRenderer.invoke("pdv:add-server", { name: String(s.name), url: String(s.url) }),
   removeServer: (url) => ipcRenderer.invoke("pdv:remove-server", String(url)),
