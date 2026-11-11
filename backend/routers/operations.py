@@ -317,8 +317,8 @@ async def cash_history(_: dict = Depends(require("caixa"))):
 async def cash_open(body: CashOpenIn, user: dict = Depends(require("caixa"))):
     if await current_cash():
         raise HTTPException(400, "Já existe um caixa aberto")
-    s = CashSession(opened_by_name=user["name"], opening_amount=body.opening_amount,
-                    audit_events=[audit_event("cash_opened", user, values={"opening_amount": body.opening_amount})]).model_dump()
+    s = CashSession(opened_by_name=user["name"], opening_amount=body.opening_amount, opening_note=body.note.strip(),
+                    audit_events=[audit_event("cash_opened", user, reason=body.note.strip(), values={"opening_amount": body.opening_amount})]).model_dump()
     try:
         await db.cash_sessions.insert_one(dict(s))
     except DuplicateKeyError:
@@ -331,6 +331,8 @@ async def cash_move(body: CashMoveIn, user: dict = Depends(require("caixa"))):
     s = await current_cash()
     if not s:
         raise HTTPException(400, "Nenhum caixa aberto")
+    if body.expected_session_id is not None and body.expected_session_id != s["id"]:
+        raise HTTPException(409, "O turno do caixa mudou. Atualize antes de tentar novamente.")
     if body.type == "sangria" and len(body.note.strip()) < 3:
         raise HTTPException(400, "Informe o motivo da sangria (mínimo de 3 caracteres)")
     if body.type == "sangria" and body.amount > (await cash_summary(dict(s)))["expected_cash"]:
@@ -348,13 +350,20 @@ async def cash_close(body: CashCloseIn, user: dict = Depends(require("caixa"))):
     s = await current_cash()
     if not s:
         raise HTTPException(400, "Nenhum caixa aberto")
+    if body.expected_session_id is not None and body.expected_session_id != s["id"]:
+        raise HTTPException(409, "O turno do caixa mudou. Atualize antes de tentar novamente.")
     s["counted_amount"] = body.counted_amount
     s = await cash_summary(s)
     upd = {k: s[k] for k in ("totals_by_method", "sales_count", "sales_total", "expected_cash", "difference", "counted_amount")}
     upd.update(status="fechado", closed_at=now(), closed_by_name=user["name"])
-    result = await db.cash_sessions.update_one({"id": s["id"], "status": "aberto"}, {"$set": upd, "$push": {"audit_events": audit_event("cash_closed", user, values=upd)}})
+    result = await db.cash_sessions.update_one(
+        {"id": s["id"], "status": "aberto",
+         "$expr": {"$eq": [{"$size": {"$ifNull": ["$movements", []]}}, len(s.get("movements", []))]}},
+        {"$set": {**upd, "closing_note": body.note.strip()},
+         "$push": {"audit_events": audit_event("cash_closed", user, reason=body.note.strip(), values=upd)}},
+    )
     if not result.modified_count:
-        raise HTTPException(409, "O caixa já foi fechado por outro operador")
+        raise HTTPException(409, "O caixa mudou durante o fechamento. Atualize a conferência antes de tentar novamente.")
     return await db.cash_sessions.find_one({"id": s["id"]}, {"_id": 0})
 
 

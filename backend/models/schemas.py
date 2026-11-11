@@ -488,6 +488,8 @@ class CashSession(BaseModel):
     opened_by_name: str
     opened_at: datetime = Field(default_factory=_now)
     opening_amount: float
+    opening_note: str = ""
+    closing_note: str = ""
     status: Literal["aberto", "fechado"] = "aberto"
     closed_at: Optional[datetime] = None
     closed_by_name: str = ""
@@ -501,17 +503,21 @@ class CashSession(BaseModel):
 
 
 class CashOpenIn(BaseModel):
-    opening_amount: float = Field(ge=0)
+    opening_amount: float = Field(ge=0, allow_inf_nan=False)
+    note: str = Field(default="", max_length=500)
 
 
 class CashMoveIn(BaseModel):
     type: Literal["sangria", "suprimento"]
-    amount: float = Field(gt=0)
+    amount: float = Field(gt=0, allow_inf_nan=False)
     note: str = ""
+    expected_session_id: Optional[str] = None
 
 
 class CashCloseIn(BaseModel):
-    counted_amount: float = Field(ge=0)
+    counted_amount: float = Field(ge=0, allow_inf_nan=False)
+    note: str = Field(default="", max_length=500)
+    expected_session_id: Optional[str] = None
 
 
 # ---------- finance ----------

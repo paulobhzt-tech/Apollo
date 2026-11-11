@@ -216,6 +216,8 @@ export interface CashSession {
   opened_by_name: string;
   opened_at: string;
   opening_amount: number;
+  opening_note?: string;
+  closing_note?: string;
   status: "aberto" | "fechado";
   closed_at: string | null;
   closed_by_name: string;

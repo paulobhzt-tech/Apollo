@@ -21,3 +21,10 @@ export function ingredientValues(values: { stock: string; min_stock: string; cos
       min_stock < 0 || cost_per_unit < 0 || units_per_kg < 0) return null;
   return { stock, min_stock, cost_per_unit, units_per_kg };
 }
+
+/** Accept decimal comma, decimal point and Brazilian currency grouping. */
+export function cashAmount(value: string): number | null {
+  const text = value.trim().replace(/^R\$\s*/, "");
+  if (!/^(?:\d+(?:[.,]\d{1,2})?|\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?)$/.test(text)) return null;
+  return catalogNumber(/^\d{1,3}(?:\.\d{3})+$/.test(text) ? text.replaceAll(".", "") : text);
+}

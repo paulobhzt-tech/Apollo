@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { catalogNumber, ingredientValues } from "./catalog-form";
+import { cashAmount, catalogNumber, ingredientValues } from "./catalog-form";
 
 it("parses decimal quantities and Brazilian currency without losing precision", () => {
   expect(catalogNumber(" 12,50 ")).toBe(12.5);
@@ -14,4 +14,13 @@ it("rejects invalid or empty input instead of overwriting stored values with zer
 });
 it("retains valid negative stock and ignores hidden yield for non-kg units", () => {
   expect(ingredientValues({ stock: "-1", min_stock: "0", cost_per_unit: "1,25", units_per_kg: "abc" }, "un")).toEqual({ stock: -1, min_stock: 0, cost_per_unit: 1.25, units_per_kg: 0 });
+});
+
+it("keeps cents when operators type a decimal point or comma", () => {
+  expect(cashAmount("12.50")).toBe(12.5);
+  expect(cashAmount("12,50")).toBe(12.5);
+  expect(cashAmount("R$ 1.234,56")).toBe(1234.56);
+  expect(cashAmount("1.234")).toBe(1234);
+  expect(cashAmount("12.50.00")).toBeNull();
+  expect(cashAmount("-1")).toBeNull();
 });
