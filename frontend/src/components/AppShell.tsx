@@ -9,7 +9,7 @@ import {
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
-import { NAV, homeFor, useMe } from "@/lib/auth";
+import { NAV, homeFor, useMe, type NavItem } from "@/lib/auth";
 import { endSession } from "@/lib/session";
 import { ROLE_LABEL } from "@/lib/format";
 import { setForcedOffline, syncQueue, useOffline } from "@/lib/offline";
@@ -31,11 +31,63 @@ const ICONS: Record<string, typeof Menu> = {
   Bot, LayoutDashboard, Music, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone,
 };
 
+const activePath = (path: string) => path === "/fornecedores" ? "/clientes" : path;
+
+function MenuPreferences({ items, operatorId }: { items: NavItem[]; operatorId: string }) {
+  const storageKey = `apollo-menu-shortcuts:${operatorId}`;
+  const [pins, setPins] = useState<string[]>(() => {
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem(storageKey) ?? "[]");
+      return Array.isArray(saved) ? saved.filter((path): path is string => typeof path === "string") : [];
+    } catch {
+      return [];
+    }
+  });
+  const loc = useLocation();
+  const pinned = items.filter((item) => pins.includes(item.to));
+
+  function toggle(path: string) {
+    const next = pins.includes(path) ? pins.filter((pin) => pin !== path) : [...pins, path];
+    setPins(next);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(next));
+    } catch {
+      toast.error("O dispositivo não pôde salvar os atalhos.");
+    }
+  }
+
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-1 border-t border-white/10 px-2 py-1 sm:px-4">
+      <details className="relative">
+        <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 rounded px-2 text-xs hover:bg-white/10">
+          <Settings className="size-4 shrink-0" aria-hidden="true" /> Personalizar menu
+        </summary>
+        <div className="absolute left-0 top-full z-10 max-h-[45dvh] w-64 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-lg border border-white/15 bg-shell p-3 shadow-xl">
+          {items.map((item) => (
+            <label key={item.to} className="flex min-h-9 items-center gap-2 text-sm">
+              <input type="checkbox" checked={pins.includes(item.to)} onChange={() => toggle(item.to)} />
+              {item.label}
+            </label>
+          ))}
+        </div>
+      </details>
+      {pinned.map((item) => {
+        const Icon = ICONS[item.icon] ?? LayoutDashboard;
+        return <NavLink key={item.to} to={item.to} end={item.to === "/"}
+          aria-current={item.to === activePath(loc.pathname) ? "page" : undefined}
+          className="flex min-h-9 min-w-0 items-center gap-1.5 rounded px-2 text-xs hover:bg-white/10 aria-[current=page]:bg-white/15">
+          <Icon className="size-4 shrink-0 text-[#e6b44d]" aria-hidden="true" /><span className="break-words">{item.label}</span>
+        </NavLink>;
+      })}
+    </div>
+  );
+}
+
 function NavList({ role, onNavigate, search = "" }: { role: Role; onNavigate?: () => void; search?: string }) {
   const normalizedSearch = search.trim().toLocaleLowerCase("pt-BR");
   return (
     <nav className="flex flex-col gap-1">
-      {NAV.filter((n) => n.roles.includes(role) && (!normalizedSearch || `${n.label} ${n.group}`.toLocaleLowerCase("pt-BR").includes(normalizedSearch))).map((n, idx, arr) => {
+      {RIBBON_GROUPS.flatMap(({ group }) => NAV.filter((n) => n.group === group && n.roles.includes(role) && (!normalizedSearch || `${n.label} ${n.group}`.toLocaleLowerCase("pt-BR").includes(normalizedSearch)))).map((n, idx, arr) => {
         const Icon = ICONS[n.icon];
         const header = idx === 0 || arr[idx - 1].group !== n.group;
         return (
@@ -145,6 +197,9 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
 
   if (isLoading) return <div className="grid min-h-screen place-items-center text-zinc-500">Carregando…</div>;
   if (isError || !me) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
+  const items = NAV.filter((item) => item.roles.includes(me.role));
+  const currentGroup = items.find((item) => item.to === activePath(loc.pathname))?.group ?? "Operação";
+  const visibleGroup = activeRibbon ?? currentGroup;
   const allowed = !roles || me.role === "admin" || roles.includes(me.role);
 
   return (
@@ -184,26 +239,24 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
               </button>
             </div>
           </div>
-          <nav aria-label="Seções do sistema" data-testid="top-menu-groups" className="grid min-w-0 grid-cols-3 gap-1 px-2 py-1.5 sm:grid-cols-5 sm:px-4">
-            {RIBBON_GROUPS.filter(({group}) => NAV.some(n => n.group === group && n.roles.includes(me.role))).map(({label, group, icon: GroupIcon}) => {
-              const selected = activeRibbon ? activeRibbon === group : NAV.some(n => n.group === group && n.to === loc.pathname) || (group === "Operação" && loc.pathname === "/");
+          <nav aria-label="Seções do sistema" data-testid="top-menu-groups" className="grid min-w-0 grid-cols-2 gap-1 px-2 py-1.5 sm:grid-cols-5 sm:px-4">
+            {RIBBON_GROUPS.filter(({group}) => items.some(n => n.group === group)).map(({label, group, icon: GroupIcon}) => {
+              const selected = visibleGroup === group;
               return <button key={group} type="button" onClick={() => setActiveRibbon(group)}
                 className={cn("flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[10px] font-medium transition-colors hover:bg-white/10 sm:text-xs", selected ? "bg-[#36363a] text-white" : "text-zinc-300")}
                 aria-pressed={selected}><GroupIcon className="size-4 shrink-0 text-[#e6b44d]" aria-hidden="true" /><span className="min-w-0 break-words">{label}</span></button>;
             })}
           </nav>
-          <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts" className="grid min-w-0 grid-cols-3 gap-1 bg-[#303034] px-2 py-1.5 sm:grid-cols-4 sm:px-4 lg:grid-cols-6 xl:grid-cols-8">
-            {NAV.filter(n => n.roles.includes(me.role) && (
-              activeRibbon ? n.group === activeRibbon :
-              (NAV.find(item => item.to === loc.pathname)?.group ?? "Operação") === n.group
-            )).map(n => {
+          <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts" className="grid min-w-0 grid-cols-2 gap-1 bg-[#303034] min-[420px]:grid-cols-3 px-2 py-1.5 sm:grid-cols-4 sm:px-4 lg:grid-cols-6 xl:grid-cols-8">
+            {items.filter(n => n.group === visibleGroup).map(n => {
               const Icon = ICONS[n.icon] ?? LayoutDashboard;
-              return <NavLink key={n.to} to={n.to} title={n.label} onClick={() => setActiveRibbon(n.group)}
-                className={({isActive}) => cn("flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-center text-[11px] leading-tight transition-colors hover:bg-white/10",isActive ? "bg-[#414147] text-white" : "text-zinc-200")}>
+              return <NavLink key={n.to} to={n.to} end={n.to === "/"} title={n.label} onClick={() => setActiveRibbon(n.group)}
+                className={({isActive}) => cn("flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-center text-[11px] leading-tight transition-colors hover:bg-white/10",(isActive || n.to === activePath(loc.pathname)) ? "bg-[#414147] text-white" : "text-zinc-200")}>
                 <Icon className="size-4 shrink-0 text-[#e6b44d]" strokeWidth={1.8} aria-hidden="true" /><span className="min-w-0 break-words">{n.label}</span>
               </NavLink>;
             })}
           </nav>
+          <MenuPreferences key={me.id} operatorId={me.id} items={items} />
         </header>
         <main className="flex-1 px-3 py-4 lg:px-5">
           {allowed ? children : (
