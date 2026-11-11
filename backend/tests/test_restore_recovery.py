@@ -55,7 +55,8 @@ async def test_recovery_listing_returns_metadata_only(monkeypatch):
     collection = SimpleNamespace(find=MagicMock(return_value=cursor))
     monkeypatch.setattr(config, "db", SimpleNamespace(restore_safety_backups=collection))
     assert await config.recovery_snapshots({"id": "admin"}) == {"snapshots": [record]}
-    assert collection.find.call_args.args[1].get("blob") is None
+    projection = collection.find.call_args.args[1]
+    assert projection["id"] == 1 and "blob" not in projection and "password_hash" not in projection
 
 
 @pytest.mark.asyncio
