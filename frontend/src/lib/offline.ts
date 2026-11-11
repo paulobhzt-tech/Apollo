@@ -8,6 +8,7 @@ import type { Product, QuickSaleIn } from "./types";
 import { deviceTag, kv } from "./desktop";
 
 import { contextToken, queueKeys, sameContext, sameQueuedRequest, validContext, type QueueContext } from "./queue-context";
+import { reconcileLegacyPreview, type LegacyReviewItem } from "./legacy-reconciliation";
 export type { QueueContext } from "./queue-context";
 let activeContext: QueueContext | null = null;
 let { KEY, REJ_KEY, ARCHIVE_KEY, LOG_KEY, MENU_KEY } = queueKeys(null);
@@ -51,6 +52,20 @@ export function legacyQueuePreview(): { pending: number; rejected: number; inval
     }
   }
   return { pending, rejected, invalid, duplicate_refs, missing_refs, total };
+}
+
+/** Read-only classification; malformed bytes are never replaced or silently accepted. */
+export function legacyReconciliationStatus(): { items: LegacyReviewItem[]; unreadable: boolean } {
+  let unreadable = false;
+  const parse = (key: string): unknown => {
+    const raw = kv.get(key);
+    if (raw === null || raw === "") return [];
+    try { return JSON.parse(raw); }
+    catch { unreadable = true; return null; }
+  };
+  const pending = parse("pdv_offline_queue");
+  const rejected = parse("pdv_offline_rejected");
+  return { items: reconcileLegacyPreview(pending, rejected, activeContext), unreadable };
 }
 
 /** Unique, device-tagged reference: replays are idempotent on the server (client_ref). */
