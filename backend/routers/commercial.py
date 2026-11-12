@@ -24,6 +24,7 @@ PLANS = {
     "essencial": ("Essencial", ("pdv", "mesas", "financeiro")),
     "completo": ("Completo", ("pdv", "mesas", "estoque", "financeiro", "cardapio", "garcom", "delivery")),
     "franquias": ("Franquias", tuple(MODULES)),
+    "personalizado": ("Personalizado", ()),
 }
 CYCLES = ("mensal", "anual")
 
@@ -44,6 +45,8 @@ def validate_selection(selection: PlanSelection) -> dict:
         raise HTTPException(422, "Módulos desconhecidos: " + ", ".join(unknown))
     if len(selection.modules) != len(set(selection.modules)):
         raise HTTPException(422, "Módulos duplicados não são permitidos")
+    if selection.plan == "personalizado" and not selection.modules:
+        raise HTTPException(422, "Selecione pelo menos um módulo para o plano personalizado")
     included = set(PLANS[selection.plan][1])
     enabled = sorted(included | set(selection.modules))
     return {"plan": selection.plan, "cycle": selection.cycle, "modules": enabled,
