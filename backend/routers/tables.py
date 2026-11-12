@@ -240,17 +240,43 @@ async def apply_cancel_item(id: str, item_id: str, body: CancelIn, user: dict, a
 async def transfer(id: str, body: TransferIn, _: dict = Depends(require(*STAFF))):
     if id == body.target_table_id:
         raise HTTPException(400, "Selecione uma mesa de destino diferente da origem")
-    src = await get_table(id)
-    dst = await get_table(body.target_table_id)
+    return await with_order_transaction(lambda session: apply_transfer(id, body.target_table_id, session=session))
+
+
+async def apply_transfer(id: str, target_id: str, *, session=None):
+    options = {"session": session} if session is not None else {}
+    src = await get_table(id, **options)
+    dst = await get_table(target_id, **options)
     if not src.get("order_id"):
         raise HTTPException(400, "Mesa de origem sem comanda")
     if dst.get("order_id") or dst["status"] != "livre":
         raise HTTPException(400, "Mesa de destino precisa estar livre e não reservada")
-    await db.orders.update_one({"id": src["order_id"]}, {"$set": {"table_id": dst["id"], "table_number": dst["number"], "table_label": table_label(dst)}})
-    keep = {k: src[k] for k in ("status", "customer_name", "customers", "people", "waiter_id", "waiter_name", "order_id", "opened_at", "total")}
-    await db.tables.update_one({"id": dst["id"]}, {"$set": keep})
-    await free_table(src["id"])
-    return await get_table(dst["id"])
+    order_id = src["order_id"]
+    updated_order = await db.orders.update_one(
+        {"id": order_id, "status": "aberto", "table_id": {"$in": [id, None]}},
+        {"$set": {"table_id": target_id, "table_number": dst["number"], "table_label": table_label(dst)}},
+        **options)
+    if updated_order.matched_count != 1:
+        raise HTTPException(409, "Comanda alterada. Atualize as mesas.")
+
+    keep = Table.model_validate(src).model_dump(include={
+        "status", "customer_name", "customers", "people", "waiter_id", "waiter_name",
+        "order_id", "opened_at", "total", "call",
+    })
+    split_request = src.get("split_request")
+    update = {"$set": keep}
+    if split_request and split_request.get("order_id") == order_id:
+        keep["split_request"] = split_request
+    else:
+        update["$unset"] = {"split_request": ""}
+    updated_table = await db.tables.update_one(
+        {"id": target_id, "order_id": None, "status": "livre"}, update, **options)
+    if updated_table.matched_count != 1:
+        raise HTTPException(409, "Mesa de destino foi ocupada. Atualize as mesas.")
+    await db.kitchen_tickets.update_many(
+        {"order_id": order_id}, {"$set": {"table_id": target_id, "table_number": dst["number"]}}, **options)
+    await free_table(id, expected_order_id=order_id, **options)
+    return await get_table(target_id, **options)
 
 
 class MergeTablesIn(BaseModel):

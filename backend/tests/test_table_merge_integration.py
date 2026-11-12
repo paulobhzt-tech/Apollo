@@ -1,12 +1,63 @@
 """Integration checks for joining open table orders; test database only."""
+import asyncio
 import uuid
 import pytest
 from fastapi import HTTPException
 from lib.db import db
-from models.schemas import Order, OrderItem, Table
+from models.schemas import Order, OrderItem, Table, TransferIn
+from routers import tables
 from routers.tables import MergeTablesIn, merge_tables
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
+
+
+async def test_transfer_rolls_back_then_allows_only_one_concurrent_destination(monkeypatch):
+    suffix = uuid.uuid4().hex
+    source, first, second = [f"transfer-{suffix}-{i}" for i in range(3)]
+    order_id = f"transfer-order-{suffix}"
+    ticket_id = f"transfer-ticket-{suffix}"
+    request = {"order_id": order_id, "subtotal": 25}
+    await db.tables.insert_many([
+        {"id": source, "number": 871, "status": "conta", "order_id": order_id,
+         "split_request": request, "total": 25},
+        Table(id=first, number=872).model_dump(),
+        Table(id=second, number=873).model_dump(),
+    ])
+    await db.orders.insert_one(Order(id=order_id, number=871, channel="mesa", source="mesa",
+                                     table_id=source, table_number=871, total=25).model_dump())
+    await db.kitchen_tickets.insert_one({"id": ticket_id, "order_id": order_id,
+                                         "table_id": source, "table_number": 871})
+    try:
+        async def fail_before_releasing(*args, **kwargs):
+            raise RuntimeError("Falha simulada antes de liberar a mesa")
+
+        with monkeypatch.context() as patch:
+            patch.setattr(tables, "free_table", fail_before_releasing)
+            with pytest.raises(RuntimeError, match="Falha simulada"):
+                await tables.transfer(source, TransferIn(target_table_id=first), {})
+        assert (await db.tables.find_one({"id": source}))["order_id"] == order_id
+        assert (await db.tables.find_one({"id": first}))["order_id"] is None
+        assert (await db.orders.find_one({"id": order_id}))["table_id"] == source
+        assert (await db.kitchen_tickets.find_one({"id": ticket_id}))["table_id"] == source
+
+        results = await asyncio.gather(
+            tables.transfer(source, TransferIn(target_table_id=first), {}),
+            tables.transfer(source, TransferIn(target_table_id=second), {}),
+            return_exceptions=True,
+        )
+        transferred = [result for result in results if isinstance(result, dict)]
+        assert len(transferred) == 1, results
+        destination = transferred[0]
+        assert destination["split_request"] == request
+        assert destination["total"] == 25
+        assert await db.tables.count_documents({"order_id": order_id}) == 1
+        assert (await db.tables.find_one({"id": source}))["status"] == "livre"
+        assert (await db.orders.find_one({"id": order_id}))["table_id"] == destination["id"]
+        assert (await db.kitchen_tickets.find_one({"id": ticket_id}))["table_id"] == destination["id"]
+    finally:
+        await db.tables.delete_many({"id": {"$in": [source, first, second]}})
+        await db.orders.delete_one({"id": order_id})
+        await db.kitchen_tickets.delete_one({"id": ticket_id})
 
 
 async def test_merge_moves_items_and_releases_source_without_duplicate_sales():
