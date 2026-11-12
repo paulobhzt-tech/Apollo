@@ -644,7 +644,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     <>
       <Dialog open onOpenChange={(value) => { if (!value) requestClose(); }} disablePointerDismissal>
         <DialogContent overlayClassName="bg-black/55"
-          className="w-[calc(100%-1rem)] max-h-[90dvh] max-w-[min(calc(100%-1rem),900px)] grid-cols-[minmax(0,1fr)] gap-0 border border-border bg-elevated p-0 sm:max-w-[min(calc(100%-2rem),900px)]"
+          className="w-[calc(100%-1rem)] max-h-[90dvh] max-w-[min(calc(100%-1rem),900px)] grid-cols-[minmax(0,1fr)] gap-0 overflow-y-auto overscroll-contain border border-border bg-elevated p-0 sm:max-w-[min(calc(100%-2rem),900px)]"
           data-testid="table-sheet">
           {content}
         </DialogContent>
