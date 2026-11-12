@@ -17,7 +17,7 @@ import { useMe } from "@/lib/auth";
 import { queryClient } from "@/lib/queryClient";
 import type { Ingredient, IngredientIn, StockMove, Unit, Product, Supplier } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { catalogNumber, ingredientValues } from "@/lib/catalog-form";
+import { catalogNumber, formatCurrencyTyping, ingredientValues } from "@/lib/catalog-form";
 
 const UNITS: Unit[] = ["kg", "g", "L", "ml", "un"];
 const dateBR = (iso?: string | null) => iso && /^\\d{4}-\\d{2}-\\d{2}$/.test(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : iso || "—";
@@ -90,8 +90,8 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
   const [productId, setProductId] = useState("");
   const [qty, setQty] = useState("");
   const [unitCost, setUnitCost] = useState("");
-  const [freightCost, setFreightCost] = useState("0");
-  const [taxCost, setTaxCost] = useState("0");
+  const [freightCost, setFreightCost] = useState("0,00");
+  const [taxCost, setTaxCost] = useState("0,00");
   const [billDueDate, setBillDueDate] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [manufacturedOn, setManufacturedOn] = useState("");
@@ -130,7 +130,7 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
     onSuccess: () => {
       purchaseAttempt.current = null;
       toast.success("Compra registrada e estoque atualizado");
-      setQty(""); setUnitCost(""); setFreightCost("0"); setTaxCost("0"); setBillDueDate(""); setLotNumber(""); setNote(""); setExpiryDate(""); setManufacturedOn("");
+      setQty(""); setUnitCost(""); setFreightCost("0,00"); setTaxCost("0,00"); setBillDueDate(""); setLotNumber(""); setNote(""); setExpiryDate(""); setManufacturedOn("");
       void purchases.refetch(); void expiry.refetch(); onSaved();
     },
     onError: (e) => toast.error(errMsg(e)),
@@ -157,9 +157,9 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
         </label>
         <div><Label htmlFor="purchase-ingredient">Item de estoque</Label><Select disabled={!!productId} value={ingredientId} onValueChange={setIngredientId}><SelectTrigger id="purchase-ingredient" data-testid="purchase-ingredient"><SelectValue placeholder="Selecione insumo" /></SelectTrigger><SelectContent>{ingredients.map((i) => <SelectItem key={i.id} value={i.id}>{i.name} ({i.unit})</SelectItem>)}</SelectContent></Select></div>
         <div><Label htmlFor="purchase-qty">Quantidade {selected ? "(" + selected.unit + ")" : ""}</Label><Input id="purchase-qty" inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="20" /></div>
-        <div><Label htmlFor="purchase-cost">Preço por {selected?.unit ?? "unidade"} (R$)</Label><div className="relative"><span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span><Input id="purchase-cost" className="pl-10" inputMode="decimal" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} placeholder="32,00" /></div></div>
-        <div><Label htmlFor="purchase-freight">Frete (R$)</Label><div className="relative"><span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span><Input id="purchase-freight" className="pl-10" data-testid="purchase-freight" inputMode="decimal" value={freightCost} onChange={(e) => setFreightCost(e.target.value)} /></div></div>
-        <div><Label htmlFor="purchase-taxes">Impostos (R$)</Label><div className="relative"><span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span><Input id="purchase-taxes" className="pl-10" data-testid="purchase-taxes" inputMode="decimal" value={taxCost} onChange={(e) => setTaxCost(e.target.value)} /></div></div>
+        <div><Label htmlFor="purchase-cost">Preço por {selected?.unit ?? "unidade"} (R$)</Label><div className="relative"><span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span><Input id="purchase-cost" className="pl-10" inputMode="decimal" value={unitCost} onChange={(e) => setUnitCost(formatCurrencyTyping(e.target.value))} placeholder="32,00" /></div></div>
+        <div><Label htmlFor="purchase-freight">Frete (R$)</Label><div className="relative"><span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span><Input id="purchase-freight" className="pl-10" data-testid="purchase-freight" inputMode="decimal" value={freightCost} onChange={(e) => setFreightCost(formatCurrencyTyping(e.target.value))} /></div></div>
+        <div><Label htmlFor="purchase-taxes">Impostos (R$)</Label><div className="relative"><span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span><Input id="purchase-taxes" className="pl-10" data-testid="purchase-taxes" inputMode="decimal" value={taxCost} onChange={(e) => setTaxCost(formatCurrencyTyping(e.target.value))} /></div></div>
         <div><Label htmlFor="purchase-bill-due">Vencimento do boleto (dia/mês/ano, opcional)</Label><Input id="purchase-bill-due" data-testid="purchase-bill-due" type="date" value={billDueDate} onChange={(e) => setBillDueDate(e.target.value)} /></div>
         <div><Label htmlFor="purchase-made">Data de fabricação (dia/mês/ano)</Label><Input id="purchase-made" type="date" value={manufacturedOn} onChange={(event) => setManufacturedOn(event.target.value)} /></div>
         <div><Label htmlFor="purchase-expiry">Validade do lote (dia/mês/ano)</Label><Input id="purchase-expiry" type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} /></div>
