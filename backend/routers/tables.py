@@ -252,9 +252,10 @@ async def apply_transfer(id: str, target_id: str, *, session=None):
     if dst.get("order_id") or dst["status"] != "livre":
         raise HTTPException(400, "Mesa de destino precisa estar livre e não reservada")
     order_id = src["order_id"]
+    destination_label = table_label(dst)
     updated_order = await db.orders.update_one(
         {"id": order_id, "status": "aberto", "table_id": {"$in": [id, None]}},
-        {"$set": {"table_id": target_id, "table_number": dst["number"], "table_label": table_label(dst)}},
+        {"$set": {"table_id": target_id, "table_number": dst["number"], "table_label": destination_label}},
         **options)
     if updated_order.matched_count != 1:
         raise HTTPException(409, "Comanda alterada. Atualize as mesas.")
@@ -274,7 +275,7 @@ async def apply_transfer(id: str, target_id: str, *, session=None):
     if updated_table.matched_count != 1:
         raise HTTPException(409, "Mesa de destino foi ocupada. Atualize as mesas.")
     await db.kitchen_tickets.update_many(
-        {"order_id": order_id}, {"$set": {"table_id": target_id, "table_number": dst["number"]}}, **options)
+        {"order_id": order_id}, {"$set": {"label": destination_label}}, **options)
     await free_table(id, expected_order_id=order_id, **options)
     return await get_table(target_id, **options)
 

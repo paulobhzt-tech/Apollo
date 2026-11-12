@@ -26,7 +26,7 @@ async def test_transfer_rolls_back_then_allows_only_one_concurrent_destination(m
     await db.orders.insert_one(Order(id=order_id, number=871, channel="mesa", source="mesa",
                                      table_id=source, table_number=871, total=25).model_dump())
     await db.kitchen_tickets.insert_one({"id": ticket_id, "order_id": order_id,
-                                         "table_id": source, "table_number": 871})
+                                         "label": "Mesa 871"})
     try:
         async def fail_before_releasing(*args, **kwargs):
             raise RuntimeError("Falha simulada antes de liberar a mesa")
@@ -38,7 +38,7 @@ async def test_transfer_rolls_back_then_allows_only_one_concurrent_destination(m
         assert (await db.tables.find_one({"id": source}))["order_id"] == order_id
         assert (await db.tables.find_one({"id": first}))["order_id"] is None
         assert (await db.orders.find_one({"id": order_id}))["table_id"] == source
-        assert (await db.kitchen_tickets.find_one({"id": ticket_id}))["table_id"] == source
+        assert (await db.kitchen_tickets.find_one({"id": ticket_id}))["label"] == "Mesa 871"
 
         results = await asyncio.gather(
             tables.transfer(source, TransferIn(target_table_id=first), {}),
@@ -53,7 +53,7 @@ async def test_transfer_rolls_back_then_allows_only_one_concurrent_destination(m
         assert await db.tables.count_documents({"order_id": order_id}) == 1
         assert (await db.tables.find_one({"id": source}))["status"] == "livre"
         assert (await db.orders.find_one({"id": order_id}))["table_id"] == destination["id"]
-        assert (await db.kitchen_tickets.find_one({"id": ticket_id}))["table_id"] == destination["id"]
+        assert (await db.kitchen_tickets.find_one({"id": ticket_id}))["label"] == f"Mesa {destination['number']}"
     finally:
         await db.tables.delete_many({"id": {"$in": [source, first, second]}})
         await db.orders.delete_one({"id": order_id})
