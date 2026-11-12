@@ -31,9 +31,9 @@ export function cashAmount(value: string): number | null {
 
 /** Currency input mask: typing digits automatically places cents and thousands separators. */
 export function formatCurrencyTyping(value: string): string {
-  const digits = value.replace(/\\D/g, "").slice(0, 15);
+  const digits = value.replace(/\D/g, "").slice(0, 15);
   if (!digits) return "";
   const cents = digits.slice(-2).padStart(2, "0");
-  const whole = (digits.slice(0, -2) || "0").replace(/^0+(?=\\d)/, "");
-  return whole.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ".") + "," + cents;
+  const whole = (digits.slice(0, -2) || "0").replace(/^0+(?=\d)/, "");
+  return whole.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + cents;
 }
