@@ -83,11 +83,14 @@ function MenuPreferences({ items, operatorId }: { items: NavItem[]; operatorId: 
   );
 }
 
+const normalizeMenuSearch = (value: string) =>
+  value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("pt-BR");
+
 function NavList({ role, onNavigate, search = "" }: { role: Role; onNavigate?: () => void; search?: string }) {
-  const normalizedSearch = search.trim().toLocaleLowerCase("pt-BR");
+  const normalizedSearch = normalizeMenuSearch(search.trim());
   return (
     <nav className="flex flex-col gap-1">
-      {RIBBON_GROUPS.flatMap(({ group }) => NAV.filter((n) => n.group === group && n.roles.includes(role) && (!normalizedSearch || `${n.label} ${n.group}`.toLocaleLowerCase("pt-BR").includes(normalizedSearch)))).map((n, idx, arr) => {
+      {RIBBON_GROUPS.flatMap(({ group }) => NAV.filter((n) => n.group === group && n.roles.includes(role) && (!normalizedSearch || normalizeMenuSearch(`${n.label} ${n.group}`).includes(normalizedSearch)))).map((n, idx, arr) => {
         const Icon = ICONS[n.icon];
         const header = idx === 0 || arr[idx - 1].group !== n.group;
         return (
@@ -223,7 +226,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
             Configuração obrigatória: escolha backup no Google Drive ou no PC em Configurações → Backup.
           </Link>
         )}
-        <header className="sticky top-0 z-30 border-b border-white/10 bg-[#252527] text-white" data-testid="apollo-ribbon">
+        <header className="relative z-30 lg:sticky lg:top-0 border-b border-white/10 bg-[#252527] text-white" data-testid="apollo-ribbon">
           <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-white/10 px-3 py-2 sm:px-4">
             <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={() => setOpen(true)} aria-label="Abrir todas as funções (Ctrl+K)" title="Buscar funções (Ctrl+K)" data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
             <Brand />

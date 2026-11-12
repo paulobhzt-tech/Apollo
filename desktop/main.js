@@ -349,11 +349,6 @@ if (!app.requestSingleInstanceLock()) app.quit();
 app.on("second-instance", () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
 app.whenReady().then(async () => {
   cfg = loadConfig();
-  if (process.env.PDV_SMOKE === "diagnostic" && cfg.testBuild) {
-    const url = process.env.PDV_SMOKE_SERVER || "";
-    if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(url)) { app.exit(2); return; }
-    cfg.serverUrl = url;
-  }
   if (process.env.PDV_SMOKE === "offline-with-server") {
     if (cfg.testBuild || cfg.startWithWindows !== false || !cfg.serverUrl.startsWith("https://")) {
       console.error("PDV_SMOKE_FAIL: configuracao antiga nao foi recuperada corretamente");

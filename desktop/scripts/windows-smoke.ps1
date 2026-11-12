@@ -70,7 +70,16 @@ try {
       $port = Get-Content -LiteralPath $portFile -Raw
       if ($port -notmatch '^\d+$') { throw 'Servidor simulado de homologacao nao iniciou' }
       $env:PDV_SMOKE = 'diagnostic'
-      $env:PDV_SMOKE_SERVER = "http://127.0.0.1:$port"
+      $configDir = Join-Path $env:APPDATA 'Apollo PDV'
+      New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+      $configFile = Join-Path $configDir 'config.json'
+      $testConfig = @{
+        serverUrl = "http://127.0.0.1:$port"
+        testBuild = $true
+        serverSelected = $true
+        startWithWindows = $false
+      } | ConvertTo-Json
+      [IO.File]::WriteAllText($configFile, $testConfig, [Text.UTF8Encoding]::new($true))
       $diagnosticOut = Join-Path $env:RUNNER_TEMP 'apollo-diagnostic-out.txt'
       $diagnosticErr = Join-Path $env:RUNNER_TEMP 'apollo-diagnostic-err.txt'
       $diagnostic = Start-Process -FilePath $app -PassThru -RedirectStandardOutput $diagnosticOut -RedirectStandardError $diagnosticErr
@@ -82,7 +91,6 @@ try {
       }
     } finally {
       Stop-Process -Id $fixture.Id -ErrorAction SilentlyContinue
-      Remove-Item Env:PDV_SMOKE_SERVER -ErrorAction SilentlyContinue
     }
   }
   Write-Host "HOMOLOGACAO BASICA WINDOWS APROVADA: $version"
