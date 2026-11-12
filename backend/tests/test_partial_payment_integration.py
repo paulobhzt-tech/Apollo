@@ -223,3 +223,32 @@ async def test_counter_payment_rolls_back_on_insufficient_stock_and_retries(monk
         await db.cash_sessions.delete_one({"id": cash_id})
         await db.products.delete_one({"id": product_id})
         await db.ingredients.delete_one({"id": ingredient_id})
+
+
+async def test_delivery_stock_failure_rolls_back_and_concurrent_retry_is_idempotent(monkeypatch):
+    from unittest.mock import AsyncMock
+
+    from models.schemas import DeliveryStatusIn
+    from routers import operations
+
+    order = Order(number=779, channel="delivery", source="cardapio", delivery_status="pendente").model_dump()
+    await db.orders.insert_one(dict(order))
+    ticket = AsyncMock()
+    stock = AsyncMock(side_effect=HTTPException(409, "Estoque fictício insuficiente"))
+    monkeypatch.setattr(operations, "create_ticket", ticket)
+    monkeypatch.setattr(operations, "move_stock", stock)
+    actor = {"id": "test", "name": "Caixa de teste"}
+    body = DeliveryStatusIn(status="aceito")
+    try:
+        with pytest.raises(HTTPException, match="Estoque fictício insuficiente"):
+            await operations.delivery_status(order["id"], body, actor)
+        saved = await db.orders.find_one({"id": order["id"]})
+        assert saved["delivery_status"] == "pendente"
+        assert saved.get("stock_completion") != "pending"
+        stock.side_effect = None
+        stock.reset_mock()
+        accepted = await asyncio.gather(*(operations.delivery_status(order["id"], body, actor) for _ in range(2)))
+        assert [row["stock_completion"] for row in accepted] == ["complete", "complete"]
+        stock.assert_awaited_once()
+    finally:
+        await db.orders.delete_one({"id": order["id"]})

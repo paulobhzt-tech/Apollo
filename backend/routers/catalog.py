@@ -2,9 +2,13 @@ from datetime import date, datetime, timedelta, timezone
 import math
 from uuid import NAMESPACE_URL, uuid5
 
+from bson import ObjectId
+from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pymongo.errors import DuplicateKeyError
 
+from lib.audit import audit_event
+from lib.inventory_recovery import counter_stock_evidence, recovery_token
 from lib.auth import current_user, require
 from lib.db import db
 from lib.orders import ingredient_map, local_today, now, product_cost
@@ -388,13 +392,14 @@ async def inventory_alerts(_: dict = Depends(require("caixa", "cozinha"))):
 async def inventory_reconciliation(_: dict = Depends(require())):
     """Read-only evidence for administrative review; never link or adjust a lot here."""
     legacy = await db.lot_consumptions.find(
-        {"stock_ref": {"$in": [None, ""]}},
-        {"_id": 0, "purchase_id": 1, "ingredient_id": 1, "lot_number": 1, "qty": 1,
+        {"stock_ref": {"$in": [None, ""]}, "historical_order_id": {"$exists": False}},
+        {"purchase_id": 1, "ingredient_id": 1, "lot_number": 1, "qty": 1,
          "restored_qty": 1, "created_at": 1},
     ).sort("created_at", -1).to_list(101)
     pending = await db.orders.find(
-        {"status": "pago", "stock_completion": "pending"},
-        {"_id": 0, "id": 1, "number": 1, "paid_at": 1},
+        {"stock_completion": "pending", "$or": [{"channel": "balcao", "status": "pago"},
+         {"channel": "delivery", "status": "aberto", "delivery_status": "aceito"}]},
+        {"_id": 0, "id": 1, "number": 1, "paid_at": 1, "channel": 1},
     ).sort("paid_at", -1).to_list(101)
     balances = await db.purchases.aggregate([
         {"$match": {"remaining_qty": {"$gt": 0}}},
@@ -408,8 +413,99 @@ async def inventory_reconciliation(_: dict = Depends(require())):
         {"$limit": 101},
         {"$project": {"_id": 0, "ingredient_id": "$_id", "name": 1, "stock": 1, "tracked": 1, "difference": 1}},
     ]).to_list(101)
-    return {"legacy_lots": legacy[:100], "pending_sales": pending[:100], "lot_excess": balances[:100],
+    return {"legacy_lots": [{**{key: value for key, value in row.items() if key != "_id"},
+                              "review_id": str(row["_id"])} for row in legacy[:100]], "pending_sales": pending[:100], "lot_excess": balances[:100],
             "truncated": any(len(rows) > 100 for rows in (legacy, pending, balances))}
+
+
+class ReconciliationApproval(BaseModel):
+    token: str = Field(pattern=r"^[0-9a-f]{64}$")
+    reason: str = Field(min_length=10, max_length=500)
+    confirmed: bool
+
+
+async def pending_sale_preview(order_id: str):
+    order = await db.orders.find_one({"id": order_id, "stock_completion": "pending",
+                                      "$or": [{"channel": "balcao", "status": "pago"},
+                                              {"channel": "delivery", "status": "aberto", "delivery_status": "aceito"}]}, {"_id": 0})
+    if not order:
+        raise HTTPException(404, "Pedido com baixa pendente não encontrado")
+    prefix = "Delivery #" if order.get("channel") == "delivery" else "PDV · Pedido #"
+    moves = await db.stock_moves.find({"note": f"{prefix}{order['number']}", "type": "venda"},
+                                       {"_id": 0, "ingredient_id": 1, "qty": 1}).to_list(1001)
+    if len(moves) > 1000:
+        raise HTTPException(409, "Movimentações demais para uma conferência individual")
+    evidence = counter_stock_evidence(order, moves)
+    snapshot = {"id": order_id, "number": order["number"], "items": order["items"], **evidence}
+    return order, {"order_number": order["number"], **evidence, "token": recovery_token(snapshot)}
+
+
+@router.get("/inventory/reconciliation/sales/{order_id}")
+async def preview_pending_sale(order_id: str, _: dict = Depends(require())):
+    _, preview = await pending_sale_preview(order_id)
+    return preview
+
+
+@router.post("/inventory/reconciliation/sales/{order_id}/approve")
+async def approve_pending_sale(order_id: str, body: ReconciliationApproval, user: dict = Depends(require())):
+    order, preview = await pending_sale_preview(order_id)
+    if not body.confirmed or preview["token"] != body.token or not preview["matches"] or len(body.reason.strip()) < 10:
+        raise HTTPException(409, "Evidência insuficiente ou alterada. Confira a prévia novamente.")
+    result = await db.orders.update_one(
+        {"id": order_id, "status": order["status"], "delivery_status": order.get("delivery_status"),
+         "stock_completion": "pending", "items": order["items"]},
+        {"$set": {"stock_completion": "complete"},
+         "$push": {"audit_events": audit_event("stock_completion_reviewed", user, reason=body.reason.strip(), correlation=body.token,
+                                              values={"order_number": order["number"]})}},
+    )
+    if result.modified_count != 1:
+        raise HTTPException(409, "Venda alterada durante a revisão")
+    return {"ok": True}
+
+
+async def historical_lot_preview(review_id: str, order_number: int):
+    if not ObjectId.is_valid(review_id):
+        raise HTTPException(404, "Registro histórico não encontrado")
+    lot = await db.lot_consumptions.find_one({"_id": ObjectId(review_id),
+                                               "stock_ref": {"$in": [None, ""]},
+                                               "historical_order_id": {"$exists": False}})
+    if not lot:
+        raise HTTPException(404, "Registro histórico já revisado ou não encontrado")
+    orders = await db.orders.find({"number": order_number, "channel": {"$in": ["balcao", "delivery"]}},
+                                   {"_id": 0, "id": 1, "number": 1, "channel": 1}).to_list(2)
+    prefixes = {"balcao": "PDV · Pedido #", "delivery": "Delivery #"}
+    if len(orders) != 1 or lot.get("note") != f"{prefixes[orders[0]['channel']]}{order_number}":
+        raise HTTPException(409, "A anotação histórica não comprova o vínculo com esse pedido")
+    order = orders[0]
+    evidence = {"review_id": review_id, "order_id": order["id"], "order_number": order_number,
+                "ingredient_id": lot["ingredient_id"], "purchase_id": lot["purchase_id"],
+                "qty": lot["qty"], "restored_qty": lot.get("restored_qty", 0)}
+    return lot, {**evidence, "token": recovery_token(evidence)}
+
+
+@router.get("/inventory/reconciliation/lots/{review_id}")
+async def preview_historical_lot(review_id: str, order_number: int, _: dict = Depends(require())):
+    _, preview = await historical_lot_preview(review_id, order_number)
+    return preview
+
+
+@router.post("/inventory/reconciliation/lots/{review_id}/approve")
+async def approve_historical_lot(review_id: str, order_number: int, body: ReconciliationApproval,
+                                 user: dict = Depends(require())):
+    lot, preview = await historical_lot_preview(review_id, order_number)
+    if not body.confirmed or preview["token"] != body.token or len(body.reason.strip()) < 10:
+        raise HTTPException(409, "Evidência alterada. Confira a prévia novamente.")
+    result = await db.lot_consumptions.update_one(
+        {"_id": lot["_id"], "stock_ref": {"$in": [None, ""]}, "historical_order_id": {"$exists": False},
+         "note": lot["note"], "qty": lot["qty"], "purchase_id": lot["purchase_id"],
+         "restored_qty": lot.get("restored_qty", {"$exists": False})},
+        {"$set": {"historical_order_id": preview["order_id"],
+                  "historical_review": audit_event("historical_lot_linked", user, reason=body.reason.strip(), correlation=body.token,
+                                                   values={"order_number": order_number, "purchase_id": lot["purchase_id"]})}},
+    )
+    if result.modified_count != 1:
+        raise HTTPException(409, "Lote alterado durante a revisão")
+    return {"ok": True}
 
 
 @router.get("/inventory/movement-report")

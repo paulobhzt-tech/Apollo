@@ -43,7 +43,8 @@ async def test_cancel_claim_is_conditional_and_audited_before_stock(monkeypatch)
         await operations.cancel_order("o1", CancelIn(reason="Pedido errado", manager_pin="secret"), {"id": "u1", "name": "Cashier"})
     assert exc.value.status_code == 409
     query, change = orders.update_one.await_args.args
-    assert query == {"id": "o1", "status": "pago", "items": []}
+    assert query == {"id": "o1", "status": "pago", "items": [],
+                     "stock_completion": {"$ne": "pending"}, "delivery_status": None}
     event = change["$push"]["audit_events"]
     assert event["action"] == "order_cancelled"
     assert event["authorized_by"] == "Manager"

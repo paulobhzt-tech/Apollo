@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime, timezone
 
 VALUE_FIELDS = {"amount", "total", "discount", "service_fee", "change", "difference", "counted_amount",
-                "opening_amount", "expected_cash", "from", "to", "item_id", "qty", "method", "brand"}
+                "order_number", "purchase_id", "opening_amount", "expected_cash", "from", "to", "item_id", "qty", "method", "brand"}
 
 
 def _canonical(event):

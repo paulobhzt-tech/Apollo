@@ -241,10 +241,75 @@ function ConsumptionForecastPanel() {
 }
 
 interface InventoryReview {
-  legacy_lots: { purchase_id: string; ingredient_id: string; lot_number?: string; qty: number; restored_qty?: number; created_at: string }[];
-  pending_sales: { id: string; number: number; paid_at: string }[];
+  legacy_lots: { review_id: string; purchase_id: string; ingredient_id: string; lot_number?: string; qty: number; restored_qty?: number; created_at: string }[];
+  pending_sales: { id: string; number: number; paid_at?: string; channel: string }[];
   lot_excess: { ingredient_id: string; name?: string; tracked: number; stock: number; difference: number }[];
   truncated: boolean;
+}
+
+type ReviewPreview = {
+  token: string;
+  order_number: number;
+  matches?: boolean;
+  expected?: Record<string, number>;
+  observed?: Record<string, number>;
+  qty?: number;
+  restored_qty?: number;
+};
+
+function ReconciliationForm({ path, historical }: { path: string; historical?: boolean }) {
+  const [number, setNumber] = useState("");
+  const [reason, setReason] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const [preview, setPreview] = useState<ReviewPreview>();
+  const query = historical ? `?order_number=${encodeURIComponent(number)}` : "";
+  const review = useMutation({
+    mutationFn: () => apiGet<ReviewPreview>(path + query),
+    onSuccess: setPreview,
+    onError: (error) => toast.error(errMsg(error)),
+  });
+  const approve = useMutation({
+    mutationFn: (token: string) => apiPost(`${path}/approve${query}`, { token, reason: reason.trim(), confirmed }),
+    onSuccess: () => {
+      toast.success("Aprovação registrada na auditoria.");
+      void queryClient.invalidateQueries({ queryKey: ["inventory-reconciliation"] });
+      setPreview(undefined);
+    },
+    onError: (error) => {
+      setPreview(undefined);
+      setConfirmed(false);
+      toast.error(errMsg(error));
+    },
+  });
+  return <div className="my-2 flex max-w-xl flex-col items-start gap-2 rounded-lg border border-white/10 p-3">
+    {historical && <label className="space-y-1">Número do pedido
+      <Input type="number" min={1} value={number} disabled={review.isPending || approve.isPending}
+        onChange={(event) => { setNumber(event.target.value); setPreview(undefined); setConfirmed(false); }} />
+    </label>}
+    <Button type="button" variant="outline" size="sm" disabled={review.isPending || approve.isPending || Boolean(historical && !number)}
+      onClick={() => { setPreview(undefined); setConfirmed(false); review.mutate(); }}>Gerar prévia</Button>
+    {preview && <>
+      <p>Pedido #{preview.order_number}</p>
+      {historical ? <p>Baixa {preview.qty} · devolvido {preview.restored_qty}. A aprovação registra o vínculo histórico.</p>
+        : <>
+          <p>{preview.matches ? "As quantidades registradas coincidem com a ficha técnica da venda." : "As quantidades divergem ou a ficha técnica está incompleta."}</p>
+          <ul>{Object.keys({ ...preview.expected, ...preview.observed }).map((id) => <li key={id}>
+            {id} · previsto {preview.expected?.[id] ?? 0} · registrado {preview.observed?.[id] ?? 0}
+          </li>)}</ul>
+        </>}
+      {preview.matches !== false && <>
+        <label className="w-full space-y-1">Justificativa
+          <Input maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} />
+        </label>
+        <label className="flex items-start gap-2">
+          <Checkbox checked={confirmed} onCheckedChange={(value) => setConfirmed(value === true)} />
+          {historical ? "Conferi o lote e o pedido indicado." : "Conferi o pagamento quando aplicável, o estoque físico e os registros de cozinha, fiado e documento fiscal aplicáveis."}
+        </label>
+        <Button type="button" size="sm" disabled={!confirmed || reason.trim().length < 10 || approve.isPending}
+          onClick={() => approve.mutate(preview.token)}>Aprovar reconciliação</Button>
+      </>}
+    </>}
+  </div>;
 }
 
 function InventoryReports({ isAdmin }: { isAdmin: boolean }) {
@@ -287,14 +352,14 @@ function InventoryReports({ isAdmin }: { isAdmin: boolean }) {
       {review.isError && <p role="alert">Não foi possível carregar a conferência.</p>}
       {review.data && <>
         {review.data.truncated && <p className="text-xs text-amber-300">Amostra limitada a 100 registros por categoria.</p>}
-        <details><summary>Vendas pagas com baixa pendente ({review.data.pending_sales.length})</summary>
-          <ul className="space-y-1 text-sm">{review.data.pending_sales.map((sale) => <li key={sale.id}>Pedido #{sale.number} · {fmtDateTime(sale.paid_at)}</li>)}</ul>
+        <details><summary>Pedidos com baixa pendente ({review.data.pending_sales.length})</summary>
+          <ul className="space-y-1 text-sm">{review.data.pending_sales.map((sale) => <li key={sale.id}>Pedido #{sale.number} · {sale.channel === "delivery" ? "Delivery" : "Balcão"}{sale.paid_at && ` · ${fmtDateTime(sale.paid_at)}`}<ReconciliationForm path={`/inventory/reconciliation/sales/${sale.id}`} /></li>)}</ul>
         </details>
         <details><summary>Itens com saldo dos lotes acima do estoque ({review.data.lot_excess.length})</summary>
           <ul className="space-y-1 text-sm">{review.data.lot_excess.map((lot) => <li key={lot.ingredient_id}>{lot.name ?? lot.ingredient_id} · lotes {lot.tracked} · saldo {lot.stock}</li>)}</ul>
         </details>
         <details><summary>Baixas históricas sem referência de venda ({review.data.legacy_lots.length})</summary>
-          <ul className="space-y-1 text-sm">{review.data.legacy_lots.map((lot, index) => <li key={index}>{fmtDateTime(lot.created_at)} · lote {lot.lot_number || lot.purchase_id} · baixa {lot.qty} · devolvido {lot.restored_qty ?? 0}</li>)}</ul>
+          <ul className="space-y-1 text-sm">{review.data.legacy_lots.map((lot) => <li key={lot.review_id}>{fmtDateTime(lot.created_at)} · lote {lot.lot_number || lot.purchase_id} · baixa {lot.qty} · devolvido {lot.restored_qty ?? 0}<ReconciliationForm historical path={`/inventory/reconciliation/lots/${lot.review_id}`} /></li>)}</ul>
         </details>
       </>}
     </section>}

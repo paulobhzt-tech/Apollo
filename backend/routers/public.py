@@ -11,7 +11,7 @@ from pymongo.errors import DuplicateKeyError
 from lib.db import db
 from lib.orders import build_items, create_ticket, move_stock, refresh_totals
 from routers.catalog import products_with_cost
-from routers.operations import create_delivery_order
+from routers.operations import with_order_transaction, create_delivery_order
 from routers.tables import get_or_open_order, get_table
 from models.schemas import SaleQuantity, CallIn, OkOut, PublicDeliveryIn, PublicMenu, PublicOrderIn, PublicOrderStatus, PublicTable, table_label
 
@@ -120,17 +120,22 @@ async def request_table_split(id: str, body: SplitRequestIn, request: Request):
 @router.post("/tables/{id}/order", response_model=PublicTable)
 async def public_table_order(id: str, body: PublicOrderIn, request: Request):
     await limit_table_actions(request, id)
-    t = await get_table(id)
+    return await with_order_transaction(lambda session: apply_public_table_order(id, body, session=session))
+
+
+async def apply_public_table_order(id: str, body: PublicOrderIn, *, session=None):
+    options = {"session": session} if session is not None else {}
+    t = await get_table(id, **options)
     if t["status"] in ("reservada", "conta"):
         raise HTTPException(409, "Mesa indisponível para novos pedidos. Chame um garçom.")
     items = await build_items(body.items, channel="qr")
-    order = await get_or_open_order(t, None, source="cardapio")
-    updated = await db.orders.update_one({"id": order["id"], "status": "aberto"}, {"$push": {"items": {"$each": [i.model_dump() for i in items]}}})
+    order = await get_or_open_order(t, None, source="cardapio", **options)
+    updated = await db.orders.update_one({"id": order["id"], "status": "aberto"}, {"$push": {"items": {"$each": [i.model_dump() for i in items]}}}, **options)
     if updated.modified_count != 1:
         raise HTTPException(409, "A comanda foi fechada. Atualize a mesa e tente novamente.")
-    await create_ticket(order, items)
-    await move_stock(items, "Cardápio QR", f"{table_label(t)} · QR")
-    o = await refresh_totals(order["id"])
+    await create_ticket(order, items, **options)
+    await move_stock(items, "Cardápio QR", f"{table_label(t)} · QR", **options)
+    o = await refresh_totals(order["id"], **options)
     return {"id": t["id"], "number": t["number"], "label": table_label(t), "status": "ocupada", "total": o["total"]}
 
 

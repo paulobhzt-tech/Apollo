@@ -124,7 +124,8 @@ async def apply_cancel_order(id: str, body: CancelIn, user: dict, auth: str, *, 
     if o.get("stock_completion") == "pending":
         raise HTTPException(409, "Confira a baixa pendente deste pedido antes de estornar.")
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
-    result = await db.orders.update_one({"id": id, "status": o["status"], "items": o.get("items", [])},
+    result = await db.orders.update_one({"id": id, "status": o["status"], "items": o.get("items", []), "stock_completion": {"$ne": "pending"},
+                                         "delivery_status": o.get("delivery_status")},
         {"$set": {"status": "cancelado", "cancel_reason": body.reason, "cancelled_by": who, "cancelled_at": now()},
          "$push": {"audit_events": audit_event("order_cancelled", user, reason=body.reason, authorized_by=auth,
                                                values={"from": o["status"], "to": "cancelado", "total": o.get("total", 0)})}}, **options)
@@ -134,7 +135,8 @@ async def apply_cancel_order(id: str, body: CancelIn, user: dict, auth: str, *, 
         fiado = sum(p["amount"] for p in o.get("payments", []) if p["method"] == "fiado") - \
             sum(r["amount"] for r in o.get("refunds", []) if r["method"] == "fiado")
         await fiado_reverse(o, fiado, who, f"Estorno do pedido #{o['number']}", **options)
-    await move_stock([OrderItem(**i) for i in o["items"] if not i.get("cancelled")], user["name"], f"Cancelamento #{o['number']}", sign=1, **options)
+    if o.get("channel") != "delivery" or o.get("delivery_status") != "pendente":
+        await move_stock([OrderItem(**i) for i in o["items"] if not i.get("cancelled")], user["name"], f"Cancelamento #{o['number']}", sign=1, **options)
     if o.get("invoice_id"):
         await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}}, **options)
     if o.get("table_id") and o["status"] == "aberto":
@@ -168,7 +170,8 @@ async def apply_refund_item(id: str, item_id: str, body: CancelIn, user: dict, a
                         values={"item_id": item_id, "qty": item["qty"], "from": o["status"]})
     # Compare the item snapshot as well as status so simultaneous refunds of
     # different items cannot overwrite the totals computed below.
-    criteria = {"id": id, "status": o["status"], "items": o["items"]}
+    criteria = {"id": id, "status": o["status"], "items": o["items"],
+                "stock_completion": {"$ne": "pending"}, "delivery_status": o.get("delivery_status")}
     set_item = {"items": [
         {**entry, "cancelled": True, "cancel_reason": body.reason}
         if entry["id"] == item_id else entry for entry in o["items"]
@@ -177,7 +180,8 @@ async def apply_refund_item(id: str, item_id: str, body: CancelIn, user: dict, a
         result = await db.orders.update_one(criteria, {"$set": set_item, "$push": {"audit_events": event}}, **options)
         if not result.modified_count:
             raise HTTPException(409, "O pedido mudou. Atualize antes de cancelar o item.")
-        await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1, **options)
+        if o.get("channel") != "delivery" or o.get("delivery_status") != "pendente":
+            await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1, **options)
         return await refresh_totals(id, **options)
     live = [i for i in o["items"] if not i.get("cancelled") and i["id"] != item_id]
     old_sub = o["subtotal"] or 1
@@ -312,26 +316,51 @@ FLOW = {"pendente": ["aceito", "recusado"], "aceito": ["preparo", "saiu"], "prep
 
 @router.patch("/delivery/orders/{id}/status", response_model=Order)
 async def delivery_status(id: str, body: DeliveryStatusIn, user: dict = Depends(require("caixa"))):
-    o = await db.orders.find_one({"id": id, "channel": "delivery"}, {"_id": 0})
+    return await with_order_transaction(lambda session: apply_delivery_status(id, body, user, session=session))
+
+
+async def apply_delivery_status(id: str, body: DeliveryStatusIn, user: dict, *, session=None):
+    options = {"session": session} if session is not None else {}
+    o = await db.orders.find_one({"id": id, "channel": "delivery"}, {"_id": 0}, **options)
     if not o:
         raise HTTPException(404, "Pedido não encontrado")
-    if body.status not in FLOW.get(o.get("delivery_status") or "", []):
-        raise HTTPException(400, f"Transição inválida: {o.get('delivery_status')} → {body.status}")
+    if o.get("stock_completion") == "pending":
+        raise HTTPException(409, "Aceite com baixa pendente. Solicite conferência antes de avançar.")
+    previous = o.get("delivery_status")
+    if body.status == previous:
+        return o
+    if o["status"] != "aberto" or body.status not in FLOW.get(previous or "", []):
+        raise HTTPException(400, f"Transição inválida: {previous} → {body.status}")
     upd: dict = {"delivery_status": body.status}
-    items = [OrderItem(**i) for i in o["items"]]
+    items = [OrderItem(**i) for i in o["items"] if not i.get("cancelled")]
     if body.status == "aceito":
-        await create_ticket(o, items)
-        await move_stock(items, user["name"], f"Delivery #{o['number']}")
+        upd["stock_completion"] = "pending"
     elif body.status == "recusado":
         upd["status"] = "cancelado"
     elif body.status == "entregue":
-        cash = await current_cash()
+        cash = await current_cash(**options)
         method = o.get("pay_on_delivery") or "online"
         upd.update(status="pago", paid_at=now(), payments=[{"method": method, "amount": o["total"]}],
                    cmv=round(sum(i.qty * i.unit_cost for i in items), 2),
                    cash_session_id=cash["id"] if cash else None)
-    await db.orders.update_one({"id": id}, {"$set": upd})
-    return await db.orders.find_one({"id": id}, {"_id": 0})
+    result = await db.orders.update_one(
+        {"id": id, "delivery_status": previous, "status": "aberto", "items": o["items"]},
+        {"$set": upd, "$push": {"audit_events": audit_event("delivery_status_changed", user,
+          values={"from": previous, "to": body.status})}}, **options,
+    )
+    if not result.modified_count:
+        raise HTTPException(409, "Delivery alterado por outro operador. Atualize antes de reenviar.")
+    if body.status == "aceito":
+        try:
+            await create_ticket(o, items, **options)
+            await move_stock(items, user["name"], f"Delivery #{o['number']}", **options)
+            await db.orders.update_one({"id": id, "stock_completion": "pending"},
+                                       {"$set": {"stock_completion": "complete"}}, **options)
+        except Exception as error:
+            if session is not None:
+                raise
+            raise HTTPException(409, "Aceite registrado com baixa pendente. Solicite conferência.") from error
+    return await db.orders.find_one({"id": id}, {"_id": 0}, **options)
 
 
 # ---------- Cash register ----------

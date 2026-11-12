@@ -12,29 +12,31 @@ from lib.orders import (build_items, create_ticket, current_cash, finalize_payme
 from models.schemas import (SaleQuantity, AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, OrderItem, PayIn, SaleResult, Table, TableIn,
                             TableStatusIn, TableUpdate, TransferIn, table_label)
 
+from routers.operations import with_order_transaction
+
 router = APIRouter()
 STAFF = ("caixa", "garcom")
 
 
-async def get_table(id: str) -> dict:
-    t = await db.tables.find_one({"id": id}, {"_id": 0})
+async def get_table(id: str, **options) -> dict:
+    t = await db.tables.find_one({"id": id}, {"_id": 0}, **options)
     if not t:
         raise HTTPException(404, "Mesa não encontrada")
     return t
 
 
-async def get_or_open_order(table: dict, waiter: dict | None = None, source: str = "mesa") -> dict:
+async def get_or_open_order(table: dict, waiter: dict | None = None, source: str = "mesa", **options) -> dict:
     """Return the table's open order, opening the table if it is free."""
     if table.get("order_id"):
-        o = await db.orders.find_one({"id": table["order_id"], "status": "aberto"}, {"_id": 0})
+        o = await db.orders.find_one({"id": table["order_id"], "status": "aberto"}, {"_id": 0}, **options)
         if o:
             return o
     order = await new_order(channel="mesa", source=source, table_id=table["id"], table_number=table["number"],
                             table_label=table_label(table),
-                            waiter_id=waiter["id"] if waiter else None, waiter_name=waiter["name"] if waiter else "")
+                            waiter_id=waiter["id"] if waiter else None, waiter_name=waiter["name"] if waiter else "", **options)
     await db.tables.update_one({"id": table["id"]}, {"$set": {
         "status": "ocupada", "order_id": order["id"], "opened_at": now(), "people": table.get("people") or 1,
-        "waiter_id": order["waiter_id"], "waiter_name": order["waiter_name"]}})
+        "waiter_id": order["waiter_id"], "waiter_name": order["waiter_name"]}}, **options)
     return order
 
 
@@ -165,9 +167,14 @@ async def table_order(id: str, _: dict = Depends(current_user)):
 
 @router.post("/tables/{id}/items", response_model=Order)
 async def add_items(id: str, body: AddItemsIn, user: dict = Depends(require(*STAFF))):
-    t = await get_table(id)
+    return await with_order_transaction(lambda session: apply_add_items(id, body, user, session=session))
+
+
+async def apply_add_items(id: str, body: AddItemsIn, user: dict, *, session=None):
+    options = {"session": session} if session is not None else {}
+    t = await get_table(id, **options)
     items = await build_items(body.items, channel="comanda")
-    order = await get_or_open_order(t, user)
+    order = await get_or_open_order(t, user, **options)
     customers = t.get("customers") or ([t["customer_name"]] if t.get("customer_name") else [])
     for entry, item in zip(body.items, items):
         guest = entry.customer_name.strip()
@@ -178,24 +185,30 @@ async def add_items(id: str, body: AddItemsIn, user: dict = Depends(require(*STA
     result = await db.orders.update_one(
         {"id": order["id"], "status": "aberto"},
         {"$push": {"items": {"$each": [i.model_dump() for i in items]}}},
+        **options,
     )
     if result.modified_count != 1:
         raise HTTPException(409, "Comanda foi fechada ou alterada. Atualize a mesa antes de lançar itens.")
-    await create_ticket(order, items)
-    await move_stock(items, user["name"], f"{table_label(t)} · Pedido #{order['number']}")
-    return await refresh_totals(order["id"])
+    await create_ticket(order, items, **options)
+    await move_stock(items, user["name"], f"{table_label(t)} · Pedido #{order['number']}", **options)
+    return await refresh_totals(order["id"], **options)
 
 
 @router.post("/tables/{id}/items/{item_id}/cancel", response_model=Order)
 async def cancel_item(id: str, item_id: str, body: CancelIn, user: dict = Depends(current_user)):
-    t = await get_table(id)
-    order = await db.orders.find_one({"id": t.get("order_id"), "status": "aberto"}, {"_id": 0})
+    auth = await cancel_authorizer(user, body.manager_pin)
+    return await with_order_transaction(lambda session: apply_cancel_item(id, item_id, body, user, auth, session=session))
+
+
+async def apply_cancel_item(id: str, item_id: str, body: CancelIn, user: dict, auth: str, *, session=None):
+    options = {"session": session} if session is not None else {}
+    t = await get_table(id, **options)
+    order = await db.orders.find_one({"id": t.get("order_id"), "status": "aberto"}, {"_id": 0}, **options)
     if not order:
         raise HTTPException(400, "Mesa sem comanda aberta")
     item = next((i for i in order["items"] if i["id"] == item_id and not i.get("cancelled")), None)
     if not item:
         raise HTTPException(404, "Item não encontrado")
-    auth = await cancel_authorizer(user, body.manager_pin)
     reason = body.reason if auth == user["name"] else f"{body.reason} (autorizado por {auth})"
     from models.schemas import OrderItem
     qty = body.qty if body.qty and body.qty < item["qty"] else item["qty"]
@@ -216,11 +229,12 @@ async def cancel_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
         {"$set": {"items": updated_items}, "$push": {"audit_events": audit_event(
             "item_cancelled", user, reason=body.reason, authorized_by=auth, values={"item_id": item_id, "qty": qty},
         )}},
+        **options,
     )
     if result.modified_count != 1:
         raise HTTPException(409, "Pedido alterado durante o cancelamento. Atualize a comanda.")
-    await move_stock([OrderItem(**{**item, "qty": qty})], user["name"], f"Cancelamento: {body.reason}", sign=1)
-    return await refresh_totals(order["id"])
+    await move_stock([OrderItem(**{**item, "qty": qty})], user["name"], f"Cancelamento: {body.reason}", sign=1, **options)
+    return await refresh_totals(order["id"], **options)
 
 
 @router.post("/tables/{id}/transfer", response_model=Table)
@@ -494,9 +508,14 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
 
 @router.post("/tables/{id}/pay", response_model=SaleResult)
 async def pay_table(id: str, body: PayIn, user: dict = Depends(require("caixa"))):
-    t = await get_table(id)
-    order = await db.orders.find_one({"id": t.get("order_id")}, {"_id": 0}) if t.get("order_id") else None
+    return await with_order_transaction(lambda session: apply_pay_table(id, body, user, session=session))
+
+
+async def apply_pay_table(id: str, body: PayIn, user: dict, *, session=None):
+    options = {"session": session} if session is not None else {}
+    t = await get_table(id, **options)
+    order = await db.orders.find_one({"id": t.get("order_id")}, {"_id": 0}, **options) if t.get("order_id") else None
     if not order:
         raise HTTPException(400, "Mesa sem comanda aberta")
-    order, inv = await finalize_payment(order, body, actor=user)
+    order, inv = await finalize_payment(order, body, actor=user, **options)
     return {"order": order, "invoice": inv}
