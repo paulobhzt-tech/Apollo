@@ -141,7 +141,14 @@ test("login, recuperação, memorização e troca entre perfis", async ({ page }
   await expect(login).toBeVisible();
   await expect(password).toHaveValue("");
   await signIn(page, "admin-teste");
-  await page.getByTestId("top-menu-shortcuts").getByRole("link", { name: "Caixa/PDV" }).click();
+  const shortcutRow = page.getByTestId("top-menu-shortcuts");
+  const pdvShortcut = shortcutRow.getByRole("link", { name: "Caixa/PDV" });
+  if (await pdvShortcut.isVisible()) {
+    await pdvShortcut.click();
+  } else {
+    await shortcutRow.getByRole("button", { name: "Mais atalhos" }).click();
+    await page.getByRole("dialog", { name: "Atalhos da seção" }).getByRole("link", { name: "Caixa/PDV" }).click();
+  }
   await expect(page.getByTestId("cart-line-0")).toHaveCount(0);
   await lock(page);
   await signIn(page, "caixa-teste");
@@ -202,20 +209,20 @@ test("faixa, tema, zoom e atendimento em mesa e comanda", async ({ page }) => {
   await expect(options).toHaveCSS("overflow-y", "auto");
   await expect.poll(() => options.evaluate((element) => element.clientHeight <= 500)).toBe(true);
   await page.setViewportSize({ width: 1280, height: 720 });
-  const stockShortcut = preferences.getByRole("checkbox", { name: "Estoque" });
+  const stockShortcut = preferences.getByRole("checkbox", { name: "Estoque & Insumos", exact: true });
   await expect(stockShortcut).toBeChecked();
   await stockShortcut.uncheck();
   await expect.poll(() => page.evaluate(() =>
-    JSON.parse(localStorage.getItem("apollo-menu-shortcuts:a") ?? "[]") as string[]
+    JSON.parse(localStorage.getItem("apollo-menu:a") ?? "{}").shortcuts as string[]
   )).not.toContain("/estoque");
   await stockShortcut.check();
   await expect.poll(() => page.evaluate(() =>
-    JSON.parse(localStorage.getItem("apollo-menu-shortcuts:a") ?? "[]") as string[]
+    JSON.parse(localStorage.getItem("apollo-menu:a") ?? "{}").shortcuts as string[]
   )).toContain("/estoque");
   await preferences.getByRole("button", { name: "Fechar", exact: true }).click();
   const menu = page.getByTestId("top-menu-groups");
   for (const label of ["Principal", "Produtos", "Marketing", "Financeiro", "Relatórios", "Apps", "Configurações"]) {
-    await expect(menu.getByRole("button", { name: label, exact: true })).toBeVisible();
+    await expect(menu.getByRole("button", { name: new RegExp(`^${label}$`, "i") })).toBeVisible();
   }
   await page.getByRole("button", { name: "Pesquisar", exact: true }).click();
   await page.getByTestId("menu-search").fill("cardapio digital");
@@ -236,8 +243,11 @@ test("faixa, tema, zoom e atendimento em mesa e comanda", async ({ page }) => {
   await page.getByLabel("Zoom da interface").selectOption("100");
   const shortcuts = page.getByTestId("top-menu-shortcuts");
   await expect(shortcuts.getByRole("link", { name: "Abrir/Fechar Caixa" })).toHaveAttribute("href", "/caixa");
-  await expect(shortcuts.getByRole("link", { name: "Fila de Atendimento" })).toHaveAttribute("href", "/comanda-mobile?fila=1");
-  await expect(shortcuts.getByText("Agendados")).toBeVisible();
+  await shortcuts.getByRole("button", { name: "Mais atalhos" }).click();
+  const sectionShortcuts = page.getByRole("dialog", { name: "Atalhos da seção" });
+  await expect(sectionShortcuts.getByRole("link", { name: "Fila de Atendimento" })).toHaveAttribute("href", "/comanda-mobile?fila=1");
+  await sectionShortcuts.getByRole("button", { name: "Fechar", exact: true }).click();
+  await expect(shortcuts.getByText("Agendados")).toHaveCount(0);
   await shortcuts.getByRole("link", { name: "Mesas/Comandas" }).click();
   await page.getByTestId("table-card-12").click();
   const mesa = page.getByRole("dialog", { name: "Atendimento — Mesa 12" });
@@ -373,4 +383,81 @@ test("indicadores financeiros mobile respeitam o perfil administrativo", async (
   await expect(page.getByTestId("admin-month-revenue")).toContainText("150,00");
   await expect(page.getByTestId("admin-month-expenses")).toContainText("60,00");
   await expect(page.getByTestId("admin-profit-forecast")).toContainText("75,00");
+});
+
+
+test("menu compacto mantém duas faixas e acesso aos atalhos em várias resoluções", async ({ page }) => {
+  await mockServer(page);
+  await page.goto("/login");
+  await signIn(page, "admin-teste");
+  await page.goto("/mesas");
+
+  const groups = page.getByTestId("top-menu-groups");
+  const shortcuts = page.getByTestId("top-menu-shortcuts");
+  for (const [width, height] of [[1366, 768], [1600, 900], [1920, 1080], [2560, 1440], [900, 640], [768, 1024], [390, 844]]) {
+    await page.setViewportSize({ width, height });
+    for (const [bar, selector] of [[groups, "button"], [shortcuts, "a"]] as const) {
+      await expect.poll(() => bar.evaluate((element, selector) => {
+        const bounds = element.getBoundingClientRect();
+        const visible = [...element.querySelectorAll(selector)]
+          .filter((item) => item.getClientRects().length)
+          .map((item) => item.getBoundingClientRect());
+        return element.scrollWidth <= element.clientWidth + 1 &&
+          visible.every((item) => Math.abs(item.top - visible[0].top) <= 1 && item.left >= bounds.left && item.right <= bounds.right + 1);
+      }, selector)).toBe(true);
+    }
+  }
+  await expect(groups.getByRole("combobox", { name: "Seção do menu" })).toHaveValue("Principal");
+  await expect(shortcuts.getByRole("link", { name: "Cardápio Digital" })).toHaveCount(0);
+  await shortcuts.getByRole("button", { name: "Mais atalhos" }).click();
+  const more = page.getByRole("dialog", { name: "Atalhos da seção" });
+  await expect(more.getByRole("link", { name: "Cardápio Digital" })).toHaveAttribute("href", "/qrcodes");
+  await more.getByRole("button", { name: "Fechar" }).click();
+  await groups.getByRole("combobox", { name: "Seção do menu" }).selectOption("Produtos");
+  await expect(shortcuts.getByRole("link", { name: "Estoque & Insumos" })).toBeVisible();
+});
+
+test("personalização do menu persiste por operador e pode ser restaurada", async ({ page }) => {
+  await mockServer(page);
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/login");
+  await signIn(page, "admin-teste");
+  const ribbon = page.getByTestId("apollo-ribbon");
+  const shortcuts = page.getByTestId("top-menu-shortcuts");
+  const openPreferences = () => page.getByRole("button", { name: "Personalizar menu" }).click();
+  const preferences = page.getByRole("dialog", { name: "Atalhos do meu menu" });
+  await openPreferences();
+  await preferences.getByRole("button", { name: "Subir Mesas/Comandas" }).click();
+  await preferences.getByRole("checkbox", { name: "Delivery", exact: true }).uncheck();
+  await preferences.getByLabel("Tamanho dos ícones").selectOption("large");
+  await preferences.getByLabel("Tamanho dos botões").selectOption("large");
+  await preferences.getByLabel("Cor do menu").selectOption("blue");
+  await preferences.getByLabel("Tema").selectOption("light");
+  await preferences.getByRole("button", { name: "Fechar", exact: true }).click();
+  await page.reload();
+  await expect(ribbon).toHaveAttribute("data-menu-accent", "blue");
+  await expect(page.locator("html")).toHaveClass(/light/);
+  await expect(shortcuts.getByRole("link").first()).toHaveText("Mesas/Comandas");
+  await expect(shortcuts.getByRole("link", { name: "Mesas/Comandas" }).locator("svg")).toHaveCSS("width", "32px");
+  await expect(shortcuts.getByRole("link", { name: "Mesas/Comandas" })).toHaveCSS("min-height", "68px");
+  await expect(shortcuts.getByRole("link", { name: "Delivery" })).toHaveCount(0);
+
+  await lock(page);
+  await signIn(page, "caixa-teste");
+  await expect(ribbon).toHaveAttribute("data-menu-accent", "apollo");
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await openPreferences();
+  await expect(preferences.getByRole("checkbox", { name: "Funcionários", exact: true })).toHaveCount(0);
+  await preferences.getByRole("button", { name: "Fechar", exact: true }).click();
+  await lock(page);
+  await signIn(page, "admin-teste");
+  await expect(ribbon).toHaveAttribute("data-menu-accent", "blue");
+  await openPreferences();
+  await preferences.getByRole("button", { name: "Restaurar padrão" }).click();
+  await expect(preferences.getByLabel("Tamanho dos ícones")).toHaveValue("medium");
+  await expect(preferences.getByLabel("Tamanho dos botões")).toHaveValue("medium");
+  await expect(preferences.getByRole("checkbox", { name: "Delivery", exact: true })).toBeChecked();
+  await preferences.getByRole("button", { name: "Fechar", exact: true }).click();
+  await expect(ribbon).toHaveAttribute("data-menu-accent", "apollo");
+  await expect(page.locator("html")).toHaveClass(/dark/);
 });
