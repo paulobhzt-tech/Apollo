@@ -402,9 +402,9 @@ export default function Estoque() {
     <AppShell roles={["caixa", "cozinha"]}>
       <PageHeader title="Estoque & Insumos" subtitle="Baixa automática por ficha técnica a cada venda (PDV, mesas, QR e delivery)"
         actions={isAdmin && <Button onClick={() => setEditing("new")} data-testid="new-ingredient-button"><Plus className="size-4" /> Novo insumo</Button>} />
-      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <div className="rounded-2xl border border-white/5 bg-panel p-4"><p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Insumos</p><p className="mt-1 font-mono text-2xl text-white">{list.length}</p></div>
-        <div className="rounded-2xl border border-white/5 bg-panel p-4"><p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Valor em estoque</p><p className="mt-1 font-mono text-2xl text-white" data-testid="stock-value">{brl(value)}</p></div>
+      <div className="mb-4 grid grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-3">
+        <div className="rounded-2xl border border-white/5 bg-panel p-4"><p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Insumos</p><p className="mt-1 break-words font-mono text-2xl text-white">{list.length}</p></div>
+        <div className="rounded-2xl border border-white/5 bg-panel p-4"><p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Valor em estoque</p><p className="mt-1 break-words font-mono text-2xl text-white" data-testid="stock-value">{brl(value)}</p></div>
         <div className="rounded-2xl border border-red-400/20 bg-red-400/5 p-4"><p className="text-[11px] uppercase tracking-[0.15em] text-red-300">Reposição urgente</p><p className="mt-1 font-mono text-2xl text-red-200" data-testid="stock-low-count">{low.length}</p></div>
       </div>
       {alerts.data && alerts.data.total > 0 && <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/5 p-3 text-sm" data-testid="inventory-alert-summary"><strong className="text-red-200">Alertas de estoque:</strong> {alerts.data.out_of_stock} sem estoque · {alerts.data.low_stock} abaixo do mínimo · Custo estimado para atingir os mínimos: <strong>{brl(alerts.data.estimated_minimum_cost)}</strong></div>}
@@ -426,7 +426,7 @@ export default function Estoque() {
       <ConsumptionForecastPanel />
       <div className="mb-4 rounded-2xl border border-white/5 bg-panel p-4"><p className="text-xs text-zinc-400">Prejuízo por perdas (últimas 300 movimentações)</p><p className="font-mono text-xl text-red-300">{brl(lossTotal)}</p><p className="text-xs text-zinc-500">{losses.length} ocorrências</p></div>
       <Tabs defaultValue="insumos">
-        <TabsList className="w-full flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto [&_[data-slot=tabs-trigger]]:h-8"><TabsTrigger value="insumos" data-testid="tab-insumos">Insumos</TabsTrigger><TabsTrigger value="movs" data-testid="tab-movimentacoes">Movimentações</TabsTrigger><TabsTrigger value="producao" data-testid="tab-producao">Produção por lote</TabsTrigger><TabsTrigger value="compras" data-testid="tab-compras">Compras e validade</TabsTrigger><TabsTrigger value="inventario" data-testid="tab-inventario">Inventário</TabsTrigger>{me?.role !== "cozinha" && <TabsTrigger value="relatorios">Relatórios</TabsTrigger>}</TabsList>
+        <TabsList className="w-full flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto"><TabsTrigger value="insumos" data-testid="tab-insumos">Insumos</TabsTrigger><TabsTrigger value="movs" data-testid="tab-movimentacoes">Movimentações</TabsTrigger><TabsTrigger value="producao" data-testid="tab-producao">Produção por lote</TabsTrigger><TabsTrigger value="compras" data-testid="tab-compras">Compras e validade</TabsTrigger><TabsTrigger value="inventario" data-testid="tab-inventario">Inventário</TabsTrigger>{me?.role !== "cozinha" && <TabsTrigger value="relatorios">Relatórios</TabsTrigger>}</TabsList>
         <TabsContent value="insumos" className="mt-4">
           <div className="rounded-2xl border border-white/5 bg-panel">
             <Table>
