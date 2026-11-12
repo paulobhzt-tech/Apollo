@@ -52,7 +52,8 @@ async def test_business_inventory_and_audit_restore_roundtrip(disposable_databas
     sealed = audit_event("payment_recorded", {"id": "cashier"}, values={"total": 60})
     await db.employees.insert_many([
         {"id": "admin", "name": "Admin", "role": "admin", "active": True, "pin_hash": "admin-pin", "password_hash": "admin-password"},
-        {"id": "cashier", "name": "Cashier", "role": "caixa", "active": True, "pin_hash": "cashier-pin", "password_hash": "cashier-password"},
+        {"id": "cashier", "name": "Cashier", "role": "caixa", "active": True, "pin_hash": "cashier-pin", "password_hash": "cashier-password", "credential_version": "local-version",
+         "must_change_password": True, "admin_access_audit": [{"action": "password_recovered_on_server"}]},
         {"id": "new-employee", "name": "New", "active": True},
     ])
     source = {
@@ -85,12 +86,15 @@ async def test_business_inventory_and_audit_restore_roundtrip(disposable_databas
     _, backup = await config.build_backup()
     assert "pin_hash" not in json.dumps(backup)
     assert "password_hash" not in json.dumps(backup)
+    assert "credential_version" not in json.dumps(backup)
+    assert "admin_access_audit" not in json.dumps(backup)
     assert {d["_id"] for d in backup["data"]["settings"]} == {"general"}
     # Simulate foreign/legacy backup attempting to overwrite install identity and actor.
     backup["data"]["settings"] += [{"_id": "sync_identity", "id": "foreign-installation"}, {"_id": "drive", "refresh_token": "foreign"}]
     next(e for e in backup["data"]["employees"] if e["id"] == "admin").update(active=False, role="garcom", pin_hash="injected", password_hash="injected")
     cashier = next(e for e in backup["data"]["employees"] if e["id"] == "cashier")
-    cashier.update(pin_hash="injected", password_hash="injected")
+    cashier.update(pin_hash="injected", password_hash="injected", credential_version="old-version",
+                   must_change_password=False, admin_access_audit=[])
     await db.products.update_one({"id": "product"}, {"$set": {"price": 99}})
     await db.orders.insert_one({"id": "post-backup", "number": 124})
     await db.counters.update_one({"_id": "order"}, {"$set": {"seq": 600}}, upsert=True)
@@ -103,6 +107,9 @@ async def test_business_inventory_and_audit_restore_roundtrip(disposable_databas
     assert admin["pin_hash"] == "admin-pin" and admin["password_hash"] == "admin-password"
     cashier = await db.employees.find_one({"id": "cashier"})
     assert cashier["pin_hash"] == "cashier-pin" and cashier["password_hash"] == "cashier-password"
+    assert cashier["credential_version"] == "local-version"
+    assert cashier["must_change_password"] is True
+    assert cashier["admin_access_audit"] == [{"action": "password_recovered_on_server"}]
     assert (await db.employees.find_one({"id": "new-employee"}))["active"] is False
     assert (await db.settings.find_one({"_id": "sync_identity"}))["id"] == "local-installation"
     assert (await db.settings.find_one({"_id": "drive"}))["refresh_token"] == "local-drive-secret"

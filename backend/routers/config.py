@@ -26,6 +26,7 @@ BACKUP_COLLS = ["employees", "suppliers", "categories", "products", "ingredients
                 "bills", "bill_audit", "account_categories", "payment_methods", "supplier_quotes",
                 "employee_audit", "employee_time_entries", "backup_audit", "live_music_events"]
 RESERVED_SETTINGS = {"drive", "selftest_last", "sync_identity"}
+LOCAL_EMPLOYEE_AUTH_FIELDS = ("pin_hash", "password_hash", "credential_version", "must_change_password", "admin_access_audit")
 KEEP_ID = {"settings", "counters"}  # these use their own _id
 ISO = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 
@@ -102,7 +103,7 @@ async def build_backup() -> tuple[str, dict]:
     data = {}
     for c in BACKUP_COLLS:
         if c == "employees":
-            proj = {"_id": 0, "pin_hash": 0, "password_hash": 0}
+            proj = {"_id": 0, **dict.fromkeys(LOCAL_EMPLOYEE_AUTH_FIELDS, 0)}
         else:
             proj = None if c in KEEP_ID else {"_id": 0}
         q = {"_id": {"$nin": sorted(RESERVED_SETTINGS)}} if c == "settings" else {}
@@ -233,14 +234,13 @@ async def restore(body: RestoreIn, me: dict = Depends(require())):
         docs = [revive(d) for d in docs if isinstance(d, dict)]
         if c == "employees":
             credentials = {e["id"]: e for e in await db.employees.find(
-                {}, {"_id": 0, "id": 1, "pin_hash": 1, "password_hash": 1}).to_list(1000)}
+                {}, {"_id": 0, "id": 1, **dict.fromkeys(LOCAL_EMPLOYEE_AUTH_FIELDS, 1)}).to_list(1000)}
             keep = [d for d in docs if d.get("id") and d["id"] != me["id"]]
             for d in keep:
-                d.pop("pin_hash", None)
-                d.pop("password_hash", None)
                 current = credentials.get(d["id"], {})
-                for field in ("pin_hash", "password_hash"):
-                    if current.get(field):
+                for field in LOCAL_EMPLOYEE_AUTH_FIELDS:
+                    d.pop(field, None)
+                    if field in current:
                         d[field] = current[field]
                 if not current.get("pin_hash") and not current.get("password_hash"):
                     d["active"] = False
