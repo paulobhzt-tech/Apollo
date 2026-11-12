@@ -1,5 +1,5 @@
 import SaleQuantityInput from "@/components/SaleQuantityInput";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRightLeft, Bell, Clock, Minus, Pencil, Plus, QrCode, Receipt, RefreshCw, Search, Send, Trash2, Users } from "lucide-react";
@@ -46,6 +46,11 @@ const invalidateTables = () => {
 export default function Mesas() {
   const { data: me } = useMe();
   const mobileMode = useLocation().pathname === "/comanda-mobile";
+  const [clock, setClock] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 15_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const tables = useQuery({ queryKey: ["tables"], queryFn: () => apiGet<Table[]>("/tables"), refetchInterval: 8000 });
   const splitAlerts = useQuery({
     queryKey: ["pending-split-requests"],
@@ -81,7 +86,7 @@ export default function Mesas() {
     if (mobileFilter === "livres" && t.status !== "livre") return false;
     return true;
   });
-  const sortedList = [...list].sort((a, b) => desktopSort === "valor" ? (b.total ?? 0) - (a.total ?? 0) || a.number - b.number : desktopSort === "tempo" ? (b.opened_at ? minutesSince(b.opened_at) : 0) - (a.opened_at ? minutesSince(a.opened_at) : 0) || a.number - b.number : a.number - b.number);
+  const sortedList = [...list].sort((a, b) => desktopSort === "valor" ? (b.total ?? 0) - (a.total ?? 0) || a.number - b.number : desktopSort === "tempo" ? (b.opened_at ? minutesSince(b.opened_at, clock) : 0) - (a.opened_at ? minutesSince(a.opened_at, clock) : 0) || a.number - b.number : a.number - b.number);
   const sel = all.find((t) => t.id === selId) ?? null;
   const counts = list.reduce<Record<string, number>>((a, t) => ({ ...a, [t.status]: (a[t.status] ?? 0) + 1 }), {});
   const canCreate = me?.role === "admin" || me?.role === "caixa";
@@ -175,7 +180,7 @@ export default function Mesas() {
       )}
       {([
         { title: "Pedidos em andamento", items: sortedList.filter(t => t.status === "ocupada"), color: "bg-[#298858]" },
-        { title: "Contas solicitadas", items: list.filter(t => t.status === "conta"), color: "bg-[#a87322]" },
+        { title: "Contas solicitadas", items: sortedList.filter(t => t.status === "conta"), color: "bg-[#a87322]" },
         { title: "Mesas reservadas", items: list.filter(t => t.status === "reservada"), color: "bg-[#62518d]" },
         { title: kind === "mesa" ? "Mesas livres" : "Comandas livres", items: list.filter(t => t.status === "livre"), color: "bg-[#656565]" },
       ]).filter(group => group.items.length > 0).map(group => (
@@ -186,10 +191,12 @@ export default function Mesas() {
               <button key={t.id} type="button" onClick={() => setSelId(t.id)}
                 data-testid={`${t.kind === "comanda" ? "comanda" : "table"}-card-${t.number}`}
                 className={cn("relative flex min-h-28 flex-col items-center justify-between p-2 text-center text-white transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", group.color)}>
-                <span className="text-[10px] font-medium">{t.status === "livre" ? "ABRIR" : t.status === "conta" ? "CONTA" : t.status === "reservada" ? "RESERVADA" : `${minutesSince(t.opened_at)} min`}</span>
+                <span className="text-[10px] font-medium">{t.status === "livre" ? "ABRIR" : t.status === "reservada" ? "RESERVADA" :
+                  [t.status === "conta" ? "CONTA" : "", t.opened_at ? `${minutesSince(t.opened_at, clock)} min` : ""].filter(Boolean).join(" · ")}</span>
                 {t.call && <Bell className="absolute right-1 top-1 size-3 animate-pulse" aria-label="Chamada pendente" />}
                 <span className="text-2xl font-bold tabular-nums">{String(t.number).padStart(2, "0")}</span>
-                <span className="w-full truncate text-[10px]">{t.order_id ? brl(t.total) : (t.name || t.customer_name || " ")}</span>
+                <span className="w-full truncate text-xs tabular-nums">{t.order_id ? brl(t.total) : (t.name || t.customer_name || " ")}</span>
+                {t.waiter_name && t.order_id && <span className="w-full truncate text-[10px]" title={t.waiter_name}>{t.waiter_name}</span>}
               </button>
             ))}
           </div>
@@ -201,7 +208,7 @@ export default function Mesas() {
           <Plus className="size-4" /> Adicionar mais {kind === "mesa" ? "mesas" : "comandas"}
         </button>
       )}
-      <TableSheet table={sel} onClose={() => setSelId(null)} onQr={setQrTable} tables={all} canDelete={canCreate} />
+      <TableSheet clock={clock} table={sel} onClose={() => setSelId(null)} onQr={setQrTable} tables={all} canDelete={canCreate} />
       <QrDialog table={qrTable} onClose={() => setQrTable(null)} />
       <NewTableDialog open={creating} kind={kind} existing={all.filter((t) => t.kind === kind)} onClose={() => setCreating(false)} />
     </AppShell>
@@ -299,7 +306,7 @@ export function QrDialog({ table, onClose }: { table: Table | null; onClose: () 
 
 interface Pending { key: string; product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number; customerName: string }
 
-function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table | null; onClose: () => void; onQr: (t: Table) => void; tables: Table[]; canDelete: boolean }) {
+function TableSheet({ clock, table, onClose, onQr, tables, canDelete }: { clock: number; table: Table | null; onClose: () => void; onQr: (t: Table) => void; tables: Table[]; canDelete: boolean }) {
   const open = !!table;
   const { data: me } = useMe();
   const order = useQuery({
@@ -406,8 +413,8 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
               </div>
               <div className="grid flex-1 lg:grid-cols-[225px_minmax(0,1fr)]">
                 <aside className="flex flex-col gap-3 border-b border-white/10 bg-[#2d2d31] p-4 text-xs text-zinc-300 lg:min-h-[calc(100vh-7rem)] lg:border-b-0 lg:border-r">
-                  <div className="flex items-center gap-2"><Clock className="size-4 text-zinc-400" /> {table.opened_at ? `Iniciado em ${fmtTime(table.opened_at)}` : "Aguardando abertura"}</div>
-                  <div className="flex items-center gap-2"><Users className="size-4 text-zinc-400" /> {table.waiter_name ? `Criado por: ${table.waiter_name}` : "Atendimento"}</div>
+                  <div className="flex items-center gap-2"><Clock className="size-4 text-zinc-400" /> {table.opened_at ? `Aberta às ${fmtTime(table.opened_at)} · ${minutesSince(table.opened_at, clock)} min` : "Aguardando abertura"}</div>
+                  <div className="flex items-center gap-2"><Users className="size-4 text-zinc-400" /> {table.waiter_name ? `Garçom: ${table.waiter_name}` : "Atendimento"}</div>
                   <div className="rounded border border-white/10 bg-[#252527] p-2 text-zinc-200">{table.customer_name || table.name || "Cliente não identificado"}</div>
                   <div className="mt-auto flex flex-wrap gap-2 lg:flex-col">
                     <Button variant="outline" size="sm" onClick={() => onQr(table)} data-testid="table-qr-button"><QrCode className="size-4" /> QR da mesa</Button>
