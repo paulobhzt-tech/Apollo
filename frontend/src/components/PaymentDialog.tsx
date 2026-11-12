@@ -1,7 +1,8 @@
 import { setReceiptPref } from "@/lib/receipt";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { cashAmount, catalogNumber } from "@/lib/catalog-form";
+import { cashAmount } from "@/lib/catalog-form";
+import { equalBillShares, previewBillShare } from "@/lib/bill-split";
 import { apiGet } from "@/lib/api";
 import { usePayMethods } from "@/lib/payMethods";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -82,13 +83,9 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
   const remaining = Math.max(0, Math.round((total - paid) * 100) / 100);
   const change = Math.max(0, Math.round((paid - total) * 100) / 100);
   const settled = total > 0 ? (remaining === 0 ? 100 : Math.min(99, Math.floor(100 * paid / total))) : 0;
-  const n = Number(splitN);
-  const people = Number.isInteger(n) && n > 1 && n <= 99 ? n : 1;
-  const totalCents = Math.round(total * 100);
-  const shareCents = Math.floor(totalCents / people);
-  const extraShares = totalCents % people;
-  const share = shareCents / 100;
-  const percent = catalogNumber(percentage);
+  const { people, amount: share, extraAmount, extraPeople } = equalBillShares(total, Number(splitN));
+  const percentShare = previewBillShare(total, "percentage", percentage);
+  const hasFiadoPayment = payments.some((payment) => payment.method === "fiado");
   const value = amount.trim() ? cashAmount(amount) : remaining;
   const valueCents = value === null ? 0 : Math.round(value * 100);
   const roundedValue = Number.isSafeInteger(valueCents) ? valueCents / 100 : 0;
@@ -129,7 +126,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
     setReceiptPref(print);
     onConfirm({ payments, discount: disc, discount_reason: disc > 0 ? discountReason.trim() : "",
       service_pct: service ? defaultService : 0, emit_invoice: emit, doc_type: docType,
-      customer_cpf: cpf, fiado_customer_id: payments.some((payment) => payment.method === "fiado") ? fiadoId : null });
+      customer_cpf: cpf, fiado_customer_id: hasFiadoPayment ? fiadoId : null });
   }
 
   return (
@@ -177,7 +174,8 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
           {method === "fiado" && (
             <div className="space-y-1.5" data-testid="fiado-customer-picker">
               <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Cliente da conta fiado</p>
-              <Select value={fiadoId} onValueChange={(v: string) => setFiadoId(v)}>
+              <Select value={fiadoId} disabled={hasFiadoPayment || pending}
+                onValueChange={(v: string) => { if (!hasFiadoPayment && !pending) setFiadoId(v); }}>
                 <SelectTrigger className="w-full" data-testid="fiado-customer-select">
                   <SelectValue>{(v) => customers.data?.find((c) => c.id === v)?.name ?? "Selecione o cliente"}</SelectValue>
                 </SelectTrigger>
@@ -185,6 +183,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
                   {(customers.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name} · deve {brl(c.balance)}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {hasFiadoPayment && <p className="text-xs text-muted-foreground">Para trocar o cliente, remova os lançamentos em fiado.</p>}
               {fiadoCust && fiadoCust.credit_limit > 0 && <p className="text-xs text-zinc-500">Limite disponível: {brl(fiadoCust.credit_limit - fiadoCust.balance)}</p>}
               {customers.data?.length === 0 && <p className="text-xs text-amber-300">Cadastre clientes em “Conta Fiado”.</p>}
             </div>
@@ -204,8 +203,8 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
           <div className="flex flex-wrap gap-2">
             <Input aria-label="Percentual do total" className="w-28" inputMode="decimal" placeholder="% do total"
               value={percentage} onChange={(event) => setPercentage(event.target.value)} />
-            <Button size="sm" variant="outline" disabled={percent === null || percent <= 0 || percent > 100 || !remaining}
-              onClick={() => { if (percent !== null) { setAmount(Math.min(remaining, Math.round(totalCents * percent / 100) / 100).toFixed(2)); setConfirmedPixAmount(null); } }}>Usar percentual</Button>
+            <Button size="sm" variant="outline" disabled={!percentShare || !remaining || pending}
+              onClick={() => { if (percentShare) { setAmount(Math.min(remaining, percentShare.amount).toFixed(2)); setConfirmedPixAmount(null); } }}>Usar percentual</Button>
           </div>
           {method === "pix" && (
             <div className="space-y-3 rounded-lg border border-sky-400/25 p-3">
@@ -268,12 +267,12 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
             <Input className="mt-1" maxLength={300} value={discountReason} onChange={(event) => setDiscountReason(event.target.value)} />
           </label>}
           {people > 1 && <div className="space-y-1 text-sm">
-            <p data-testid="payment-per-person">{people - extraShares} × {brl(share)}{extraShares > 0 && ` + ${extraShares} × ${brl((shareCents + 1) / 100)}`}</p>
+            <p data-testid="payment-per-person">{people - extraPeople} × {brl(share)}{extraPeople > 0 && ` + ${extraPeople} × ${brl(extraAmount)}`}</p>
             <div className="flex flex-wrap gap-2">
-              {[shareCents, ...(extraShares ? [shareCents + 1] : [])].filter((cents) => cents > 0).map((cents) =>
-                <Button key={cents} variant="outline" size="xs" disabled={cents / 100 > remaining} onClick={() => {
-                  setAmount((cents / 100).toFixed(2)); setConfirmedPixAmount(null);
-                }}>Usar cota de {brl(cents / 100)}</Button>)}
+              {[share, ...(extraPeople ? [extraAmount] : [])].filter((value) => value > 0).map((value) =>
+                <Button key={value} variant="outline" size="xs" disabled={value > remaining || pending} onClick={() => {
+                  setAmount(value.toFixed(2)); setConfirmedPixAmount(null);
+                }}>Usar cota de {brl(value)}</Button>)}
             </div>
           </div>}
           {defaultService > 0 && (
