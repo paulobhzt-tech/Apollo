@@ -38,3 +38,18 @@ jobs:
         run: npm run typecheck
       - name: Production build
         run: npm run build
+      - name: Instalar Chromium para testes de interface
+        working-directory: tests
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Testar login, troca de operador e atendimento
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 3000 > /tmp/apollo-preview.log 2>&1 &
+          for attempt in $(seq 1 20); do
+            if curl -fsS http://localhost:3000/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://localhost:3000/ >/dev/null
+          cd ../tests
+          npx playwright test --project=desktop --project=mobile
