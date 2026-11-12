@@ -233,7 +233,9 @@ async def test_delivery_stock_failure_rolls_back_and_concurrent_retry_is_idempot
 
     order = Order(number=779, channel="delivery", source="cardapio", delivery_status="pendente").model_dump()
     await db.orders.insert_one(dict(order))
-    ticket = AsyncMock()
+    async def ticket(delivery, items, *, session):
+        await db.kitchen_tickets.insert_one({"id": f"ticket-{delivery['id']}", "order_id": delivery["id"]}, session=session)
+
     stock = AsyncMock(side_effect=HTTPException(409, "Estoque fictício insuficiente"))
     monkeypatch.setattr(operations, "create_ticket", ticket)
     monkeypatch.setattr(operations, "move_stock", stock)
@@ -245,10 +247,13 @@ async def test_delivery_stock_failure_rolls_back_and_concurrent_retry_is_idempot
         saved = await db.orders.find_one({"id": order["id"]})
         assert saved["delivery_status"] == "pendente"
         assert saved.get("stock_completion") != "pending"
+        assert await db.kitchen_tickets.count_documents({"order_id": order["id"]}) == 0
         stock.side_effect = None
         stock.reset_mock()
         accepted = await asyncio.gather(*(operations.delivery_status(order["id"], body, actor) for _ in range(2)))
         assert [row["stock_completion"] for row in accepted] == ["complete", "complete"]
         stock.assert_awaited_once()
+        assert await db.kitchen_tickets.count_documents({"order_id": order["id"]}) == 1
     finally:
+        await db.kitchen_tickets.delete_many({"order_id": order["id"]})
         await db.orders.delete_one({"id": order["id"]})

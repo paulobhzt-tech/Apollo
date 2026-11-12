@@ -63,3 +63,20 @@ async def test_standalone_delivery_retry_does_not_repeat_ambiguous_stock_write(m
             await operations.apply_delivery_status("delivery", DeliveryStatusIn(status="aceito"), ADMIN)
     assert order["stock_completion"] == "pending"
     stock.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_cancel_unaccepted_delivery_never_restocks(monkeypatch):
+    from models.schemas import CancelIn
+
+    order = {"id": "delivery", "status": "aberto", "channel": "delivery",
+             "delivery_status": "pendente", "number": 2, "items": []}
+    orders = SimpleNamespace(find_one=AsyncMock(return_value=order),
+                             update_one=AsyncMock(return_value=SimpleNamespace(modified_count=1)))
+    tickets = SimpleNamespace(update_many=AsyncMock())
+    monkeypatch.setattr(operations, "db", SimpleNamespace(orders=orders, kitchen_tickets=tickets))
+    stock = AsyncMock()
+    monkeypatch.setattr(operations, "move_stock", stock)
+    await operations.apply_cancel_order("delivery", CancelIn(reason="Cancelamento de teste"), ADMIN, ADMIN["name"])
+    stock.assert_not_awaited()
+    assert orders.update_one.await_args.args[0]["delivery_status"] == "pendente"

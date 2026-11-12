@@ -146,7 +146,6 @@ async def cancel_table(id: str, body: CancelIn, user: dict = Depends(current_use
     if not t.get("order_id"):
         raise HTTPException(400, "Mesa sem comanda aberta")
     await cancel_order(t["order_id"], body, user)
-    await free_table(id)
     return await get_table(id)
 
 
