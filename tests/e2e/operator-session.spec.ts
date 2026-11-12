@@ -148,6 +148,19 @@ test("login, recuperação, memorização e troca entre perfis", async ({ page }
   await expect(page.getByTestId("cart-line-0")).toContainText("Produto fictício");
 });
 
+test("cancelar cadastro de usuário não redireciona o administrador", async ({ page }) => {
+  await mockServer(page);
+  await page.goto("/login");
+  await page.getByTestId("register-user-link").click();
+  await page.getByRole("dialog", { name: "Cadastrar usuário" })
+    .getByRole("button", { name: "Entrar como administrador" }).click();
+  await page.getByRole("button", { name: "Entrar com PIN" }).click();
+  await page.getByRole("button", { name: "Entrar com usuário e senha" }).click();
+  await signIn(page, "admin-teste");
+  await expect(page).toHaveURL(/\\/$/);
+  await expect(page).not.toHaveURL(/\\/funcionarios$/);
+});
+
 test("bloqueio continua exigindo autenticação sem rede e após recarregar", async ({ page }) => {
   const server = await mockServer(page);
   await page.goto("/login");
