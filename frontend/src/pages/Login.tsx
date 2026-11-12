@@ -93,6 +93,7 @@ export default function Login() {
     setPassword("");
     setPin("");
     setHelp(null);
+    setRegisterAfterLogin(false);
     setShowOperators(false);
     setError("");
   };
@@ -193,7 +194,7 @@ export default function Login() {
           {error && <p role="alert" className="rounded-lg border border-destructive/40 p-2 text-foreground">{error}</p>}
           <div className="mt-3 flex flex-wrap justify-between gap-3 text-sm">
             <button type="button" onClick={() => setHelp("register")} className="text-primary hover:underline" data-testid="register-user-link">Cadastrar usuário</button>
-            <button type="button" onClick={() => { setError(""); setPassword(""); setPin(""); setMode(mode === "pin" ? "password" : "pin"); }} className="text-muted-foreground hover:underline">{mode === "pin" ? "Entrar com usuário e senha" : "Entrar com PIN"}</button>
+            <button type="button" onClick={() => { setError(""); setPassword(""); setPin(""); setRegisterAfterLogin(false); setMode(mode === "pin" ? "password" : "pin"); }} className="text-muted-foreground hover:underline">{mode === "pin" ? "Entrar com usuário e senha" : "Entrar com PIN"}</button>
           </div>
           {help && <div role="dialog" aria-label={help === "register" ? "Cadastrar usuário" : "Recuperar acesso"} className="mt-4 rounded-xl border border-border bg-elevated p-4 text-sm text-muted-foreground">
             <p className="font-semibold text-white">{help === "register" ? "Cadastro de usuários" : "Esqueceu a senha?"}</p>
