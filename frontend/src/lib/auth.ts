@@ -50,6 +50,7 @@ export interface NavItem { to: string; label: string; icon: string; roles: Role[
 // Admin sees everything; the other roles get only their operational screens.
 export const NAV: NavItem[] = [
   { to: "/", label: "Painel", icon: "LayoutDashboard", roles: ["admin", "caixa"], group: "Operação" },
+  { to: "/admin-mobile", label: "Administrador Mobile", icon: "Smartphone", roles: ["admin"], group: "Operação" },
   { to: "/apollo-ia", label: "Apollo IA", icon: "Bot", roles: ["admin", "caixa"], group: "Operação" },
   { to: "/pdv", label: "PDV / Caixa", icon: "ShoppingCart", roles: ["admin", "caixa"], group: "Operação" },
   { to: "/mesas", label: "Mesas & Comandas", icon: "Armchair", roles: ["admin", "caixa", "garcom"], group: "Operação" },
