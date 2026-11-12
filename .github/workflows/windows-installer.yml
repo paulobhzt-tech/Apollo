@@ -18,6 +18,9 @@ on:
 jobs:
   build-windows:
     runs-on: windows-2025
+    permissions:
+      contents: read
+      actions: read
     outputs:
       channel: ${{ steps.channel.outputs.name }}
       sha256: ${{ steps.installer.outputs.sha256 }}
@@ -89,6 +92,27 @@ jobs:
           yarn install --non-interactive
           yarn typecheck
           yarn vitest run src/lib/offline.test.ts src/lib/queue-context.test.ts src/lib/legacy-reconciliation.test.ts
+      - name: Aguardar CI do mesmo commit de homologacao
+        if: github.ref_name == 'feat/apollo-3.0.1-caixa-offline-auditoria'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $checks = @('quality-checks.yml', 'validacao-pdv.yml', 'apollo-pwa-validation.yml')
+          $deadline = (Get-Date).AddMinutes(12)
+          do {
+            $pending = @()
+            foreach ($check in $checks) {
+              $result = gh api "repos/$env:GITHUB_REPOSITORY/actions/workflows/$check/runs?head_sha=$env:GITHUB_SHA&event=push&per_page=10"
+              if ($LASTEXITCODE -ne 0) { throw "Nao foi possivel consultar $check" }
+              $run = ($result | ConvertFrom-Json).workflow_runs | Select-Object -First 1
+              if (-not $run -or $run.status -ne 'completed') { $pending += $check; continue }
+              if ($run.conclusion -ne 'success') { throw "$check terminou com $($run.conclusion)" }
+            }
+            if (-not $pending.Count) { break }
+            if ((Get-Date) -ge $deadline) { throw "CI pendente: $($pending -join ', ')" }
+            Start-Sleep -Seconds 15
+          } while ($true)
       - name: Gerar instalador
         working-directory: desktop
         run: npm run dist
