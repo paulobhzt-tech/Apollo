@@ -108,6 +108,7 @@ export interface OrderItem {
   cancel_reason: string;
   customer_name?: string;
   ordered_by?: string;
+  ordered_at?: string | null;
 }
 export interface OrderItemIn { product_id: string; qty: number; notes: string; options?: ChosenOption[] }
 export type CardBrand = "visa" | "mastercard" | "elo";
