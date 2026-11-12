@@ -63,8 +63,6 @@ export default function Mesas() {
   const pendingSplits = splitAlerts.data ?? [];
   const [showReady, setShowReady] = useState(true);
   const readyTickets = useQuery({ queryKey: ["waiter-ready-tickets"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets"), refetchInterval: 5000, enabled: mobileMode && showReady });
-  const ready = (readyTickets.data ?? []).filter(ticket => ticket.status === "pronto");
-  const myReady = ready.filter((ticket) => (tables.data ?? []).some((t) => t.order_id === ticket.order_id && t.waiter_id === me?.id));
   const [selId, setSelId] = useState<string | null>(null);
   const [drafts, setDrafts] = useOperatorDraft<Record<string, Pending[]>>(`apollo-table-drafts:${me?.id}`, {});
   useEffect(() => {
@@ -83,6 +81,12 @@ export default function Mesas() {
   const [mobileSection, setMobileSection] = useState<"mesa" | "comanda" | "fechar">("mesa");
   const [creating, setCreating] = useState(false);
   const all = tables.isError ? [] : tables.data ?? [];
+  const openTables = new Map(all.filter((table) => table.order_id).map((table) => [table.order_id, table]));
+  const ready = (readyTickets.data ?? []).flatMap((ticket) => {
+    const table = openTables.get(ticket.order_id);
+    return ticket.status === "pronto" && table ? [{ ticket, table }] : [];
+  });
+  const myReady = ready.filter(({ table }) => table.waiter_id === me?.id);
   const list = all.filter((t) => {
     if (t.kind !== kind && !(mobileMode && mobileSection === "fechar")) return false;
     if (mobileMode && mobileSection === "fechar" && t.status !== "ocupada" && t.status !== "conta") return false;
@@ -146,7 +150,13 @@ export default function Mesas() {
       {mobileMode && showReady && ready.length > 0 && (
         <div role="status" className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4" data-testid="mobile-ready-orders">
           <p className="font-semibold text-emerald-300">Pedidos prontos para entregar ({ready.length}){myReady.length > 0 && ` · ${myReady.length} de suas mesas`}</p>
-          <ul className="mt-2 space-y-1 text-sm text-white">{ready.map(ticket => <li key={ticket.id}>#{ticket.order_number} · {ticket.label}</li>)}</ul>
+          <ul className="mt-2 space-y-1">{ready.map(({ ticket, table }) => (
+            <li key={ticket.id}>
+              <Button variant="outline" className="h-auto min-h-11 w-full justify-start whitespace-normal text-left" onClick={() => setSelId(table.id)}>
+                {tableLabel(table)} · Pedido #{ticket.order_number}
+              </Button>
+            </li>
+          ))}</ul>
           <Link to="/cozinha" className="mt-3 inline-block text-sm font-semibold text-emerald-300 underline">Abrir monitor de preparo</Link>
         </div>
       )}
@@ -236,7 +246,7 @@ export default function Mesas() {
         </button>
       )}
       {sel && <TableWorkspace key={sel.id} clock={clock} table={sel} onClose={() => setSelId(null)}
-        onQr={setQrTable} qrOpen={!!qrTable} tables={all} canDelete={canCreate}
+        onQr={setQrTable} qrOpen={!!qrTable} tables={all} canDelete={canCreate} mobileMode={mobileMode}
         draft={draftKey ? drafts[draftKey] : undefined} onDraftChange={storeDraft} />}
       <QrDialog table={qrTable} onClose={() => setQrTable(null)} />
       <NewTableDialog open={creating} kind={kind} existing={all.filter((t) => t.kind === kind)} onClose={() => setCreating(false)} />
@@ -340,9 +350,9 @@ function guardWorkspaceUnload(event: BeforeUnloadEvent) {
   event.returnValue = true;
 }
 
-function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete, draft, onDraftChange }: {
+function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete, mobileMode, draft, onDraftChange }: {
   clock: number; table: Table; onClose: () => void; onQr: (t: Table) => void; qrOpen: boolean;
-  tables: Table[]; canDelete: boolean; draft?: Pending[]; onDraftChange: (items: SetStateAction<Pending[]>) => void;
+  tables: Table[]; canDelete: boolean; mobileMode: boolean; draft?: Pending[]; onDraftChange: (items: SetStateAction<Pending[]>) => void;
 }) {
   const { data: me } = useMe();
   const order = useQuery({
@@ -378,7 +388,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   });
   const send = useMutation({
     mutationFn: () => apiPost<Order>(`/tables/${table!.id}/items`, { items: pending.map((p) => ({ product_id: p.product.id, qty: p.qty, notes: p.notes, options: p.options, customer_name: p.customerName })) }),
-    onSuccess: () => { toast.success("Itens enviados para a cozinha"); setReviewOpen(false); setPending([]); setAdding(false); invalidateTables(); },
+    onSuccess: () => { toast.success("Pedido enviado para preparo"); setReviewOpen(false); setPending([]); setAdding(false); invalidateTables(); },
     onError: onErr,
   });
 
@@ -441,7 +451,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
 
   const busy = openT.isPending || send.isPending || removeItems.isPending || status.isPending ||
     release.isPending || cancelTable.isPending || transfer.isPending || merge.isPending || pay.isPending;
-  const nestedOpen = qrOpen || partialOpen || payOpen || preBill || !!invoice || !!removing || !!optFor;
+  const nestedOpen = qrOpen || reviewOpen || partialOpen || payOpen || preBill || !!invoice || !!removing || !!optFor;
   const editingOpening = !table.order_id && (people !== "2" || !!name.trim());
   const [editingCustomers, setEditingCustomers] = useState(false);
   const requestClose = () => {
@@ -594,12 +604,12 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
 
                   <div className="mt-3 grid gap-2 @min-[35rem]:grid-cols-2">
                     <Button variant="outline" onClick={() => setPreBill(true)} disabled={!items.some((i) => !i.cancelled)} data-testid="request-bill-button">
-                      <Receipt className="size-4" /> Pré-conta
+                      <Receipt className="size-4" /> {mobileMode ? "Ver conta" : "Pré-conta"}
                     </Button>
                     {me?.role === "garcom" && <Button className="h-auto min-h-12" variant="outline" onClick={() => { if (window.confirm("Solicitar fechamento desta conta ao caixa?")) status.mutate("conta"); }} disabled={status.isPending || !!pending.length || !items.some((i) => !i.cancelled) || table.status === "conta"} data-testid="waiter-request-close"><Receipt className="size-4" /> {table.status === "conta" ? "Conta solicitada" : "Solicitar fechamento"}</Button>}
-                    <Button className="h-auto min-h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={!!pending.length || !items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
+                    {(!mobileMode || me?.role !== "garcom") && <Button className="h-auto min-h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={!!pending.length || !items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
                       <Receipt className="size-4" /> PAGAMENTO
-                    </Button>
+                    </Button>}
                   </div>
                   {["admin", "caixa"].includes(me?.role ?? "") && <Button className="mt-2 w-full" variant="outline" disabled={!!pending.length || !items.some((i) => !i.cancelled)} onClick={() => setPartialOpen(true)}>Dividir por cliente ou itens</Button>}
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -657,8 +667,8 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
         <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto" data-testid="waiter-review-dialog">
           <DialogHeader><DialogTitle>Revisar pedido antes de enviar</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">{tableLabel(table)} · Confira itens, quantidades e observações. Nenhum item foi enviado ainda.</p>
-          <div className="space-y-2">{pending.map((p) => <div key={p.key} className="rounded-lg border border-border p-3 text-sm"><div className="flex justify-between gap-3"><strong>{p.qty} × {p.product.name}</strong><span>{brl(p.qty * p.product.price)}</span></div>{p.labels.length > 0 && <p className="text-muted-foreground">{p.labels.join(" · ")}</p>}{p.customerName && <p>Cliente: {p.customerName}</p>}{p.notes.trim() && <p className="font-medium text-amber-500">Obs.: {p.notes}</p>}</div>)}</div>
-          <p className="text-right font-semibold">Total dos novos itens: {brl(pending.reduce((sum, p) => sum + p.qty * p.product.price, 0))}</p>
+          <div className="space-y-2">{pending.map((p) => <div key={p.key} className="rounded-lg border border-border p-3 text-sm"><div className="flex justify-between gap-3"><strong>{p.qty} × {p.product.name}</strong><span>{brl(p.qty * (p.product.price + p.extra))}</span></div>{p.labels.length > 0 && <p className="text-muted-foreground">{p.labels.join(" · ")}</p>}{p.customerName && <p>Cliente: {p.customerName}</p>}{p.notes.trim() && <p className="font-medium text-amber-500">Obs.: {p.notes}</p>}</div>)}</div>
+          <p className="text-right font-semibold">Total dos novos itens: {brl(pending.reduce((sum, p) => sum + p.qty * (p.product.price + p.extra), 0))}</p>
           <div className="grid grid-cols-2 gap-2"><Button type="button" variant="outline" disabled={send.isPending} onClick={() => setReviewOpen(false)}>Editar itens</Button><Button type="button" disabled={!pending.length || send.isPending} onClick={() => send.mutate()} data-testid="waiter-confirm-send"><Send className="size-4" /> Confirmar envio</Button></div>
         </DialogContent>
       </Dialog>
