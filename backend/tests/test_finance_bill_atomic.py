@@ -1,14 +1,22 @@
 """Regression tests for atomic settlement of accounts payable/receivable."""
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 import pytest
 from fastapi import HTTPException
 from routers import finance
 
 
+@pytest.fixture
+def bills(monkeypatch):
+    collection = SimpleNamespace(find_one_and_update=AsyncMock(), find_one=AsyncMock(), delete_one=AsyncMock())
+    monkeypatch.setattr(finance, "db", SimpleNamespace(bills=collection))
+    return collection
+
+
 @pytest.mark.asyncio
-async def test_pay_bill_only_updates_open_bill(monkeypatch):
+async def test_pay_bill_only_updates_open_bill(monkeypatch, bills):
     update = AsyncMock(return_value={"id": "bill-1", "status": "pago"})
-    monkeypatch.setattr(finance.db.bills, "find_one_and_update", update)
+    bills.find_one_and_update = update
     monkeypatch.setattr(finance, "audit_bill_change", AsyncMock())
     body = type("Payment", (), {"model_dump": lambda self: {"paid_amount": 42.0}})()
     result = await finance.pay_bill("bill-1", body, {"role": "caixa"})
@@ -18,9 +26,9 @@ async def test_pay_bill_only_updates_open_bill(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_pay_bill_rejects_duplicate_settlement(monkeypatch):
-    monkeypatch.setattr(finance.db.bills, "find_one_and_update", AsyncMock(return_value=None))
-    monkeypatch.setattr(finance.db.bills, "find_one", AsyncMock(return_value={"status": "pago"}))
+async def test_pay_bill_rejects_duplicate_settlement(bills):
+    bills.find_one_and_update = AsyncMock(return_value=None)
+    bills.find_one = AsyncMock(return_value={"status": "pago"})
     body = type("Payment", (), {"model_dump": lambda self: {"paid_amount": 42.0}})()
     with pytest.raises(HTTPException) as error:
         await finance.pay_bill("bill-1", body, {"role": "caixa"})
@@ -28,9 +36,9 @@ async def test_pay_bill_rejects_duplicate_settlement(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_reopen_only_closed_bills(monkeypatch):
+async def test_reopen_only_closed_bills(monkeypatch, bills):
     update = AsyncMock(return_value={"id": "bill-1", "status": "aberto"})
-    monkeypatch.setattr(finance.db.bills, "find_one_and_update", update)
+    bills.find_one_and_update = update
     monkeypatch.setattr(finance, "audit_bill_change", AsyncMock())
     await finance.reopen_bill("bill-1", {"role": "admin"})
     assert update.await_args.args[0]["status"] == {"$in": ["pago", "cancelado"]}
@@ -38,7 +46,6 @@ async def test_reopen_only_closed_bills(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_financial_audit_contains_actor_and_no_credentials(monkeypatch):
-    from types import SimpleNamespace
     insert = AsyncMock()
     monkeypatch.setattr(finance, "db", SimpleNamespace(bill_audit=SimpleNamespace(insert_one=insert)))
     await finance.audit_bill_change(
@@ -53,11 +60,10 @@ async def test_financial_audit_contains_actor_and_no_credentials(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_delete_bill_rejects_settled_record(monkeypatch):
-    from types import SimpleNamespace
+async def test_delete_bill_rejects_settled_record(bills):
     deleted = AsyncMock(return_value=SimpleNamespace(deleted_count=0))
-    monkeypatch.setattr(finance.db.bills, "delete_one", deleted)
-    monkeypatch.setattr(finance.db.bills, "find_one", AsyncMock(return_value={"status": "pago"}))
+    bills.delete_one = deleted
+    bills.find_one = AsyncMock(return_value={"status": "pago"})
     with pytest.raises(HTTPException) as error:
         await finance.delete_bill("bill-1", {"role": "admin"})
     assert error.value.status_code == 409
@@ -65,11 +71,11 @@ async def test_delete_bill_rejects_settled_record(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_cancel_bill_records_audit_event(monkeypatch):
+async def test_cancel_bill_records_audit_event(monkeypatch, bills):
     cancelled = {"id": "bill-1", "kind": "pagar", "status": "cancelado"}
     update = AsyncMock(return_value=cancelled)
     audit = AsyncMock()
-    monkeypatch.setattr(finance.db.bills, "find_one_and_update", update)
+    bills.find_one_and_update = update
     monkeypatch.setattr(finance, "audit_bill_change", audit)
     actor = {"id": "admin-1", "name": "Admin", "role": "admin"}
     result = await finance.cancel_bill("bill-1", actor)
@@ -79,12 +85,12 @@ async def test_cancel_bill_records_audit_event(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_update_bill_rechecks_open_status_atomically(monkeypatch):
+async def test_update_bill_rechecks_open_status_atomically(monkeypatch, bills):
     existing = {"id": "bill-1", "status": "aberto"}
     find = AsyncMock(return_value=existing)
     update = AsyncMock(return_value=None)  # Another cashier settled the bill meanwhile.
-    monkeypatch.setattr(finance.db.bills, "find_one", find)
-    monkeypatch.setattr(finance.db.bills, "find_one_and_update", update)
+    bills.find_one = find
+    bills.find_one_and_update = update
     monkeypatch.setattr(finance, "_category_name", AsyncMock(return_value="Aluguel"))
     body = type("BillEdit", (), {
         "kind": "pagar", "category_id": "cat-1",
