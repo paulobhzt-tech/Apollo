@@ -126,7 +126,7 @@ function MenuPreferences({ items, operatorId }: { items: NavItem[]; operatorId: 
         return <NavLink key={item.to} to={item.to} end={item.to === "/"}
           aria-current={item.to === activePath(loc.pathname) ? "page" : undefined}
           className="flex min-h-11 min-w-0 items-center gap-1.5 rounded px-2 text-xs hover:bg-muted aria-[current=page]:bg-muted">
-          <Icon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="break-words">{item.label}</span>
+          <Icon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 wrap-anywhere">{item.label}</span>
         </NavLink>;
       })}
     </div>
@@ -297,7 +297,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
               const selected = visibleGroup === group;
               return <button key={group} type="button" onClick={() => setActiveRibbon(group)}
                 className={cn("flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[10px] font-medium transition-colors hover:bg-muted sm:text-xs", selected ? "bg-muted text-foreground" : "text-muted-foreground")}
-                aria-pressed={selected}><GroupIcon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 break-words">{label}</span></button>;
+                aria-pressed={selected}><GroupIcon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 wrap-anywhere">{label}</span></button>;
             })}
           </nav>
           <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts" className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,6.75rem),1fr))] gap-1 bg-elevated px-2 py-1 sm:px-4">
@@ -305,7 +305,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
               const Icon = ICONS[n.icon] ?? LayoutDashboard;
               return <NavLink key={n.to} to={n.to} end={n.to === "/"} title={n.label} onClick={() => setActiveRibbon(n.group)}
                 className={({isActive}) => cn("flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-center text-xs leading-tight transition-colors hover:bg-muted",(isActive || n.to === activePath(loc.pathname)) ? "bg-muted text-foreground" : "text-muted-foreground")}>
-                <Icon className="size-4 shrink-0 text-primary" strokeWidth={1.8} aria-hidden="true" /><span className="min-w-0 break-words">{n.label}</span>
+                <Icon className="size-4 shrink-0 text-primary" strokeWidth={1.8} aria-hidden="true" /><span className="min-w-0 wrap-anywhere">{n.label}</span>
               </NavLink>;
             })}
           </nav>
@@ -348,7 +348,7 @@ function UserCard({ name, role }: { name: string; role: Role }) {
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4 animate-rise">
-      <div>
+      <div className="min-w-0 wrap-anywhere">
         <h1 className="text-2xl font-semibold text-white sm:text-3xl" data-testid="page-title">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-zinc-400">{subtitle}</p>}
       </div>
@@ -361,7 +361,7 @@ export function Stat({ label, value, hint, testid, accent }: { label: string; va
   return (
     <div className="rounded-2xl border border-white/5 bg-panel p-5 transition-transform duration-200 hover:-translate-y-0.5">
       <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-500">{label}</p>
-      <p className={cn("mt-2 font-mono text-2xl font-medium tracking-tight text-white", accent)} data-testid={testid}>{value}</p>
+      <p className={cn("mt-2 wrap-anywhere font-mono text-2xl font-medium tracking-tight text-white", accent)} data-testid={testid}>{value}</p>
       {hint && <p className="mt-1 text-xs text-zinc-500">{hint}</p>}
     </div>
   );
