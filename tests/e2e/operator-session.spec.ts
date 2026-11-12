@@ -96,6 +96,14 @@ test("login, recuperação, memorização e troca entre perfis", async ({ page }
   await password.fill("incorreta");
   await password.press("Enter");
   await expect(page.getByRole("alert")).toHaveText("Usuário ou senha incorretos.");
+  await password.fill("senha-ficticia");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await password.fill("incorreta");
+  await password.press("Enter");
+  await expect(page.getByRole("alert")).toHaveText("Usuário ou senha incorretos.");
+  await page.getByLabel("Usuário", { exact: true }).fill("caixa-teste");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await page.getByLabel("Usuário", { exact: true }).fill("admin-teste");
   const remember = page.getByRole("checkbox", { name: "Memorizar usuário" });
   await remember.click();
   await page.getByRole("button", { name: "Não", exact: true }).click();
