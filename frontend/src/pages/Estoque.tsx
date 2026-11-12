@@ -38,10 +38,10 @@ function ProductionBatchForm({ ingredients, products, onSaved }: { ingredients: 
   const [purchaseCost, setPurchaseCost] = useState("");
   const [extraCost, setExtraCost] = useState("0");
   const [note, setNote] = useState("");
-  const num = (v: string) => Number(v.replace(",", "."));
+  const num = (v: string) => catalogNumber(v) ?? NaN;
   const total = num(purchaseCost) + num(extraCost);
   const count = num(units);
-  const valid = !!ingredientId && num(kg) > 0 && Number.isInteger(count) && count > 0 &&
+  const valid = !!ingredientId && Number.isFinite(num(kg)) && num(kg) > 0 && Number.isInteger(count) && count > 0 &&
     Number.isFinite(total) && num(purchaseCost) >= 0 && num(extraCost) >= 0;
   const save = useMutation({
     mutationFn: () => apiPost<ProductionBatch>("/production/batches", {
