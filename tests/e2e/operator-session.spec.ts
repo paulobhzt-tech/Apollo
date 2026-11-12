@@ -179,6 +179,18 @@ test("bloqueio continua exigindo autenticação sem rede e após recarregar", as
   await signIn(page, "admin-teste");
 });
 
+test("atalhos salvos ignoram duplicatas e páginas sem permissão", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("apollo-menu-shortcuts:c", JSON.stringify(["/mesas", "/mesas", "/funcionarios", "/rota-inexistente"]));
+  });
+  await mockServer(page);
+  await page.goto("/login");
+  await signIn(page, "caixa-teste");
+  const ribbon = page.getByTestId("apollo-ribbon");
+  await expect(ribbon.getByRole("link", { name: "Mesas/Comandas" })).toHaveCount(1);
+  await expect(ribbon.getByRole("link", { name: "Funcionários" })).toHaveCount(0);
+});
+
 test("faixa, tema, zoom e atendimento em mesa e comanda", async ({ page }) => {
   await mockServer(page);
   await page.goto("/login");
