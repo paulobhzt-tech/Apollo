@@ -295,6 +295,7 @@ class OrderItem(BaseModel):
     cancel_reason: str = ""
     customer_name: str = ""
     ordered_by: str = ""
+    ordered_at: Optional[datetime] = None
 
 
 class OrderItemIn(BaseModel):
