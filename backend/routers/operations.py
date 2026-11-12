@@ -49,32 +49,48 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
             raise HTTPException(422, "Referência de venda reutilizada com dados diferentes. Solicite revisão do administrador.")
         if existing.get("status") != "pago":
             raise HTTPException(409, "Venda ainda em processamento. Tente sincronizar novamente.")
+        if existing.get("stock_completion") == "pending":
+            raise HTTPException(409, "Pagamento já registrado. Baixa pendente de conferência administrativa. Não cobre novamente.")
         inv = await db.invoices.find_one({"id": existing.get("invoice_id")}, {"_id": 0}) if existing.get("invoice_id") else None
         return {"order": existing, "invoice": inv}
-    if not await current_cash():
+    topology = await db.command("hello")
+    try:
+        if topology.get("setName") or topology.get("msg") == "isdbgrid":
+            async with await db.client.start_session() as session:
+                return await session.with_transaction(lambda active: record_counter_sale(body, user, session=active))
+        return await record_counter_sale(body, user)
+    except DuplicateKeyError:
+        raise HTTPException(409, "Venda em processamento. Tente sincronizar novamente.") from None
+
+
+async def record_counter_sale(body: QuickSaleIn, user: dict, *, session=None):
+    options = {"session": session} if session is not None else {}
+    if not await current_cash(**options):
         raise HTTPException(400, "Caixa fechado. Abra o caixa para receber pagamentos.")
     items = await build_items(body.items, channel="caixa")
+    order = await new_order(channel="balcao", source="pdv", items=[i.model_dump() for i in items],
+                            client_ref=body.client_ref, request_fingerprint=sale_fingerprint(body),
+                            customer={"name": body.customer_name, "cpf": body.customer_cpf},
+                            waiter_id=user["id"], waiter_name=user["name"], stock_completion="pending",
+                            audit_events=[audit_event("counter_sale_created", user, correlation=body.client_ref)],
+                            **options)
     try:
-        order = await new_order(channel="balcao", source="pdv", items=[i.model_dump() for i in items],
-                                client_ref=body.client_ref, request_fingerprint=sale_fingerprint(body), customer={"name": body.customer_name, "cpf": body.customer_cpf},
-                                waiter_id=user["id"], waiter_name=user["name"],
-                                audit_events=[audit_event("counter_sale_created", user, correlation=body.client_ref)])
-    except DuplicateKeyError:
-        # Another device/tab is processing this client_ref. Do not return an unpaid
-        # order as a completed sale; the client should retry after the first finishes.
-        raise HTTPException(409, "Venda em processamento. Tente sincronizar novamente.") from None
-    inv = None
-    try:
-        order, inv = await finalize_payment(order, body, actor=user)
+        order, invoice = await finalize_payment(order, body, actor=user, **options)
     except HTTPException:
-        # Fiscal/post-payment failures must not erase an already paid sale.
-        # The same client_ref can then recover it on the next attempt.
-        await db.orders.delete_one({"id": order["id"], "status": "aberto"})
+        if session is None:
+            await db.orders.delete_one({"id": order["id"], "status": "aberto"})
         raise
-    if body.send_to_kitchen:
-        await create_ticket(order, items)
-    await move_stock(items, user["name"], f"PDV · Pedido #{order['number']}")
-    return {"order": order, "invoice": inv}
+    try:
+        if body.send_to_kitchen:
+            await create_ticket(order, items, **options)
+        await move_stock(items, user["name"], f"PDV · Pedido #{order['number']}", **options)
+        await db.orders.update_one({"id": order["id"]}, {"$set": {"stock_completion": "complete"}}, **options)
+    except Exception as error:
+        if session is not None:
+            raise
+        raise HTTPException(409, "Pagamento registrado com baixa pendente. Solicite conferência e não cobre novamente.") from error
+    order["stock_completion"] = "complete"
+    return {"order": order, "invoice": invoice}
 
 
 @router.get("/orders", response_model=list[Order])

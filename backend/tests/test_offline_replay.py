@@ -14,7 +14,8 @@ def isolated_database(monkeypatch):
     # Motor creates collection handles dynamically; patching a temporary handle
     # does not intercept the next db.orders access.
     monkeypatch.setattr(operations, "db", SimpleNamespace(
-        orders=SimpleNamespace(find_one=AsyncMock(), delete_one=AsyncMock()),
+        orders=SimpleNamespace(find_one=AsyncMock(), delete_one=AsyncMock(), update_one=AsyncMock()),
+        command=AsyncMock(return_value={}),
         invoices=SimpleNamespace(find_one=AsyncMock()),
     ))
 
@@ -133,3 +134,15 @@ def test_payment_details_keep_legacy_sale_fingerprint_compatible():
     assert operations.sale_fingerprint(body) == expected
     body.payments[0].details = PaymentDetails(reference="TEST-REF")
     assert operations.sale_fingerprint(body) != expected
+
+
+@pytest.mark.asyncio
+async def test_paid_sale_with_pending_stock_cannot_be_acknowledged_as_complete():
+    operations.db.orders.find_one.return_value = {
+        "id": "existing", "status": "pago", "stock_completion": "pending",
+    }
+    with pytest.raises(HTTPException) as error:
+        await operations.quick_sale(sale_body(), {"id": "cashier", "name": "Caixa"})
+    assert error.value.status_code == 409
+    assert "Não cobre novamente" in error.value.detail
+    operations.db.orders.delete_one.assert_not_awaited()

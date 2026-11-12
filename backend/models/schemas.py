@@ -356,6 +356,7 @@ class Order(BaseModel):
     cash_session_id: Optional[str] = None
     invoice_id: Optional[str] = None
     request_fingerprint: Optional[str] = None
+    stock_completion: Optional[Literal["pending", "complete"]] = None
     audit_events: list[dict] = Field(default_factory=list)
     client_ref: Optional[str] = None
     created_at: datetime = Field(default_factory=_now)
