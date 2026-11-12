@@ -45,6 +45,7 @@ async function mockServer(page: Page) {
       case "/auth/profiles": json = authorized ? operators : []; break;
       case "/auth/sync-context": status = 503; json = { detail: "Fila de teste isolada" }; break;
       case "/tables": json = tables; break;
+      case "/products": json = [{ id: "prod", code: "TESTE", name: "Produto fictício", price: 5, active: true }]; break;
       case "/bills/alerts": json = { overdue: [], due_today: [], due_tomorrow: [] }; break;
       case "/cash/current": json = null; break;
       case "/reports/dashboard":
@@ -117,6 +118,8 @@ test("login, recuperação, memorização e troca entre perfis", async ({ page }
   await expect(page).toHaveURL(/\/pdv$/);
   await page.keyboard.press("F3");
   await expect(page.getByTestId("product-search-input")).toBeFocused();
+  await page.getByTestId("product-card-TESTE").click();
+  await expect(page.getByTestId("cart-line-0")).toContainText("Produto fictício");
   await page.goto("/funcionarios");
   await expect(page.getByTestId("no-permission")).toBeVisible();
   await lock(page);
@@ -128,6 +131,12 @@ test("login, recuperação, memorização e troca entre perfis", async ({ page }
   await page.getByRole("button", { name: "Sair", exact: true }).click();
   await expect(login).toBeVisible();
   await expect(password).toHaveValue("");
+  await signIn(page, "admin-teste");
+  await page.getByTestId("top-menu-shortcuts").getByRole("link", { name: "Caixa/PDV" }).click();
+  await expect(page.getByTestId("cart-line-0")).toHaveCount(0);
+  await lock(page);
+  await signIn(page, "caixa-teste");
+  await expect(page.getByTestId("cart-line-0")).toContainText("Produto fictício");
 });
 
 test("bloqueio continua exigindo autenticação sem rede e após recarregar", async ({ page }) => {

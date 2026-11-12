@@ -106,7 +106,7 @@ export default function Login() {
       <Dialog open={open} onOpenChange={(value) => { if (!value) close(); }} disablePointerDismissal>
         <DialogContent className="gap-2 rounded-2xl border border-border bg-panel p-5 shadow-xl sm:max-w-md sm:p-7"
           overlayClassName="bg-black/60" data-testid="pin-panel">
-          <header className="flex flex-col items-center gap-2 text-center">
+          <header className="mb-4 flex flex-col items-center gap-2 text-center">
             <span className="grid size-12 place-items-center rounded-2xl bg-primary text-white"><Flame className="size-6" aria-hidden="true" /></span>
             <p className="font-semibold text-foreground" data-testid="login-brand">Apollo PDV</p>
             <DialogTitle className="text-2xl font-semibold text-foreground">Bem-vindo de volta</DialogTitle>
@@ -115,7 +115,6 @@ export default function Login() {
           {mode === "pin" && operators.length > 0 && operators.every((p) => p.pin_enabled === false)
             ? <p role="status" className="mt-3 text-sm text-amber-700 dark:text-amber-300">Nenhum operador ativo tem PIN neste servidor. Use usuário e senha.</p>
             : null}
-          <div className="my-5 flex flex-wrap gap-2"><button type="button" onClick={() => setMode("password")} className={mode === "password" ? "rounded-lg bg-primary px-3 py-2 text-white" : "rounded-lg border px-3 py-2"}>Usuário e senha</button><button type="button" onClick={() => setMode("pin")} className={mode === "pin" ? "rounded-lg bg-primary px-3 py-2 text-white" : "rounded-lg border px-3 py-2"}>PIN</button></div>
           {mode === "pin" && (
           <div className="mb-4 grid max-h-40 grid-cols-2 gap-2 overflow-y-auto" data-testid="profile-list">
             {operators.filter((p) => p.pin_enabled !== false).map((p) => (
