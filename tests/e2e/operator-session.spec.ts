@@ -230,6 +230,7 @@ test("faixa, tema, zoom e atendimento em mesa e comanda", async ({ page }) => {
   await page.getByTestId("table-card-12").click();
   const mesa = page.getByRole("dialog", { name: "Atendimento — Mesa 12" });
   await expect(mesa).toBeVisible();
+  await expect(mesa).toHaveCSS("overflow-y", "auto");
   await expect(mesa.getByTestId("table-qr-button")).toBeVisible();
   await mesa.getByTestId("open-table-name-input").fill("Cliente de teste");
   page.once("dialog", (dialog) => dialog.dismiss());
@@ -242,6 +243,7 @@ test("faixa, tema, zoom e atendimento em mesa e comanda", async ({ page }) => {
   await page.getByTestId("comanda-card-23").click();
   const comanda = page.getByRole("dialog", { name: "Atendimento — Comanda 23" });
   await expect(comanda).toBeVisible();
+  await expect(comanda).toHaveCSS("overflow-y", "auto");
   await comanda.getByRole("button", { name: "Fechar", exact: true }).click();
   await expect(comanda).toBeHidden();
 });
