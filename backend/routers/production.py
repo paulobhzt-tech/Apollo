@@ -67,17 +67,21 @@ async def delete_env(id: str, _: dict = Depends(require())):
 @router.get("/print/queue", response_model=list[KitchenTicket])
 async def print_queue(stations: str = Query("", description="comma-separated environment keys"), _: dict = Depends(current_user)):
     """Tickets from the last 3h with printable items for the given environments that were not printed there yet."""
-    keys = [k for k in stations.split(",") if k]
+    keys = list(dict.fromkeys(key for key in stations.split(",") if key))
     if not keys:
         return []
-    q = {"created_at": {"$gte": now() - timedelta(hours=3)}, "status": {"$ne": "entregue"},
-         "items": {"$elemMatch": {"station": {"$in": keys}, "print_ticket": {"$ne": False}}}}
-    out = []
-    for t in await db.kitchen_tickets.find(q, {"_id": 0}).sort("created_at", 1).to_list(200):
-        pending = {i["station"] for i in t["items"] if i["station"] in keys and i.get("print_ticket", True)} - set(t.get("printed", []))
-        if pending:
-            out.append(t)
-    return out
+    query = {
+        "created_at": {"$gte": now() - timedelta(hours=3)},
+        "status": {"$ne": "entregue"},
+        "$or": [
+            {"printed": {"$ne": key},
+             "items": {"$elemMatch": {"station": key, "print_ticket": {"$ne": False}}}}
+            for key in keys
+        ],
+    }
+    return await db.kitchen_tickets.find(query, {"_id": 0}).sort(
+        [("created_at", 1), ("_id", 1)],
+    ).to_list(200)
 
 
 @router.get("/print/recent", response_model=list[KitchenTicket])
