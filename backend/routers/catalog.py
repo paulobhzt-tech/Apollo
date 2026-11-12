@@ -278,7 +278,9 @@ async def apply_purchase(body: PurchaseIn, user: dict, *, purchase_id: str | Non
         raise HTTPException(400, "Não é possível cadastrar compra já vencida")
     if body.bill_due_date:
         try:
-            date.fromisoformat(body.bill_due_date)
+            parsed_due = date.fromisoformat(body.bill_due_date)
+            if parsed_due.isoformat() != body.bill_due_date:
+                raise ValueError("Formato não canônico")
         except ValueError:
             raise HTTPException(400, "Vencimento do boleto deve estar no formato AAAA-MM-DD") from None
     qty = round(body.qty, 4)
