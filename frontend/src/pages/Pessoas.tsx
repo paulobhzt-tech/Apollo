@@ -20,7 +20,8 @@ import type { FiadoCustomer, FiadoCustomerIn, OkOut, Supplier, SupplierIn } from
 import { catalogNumber } from "@/lib/catalog-form";
 import { cn } from "@/lib/utils";
 
-const match = (q: string, ...v: (string | null | undefined)[]) => !q || v.some((x) => (x ?? "").toLowerCase().includes(q.toLowerCase()));
+const normalizeSearch = (value: string) => value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("pt-BR");
+const match = (q: string, ...v: (string | null | undefined)[]) => !q.trim() || v.some((x) => normalizeSearch(x ?? "").includes(normalizeSearch(q.trim())));
 
 export default function Pessoas() {
   const loc = useLocation();
