@@ -17,7 +17,7 @@
 
 Em **Estoque → Relatórios → Conferência de estoque**, abra um pedido pendente ou um lote histórico e gere a prévia. O administrador confere as evidências, registra a justificativa e confirma a aprovação. O servidor recalcula a prévia antes da escrita e recusa aprovação desatualizada, divergência de quantidade ou ficha técnica ausente. O evento registra operador, data, justificativa e identificador da prévia.
 
-Para lote histórico, o vínculo exige uma anotação exata de balcão ou delivery e um número de pedido único. A aprovação grava metadados de auditoria. Saldos, quantidades restauradas e pagamentos seguem os seus fluxos atuais. Vínculos sem evidência, divergências e falhas parciais sem registro completo exigem análise individual. No MongoDB independente, um aceite interrompido fica pendente e bloqueia reenvios da baixa.
+Para lote histórico, o vínculo exige uma anotação exata de balcão ou delivery e um número de pedido único. A aprovação grava metadados de auditoria. O vínculo pode ser usado em estornos autorizados posteriores. A aprovação por si só mantém saldos, quantidades restauradas e pagamentos. Vínculos sem evidência, divergências e falhas parciais sem registro completo exigem análise individual. No MongoDB independente, um aceite interrompido fica pendente e bloqueia reenvios da baixa.
 
 ## Roteiro físico de homologação
 

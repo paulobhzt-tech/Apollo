@@ -136,7 +136,7 @@ async def apply_cancel_order(id: str, body: CancelIn, user: dict, auth: str, *, 
             sum(r["amount"] for r in o.get("refunds", []) if r["method"] == "fiado")
         await fiado_reverse(o, fiado, who, f"Estorno do pedido #{o['number']}", **options)
     if o.get("channel") != "delivery" or o.get("delivery_status") != "pendente":
-        await move_stock([OrderItem(**i) for i in o["items"] if not i.get("cancelled")], user["name"], f"Cancelamento #{o['number']}", sign=1, **options)
+        await move_stock([OrderItem(**i) for i in o["items"] if not i.get("cancelled")], user["name"], f"Cancelamento #{o['number']}", sign=1, historical_order_id=id, **options)
     if o.get("invoice_id"):
         await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}}, **options)
     if o.get("table_id") and o["status"] == "aberto":
@@ -181,7 +181,7 @@ async def apply_refund_item(id: str, item_id: str, body: CancelIn, user: dict, a
         if not result.modified_count:
             raise HTTPException(409, "O pedido mudou. Atualize antes de cancelar o item.")
         if o.get("channel") != "delivery" or o.get("delivery_status") != "pendente":
-            await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1, **options)
+            await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1, historical_order_id=id, **options)
         return await refresh_totals(id, **options)
     live = [i for i in o["items"] if not i.get("cancelled") and i["id"] != item_id]
     old_sub = o["subtotal"] or 1
@@ -202,7 +202,7 @@ async def apply_refund_item(id: str, item_id: str, body: CancelIn, user: dict, a
         {"$set": upd, "$push": {"refunds": refund, "audit_events": event}, "$inc": {"refunded_total": amount}}, **options)
     if not result.modified_count:
         raise HTTPException(409, "O pedido mudou. Atualize antes de estornar o item.")
-    await move_stock([OrderItem(**item)], user["name"], f"Estorno #{o['number']}: {body.reason}", sign=1, **options)
+    await move_stock([OrderItem(**item)], user["name"], f"Estorno #{o['number']}: {body.reason}", sign=1, historical_order_id=id, **options)
     if not live and o.get("invoice_id"):
         await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}}, **options)
     if main["method"] == "fiado":

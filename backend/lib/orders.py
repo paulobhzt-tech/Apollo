@@ -151,14 +151,20 @@ async def allocate_lots_fefo(ingredient_id: str, qty: float, note: str, by_name:
         remaining = round(remaining - take, 4)
 
 
-async def restore_lots(ingredient_id: str, qty: float, note: str, by_name: str, stock_ref: str | None = None, *, session=None) -> None:
+async def restore_lots(ingredient_id: str, qty: float, note: str, by_name: str, stock_ref: str | None = None, *, historical_order_id: str | None = None, session=None) -> None:
     """Restore quantities to the original lots, using the sale's audit trail.
 
-    New movements use the original order batch reference. Older callers may
-    supply the exact historical stock note for a legacy movement.
+    Prefer the original batch reference. A legacy reversal uses a reviewed
+    order association when the caller supplies the order identity.
     """
+    if stock_ref:
+        reference = {"stock_ref": stock_ref}
+    elif historical_order_id:
+        reference = {"historical_order_id": historical_order_id, "stock_ref": {"$in": [None, ""]}}
+    else:
+        reference = {"note": note}
     records = await db.lot_consumptions.find(
-        {"ingredient_id": ingredient_id, **({"stock_ref": stock_ref} if stock_ref else {"note": note})},
+        {"ingredient_id": ingredient_id, **reference},
         {}, **_session_args(session)).sort("created_at", -1).to_list(5000)
     remaining = qty
     for record in records:
@@ -178,7 +184,7 @@ async def restore_lots(ingredient_id: str, qty: float, note: str, by_name: str, 
             remaining = round(remaining - take, 4)
 
 
-async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int = -1, *, session=None) -> None:
+async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int = -1, *, historical_order_id: str | None = None, session=None) -> None:
     """Consume or return recipe ingredients for sold/cancelled items.
 
     Aggregate all quantities before writing, and use Decimal to avoid floating
@@ -213,7 +219,8 @@ async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int 
         if sign < 0:
             await allocate_lots_fefo(ing_id, abs(delta), note, by_name, stock_ref, **_session_args(session))
         else:
-            await restore_lots(ing_id, abs(delta), note, by_name, stock_ref, **_session_args(session))
+            await restore_lots(ing_id, abs(delta), note, by_name, stock_ref,
+                               historical_order_id=historical_order_id, **_session_args(session))
         result = await db.ingredients.update_one(
             {"id": ing_id, **({"$or": [{"stock": {"$gte": abs(delta)}}, {"block_negative_stock": False}]} if sign < 0 else {})},
             {"$inc": {"stock": delta}, "$set": {"updated_at": now()}}, **_session_args(session),
