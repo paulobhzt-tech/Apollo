@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { catalogNumber, formatCurrencyTyping, ingredientValues } from "@/lib/catalog-form";
 
 const UNITS: Unit[] = ["kg", "g", "L", "ml", "un"];
-const dateBR = (iso?: string | null) => iso && /^\\d{4}-\\d{2}-\\d{2}$/.test(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : iso || "—";
+const dateBR = (iso?: string | null) => iso && /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : iso || "—";
 const MOVE_LABEL: Record<StockMove["type"], string> = { entrada: "Entrada", saida: "Saída", ajuste: "Ajuste/Inventário", venda: "Baixa por venda", estorno: "Estorno", perda: "Perda / Descarte" };
 const inv = () => { void queryClient.invalidateQueries({ queryKey: ["inventory-forecast"] }); void queryClient.invalidateQueries({ queryKey: ["inventory-replenishment"] }); void queryClient.invalidateQueries({ queryKey: ["ingredients"] }); void queryClient.invalidateQueries({ queryKey: ["stock-moves"] }); };
 
