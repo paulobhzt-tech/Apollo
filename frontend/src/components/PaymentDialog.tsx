@@ -51,7 +51,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
   const pixKey = pixKeys.find((entry) => entry.label === selectedPix) ?? pixKeys[0];
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
-  const [pixReceived, setPixReceived] = useState(false);
+  const [confirmedPixAmount, setConfirmedPixAmount] = useState<number | null>(null);
   const [discountReason, setDiscountReason] = useState("");
   const [percentage, setPercentage] = useState("");
   const [method, setMethod] = useState<PayMethod>("dinheiro");
@@ -92,6 +92,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
   const value = amount.trim() ? cashAmount(amount) : remaining;
   const valueCents = value === null ? 0 : Math.round(value * 100);
   const roundedValue = Number.isSafeInteger(valueCents) ? valueCents / 100 : 0;
+  const pixReceived = roundedValue > 0 && roundedValue === confirmedPixAmount;
   const methodsReady = METHODS.some((entry) => entry.m === method);
   const availableBrands = settings.data?.card_brands ?? BRANDS;
   const duplicatePix = method === "pix" && payments.some((payment) => payment.method === "pix" &&
@@ -103,7 +104,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
 
   function selectMethod(next: PayMethod) {
     setMethod(next);
-    setPixReceived(false);
+    setConfirmedPixAmount(null);
     setReference("");
   }
 
@@ -118,7 +119,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
     setAmount("");
     setNote("");
     setReference("");
-    setPixReceived(false);
+    setConfirmedPixAmount(null);
   }
   const cashChangeOk = change <= payments.filter((payment) => payment.method === "dinheiro").reduce((sum, payment) => sum + payment.amount, 0) + 0.001;
   const canConfirm = validDiscount && payments.length > 0 && remaining === 0 && cashChangeOk && !pending;
@@ -190,40 +191,40 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
           )}
           <div className="flex flex-wrap gap-2">
             <Input aria-label="Valor do pagamento" inputMode="decimal" placeholder={brl(remaining)} value={amount}
-              onChange={(event) => { setAmount(event.target.value); setPixReceived(false); }} onKeyDown={(event) => { if (event.key === "Enter") add(); }}
+              onChange={(event) => { setAmount(event.target.value); setConfirmedPixAmount(null); }} onKeyDown={(event) => { if (event.key === "Enter") add(); }}
               data-testid="payment-amount-input" className="min-w-28 flex-1 font-mono" />
-            <Button variant="outline" disabled={!remaining} onClick={() => { setAmount(remaining.toFixed(2)); setPixReceived(false); }}>Usar saldo</Button>
+            <Button variant="outline" disabled={!remaining} onClick={() => { setAmount(remaining.toFixed(2)); setConfirmedPixAmount(null); }}>Usar saldo</Button>
           </div>
           <div className="flex flex-wrap gap-2">
             {[2, 5, 10, 20, 50, 100].map((quick) => (
               <Button key={quick} variant="outline" size="sm" disabled={method !== "dinheiro" && quick > remaining}
-                onClick={() => { setAmount(quick.toFixed(2)); setPixReceived(false); }} className="font-mono">{brl(quick)}</Button>
+                onClick={() => { setAmount(quick.toFixed(2)); setConfirmedPixAmount(null); }} className="font-mono">{brl(quick)}</Button>
             ))}
           </div>
           <div className="flex flex-wrap gap-2">
             <Input aria-label="Percentual do total" className="w-28" inputMode="decimal" placeholder="% do total"
               value={percentage} onChange={(event) => setPercentage(event.target.value)} />
             <Button size="sm" variant="outline" disabled={percent === null || percent <= 0 || percent > 100 || !remaining}
-              onClick={() => { if (percent !== null) { setAmount(Math.min(remaining, Math.round(totalCents * percent / 100) / 100).toFixed(2)); setPixReceived(false); } }}>Usar percentual</Button>
+              onClick={() => { if (percent !== null) { setAmount(Math.min(remaining, Math.round(totalCents * percent / 100) / 100).toFixed(2)); setConfirmedPixAmount(null); } }}>Usar percentual</Button>
           </div>
           {method === "pix" && (
             <div className="space-y-3 rounded-lg border border-sky-400/25 p-3">
               <h4 className="font-medium">PIX manual</h4>
               {pixKeys.length ? <label className="block text-sm">Chave utilizada
                 <select className="mt-1 block w-full rounded border border-white/15 bg-background p-2" value={pixKey?.label ?? ""}
-                  onChange={(event) => { setSelectedPix(event.target.value); setPixReceived(false); }}>
+                  onChange={(event) => { setSelectedPix(event.target.value); setConfirmedPixAmount(null); }}>
                   {pixKeys.map(({ key, label }) => <option key={label} value={label}>{label} · {key}</option>)}
                 </select>
               </label> : <p className="text-xs text-zinc-400">Cadastre as chaves em Configurações → Empresa & PIX.</p>}
               <label className="flex items-start gap-2 text-sm">
-                <Checkbox checked={pixReceived} onCheckedChange={(checked) => setPixReceived(!!checked)} />
-                Confirmei o recebimento no extrato do estabelecimento
+                <Checkbox checked={pixReceived} disabled={roundedValue <= 0} onCheckedChange={(checked) => setConfirmedPixAmount(checked ? roundedValue : null)} />
+                Confirmei {brl(roundedValue)} no extrato do estabelecimento
               </label>
               {duplicatePix && <p role="alert" className="text-sm text-red-300">Esta referência PIX já foi lançada.</p>}
             </div>
           )}
           <label className="block text-sm">{method === "pix" ? "ID da transação PIX" : "Referência do comprovante"}
-            <Input className="mt-1" maxLength={120} value={reference} onChange={(event) => { setReference(event.target.value); setPixReceived(false); }} />
+            <Input className="mt-1" maxLength={120} value={reference} onChange={(event) => { setReference(event.target.value); setConfirmedPixAmount(null); }} />
           </label>
           <label className="block text-sm">Observação do pagamento
             <Input className="mt-1" maxLength={300} value={note} onChange={(event) => setNote(event.target.value)} />
@@ -271,7 +272,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
             <div className="flex flex-wrap gap-2">
               {[shareCents, ...(extraShares ? [shareCents + 1] : [])].filter((cents) => cents > 0).map((cents) =>
                 <Button key={cents} variant="outline" size="xs" disabled={cents / 100 > remaining} onClick={() => {
-                  setAmount((cents / 100).toFixed(2)); setPixReceived(false);
+                  setAmount((cents / 100).toFixed(2)); setConfirmedPixAmount(null);
                 }}>Usar cota de {brl(cents / 100)}</Button>)}
             </div>
           </div>}
