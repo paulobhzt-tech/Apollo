@@ -131,7 +131,7 @@ function MenuPreferences({ items, operatorId }: { items: NavItem[]; operatorId: 
   }
 
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-1 border-t border-border px-2 py-1 sm:px-4">
+    <div className="flex min-w-0 flex-nowrap items-center gap-1 overflow-hidden border-t border-border px-2 py-1 sm:px-4">
       <Button type="button" variant="ghost" className="min-h-11 gap-2 px-2 text-xs" onClick={() => setEditing(true)}>
         <Settings className="size-4 shrink-0" aria-hidden="true" /> Personalizar menu
       </Button>
@@ -330,22 +330,22 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
               </div>
             </div>
           </div>
-          <nav aria-label="Seções do sistema" data-testid="top-menu-groups" className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,5.75rem),1fr))] gap-1 px-2 py-1 sm:px-4">
+          <nav aria-label="Seções do sistema" data-testid="top-menu-groups" className="grid min-w-0 grid-cols-7 gap-0.5 px-1 py-1 sm:px-3">
             {RIBBON_GROUPS.filter(({label}) => items.some(n => ribbonGroup(n) === label)).map(({label, icon: GroupIcon}) => {
               const selected = visibleGroup === label;
               return <button key={label} type="button" onClick={() => setActiveRibbon(label)}
-                className={cn("flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[10px] font-medium transition-colors hover:bg-muted sm:text-xs", selected ? "bg-muted text-foreground" : "text-muted-foreground")}
-                aria-pressed={selected}><GroupIcon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 wrap-anywhere">{label}</span></button>;
+                className={cn("flex min-h-10 min-w-0 items-center justify-center gap-1 rounded-md px-1 py-1.5 text-[9px] font-medium transition-colors hover:bg-muted sm:text-xs", selected ? "bg-muted text-foreground" : "text-muted-foreground")}
+                aria-pressed={selected}><GroupIcon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 truncate" title={label}>{label}</span></button>;
             })}
           </nav>
-          <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts" className="flex min-w-0 flex-wrap gap-2 bg-elevated px-2 py-1 sm:px-4">
+          <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts" className="flex min-w-0 flex-nowrap items-stretch gap-1 overflow-hidden bg-elevated px-1 py-1 sm:px-3">
             {visibleGroup === "Principal" ? <>
               {PRINCIPAL_SHORTCUTS.map(({ label, paths }) => {
                 const shortcuts = paths.flatMap((path) => items.filter((item) => item.to === path));
                 if (label !== "Atendimento" && !shortcuts.length) return null;
                 if (label === "Atendimento" && me.role !== "admin" && me.role !== "caixa") return null;
-                return <div key={label} role="group" aria-label={label} className="min-w-0 rounded-md border border-border px-1.5">
-                  <div className="flex min-w-0 flex-wrap gap-1">
+                return <div key={label} role="group" aria-label={label} className="min-w-0 flex-1 rounded-md border border-border px-0.5">
+                  <div className="flex min-w-0 flex-nowrap justify-center gap-0.5">
                     {shortcuts.map((item) => <RibbonShortcut key={item.to} item={item} label={PRINCIPAL_LABELS[item.to]} />)}
                     {label === "Pedidos" && items.some((item) => item.to === "/delivery") &&
                       <PendingShortcut icon={CalendarClock} label="Agendados" />}
@@ -378,8 +378,8 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
 function RibbonShortcut({ item, label = item.label }: { item: NavItem; label?: string }) {
   const Icon = label === "Fila de Atendimento" ? ListOrdered : ICONS[item.icon] ?? LayoutDashboard;
   return <NavLink to={label === "Fila de Atendimento" ? "/comanda-mobile?fila=1" : item.to} end={item.to === "/"} title={label}
-    className={({ isActive }) => cn("flex min-h-11 min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs leading-tight hover:bg-muted", isActive ? "bg-muted text-foreground" : "text-muted-foreground")}>
-    <Icon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="wrap-anywhere">{label}</span>
+    className={({ isActive }) => cn("flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-1 py-1.5 text-[10px] leading-tight hover:bg-muted sm:text-xs", isActive ? "bg-muted text-foreground" : "text-muted-foreground")}>
+    <Icon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 truncate" title={label}>{label}</span>
   </NavLink>;
 }
 
