@@ -180,7 +180,7 @@ const EMPTY: ProductIn = { name: "", description: "", category_id: "", price: 0,
 function ProductDialog({ editing, onClose, cats, ings }: { editing: Product | "new" | null; onClose: () => void; cats: Category[]; ings: Ingredient[] }) {
   return (
     <Dialog open={!!editing} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto border-white/10 bg-elevated sm:max-w-2xl" data-testid="product-dialog">
+      <DialogContent className="max-h-[92vh] overflow-y-auto border-white/10 bg-elevated sm:max-w-5xl" data-testid="product-dialog">
         {editing && <ProductForm key={editing === "new" ? "new" : editing.id} editing={editing} onClose={onClose} cats={cats} ings={ings} />}
       </DialogContent>
     </Dialog>
@@ -229,6 +229,14 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
   return (
     <>
       <DialogHeader><DialogTitle className="font-heading text-white">{editing === "new" ? "Novo produto" : `Editar ${editing.name}`}</DialogTitle></DialogHeader>
+      <Tabs defaultValue="principal" className="w-full" data-testid="product-editor-tabs">
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
+          <TabsTrigger value="principal">Principal</TabsTrigger>
+          <TabsTrigger value="estoque">Estoque</TabsTrigger>
+          <TabsTrigger value="ficha">Ficha técnica ({f.recipe.length})</TabsTrigger>
+          <TabsTrigger value="complementos">Complementos e perguntas ({f.options.length})</TabsTrigger>
+        </TabsList>
+        <TabsContent value="principal" className="mt-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2"><Label className="text-xs text-zinc-400">Nome</Label><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} className="mt-1" data-testid="product-name-input" /></div>
         <div className="sm:col-span-2"><Label className="text-xs text-zinc-400">Descrição</Label><Textarea value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} className="mt-1" data-testid="product-description-input" /></div>
@@ -281,7 +289,16 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
         <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={f.active} onCheckedChange={(v) => setF({ ...f, active: !!v })} data-testid="product-active-checkbox" /> Disponível para venda</label>
       </div>
 
+        </TabsContent>
+        <TabsContent value="estoque" className="mt-4 rounded-xl border border-white/10 bg-panel p-5">
+          <h3 className="font-semibold text-white">Controle de estoque</h3>
+          <p className="mt-2 text-sm text-zinc-300">As entradas, compras, lotes e quantidades são controladas no módulo Estoque. A ficha técnica deste produto define os insumos consumidos nas vendas.</p>
+          <p className="mt-2 text-xs text-amber-300">Para evitar divergências, a quantidade não é alterada diretamente neste cadastro.</p>
+        </TabsContent>
+        <TabsContent value="complementos" className="mt-4">
       <OptionsEditor value={f.options} onChange={(options) => setF({ ...f, options })} />
+        </TabsContent>
+        <TabsContent value="ficha" className="mt-4">
       <div className="mt-2 rounded-2xl border border-white/5 bg-panel p-4">
         <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-400">Ficha técnica</p>
         <div className="mt-3 flex gap-2">
@@ -314,6 +331,8 @@ function ProductForm({ editing, onClose, cats, ings }: { editing: Product | "new
         {cost > 0 && price > 0 && margin < desiredMargin && <p className="mt-2 text-xs text-amber-300" role="status">Atenção: margem atual de {margin.toFixed(1)}% abaixo da meta de {desiredMargin}%.</p>}
         <p className="mt-2 text-xs text-zinc-400">Custo calculado pela ficha técnica e preços atuais dos insumos, salvo quando houver custo manual. Margem bruta não inclui impostos, taxas e despesas fixas.</p>
       </div>
+        </TabsContent>
+      </Tabs>
       {!f.name.trim() && <p className="text-sm text-zinc-400">Informe o nome do produto.</p>}
       {!categoryExists && <p className="text-sm text-amber-300">{cats.length ? "Selecione uma categoria válida." : "Cadastre uma categoria na aba Categorias antes de salvar o produto."}</p>}
       {invalidAmounts && <p className="text-sm text-amber-300">Informe um preço válido. Preço e custo devem ser zero ou maiores.</p>}
