@@ -27,3 +27,13 @@ it("keeps cents when operators type a decimal point or comma", () => {
   expect(cashAmount("12.50.00")).toBeNull();
   expect(cashAmount("-1")).toBeNull();
 });
+
+// Used by the stock movement dialog to reject malformed or non-finite quantities.
+it("validates stock movement numeric input before submitting", () => {
+  expect(catalogNumber("1,5")).toBe(1.5);
+  expect(catalogNumber("0")).toBe(0); // allowed for inventory adjustments only
+  expect(catalogNumber("-1")).toBe(-1); // caller rejects negatives for stock movements
+  for (const input of ["Infinity", "NaN", "1e309", "1,2,3", ""]) {
+    expect(catalogNumber(input)).toBeNull();
+  }
+});
