@@ -6,6 +6,7 @@ import {
   Bot, Armchair, Bike, Boxes, ChefHat, LayoutDashboard, LineChart, LogOut, Menu, Music, QrCode, Receipt, ShoppingCart,
   Users, UtensilsCrossed, Wallet, WifiOff, Wifi, Flame, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
@@ -83,7 +84,8 @@ function MenuPreferences({ items, operatorId }: { items: NavItem[]; operatorId: 
     }
   });
   const loc = useLocation();
-  const pinned = pins.flatMap((path) => items.filter((item) => item.to === path));
+  const [editing, setEditing] = useState(false);
+  const pinned = [...new Set(pins)].flatMap((path) => items.filter((item) => item.to === path));
 
   function toggle(path: string) {
     const next = pins.includes(path) ? pins.filter((pin) => pin !== path) : [...pins, path];
@@ -97,24 +99,33 @@ function MenuPreferences({ items, operatorId }: { items: NavItem[]; operatorId: 
 
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1 border-t border-border px-2 py-1 sm:px-4">
-      <details className="relative">
-        <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 rounded px-2 text-xs hover:bg-muted">
-          <Settings className="size-4 shrink-0" aria-hidden="true" /> Personalizar menu
-        </summary>
-        <div className="absolute left-0 top-full z-10 max-h-[45dvh] w-64 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-lg border border-border bg-shell p-3 shadow-xl">
-          {items.map((item) => (
-            <label key={item.to} className="flex min-h-9 items-center gap-2 text-sm">
-              <input type="checkbox" checked={pins.includes(item.to)} onChange={() => toggle(item.to)} />
-              {item.label}
-            </label>
-          ))}
-        </div>
-      </details>
+      <Button type="button" variant="ghost" className="min-h-11 gap-2 px-2 text-xs" onClick={() => setEditing(true)}>
+        <Settings className="size-4 shrink-0" aria-hidden="true" /> Personalizar menu
+      </Button>
+      <Dialog open={editing} onOpenChange={setEditing}>
+        <DialogContent>
+          <DialogTitle>Atalhos do meu menu</DialogTitle>
+          <div className="grid gap-3">
+            {RIBBON_GROUPS.map(({ group }) => {
+              const groupItems = items.filter((item) => item.group === group);
+              return groupItems.length > 0 && <fieldset key={group} className="grid gap-1">
+                <legend className="text-xs font-semibold text-muted-foreground">{group}</legend>
+                {groupItems.map((item) => (
+                  <label key={item.to} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-2 text-sm hover:bg-muted">
+                    <input type="checkbox" checked={pins.includes(item.to)} onChange={() => toggle(item.to)} />
+                    {item.label}
+                  </label>
+                ))}
+              </fieldset>;
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
       {pinned.map((item) => {
         const Icon = ICONS[item.icon] ?? LayoutDashboard;
         return <NavLink key={item.to} to={item.to} end={item.to === "/"}
           aria-current={item.to === activePath(loc.pathname) ? "page" : undefined}
-          className="flex min-h-9 min-w-0 items-center gap-1.5 rounded px-2 text-xs hover:bg-muted aria-[current=page]:bg-muted">
+          className="flex min-h-11 min-w-0 items-center gap-1.5 rounded px-2 text-xs hover:bg-muted aria-[current=page]:bg-muted">
           <Icon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="break-words">{item.label}</span>
         </NavLink>;
       })}
@@ -281,19 +292,19 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
               </button>
             </div>
           </div>
-          <nav aria-label="Seções do sistema" data-testid="top-menu-groups" className="grid min-w-0 grid-cols-2 gap-1 px-2 py-1.5 sm:grid-cols-5 sm:px-4">
+          <nav aria-label="Seções do sistema" data-testid="top-menu-groups" className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,5.75rem),1fr))] gap-1 px-2 py-1 sm:px-4">
             {RIBBON_GROUPS.filter(({group}) => items.some(n => n.group === group)).map(({label, group, icon: GroupIcon}) => {
               const selected = visibleGroup === group;
               return <button key={group} type="button" onClick={() => setActiveRibbon(group)}
-                className={cn("flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[10px] font-medium transition-colors hover:bg-muted sm:text-xs", selected ? "bg-muted text-foreground" : "text-muted-foreground")}
+                className={cn("flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[10px] font-medium transition-colors hover:bg-muted sm:text-xs", selected ? "bg-muted text-foreground" : "text-muted-foreground")}
                 aria-pressed={selected}><GroupIcon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 break-words">{label}</span></button>;
             })}
           </nav>
-          <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts" className="grid min-w-0 grid-cols-2 gap-1 bg-elevated min-[420px]:grid-cols-3 px-2 py-1.5 sm:grid-cols-4 sm:px-4 lg:grid-cols-6 xl:grid-cols-8">
+          <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts" className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,6.75rem),1fr))] gap-1 bg-elevated px-2 py-1 sm:px-4">
             {items.filter(n => n.group === visibleGroup).map(n => {
               const Icon = ICONS[n.icon] ?? LayoutDashboard;
               return <NavLink key={n.to} to={n.to} end={n.to === "/"} title={n.label} onClick={() => setActiveRibbon(n.group)}
-                className={({isActive}) => cn("flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-center text-xs leading-tight transition-colors hover:bg-muted",(isActive || n.to === activePath(loc.pathname)) ? "bg-muted text-foreground" : "text-muted-foreground")}>
+                className={({isActive}) => cn("flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-center text-xs leading-tight transition-colors hover:bg-muted",(isActive || n.to === activePath(loc.pathname)) ? "bg-muted text-foreground" : "text-muted-foreground")}>
                 <Icon className="size-4 shrink-0 text-primary" strokeWidth={1.8} aria-hidden="true" /><span className="min-w-0 break-words">{n.label}</span>
               </NavLink>;
             })}

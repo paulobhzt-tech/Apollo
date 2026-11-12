@@ -193,7 +193,7 @@ function openTrustedExternal(url) {
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1366, height: 820, minWidth: 1024, minHeight: 640, backgroundColor: "#0b0b0f", show: false,
+    width: 1366, height: 820, minWidth: 800, minHeight: 540, backgroundColor: "#0b0b0f", show: false,
     title: "Apollo PDV", icon: path.join(__dirname, "build", "icon.png"),
     fullscreen: !!cfg.fullscreen,
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false },
