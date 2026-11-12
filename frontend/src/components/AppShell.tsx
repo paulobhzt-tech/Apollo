@@ -33,7 +33,7 @@ const ICONS: Record<string, typeof Menu> = {
 };
 
 const DEFAULT_SHORTCUTS = ["/mesas", "/pdv", "/estoque"];
-const ZOOM_LEVELS = [90, 100, 110, 125];
+const ZOOM_LEVELS = [90, 100, 110, 125, 150, 175];
 
 function DisplayZoom() {
   const key = "apollo-display-zoom";
