@@ -235,10 +235,10 @@ function Restore() {
   });
   const pick = async (f: File) => {
     try {
-      const json = JSON.parse(await f.text()) as { app?: string; created_at?: string; data?: Record<string, unknown[]> };
+      const json = JSON.parse(await f.text()) as Partial<RestoreIn> & { created_at?: string };
       if (!json.data || typeof json.data !== "object") throw new Error("Arquivo não é um backup do sistema");
       const n = (k: string) => (Array.isArray(json.data?.[k]) ? json.data[k].length : 0);
-      setFile({ name: f.name, body: { data: json.data }, summary: `${n("products")} produtos · ${n("orders")} vendas · ${n("employees")} funcionários · ${n("fiado_customers")} clientes fiado${json.created_at ? ` · gerado em ${json.created_at}` : ""}` });
+      setFile({ name: f.name, body: { data: json.data, data_sha256: json.data_sha256 }, summary: `${n("products")} produtos · ${n("orders")} vendas · ${n("employees")} funcionários · ${n("fiado_customers")} clientes fiado${json.created_at ? ` · gerado em ${json.created_at}` : ""}` });
       setResult("");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Arquivo inválido"); }
   };
@@ -252,6 +252,7 @@ function Restore() {
       {file && (
         <div className="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3" data-testid="restore-preview">
           <p className="text-sm text-amber-200">{file.summary}</p>
+          <p className="mt-1 text-xs text-amber-200">{file.body.data_sha256 ? "O servidor vai conferir a soma SHA-256 antes de restaurar." : "Backup anterior sem soma SHA-256. O servidor vai conferir a estrutura do arquivo."}</p>
           <Button className="mt-3" variant="destructive" disabled={run.isPending} onClick={() => window.confirm("Substituir os dados atuais pelos do backup?") && run.mutate(file.body)} data-testid="restore-confirm-button">
             {run.isPending ? "Restaurando…" : "Restaurar agora"}
           </Button>
