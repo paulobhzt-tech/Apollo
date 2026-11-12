@@ -763,6 +763,9 @@ class PurchaseIn(BaseModel):
     product_id: Optional[str] = None
     qty: float = Field(gt=0, allow_inf_nan=False)
     unit_cost: float = Field(ge=0, allow_inf_nan=False)
+    freight_cost: float = Field(default=0, ge=0, allow_inf_nan=False)
+    tax_cost: float = Field(default=0, ge=0, allow_inf_nan=False)
+    bill_due_date: Optional[str] = None
     manufactured_on: Optional[str] = None
     client_ref: Optional[str] = Field(default=None, min_length=6, max_length=120)
     expiry_date: Optional[str] = None  # ISO YYYY-MM-DD
