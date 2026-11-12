@@ -366,6 +366,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const [preBill, setPreBill] = useState(false);
   const [partialOpen, setPartialOpen] = useState(false);
   const [grouped, setGrouped] = useState(true);
+  const [showItemTimes, setShowItemTimes] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const [removing, setRemoving] = useState<GroupedItem | null>(null);
 
@@ -511,6 +512,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                       {grouped ? "Ver item a item (cancelar)" : "Agrupar quantidades"}
                     </button>
                   </div>
+                  <label className="mt-2 flex min-h-10 items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={showItemTimes} onChange={(event) => setShowItemTimes(event.target.checked)} data-testid="toggle-item-times" /> Mostrar horário dos lançamentos</label>
                   {grouped ? (
                     <div className="mt-2 space-y-0 divide-y divide-white/10 rounded-sm border border-white/10" data-testid="table-order-grouped">
                       {groupItems(items).map((g) => (
@@ -520,7 +522,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                             <p className="wrap-anywhere text-foreground">{g.name}</p>
                             {g.options.length > 0 && <p className="truncate text-xs text-primary">{g.options.join(" · ")}</p>}
                             {g.notes.length > 0 && <p className="truncate text-xs text-amber-300">{g.notes.join(" · ")}</p>}
-                            <p className="text-xs text-zinc-400">Cliente: {g.customer_name || "Mesa inteira"}{g.ordered_by ? ` · Lançado por: ${g.ordered_by}` : ""}{g.lines.some((line) => line.ordered_at) ? ` · Horário: ${g.lines.filter((line) => line.ordered_at).map((line) => fmtTime(line.ordered_at!)).join(", ")}` : ""}</p>
+                            <p className="text-xs text-zinc-400">Cliente: {g.customer_name || "Mesa inteira"}{g.ordered_by ? ` · Lançado por: ${g.ordered_by}` : ""}{showItemTimes && g.lines.some((line) => line.ordered_at) ? ` · Horário: ${g.lines.filter((line) => line.ordered_at).map((line) => fmtTime(line.ordered_at!)).join(", ")}` : ""}</p>
                           </div>
                           <span className="font-mono text-xs text-zinc-500">{brl(g.unit_price)}</span>
                           <span className="font-mono text-zinc-200">{brl(g.total)}</span>
@@ -539,7 +541,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                           <p className="truncate text-foreground">{i.name}</p>
                           {i.options?.length > 0 && <p className="truncate text-xs text-primary">{i.options.join(" · ")}</p>}
                           {(i.notes || i.cancel_reason) && <p className="truncate text-xs text-amber-300">{i.cancel_reason || i.notes}</p>}
-                          <p className="text-xs text-zinc-400">Cliente: {i.customer_name || "Mesa inteira"}{i.ordered_by ? ` · Lançado por: ${i.ordered_by}` : ""}{i.ordered_at ? ` · Horário: ${fmtTime(i.ordered_at)}` : ""}</p>
+                          <p className="text-xs text-zinc-400">Cliente: {i.customer_name || "Mesa inteira"}{i.ordered_by ? ` · Lançado por: ${i.ordered_by}` : ""}{showItemTimes && i.ordered_at ? ` · Horário: ${fmtTime(i.ordered_at)}` : ""}</p>
                         </div>
                         <span className="font-mono text-zinc-200">{brl(i.qty * i.unit_price)}</span>
                         {!i.cancelled && (
