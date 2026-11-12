@@ -147,8 +147,11 @@ export default function Produtos() {
 
 function Categorias({ cats }: { cats: Category[] }) {
   const [name, setName] = useState("");
-  const [station, setStation] = useState<Station>("cozinha");
+  const [selectedStation, setStation] = useState<Station>("");
   const envs = useEnvironments();
+  const stations = envs.data ?? [];
+  const station = stations.some((entry) => entry.key === selectedStation) ? selectedStation
+    : (stations.find((entry) => entry.key === "cozinha") ?? stations[0])?.key ?? "";
   const create = useMutation({
     mutationFn: (b: CategoryIn) => apiPost<Category>("/categories", b),
     onSuccess: () => { toast.success("Categoria criada"); setName(""); inv(); },
@@ -156,27 +159,29 @@ function Categorias({ cats }: { cats: Category[] }) {
   });
   const del = useMutation({ mutationFn: (id: string) => apiDelete(`/categories/${id}`), onSuccess: inv, onError: (e) => toast.error(errMsg(e)) });
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-      <div className="grid gap-2 sm:grid-cols-2">
+    <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(15rem,20rem)]">
+      <div className="grid min-w-0 content-start gap-2 sm:grid-cols-2">
         {cats.map((c) => (
           <div key={c.id} className="flex items-center justify-between rounded-xl border border-white/5 bg-panel px-4 py-3" data-testid={`category-row-${c.id}`}>
-            <div><p className="font-medium text-white">{c.name}</p><p className="text-xs text-zinc-500">{envName(envs.data, c.station)}</p></div>
+            <div className="min-w-0"><p className="break-words font-medium text-white">{c.name}</p><p className="text-xs text-zinc-500">{envName(envs.data, c.station)}</p></div>
             <Button size="icon-sm" variant="ghost" onClick={() => del.mutate(c.id)} data-testid={`delete-category-${c.id}`}><Trash2 /></Button>
           </div>
         ))}
       </div>
-      <form className="space-y-3 rounded-2xl border border-border bg-panel p-4" onSubmit={(event) => {
+      <form className="order-first h-fit min-w-0 space-y-3 lg:order-last rounded-2xl border border-border bg-panel p-4" onSubmit={(event) => {
         event.preventDefault();
-        if (name.trim() && !create.isPending) create.mutate({ name: name.trim(), station, sort: cats.length });
+        if (name.trim() && station && !create.isPending) create.mutate({ name: name.trim(), station, sort: cats.length });
       }}>
         <p className="text-sm font-medium text-foreground">Nova categoria</p>
         <Label htmlFor="category-name">Nome</Label>
         <Input id="category-name" placeholder="Nome da categoria" value={name} onChange={(e) => setName(e.target.value)} data-testid="category-name-input" />
-        <Select value={station} onValueChange={(v: string) => setStation(v as Station)}>
+        <Select value={station} disabled={!stations.length} onValueChange={(v: string) => setStation(v as Station)}>
           <SelectTrigger className="w-full" data-testid="category-station-select"><SelectValue>{(v) => envName(envs.data, v as string)}</SelectValue></SelectTrigger>
-          <SelectContent>{(envs.data ?? []).map((e) => <SelectItem key={e.key} value={e.key}>{e.name}</SelectItem>)}</SelectContent>
+          <SelectContent>{stations.map((e) => <SelectItem key={e.key} value={e.key}>{e.name}</SelectItem>)}</SelectContent>
         </Select>
-        <Button type="submit" className="h-11 w-full" disabled={!name.trim() || create.isPending} data-testid="category-save-button">{create.isPending ? "Salvando…" : "Salvar categoria"}</Button>
+        {envs.isError && <p role="alert" className="text-sm">Não foi possível carregar os setores. <Button type="button" variant="outline" size="xs" onClick={() => void envs.refetch()}>Tentar novamente</Button></p>}
+        {envs.isSuccess && !stations.length && <p role="status" className="text-sm">Cadastre um setor na aba Ambientes antes de criar a categoria.</p>}
+        <Button type="submit" className="h-11 w-full" disabled={!name.trim() || !station || create.isPending} data-testid="category-save-button">{create.isPending ? "Salvando…" : "Salvar categoria"}</Button>
       </form>
     </div>
   );
@@ -208,12 +213,13 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
     const { id: _id, cost: _cost, margin_pct: _margin, ...product } = source;
     return copySource ? { ...product, name: `${source.name} (cópia)`, code: "", active: false, stock_ingredient_id: null } : product;
   });
+  const categoryId = f.category_id || (!source ? cats[0]?.id ?? "" : "");
   const channels = f.channels ?? CHANNELS.map(({ id }) => id);
   const invalidOptions = f.options.some((group) => !group.name.trim() || !group.choices.length ||
     group.choices.some((choice) => !choice.name.trim() || !Number.isFinite(choice.price) || choice.price < 0));
   const [uploading, setUploading] = useState(false);
   const envs = useEnvironments();
-  const catStation = cats.find((c) => c.id === f.category_id)?.station ?? "cozinha";
+  const catStation = cats.find((c) => c.id === categoryId)?.station ?? "cozinha";
   const [priceStr, setPriceStr] = useState(source ? String(source.price) : "");
   const [costStr, setCostStr] = useState(source?.cost_price ? String(source.cost_price) : "");
   const [ingId, setIngId] = useState("");
@@ -228,7 +234,7 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
   const cost = manualCost > 0 ? manualCost : recipeCost;
   const parsedPrice = catalogNumber(priceStr);
   const price = parsedPrice ?? 0;
-  const categoryExists = cats.some((category) => category.id === f.category_id);
+  const categoryExists = cats.some((category) => category.id === categoryId);
   const invalidAmounts = parsedPrice === null || price < 0 || parsedCost === null || manualCost < 0;
   const margin = price ? ((price - cost) / price) * 100 : 0;
   const desiredMargin = catalogNumber(targetMargin);
@@ -237,7 +243,6 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
   const save = useMutation({
     mutationFn: (b: ProductIn) => editing === "new" ? apiPost<Product>("/products", b) : apiPut<Product>(`/products/${editing.id}`, b),
     onSuccess: () => { toast.success("Produto salvo"); inv(); onClose(); },
-    onError: (e) => toast.error(errMsg(e)),
   });
   const addRecipe = () => {
     if (!ingId || recipeQuantity === null || recipeQuantity <= 0) return;
@@ -292,7 +297,7 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
               <div className="sm:col-span-2"><Label htmlFor="product-description" className="text-xs text-zinc-400">Descrição</Label><Textarea value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} className="mt-1" id="product-description" data-testid="product-description-input" /></div>
               <div>
                 <Label htmlFor="product-category" className="text-xs text-zinc-400">Categoria</Label>
-                <Select value={f.category_id} onValueChange={(v: string) => setF({ ...f, category_id: v })}>
+                <Select value={categoryId} onValueChange={(v: string) => setF({ ...f, category_id: v })}>
                   <SelectTrigger className="mt-1 w-full" id="product-category" data-testid="product-category-select"><SelectValue>{(v) => cats.find((c) => c.id === v)?.name ?? "Selecione"}</SelectValue></SelectTrigger>
                   <SelectContent>{cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
@@ -398,7 +403,8 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
       {invalidAmounts && <p className="text-sm text-amber-300">Informe um preço válido. Preço e custo devem ser zero ou maiores.</p>}
       {invalidOptions && <p role="alert" className="text-sm text-amber-300">Revise Complementos e Perguntas. Cada grupo precisa de nome e de pelo menos uma opção com nome e preço válido.</p>}
       {copySource && <p className="text-sm text-zinc-400">A cópia começa inativa e com o código em branco. Revise antes de salvar.</p>}
-      <Button className="mt-2 h-11" disabled={!f.name.trim() || !categoryExists || invalidAmounts || invalidOptions || uploading || save.isPending} onClick={() => save.mutate({ ...f, name: f.name.trim(), code: f.code.trim(), price, cost_price: manualCost })} data-testid="product-save-button">{save.isPending ? "Salvando…" : "Salvar produto"}</Button>
+      {save.isError && <p role="alert" className="text-sm text-destructive">{errMsg(save.error)}</p>}
+      <Button className="mt-2 h-11" disabled={!f.name.trim() || !categoryExists || invalidAmounts || invalidOptions || uploading || save.isPending} onClick={() => save.mutate({ ...f, category_id: categoryId, name: f.name.trim(), code: f.code.trim(), price, cost_price: manualCost })} data-testid="product-save-button">{save.isPending ? "Salvando…" : "Salvar produto"}</Button>
     </>
   );
 }

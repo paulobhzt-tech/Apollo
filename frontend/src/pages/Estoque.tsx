@@ -99,7 +99,12 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
   const amount = quantity !== null && unitPrice !== null ? quantity * unitPrice : NaN;
   const supplierExists = suppliers.data?.some((supplier) => supplier.id === supplierId);
   const selected = ingredients.find((ingredient) => ingredient.id === ingredientId);
-  const valid = supplierExists && selected && quantity !== null && quantity > 0 &&
+  const quantityValid = quantity !== null && Math.round(quantity * 10000) > 0 &&
+    (selected?.unit !== "un" || Number.isInteger(quantity));
+  const linkedProduct = products.find((product) => product.id === productId);
+  const validLink = !productId || (!!selected && linkedProduct?.stock_ingredient_id === selected.id && linkedProduct.sale_unit === selected.unit);
+  const validDates = !manufacturedOn || !expiryDate || manufacturedOn <= expiryDate;
+  const valid = supplierExists && selected && quantityValid && validLink && validDates &&
     unitPrice !== null && unitPrice >= 0 && Number.isFinite(amount);
   const save = useMutation({
     mutationFn: (values: { qty: number; unit_cost: number }) => {
@@ -121,7 +126,10 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
     onError: (e) => toast.error(errMsg(e)),
   });
   return <div className="space-y-4">
-    <div className="rounded-2xl border border-white/5 bg-panel p-4 space-y-3">
+    <form className="min-w-0 space-y-3 rounded-2xl border border-border bg-panel p-4" onSubmit={(event) => {
+      event.preventDefault();
+      if (valid && quantity !== null && unitPrice !== null && !save.isPending) save.mutate({ qty: quantity, unit_cost: unitPrice });
+    }}>
       <h3 className="font-semibold text-white">Registrar compra</h3>
       <p className="text-xs text-zinc-400">A compra acrescenta a quantidade ao estoque e atualiza o custo médio ponderado do insumo. Não registre a mesma entrada novamente em Movimentações.</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -145,13 +153,16 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
         <div><Label htmlFor="purchase-lot">Número do lote</Label><Input id="purchase-lot" value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} placeholder="Opcional" /></div>
       </div>
       <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Observações / nota fiscal (opcional)" />
-      {suppliers.isError && <p role="alert" className="text-sm text-amber-300">Não foi possível carregar os fornecedores. <Button variant="outline" size="xs" onClick={() => void suppliers.refetch()}>Tentar novamente</Button></p>}
+      {suppliers.isError && <p role="alert" className="text-sm text-amber-300">Não foi possível carregar os fornecedores. <Button type="button" variant="outline" size="xs" onClick={() => void suppliers.refetch()}>Tentar novamente</Button></p>}
       {suppliers.isSuccess && !suppliers.data.length && <p className="text-sm text-zinc-400">Cadastre um fornecedor antes de registrar a compra.</p>}
       {!ingredients.length && <p className="text-sm text-zinc-400">Cadastre um insumo antes de registrar a compra.</p>}
       {((qty && (quantity === null || quantity <= 0)) || (unitCost && (unitPrice === null || unitPrice < 0))) &&
         <p role="status" className="text-sm text-amber-300">Informe uma quantidade maior que zero e um preço unitário válido. Use vírgula ou ponto para decimais.</p>}
-      <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm">Custo total: <strong>{Number.isFinite(amount) ? brl(amount) : "—"}</strong></span><Button disabled={!valid || save.isPending} onClick={() => { if (valid && quantity !== null && unitPrice !== null) save.mutate({ qty: quantity, unit_cost: unitPrice }); }} data-testid="purchase-save">Registrar compra</Button></div>
-    </div>
+      {!!qty && selected?.unit === "un" && quantity !== null && !Number.isInteger(quantity) && <p role="status" className="text-sm text-muted-foreground">Compras por unidade exigem uma quantidade inteira.</p>}
+      {!validDates && <p role="status" className="text-sm text-muted-foreground">A fabricação deve ser anterior ou igual à validade.</p>}
+      {!validLink && <p role="status" className="text-sm text-muted-foreground">O produto selecionado precisa de um item de estoque na mesma unidade.</p>}
+      <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm">Custo total: <strong>{Number.isFinite(amount) ? brl(amount) : "—"}</strong></span><Button type="submit" className="h-11" disabled={!valid || save.isPending} data-testid="purchase-save">{save.isPending ? "Registrando…" : "Registrar compra"}</Button></div>
+    </form>
     <div className="rounded-2xl border border-amber-400/20 bg-panel p-4">
       <h3 className="mb-2 font-semibold text-amber-200">Validades próximas (até 7 dias) e vencidas</h3>
       <p className="mb-3 text-xs text-zinc-400">Avisos por data de compra: não representam saldo disponível do lote, pois a saída por lote ainda não é rastreada.</p>
@@ -494,10 +505,14 @@ function IngredientForm({ editing, onClose }: { editing: Ingredient | "new"; onC
   const save = useMutation({
     mutationFn: (b: IngredientIn) => editing === "new" ? apiPost<Ingredient>("/ingredients", b) : apiPut<Ingredient>(`/ingredients/${editing.id}`, { ...b, expected_stock: editing.stock }),
     onSuccess: () => { toast.success("Insumo salvo"); inv(); void queryClient.invalidateQueries({ queryKey: ["products"] }); onClose(); },
-    onError: (e) => toast.error(errMsg(e)),
   });
   return (
-    <>
+    <form className="grid min-w-0 gap-4" onSubmit={(event) => {
+      event.preventDefault();
+      if (f.name.trim() && numbers && !invalidMaximum && !save.isPending) {
+        save.mutate({ name: f.name.trim(), unit: f.unit, ...numbers, max_stock: maxStock, block_negative_stock: blockNegative });
+      }
+    }}>
       <DialogHeader><DialogTitle className="font-heading text-white">{editing === "new" ? "Novo insumo" : "Editar insumo"}</DialogTitle></DialogHeader>
       <div className="grid min-w-0 gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2"><Label htmlFor="ingredient-name" className="text-xs text-zinc-400">Nome</Label><Input id="ingredient-name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} className="mt-1" data-testid="ingredient-name-input" /></div>
@@ -518,8 +533,9 @@ function IngredientForm({ editing, onClose }: { editing: Ingredient | "new"; onC
       {invalidMaximum && <p role="alert" className="text-sm text-amber-300">O estoque máximo deve ser igual ou maior que o mínimo.</p>}
       {!f.name.trim() && <p className="text-sm text-zinc-400">Informe o nome do insumo.</p>}
       {!numbers && <p role="alert" className="text-sm text-amber-300">Preencha os valores numéricos. Use vírgula ou ponto para decimais; custo, mínimo e rendimento devem ser zero ou positivos.</p>}
-      <Button className="h-11" disabled={!f.name.trim() || !numbers || invalidMaximum || save.isPending} onClick={() => { if (numbers) save.mutate({ name: f.name.trim(), unit: f.unit, ...numbers, max_stock: maxStock, block_negative_stock: blockNegative }); }} data-testid="ingredient-save-button">{save.isPending ? "Salvando…" : "Salvar insumo"}</Button>
-    </>
+      {save.isError && <p role="alert" className="text-sm text-destructive">{errMsg(save.error)}</p>}
+      <Button type="submit" className="h-11" disabled={!f.name.trim() || !numbers || invalidMaximum || save.isPending} data-testid="ingredient-save-button">{save.isPending ? "Salvando…" : "Salvar insumo"}</Button>
+    </form>
   );
 }
 

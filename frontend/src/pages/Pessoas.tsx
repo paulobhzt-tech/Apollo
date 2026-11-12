@@ -150,6 +150,7 @@ function Fornecedores() {
   return (
     <>
       <Toolbar search={search} setSearch={setSearch} onNew={() => setEditing("new")} label="Novo fornecedor" testid="supplier" canCreate={isAdmin} />
+      {q.isError && <p role="alert" className="mb-3 text-sm text-destructive">Não foi possível carregar fornecedores. <Button type="button" variant="outline" size="xs" onClick={() => void q.refetch()}>Tentar novamente</Button></p>}
       <div className="overflow-hidden rounded-2xl border border-white/5 bg-panel">
         <Table>
           <TableHeader><TableRow><TableHead>Fornecedor</TableHead><TableHead>Fornece</TableHead><TableHead>Contato</TableHead><TableHead>CNPJ/CPF</TableHead><TableHead /></TableRow></TableHeader>
@@ -195,11 +196,10 @@ function SupplierForm({ s, onClose }: { s: Supplier | null; onClose: () => void 
       return s ? apiPut<Supplier>(`/suppliers/${s.id}`, body) : apiPost<Supplier>("/suppliers", body);
     },
     onSuccess: () => { toast.success(s ? "Fornecedor atualizado" : "Fornecedor cadastrado"); void queryClient.invalidateQueries({ queryKey: ["suppliers"] }); onClose(); },
-    onError: (e) => toast.error(errMsg(e)),
   });
   const field = (k: keyof SupplierIn, label: string, ph = "", full = false) => (
     <div className={cn(full && "sm:col-span-2")}><Label htmlFor={`supplier-${k}`} className="text-xs text-zinc-400">{label}</Label>
-      <Input id={`supplier-${k}`} value={f[k]} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} className="mt-1" data-testid={`supplier-${k}-input`} /></div>
+      <Input id={`supplier-${k}`} inputMode={k === "phone" ? "tel" : k === "email" ? "email" : k === "cpf" || k === "cnpj" ? "numeric" : undefined} value={f[k]} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} className="mt-1" data-testid={`supplier-${k}-input`} /></div>
   );
   return (
     <form className="grid min-w-0 gap-4" onSubmit={(event) => {
@@ -221,6 +221,7 @@ function SupplierForm({ s, onClose }: { s: Supplier | null; onClose: () => void 
           <Textarea id="supplier-notes" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} className="mt-1" placeholder="Dia de entrega, prazo de pagamento…" data-testid="supplier-notes-input" /></div>
       </div>
       {f.name.trim().length < 2 && <p className="text-sm text-zinc-400">Informe um nome ou razão social com pelo menos 2 caracteres.</p>}
+      {save.isError && <p role="alert" className="text-sm text-destructive">{errMsg(save.error)}</p>}
       <Button type="submit" className="mt-2 h-11" disabled={f.name.trim().length < 2 || save.isPending} data-testid="supplier-save-button">{save.isPending ? "Salvando…" : "Salvar fornecedor"}</Button>
     </form>
   );
