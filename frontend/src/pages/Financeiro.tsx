@@ -238,10 +238,11 @@ export default function Financeiro() {
   const now = new Date();
   const [start, setStart] = useState(isoLocal(new Date(now.getFullYear(), now.getMonth(), 1)));
   const [end, setEnd] = useState(isoLocal(now));
-  const dre = useQuery({ queryKey: ["dre", start, end], queryFn: () => apiGet<Dre>(`/reports/dre?start=${start}&end=${end}`), enabled: !!start && !!end && start <= end });
+  const validPeriod = !!start && !!end && start <= end;
+  const dre = useQuery({ queryKey: ["dre", start, end], queryFn: () => apiGet<Dre>(`/reports/dre?start=${start}&end=${end}`), enabled: validPeriod });
   const d = dre.isError ? undefined : dre.data;
-  const intelligence = useQuery({ queryKey: ["sales-intelligence", start, end], queryFn: () => apiGet<{ top: { product_id: string; name: string; qty: number; revenue: number }[]; least: { product_id: string; name: string; qty: number; revenue: number }[]; unsold: { id: string; name: string }[]; note: string }>(`/reports/sales-intelligence?start=${start}&end=${end}`) });
-  const productProfit = useQuery({ queryKey: ["product-profit", start, end], queryFn: () => apiGet<{ products: { product_id: string; name: string; qty: number; revenue: number; cost: number; profit: number; margin_pct: number }[]; profit: number; revenue: number; cost: number; note: string }>(`/reports/product-profit?start=${start}&end=${end}`) });
+  const intelligence = useQuery({ queryKey: ["sales-intelligence", start, end], queryFn: () => apiGet<{ top: { product_id: string; name: string; qty: number; revenue: number }[]; least: { product_id: string; name: string; qty: number; revenue: number }[]; unsold: { id: string; name: string }[]; note: string }>(`/reports/sales-intelligence?start=${start}&end=${end}`), enabled: validPeriod });
+  const productProfit = useQuery({ queryKey: ["product-profit", start, end], queryFn: () => apiGet<{ products: { product_id: string; name: string; qty: number; revenue: number; cost: number; profit: number; margin_pct: number }[]; profit: number; revenue: number; cost: number; note: string }>(`/reports/product-profit?start=${start}&end=${end}`), enabled: validPeriod });
   const preset = (days: number) => { const s = new Date(); s.setDate(s.getDate() - days + 1); setStart(isoLocal(s)); setEnd(isoLocal(new Date())); };
 
   return (
@@ -254,8 +255,10 @@ export default function Financeiro() {
           <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="w-40" data-testid="dre-end-input" />
         </>
       } />
+      {(!start || !end) && <p role="status" className="mb-4 text-sm text-muted-foreground">Informe as duas datas para consultar o período.</p>}
       {start > end && <p role="alert" className="mb-4 text-sm text-amber-300">A data inicial não pode ser posterior à data final.</p>}
-      {dre.isError && <p className="mb-4 text-sm text-red-400">{errMsg(dre.error)}</p>}
+      {validPeriod && dre.isLoading && <p role="status" className="mb-4 text-sm text-muted-foreground">Carregando o DRE do período…</p>}
+      {dre.isError && <p role="alert" className="mb-4 text-sm text-red-400">{errMsg(dre.error)}</p>}
       <section className="mb-5 space-y-3" data-testid="sales-intelligence">
         <h2 className="text-lg font-semibold text-white">Inteligência de vendas</h2>
         {intelligence.isError && <p role="alert" className="text-red-400">{errMsg(intelligence.error)}</p>}
