@@ -185,6 +185,11 @@ test("faixa, tema, zoom e atendimento em mesa e comanda", async ({ page }) => {
   await signIn(page, "admin-teste");
   await page.getByRole("button", { name: "Personalizar menu" }).click();
   const preferences = page.getByRole("dialog", { name: "Atalhos do meu menu" });
+  await page.setViewportSize({ width: 390, height: 500 });
+  const options = preferences.getByTestId("menu-preferences-options");
+  await expect(options).toHaveCSS("overflow-y", "auto");
+  await expect.poll(() => options.evaluate((element) => element.clientHeight <= 500)).toBe(true);
+  await page.setViewportSize({ width: 1280, height: 720 });
   const stockShortcut = preferences.getByRole("checkbox", { name: "Estoque" });
   await expect(stockShortcut).toBeChecked();
   await stockShortcut.uncheck();
