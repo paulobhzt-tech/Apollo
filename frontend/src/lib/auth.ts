@@ -5,16 +5,24 @@ import { isDesktop, kv } from "./desktop";
 import type { Employee, Role } from "./types";
 
 const ME_KEY = "pdv_last_operator";
+export async function bindOperatorQueue(operator: Employee) {
+  setQueueContext(null);
+  try {
+    const context = await apiGet<QueueContext>("/auth/sync-context");
+    if (context.operator_id === operator.id) setQueueContext(context);
+  } catch {
+    // Older servers still work online. Their queues remain unbound.
+  }
+  if (isDesktop()) {
+    try { kv.set(ME_KEY, JSON.stringify(operator)); }
+    catch { /* A local write failure does not invalidate the online session. */ }
+  }
+}
+
 async function fetchMe(): Promise<Employee> {
   try {
     const me = await apiGet<Employee>("/auth/me");
-    try {
-      setQueueContext(await apiGet<QueueContext>("/auth/sync-context"));
-    } catch {
-      // An older server can still operate online; unknown queues cannot replay.
-      setQueueContext(null);
-    }
-    if (isDesktop()) kv.set(ME_KEY, JSON.stringify(me));
+    await bindOperatorQueue(me);
     return me;
   } catch (e) {
     setQueueContext(null);

@@ -22,6 +22,14 @@ function allowedServerUrl(value, config) {
   return target.origin === HOMOLOGATION_URL || LOOPBACK.includes(target.hostname);
 }
 
+function parseConfig(raw) {
+  const config = JSON.parse(raw.replace(/^\uFEFF/, ""));
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    throw new Error("A configuração precisa ser um objeto JSON.");
+  }
+  return config;
+}
+
 function resolveServerConfig(defaults, saved) {
   const config = { ...defaults, ...saved, testBuild: defaults.testBuild === true };
   const obsoleteTunnel = config.testBuild && saved.testBuild === true && !saved.serverSelected
@@ -75,4 +83,4 @@ async function probeServer(serverUrl, fetch, { checkLogin = false } = {}) {
   }
 }
 
-module.exports = { cleanUrl, validServerUrl, resolveServerConfig, probeServer, allowedServerUrl, HOMOLOGATION_URL };
+module.exports = { cleanUrl, validServerUrl, resolveServerConfig, probeServer, allowedServerUrl, HOMOLOGATION_URL, parseConfig };

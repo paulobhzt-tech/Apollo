@@ -4,10 +4,10 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Delete, Flame, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { apiGet, apiPost } from "@/lib/api";
+import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { beginSession } from "@/lib/session";
 import { queryClient } from "@/lib/queryClient";
-import { homeFor } from "@/lib/auth";
+import { bindOperatorQueue, homeFor } from "@/lib/auth";
 import { errMsg, ROLE_LABEL } from "@/lib/format";
 import type { Employee, Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -35,10 +35,11 @@ export default function Login() {
 
   const login = useMutation({
     mutationFn: (credentials: {pin?: string; username?: string; password?: string}) => apiPost<Employee>("/auth/login", credentials),
-    onSuccess: (emp) => {
+    onSuccess: async (emp) => {
       if (rememberOperator && selected) localStorage.setItem("apollo-last-operator-id", selected.id);
       if (rememberOperator && mode === "password") localStorage.setItem("apollo-login-username", username.trim());
       beginSession();
+      await bindOperatorQueue(emp);
       queryClient.setQueryData(["me"], emp);
       toast.success(`Bem-vindo(a), ${emp.name}`);
       if (registerAfterLogin && emp.role === "admin") nav("/funcionarios", { replace: true });
@@ -48,7 +49,13 @@ export default function Login() {
       }
     },
     onError: (e) => {
-      toast.error(errMsg(e));
+      if (e instanceof ApiError && e.status === 401) {
+        toast.error(mode === "password"
+          ? "Credenciais inválidas. Confira o usuário e a senha. Se sua conta usa PIN, selecione a aba PIN."
+          : "Credenciais inválidas. Confira o PIN e o ambiente em que sua conta foi cadastrada.");
+      } else {
+        toast.error(errMsg(e));
+      }
       setPin("");
       setPassword("");
     },
@@ -77,7 +84,9 @@ export default function Login() {
           <h1 className="mt-10 max-w-lg text-4xl font-semibold leading-tight text-white sm:text-5xl">
             Frente de caixa, salão, cozinha e delivery <span className="text-primary">em um só lugar.</span>
           </h1>
-          <p className="mt-4 max-w-md text-zinc-400">Selecione seu perfil e digite seu PIN para iniciar o turno.</p>
+          <p className="mt-4 max-w-md text-zinc-400">Use o usuário e a senha cadastrados neste servidor ou selecione a aba PIN se sua conta usa PIN.</p>
+          <p className="mt-2 break-all text-sm text-zinc-400">Servidor · {window.location.host}</p>
+          {profiles.isSuccess && profiles.data.length === 0 && <p role="status" className="mt-3 text-sm text-amber-300">Este ambiente não tem perfis ativos. Confira o servidor com o administrador da homologação.</p>}
           <div className="mt-8 grid max-w-lg grid-cols-2 gap-2 sm:grid-cols-3" data-testid="profile-list">
             {(profiles.data ?? []).map((p) => (
               <button

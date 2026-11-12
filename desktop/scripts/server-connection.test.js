@@ -100,3 +100,19 @@ test("connection errors distinguish an absent listener, timeout and invalid cert
     assert.match(result.error, expected);
   }
 });
+
+test("reads a Windows UTF-8 BOM config without replacing the selected server", () => {
+  const { HOMOLOGATION_URL, parseConfig } = require("../server-connection");
+  const serverUrl = "http://127.0.0.1:18081";
+  const saved = parseConfig("\uFEFF" + JSON.stringify({ serverUrl, serverSelected: true, fullscreen: true }));
+  const config = resolveServerConfig({ serverUrl: HOMOLOGATION_URL, testBuild: true }, saved);
+  assert.equal(config.serverUrl, serverUrl);
+  assert.equal(config.fullscreen, true);
+});
+
+test("malformed or non-object config never masquerades as an empty config", () => {
+  const { parseConfig } = require("../server-connection");
+  for (const input of ["\uFEFF{", "null", "[]", "18080"]) {
+    assert.throws(() => parseConfig(input));
+  }
+});

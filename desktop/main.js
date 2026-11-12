@@ -8,7 +8,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const { autoUpdater } = require("electron-updater");
-const { cleanUrl, allowedServerUrl, resolveServerConfig, probeServer, HOMOLOGATION_URL } = require("./server-connection");
+const { cleanUrl, allowedServerUrl, resolveServerConfig, probeServer, HOMOLOGATION_URL, parseConfig } = require("./server-connection");
 
 const CHECK_MS = 15000;
 let win = null;
@@ -32,21 +32,35 @@ function enableProductionUpdates() {
 
 // ---------- config (userData/config.json, editable without reinstalling) ----------
 const userDir = () => app.getPath("userData");
+const configPath = () => path.join(userDir(), "config.json");
+let configIssue = "";
+let preserveConfig = false;
 function loadConfig() {
-  const def = JSON.parse(fs.readFileSync(path.join(__dirname, "config.default.json"), "utf8"));
-  const f = path.join(userDir(), "config.json");
-  if (!fs.existsSync(f)) fs.writeFileSync(f, JSON.stringify(def, null, 2));
-  let saved;
+  const defaults = parseConfig(fs.readFileSync(path.join(__dirname, "config.default.json"), "utf8"));
+  let saved = {};
   try {
-    saved = JSON.parse(fs.readFileSync(f, "utf8"));
-  } catch {
-    saved = {};
+    saved = parseConfig(fs.readFileSync(configPath(), "utf8"));
+    if (Object.hasOwn(saved, "serverUrl") && !allowedServerUrl(cleanUrl(saved.serverUrl), defaults)) {
+      configIssue = "O endereço salvo no config.json é inválido para este instalador. Confirme o endereço antes de conectar.";
+      preserveConfig = true;
+    }
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      configIssue = "Não foi possível ler o config.json. Confira o endereço abaixo. O arquivo original será preservado ao salvar.";
+      preserveConfig = true;
+    }
   }
-  return resolveServerConfig(def, saved);
+  if (configIssue) console.warn("Apollo: " + configIssue);
+  return resolveServerConfig(defaults, saved);
 }
 let cfg;
-function saveConfig() {
-  fs.writeFileSync(path.join(userDir(), "config.json"), JSON.stringify(cfg, null, 2));
+function saveConfig(next = cfg) {
+  if (preserveConfig) {
+    fs.copyFileSync(configPath(), configPath() + ".preservado-" + crypto.randomUUID(), fs.constants.COPYFILE_EXCL);
+  }
+  fs.writeFileSync(configPath(), JSON.stringify(next, null, 2));
+  preserveConfig = false;
+  configIssue = "";
 }
 
 // ---------- encrypted key/value store (offline queue, cached menu, last operator) ----------
@@ -112,7 +126,9 @@ const testConnection = (url = cfg.serverUrl) => probeServer(url, net.fetch, { ch
 
 async function openBest(offlineOnly = false, confirmed = null) {
   if (!offlineOnly) {
-    const result = confirmed ?? await testConnection();
+    const result = confirmed ?? (cfg.testBuild && configIssue
+      ? { ok: false, error: configIssue }
+      : await testConnection());
     if (result.ok) {
       try {
         await win.loadURL(cfg.serverUrl + "/pdv");
@@ -272,10 +288,11 @@ ipcMain.handle("pdv:connect-server", async (event, value) => {
   }
   const result = await testConnection(url);
   if (!result.ok) return result;
-  cfg.serverUrl = url;
-  cfg.serverSelected = true;
-  if (!cfg.servers.some((server) => server.url === url)) cfg.servers.push({ name: "Homologação", url });
-  saveConfig();
+  const servers = cfg.servers.some((server) => server.url === url)
+    ? cfg.servers : [...cfg.servers, { name: "Homologação", url }];
+  const next = { ...cfg, serverUrl: url, serverSelected: true, servers };
+  saveConfig(next);
+  cfg = next;
   await openBest(false, result);
   return { ok: mode === "online", error: connectionError };
 });
