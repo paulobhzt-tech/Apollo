@@ -107,7 +107,7 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
   const today = new Date();
   const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const expiredLot = !!expiryDate && expiryDate < localToday;
-  const valid = supplierExists && selected && quantityValid && validLink && validDates &&
+  const valid = supplierExists && selected && quantityValid && validLink && validDates && !expiredLot &&
     unitPrice !== null && unitPrice >= 0 && Number.isFinite(amount);
   const save = useMutation({
     mutationFn: (values: { qty: number; unit_cost: number }) => {
@@ -163,7 +163,7 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
         <p role="status" className="text-sm text-amber-300">Informe uma quantidade maior que zero e um preço unitário válido. Use vírgula ou ponto para decimais.</p>}
       {!!qty && selected?.unit === "un" && quantity !== null && !Number.isInteger(quantity) && <p role="status" className="text-sm text-muted-foreground">Compras por unidade exigem uma quantidade inteira.</p>}
       {!validDates && <p role="status" className="text-sm text-muted-foreground">A fabricação deve ser anterior ou igual à validade.</p>}
-      {expiredLot && <p role="alert" data-testid="purchase-expired-warning" className="text-sm text-amber-300">Atenção: a validade informada já passou. Confira o lote antes de registrar a entrada; produtos vencidos não devem ser vendidos.</p>}
+      {expiredLot && <p role="alert" data-testid="purchase-expired-warning" className="text-sm text-amber-300">A validade informada já passou. Esta compra não pode ser registrada com lote vencido. Corrija a data ou confira o fornecedor.</p>}
       {!validLink && <p role="status" className="text-sm text-muted-foreground">O produto selecionado precisa de um item de estoque na mesma unidade.</p>}
       <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm">Custo total: <strong>{Number.isFinite(amount) ? brl(amount) : "—"}</strong></span><Button type="submit" className="h-11" disabled={!valid || save.isPending} data-testid="purchase-save">{save.isPending ? "Registrando…" : "Registrar compra"}</Button></div>
     </form>
