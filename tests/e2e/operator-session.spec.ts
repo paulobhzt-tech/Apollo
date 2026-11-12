@@ -169,6 +169,19 @@ test("faixa, tema, zoom e atendimento em mesa e comanda", async ({ page }) => {
   await mockServer(page);
   await page.goto("/login");
   await signIn(page, "admin-teste");
+  await page.getByRole("button", { name: "Personalizar menu" }).click();
+  const preferences = page.getByRole("dialog", { name: "Atalhos do meu menu" });
+  const stockShortcut = preferences.getByRole("checkbox", { name: "Estoque" });
+  await expect(stockShortcut).toBeChecked();
+  await stockShortcut.uncheck();
+  await expect.poll(() => page.evaluate(() =>
+    JSON.parse(localStorage.getItem("apollo-menu-shortcuts:a") ?? "[]") as string[]
+  )).not.toContain("/estoque");
+  await stockShortcut.check();
+  await expect.poll(() => page.evaluate(() =>
+    JSON.parse(localStorage.getItem("apollo-menu-shortcuts:a") ?? "[]") as string[]
+  )).toContain("/estoque");
+  await preferences.getByRole("button", { name: "Fechar", exact: true }).click();
   const menu = page.getByTestId("top-menu-groups");
   for (const label of ["Principal", "Produtos", "Marketing", "Financeiro", "Relatórios", "Apps", "Configurações"]) {
     await expect(menu.getByRole("button", { name: label, exact: true })).toBeVisible();
