@@ -31,3 +31,19 @@ def test_total_inventory_rejects_invalid_count(value):
 def test_purchase_rejects_invalid_quantities():
     with pytest.raises(ValidationError):
         PurchaseIn(supplier_id="s", ingredient_id="i", qty=0, unit_cost=1)
+
+
+def test_purchase_accepts_additional_costs_and_bill_due_date():
+    purchase = PurchaseIn(supplier_id="s", ingredient_id="i", qty=10, unit_cost=12,
+                          freight_cost=8.5, tax_cost=3.5, bill_due_date="2026-12-10")
+    assert purchase.freight_cost == 8.5
+    assert purchase.tax_cost == 3.5
+    assert purchase.bill_due_date == "2026-12-10"
+    assert PurchaseIn(supplier_id="s", ingredient_id="i", qty=1, unit_cost=2).freight_cost == 0
+
+
+@pytest.mark.parametrize("field", ["freight_cost", "tax_cost"])
+@pytest.mark.parametrize("value", [-1, float("nan"), float("inf")])
+def test_purchase_rejects_invalid_additional_costs(field, value):
+    with pytest.raises(ValidationError):
+        PurchaseIn(supplier_id="s", ingredient_id="i", qty=1, unit_cost=2, **{field: value})
