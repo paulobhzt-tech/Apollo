@@ -12,3 +12,9 @@ Base revisada: `ba2a8a8` na branch `feat/apollo-3.0.1-caixa-offline-auditoria`. 
 | 6. Segurança, offline e backup | Fila do caixa com contexto de sincronização, referências idempotentes, auditoria e testes de restauração isolada. | Recuperação e backup têm fluxos separados para desktop e servidor. | Confirmar credencial offline com expiração e revogação, ensaio de dois caixas e um celular e rotina automática criptografada de ponta a ponta. |
 
 A classificação descreve o código revisado. A aprovação em aparelho físico depende de evidência no ambiente de homologação.
+
+## Avanços após a revisão
+
+- **Mesas e comandas:** seleção de pagador para itens compartilhados e conferência da comanda e do subtotal no recebimento. A integração cobre rejeição da prévia desatualizada e repetição idempotente. A janela de divisão foi verificada em Chromium com zoom de 125%, entre 320 e 1366 px.
+- **Cozinha e bar:** a fila aplica o limite depois de filtrar tickets pendentes por setor. O teste usa 200 tickets já impressos e verifica que o ticket ainda pendente aparece para o bar.
+- **Financeiro e QR:** a CI cobre baixa concorrente de contas e limites de requisições do cardápio público com testes isolados do banco.
