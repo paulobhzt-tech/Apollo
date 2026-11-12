@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { catalogNumber, ingredientValues } from "@/lib/catalog-form";
 
 const UNITS: Unit[] = ["kg", "g", "L", "ml", "un"];
+const dateBR = (iso?: string | null) => iso && /^\\d{4}-\\d{2}-\\d{2}$/.test(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : iso || "—";
 const MOVE_LABEL: Record<StockMove["type"], string> = { entrada: "Entrada", saida: "Saída", ajuste: "Ajuste/Inventário", venda: "Baixa por venda", estorno: "Estorno", perda: "Perda / Descarte" };
 const inv = () => { void queryClient.invalidateQueries({ queryKey: ["inventory-forecast"] }); void queryClient.invalidateQueries({ queryKey: ["inventory-replenishment"] }); void queryClient.invalidateQueries({ queryKey: ["ingredients"] }); void queryClient.invalidateQueries({ queryKey: ["stock-moves"] }); };
 
@@ -159,9 +160,9 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
         <div><Label htmlFor="purchase-cost">Preço por {selected?.unit ?? "unidade"} (R$)</Label><Input id="purchase-cost" inputMode="decimal" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} placeholder="32,00" /></div>
         <div><Label htmlFor="purchase-freight">Frete (R$)</Label><Input id="purchase-freight" data-testid="purchase-freight" inputMode="decimal" value={freightCost} onChange={(e) => setFreightCost(e.target.value)} /></div>
         <div><Label htmlFor="purchase-taxes">Impostos (R$)</Label><Input id="purchase-taxes" data-testid="purchase-taxes" inputMode="decimal" value={taxCost} onChange={(e) => setTaxCost(e.target.value)} /></div>
-        <div><Label htmlFor="purchase-bill-due">Vencimento do boleto (opcional)</Label><Input id="purchase-bill-due" data-testid="purchase-bill-due" type="date" value={billDueDate} onChange={(e) => setBillDueDate(e.target.value)} /></div>
-        <div><Label htmlFor="purchase-made">Data de fabricação</Label><Input id="purchase-made" type="date" value={manufacturedOn} onChange={(event) => setManufacturedOn(event.target.value)} /></div>
-        <div><Label htmlFor="purchase-expiry">Validade do lote</Label><Input id="purchase-expiry" type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} /></div>
+        <div><Label htmlFor="purchase-bill-due">Vencimento do boleto (dia/mês/ano, opcional)</Label><Input id="purchase-bill-due" data-testid="purchase-bill-due" type="date" value={billDueDate} onChange={(e) => setBillDueDate(e.target.value)} /></div>
+        <div><Label htmlFor="purchase-made">Data de fabricação (dia/mês/ano)</Label><Input id="purchase-made" type="date" value={manufacturedOn} onChange={(event) => setManufacturedOn(event.target.value)} /></div>
+        <div><Label htmlFor="purchase-expiry">Validade do lote (dia/mês/ano)</Label><Input id="purchase-expiry" type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} /></div>
         <div><Label htmlFor="purchase-lot">Número do lote</Label><Input id="purchase-lot" value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} placeholder="Opcional" /></div>
       </div>
       <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Observações / nota fiscal (opcional)" />
@@ -180,9 +181,9 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
     <div className="rounded-2xl border border-amber-400/20 bg-panel p-4">
       <h3 className="mb-2 font-semibold text-amber-200">Validades próximas (até 7 dias) e vencidas</h3>
       <p className="mb-3 text-xs text-zinc-400">Avisos por data de compra: não representam saldo disponível do lote, pois a saída por lote ainda não é rastreada.</p>
-      {(expiry.data ?? []).length === 0 ? <p className="text-sm text-zinc-400">Nenhum lote com alerta.</p> : <ul className="space-y-2 text-sm">{(expiry.data ?? []).map((p) => <li key={p.id} className="flex flex-wrap justify-between gap-2"><span>{p.ingredient_name} · {p.supplier_name} · lote {p.lot_number || "não informado"}</span><strong className={p.days_to_expiry < 0 ? "text-red-300" : "text-amber-200"}>{p.days_to_expiry < 0 ? "Vencido" : p.days_to_expiry === 0 ? "Vence hoje" : "Vence em " + p.days_to_expiry + " dias"} ({p.expiry_date})</strong></li>)}</ul>}
+      {(expiry.data ?? []).length === 0 ? <p className="text-sm text-zinc-400">Nenhum lote com alerta.</p> : <ul className="space-y-2 text-sm">{(expiry.data ?? []).map((p) => <li key={p.id} className="flex flex-wrap justify-between gap-2"><span>{p.ingredient_name} · {p.supplier_name} · lote {p.lot_number || "não informado"}</span><strong className={p.days_to_expiry < 0 ? "text-red-300" : "text-amber-200"}>{p.days_to_expiry < 0 ? "Vencido" : p.days_to_expiry === 0 ? "Vence hoje" : "Vence em " + p.days_to_expiry + " dias"} ({dateBR(p.expiry_date)})</strong></li>)}</ul>}
     </div>
-    <div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Fornecedor</TableHead><TableHead>Insumo</TableHead><TableHead>Qtd.</TableHead><TableHead>Custo un.</TableHead><TableHead>Total</TableHead><TableHead>Validade</TableHead></TableRow></TableHeader><TableBody>{(purchases.data ?? []).map((p) => <TableRow key={p.id}><TableCell>{fmtDateTime(p.created_at)}</TableCell><TableCell>{p.supplier_name}</TableCell><TableCell>{p.product_name || p.ingredient_name}</TableCell><TableCell>{p.qty} {p.unit}</TableCell><TableCell>{brl(p.unit_cost)}</TableCell><TableCell>{brl(p.total_cost)}</TableCell><TableCell>{p.expiry_date || "—"}</TableCell></TableRow>)}</TableBody></Table></div>
+    <div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Fornecedor</TableHead><TableHead>Insumo</TableHead><TableHead>Qtd.</TableHead><TableHead>Custo un.</TableHead><TableHead>Total</TableHead><TableHead>Validade</TableHead></TableRow></TableHeader><TableBody>{(purchases.data ?? []).map((p) => <TableRow key={p.id}><TableCell>{fmtDateTime(p.created_at)}</TableCell><TableCell>{p.supplier_name}</TableCell><TableCell>{p.product_name || p.ingredient_name}</TableCell><TableCell>{p.qty} {p.unit}</TableCell><TableCell>{brl(p.unit_cost)}</TableCell><TableCell>{brl(p.total_cost)}</TableCell><TableCell>{dateBR(p.expiry_date)}</TableCell></TableRow>)}</TableBody></Table></div>
   </div>;
 }
 
