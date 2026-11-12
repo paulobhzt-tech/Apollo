@@ -75,7 +75,9 @@ async def _validate_product(body: ProductIn) -> None:
     if not await db.categories.find_one({"id": body.category_id}):
         raise HTTPException(400, "Categoria inválida")
     await _check_station(body.station)
-    names = {p["name"].strip().lower(): p["id"] for p in await db.products.find({}, {"_id": 0, "id": 1, "name": 1}).to_list(5000)}
+    products = await db.products.find({}, {"_id": 0, "id": 1, "name": 1}).to_list(5000) if body.options else []
+    names = {product["name"].strip().lower(): product["id"] for product in products}
+    product_ids = {product["id"] for product in products}
     group_names = set()
     for group in body.options:
         group.name = group.name.strip()
@@ -88,7 +90,7 @@ async def _validate_product(body: ProductIn) -> None:
             if not choice.name or choice.name.casefold() in choice_names:
                 raise HTTPException(400, f"Informe opções com nomes distintos em {group.name}")
             choice_names.add(choice.name.casefold())
-            if choice.product_id not in names.values():
+            if choice.product_id not in product_ids:
                 choice.product_id = names.get(choice.name.lower())
     ids = {r.ingredient_id for r in body.recipe}
     if ids and await db.ingredients.count_documents({"id": {"$in": list(ids)}}) != len(ids):
@@ -107,7 +109,8 @@ async def create_product(body: ProductIn, _: dict = Depends(require())):
 @router.put("/products/{id}", response_model=Product)
 async def update_product(id: str, body: ProductIn, _: dict = Depends(require())):
     await _validate_product(body)
-    res = await db.products.find_one_and_update({"id": id}, {"$set": body.model_dump()}, projection={"_id": 0}, return_document=True)
+    fields = body.model_dump(exclude={"sale_unit", "channels"} - body.model_fields_set)
+    res = await db.products.find_one_and_update({"id": id}, {"$set": fields}, projection={"_id": 0}, return_document=True)
     if not res:
         raise HTTPException(404, "Produto não encontrado")
     return with_cost(res, await ingredient_map())

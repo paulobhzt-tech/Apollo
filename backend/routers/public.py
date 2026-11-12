@@ -1,6 +1,6 @@
-from typing import Literal
 """Unauthenticated endpoints used by the QR-code table menu and the own delivery site."""
 import os
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field

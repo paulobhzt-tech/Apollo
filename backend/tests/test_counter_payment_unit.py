@@ -146,3 +146,36 @@ async def test_payment_audit_is_written_with_settlement_and_actor(payment_contex
     assert event["actor_id"] == "cashier-1"
     assert event["values"]["total"] == 20
     assert "secret" not in str(event)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("channels", "channel", "allowed"), [
+    (None, "qr", True),
+    (["caixa"], "caixa", True),
+    (["caixa"], "qr", False),
+    (["qr"], "delivery", False),
+    ([], "comanda", False),
+])
+async def test_catalog_availability_is_enforced_at_order_entry(monkeypatch, channels, channel, allowed):
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, Mock
+    from fastapi import HTTPException
+    from lib import orders
+    from models.schemas import OrderItemIn
+
+    product = {"id": "test-product", "name": "Produto fictício", "price": 10, "category_id": "test-category"}
+    if channels is not None:
+        product["channels"] = channels
+    database = SimpleNamespace(
+        products=SimpleNamespace(find=Mock(return_value=SimpleNamespace(to_list=AsyncMock(return_value=[product])))),
+        categories=SimpleNamespace(find=Mock(return_value=SimpleNamespace(to_list=AsyncMock(return_value=[])))),
+    )
+    monkeypatch.setattr(orders, "db", database)
+    monkeypatch.setattr(orders, "ingredient_map", AsyncMock(return_value={}))
+    items = [OrderItemIn(product_id=product["id"], qty=1)]
+    if allowed:
+        result = await orders.build_items(items, channel=channel)
+        assert result[0].unit_price == 10
+    else:
+        with pytest.raises(HTTPException, match="indisponível neste canal"):
+            await orders.build_items(items, channel=channel)
