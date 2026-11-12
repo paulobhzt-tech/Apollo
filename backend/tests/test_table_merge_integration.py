@@ -114,3 +114,27 @@ async def test_merge_rejects_partially_paid_order_without_changing_tables():
     finally:
         await db.orders.delete_many({"id": {"$in": orders}})
         await db.tables.delete_many({"id": {"$in": ids}})
+
+
+async def test_concurrent_table_open_does_not_replace_the_winning_order():
+    suffix = uuid.uuid4().hex
+    table = Table(id=f"open-race-{suffix}", number=875).model_dump()
+    await db.tables.insert_one(dict(table))
+    try:
+        results = await asyncio.gather(
+            tables.get_or_open_order({**table, "people": 2}, {"id": "a", "name": "A"}, opening_customer="Ana"),
+            tables.get_or_open_order({**table, "people": 3}, {"id": "b", "name": "B"}, opening_customer="Bia"),
+            return_exceptions=True,
+        )
+        winners = [result for result in results if isinstance(result, dict)]
+        assert len(winners) == 1, results
+        conflicts = [result for result in results if isinstance(result, HTTPException)]
+        assert len(conflicts) == 1 and conflicts[0].status_code == 409
+        updated = await db.tables.find_one({"id": table["id"]})
+        assert updated["order_id"] == winners[0]["id"]
+        expected = ("Ana", 2) if winners[0]["waiter_id"] == "a" else ("Bia", 3)
+        assert (updated["customer_name"], updated["people"]) == expected
+        assert await db.orders.count_documents({"table_id": table["id"], "status": "aberto"}) == 1
+    finally:
+        await db.orders.delete_many({"table_id": table["id"]})
+        await db.tables.delete_one({"id": table["id"]})

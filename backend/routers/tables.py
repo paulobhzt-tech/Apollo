@@ -25,7 +25,7 @@ async def get_table(id: str, **options) -> dict:
     return t
 
 
-async def get_or_open_order(table: dict, waiter: dict | None = None, source: str = "mesa", **options) -> dict:
+async def get_or_open_order(table: dict, waiter: dict | None = None, source: str = "mesa", *, opening_customer: str | None = None, **options) -> dict:
     """Return the table's open order, opening the table if it is free."""
     if table.get("order_id"):
         o = await db.orders.find_one({"id": table["order_id"], "status": "aberto"}, {"_id": 0}, **options)
@@ -34,9 +34,23 @@ async def get_or_open_order(table: dict, waiter: dict | None = None, source: str
     order = await new_order(channel="mesa", source=source, table_id=table["id"], table_number=table["number"],
                             table_label=table_label(table),
                             waiter_id=waiter["id"] if waiter else None, waiter_name=waiter["name"] if waiter else "", **options)
-    await db.tables.update_one({"id": table["id"]}, {"$set": {
+    fields = {
         "status": "ocupada", "order_id": order["id"], "opened_at": now(), "people": table.get("people") or 1,
-        "waiter_id": order["waiter_id"], "waiter_name": order["waiter_name"]}}, **options)
+        "waiter_id": order["waiter_id"], "waiter_name": order["waiter_name"],
+    }
+    if opening_customer is not None:
+        fields["customer_name"] = opening_customer
+    result = await db.tables.update_one(
+        {"id": table["id"], "order_id": table.get("order_id")},
+        {"$set": fields}, **options,
+    )
+    if not result.matched_count:
+        if options.get("session") is None:
+            # Preserve the sequence and audit context without leaving a second active bill.
+            await db.orders.update_one({"id": order["id"], "status": "aberto"}, {"$set": {
+                "status": "cancelado", "cancel_reason": "Abertura concorrente da mesa", "cancelled_at": now(),
+            }})
+        raise HTTPException(409, "Mesa alterada por outro atendimento. Atualize o mapa.")
     return order
 
 
@@ -74,12 +88,17 @@ async def delete_table(id: str, _: dict = Depends(require("caixa"))):
 
 @router.post("/tables/{id}/open", response_model=Table)
 async def open_table(id: str, body: OpenTableIn, user: dict = Depends(require(*STAFF))):
-    t = await get_table(id)
-    if t.get("order_id"):
-        raise HTTPException(400, "Mesa já está aberta")
-    await db.tables.update_one({"id": id}, {"$set": {"people": body.people, "customer_name": body.customer_name}})
-    await get_or_open_order({**t, "people": body.people}, user)
-    return await get_table(id)
+    async def open_in_session(session):
+        options = {"session": session} if session is not None else {}
+        t = await get_table(id, **options)
+        if t.get("order_id"):
+            raise HTTPException(400, "Mesa já está aberta")
+        await get_or_open_order(
+            {**t, "people": body.people}, user, opening_customer=body.customer_name, **options,
+        )
+        return await get_table(id, **options)
+
+    return await with_order_transaction(open_in_session)
 
 
 class TableCustomersIn(BaseModel):
