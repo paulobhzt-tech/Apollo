@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { cashAmount, catalogNumber, ingredientValues } from "./catalog-form";
+import { cashAmount, catalogNumber, formatCurrencyTyping, ingredientValues } from "./catalog-form";
 
 it("parses decimal quantities and Brazilian currency without losing precision", () => {
   expect(catalogNumber(" 12,50 ")).toBe(12.5);
@@ -36,4 +36,16 @@ it("validates stock movement numeric input before submitting", () => {
   for (const input of ["Infinity", "NaN", "1e309", "1,2,3", ""]) {
     expect(catalogNumber(input)).toBeNull();
   }
+});
+
+
+it("formats currency automatically as Brazilian reais while typing digits", () => {
+  expect(formatCurrencyTyping("")).toBe("");
+  expect(formatCurrencyTyping("1")).toBe("0,01");
+  expect(formatCurrencyTyping("12")).toBe("0,12");
+  expect(formatCurrencyTyping("123")).toBe("1,23");
+  expect(formatCurrencyTyping("12345")).toBe("123,45");
+  expect(formatCurrencyTyping("1234567")).toBe("12.345,67");
+  expect(formatCurrencyTyping("R$ 1.234,56")).toBe("1.234,56");
+  expect(catalogNumber(formatCurrencyTyping("1234567"))).toBe(12345.67);
 });
