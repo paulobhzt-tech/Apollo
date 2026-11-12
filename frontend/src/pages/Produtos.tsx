@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Box, CircleHelp, Copy, Download, ImagePlus, Pencil, Plus, Printer as PrinterIcon, Search, Tags, Trash2, Utensils } from "lucide-react";
 import { fileToDataUrl } from "@/lib/image";
 import { toast } from "sonner";
-import { catalogNumber } from "@/lib/catalog-form";
+import { catalogNumber, formatCurrencyTyping } from "@/lib/catalog-form";
 import AppShell, { PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -220,8 +220,8 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
   const [uploading, setUploading] = useState(false);
   const envs = useEnvironments();
   const catStation = cats.find((c) => c.id === categoryId)?.station ?? "cozinha";
-  const [priceStr, setPriceStr] = useState(source ? String(source.price) : "");
-  const [costStr, setCostStr] = useState(source?.cost_price ? String(source.cost_price) : "");
+  const [priceStr, setPriceStr] = useState(source ? source.price.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "");
+  const [costStr, setCostStr] = useState(source?.cost_price ? source.cost_price.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "");
   const [ingId, setIngId] = useState("");
   const [qty, setQty] = useState("");
   const recipeQuantity = catalogNumber(qty);
@@ -302,10 +302,10 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
                   <SelectContent>{cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label htmlFor="product-price" className="text-xs text-zinc-400">Preço de venda (R$)</Label><Input value={priceStr} inputMode="decimal" onChange={(e) => setPriceStr(e.target.value)} className="mt-1 font-mono" id="product-price" data-testid="product-price-input" /></div>
+              <div><Label htmlFor="product-price" className="text-xs text-zinc-400">Preço de venda (R$)</Label><Input value={priceStr} inputMode="decimal" onChange={(e) => setPriceStr(formatCurrencyTyping(e.target.value))} className="mt-1 font-mono" id="product-price" data-testid="product-price-input" /></div>
               <div>
                 <Label htmlFor="product-cost" className="text-xs text-zinc-400">Preço de custo (R$)</Label>
-                <Input value={costStr} inputMode="decimal" placeholder={recipeCost > 0 ? `Ficha técnica: ${brl(recipeCost)}` : "0,00"} onChange={(e) => setCostStr(e.target.value)} className="mt-1 font-mono" id="product-cost" data-testid="product-cost-input" />
+                <Input value={costStr} inputMode="decimal" placeholder={recipeCost > 0 ? `Ficha técnica: ${brl(recipeCost)}` : "0,00"} onChange={(e) => setCostStr(formatCurrencyTyping(e.target.value))} className="mt-1 font-mono" id="product-cost" data-testid="product-cost-input" />
                 <p className="mt-1 text-[11px] text-zinc-500">{manualCost > 0 ? "Custo manual (substitui a ficha técnica)" : "Vazio = usa o custo da ficha técnica"}</p>
               </div>
               <div className="flex flex-col justify-center rounded-xl border border-white/5 bg-panel px-3 py-2">
@@ -392,7 +392,7 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
           <div><p className="text-[10px] uppercase text-zinc-500">Margem</p><p className={cn("font-mono", margin >= 65 ? "text-emerald-300" : "text-amber-300")} data-testid="recipe-margin">{margin.toFixed(1)}%</p></div>
           <div><p className="text-[10px] uppercase text-zinc-500">Preço sugerido</p><p className="font-mono text-primary" data-testid="suggested-price">{brl(suggestedPrice)}</p></div>
         </div>
-        <div className="mt-3 flex flex-wrap items-end gap-2"><div><Label>Margem bruta desejada (%)</Label><Input className="mt-1 w-28" inputMode="decimal" value={targetMargin} onChange={(e) => setTargetMargin(e.target.value)} data-testid="target-margin" /></div><Button type="button" variant="outline" disabled={!suggestedPrice || suggestedPrice > 1000000} onClick={() => setPriceStr(suggestedPrice.toFixed(2))} data-testid="apply-suggested-price">Aplicar preço sugerido</Button></div>
+        <div className="mt-3 flex flex-wrap items-end gap-2"><div><Label>Margem bruta desejada (%)</Label><Input className="mt-1 w-28" inputMode="decimal" value={targetMargin} onChange={(e) => setTargetMargin(e.target.value)} data-testid="target-margin" /></div><Button type="button" variant="outline" disabled={!suggestedPrice || suggestedPrice > 1000000} onClick={() => setPriceStr(suggestedPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }))} data-testid="apply-suggested-price">Aplicar preço sugerido</Button></div>
         {cost > 0 && price > 0 && desiredMargin !== null && margin < desiredMargin && <p className="mt-2 text-xs text-amber-300" role="status">Atenção: margem atual de {margin.toFixed(1)}% abaixo da meta de {desiredMargin}%.</p>}
         <p className="mt-2 text-xs text-zinc-400">Custo calculado pela ficha técnica e preços atuais dos insumos, salvo quando houver custo manual. Margem bruta não inclui impostos, taxas e despesas fixas.</p>
       </div>
