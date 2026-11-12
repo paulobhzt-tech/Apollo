@@ -1,31 +1,35 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type QueryFunctionContext } from "@tanstack/react-query";
 import { setQueueContext, type QueueContext } from "./offline";
 import { apiGet } from "./api";
 import { isDesktop, kv } from "./desktop";
 import type { Employee, Role } from "./types";
 
 const ME_KEY = "pdv_last_operator";
-export async function bindOperatorQueue(operator: Employee) {
+export async function bindOperatorQueue(operator: Employee, sessionSignal?: AbortSignal) {
+  sessionSignal?.throwIfAborted();
   setQueueContext(null);
   try {
-    const context = await apiGet<QueueContext>("/auth/sync-context", AbortSignal.timeout(5000));
-    if (context.operator_id === operator.id) setQueueContext(context);
+    const timeout = AbortSignal.timeout(5000);
+    const signal = sessionSignal ? AbortSignal.any([sessionSignal, timeout]) : timeout;
+    const context = await apiGet<QueueContext>("/auth/sync-context", signal);
+    if (!signal.aborted && context.operator_id === operator.id) setQueueContext(context);
   } catch {
     // Older servers still work online. Their queues remain unbound.
   }
+  sessionSignal?.throwIfAborted();
   if (isDesktop()) {
     try { kv.set(ME_KEY, JSON.stringify(operator)); }
     catch { /* A local write failure does not invalidate the online session. */ }
   }
 }
 
-async function fetchMe(): Promise<Employee> {
+async function fetchMe({ signal }: QueryFunctionContext): Promise<Employee> {
   try {
-    const me = await apiGet<Employee>("/auth/me");
-    await bindOperatorQueue(me);
+    const me = await apiGet<Employee>("/auth/me", signal);
+    await bindOperatorQueue(me, signal);
     return me;
   } catch (e) {
-    setQueueContext(null);
+    if (!signal.aborted) setQueueContext(null);
     // Do not grant access just because this computer remembers an operator.
     // An offline PIN verification flow is required before allowing offline access.
     throw e;
