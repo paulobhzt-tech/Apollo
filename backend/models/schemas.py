@@ -4,7 +4,7 @@ from decimal import Decimal
 from datetime import datetime, timezone
 from typing import Annotated, Literal, Optional
 
-from pydantic import AfterValidator, BaseModel, BeforeValidator, Field, model_validator
+from pydantic import AfterValidator, BaseModel, BeforeValidator, Field, StringConstraints, model_validator
 
 
 def _id() -> str:
@@ -121,7 +121,7 @@ class EnvironmentIn(BaseModel):
 
 
 class CategoryIn(BaseModel):
-    name: str = Field(min_length=1)
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
     station: Station = "cozinha"
     sort: int = 0
 
@@ -204,14 +204,14 @@ class Ingredient(BaseModel):
 
 
 class IngredientIn(BaseModel):
-    name: str = Field(min_length=1)
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
     unit: Unit
-    stock: float = 0
-    min_stock: float = Field(default=0, ge=0)
+    stock: float = Field(default=0, allow_inf_nan=False)
+    min_stock: float = Field(default=0, ge=0, allow_inf_nan=False)
     max_stock: Optional[float] = Field(default=None, ge=0, allow_inf_nan=False)
     block_negative_stock: bool = True
-    cost_per_unit: float = Field(default=0, ge=0)
-    units_per_kg: float = Field(default=0, ge=0)
+    cost_per_unit: float = Field(default=0, ge=0, allow_inf_nan=False)
+    units_per_kg: float = Field(default=0, ge=0, allow_inf_nan=False)
 
     @model_validator(mode="after")
     def validate_thresholds(self):
@@ -744,7 +744,7 @@ class Supplier(BaseModel):
 
 
 class SupplierIn(BaseModel):
-    name: str = Field(min_length=2)
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2)]
     doc: str = ""
     cpf: str = ""
     cnpj: str = ""

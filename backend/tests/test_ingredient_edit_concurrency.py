@@ -6,7 +6,7 @@ import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
 
-from models.schemas import IngredientUpdateIn
+from models.schemas import IngredientIn, IngredientUpdateIn
 from routers import catalog
 
 
@@ -64,3 +64,10 @@ async def test_legacy_editor_remains_compatible_and_does_not_store_metadata(ingr
 def test_expected_stock_must_be_finite(value):
     with pytest.raises(ValidationError):
         body(expected_stock=value)
+
+
+@pytest.mark.parametrize("field", ["stock", "min_stock", "cost_per_unit", "units_per_kg"])
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_ingredient_rejects_non_finite_values(field, value):
+    with pytest.raises(ValidationError):
+        IngredientIn(name="Carne", unit="kg", **{field: value})

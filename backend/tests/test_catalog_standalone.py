@@ -5,14 +5,24 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from lib.db import db
 from models.schemas import CategoryIn, IngredientIn, ProductIn, PurchaseIn, SupplierIn
 from routers import catalog
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.parametrize("schema, fields", [
+    (CategoryIn, {}),
+    (IngredientIn, {"unit": "kg"}),
+    (SupplierIn, {}),
+])
+def test_catalog_normalizes_names_and_rejects_whitespace_only(schema, fields):
+    assert schema(name="  Cadastro  ", **fields).name == "Cadastro"
+    with pytest.raises(ValidationError):
+        schema(name="   ", **fields)
 
 
+@pytest.mark.asyncio(loop_scope="session")
 async def test_catalog_purchase_recovers_replay_without_duplicating_stock(monkeypatch):
     if not db.name.startswith("apollo_restore_test_"):
         pytest.skip("Requer um MongoDB descartável")
