@@ -157,8 +157,8 @@ test("cancelar cadastro de usuário não redireciona o administrador", async ({ 
   await page.getByRole("button", { name: "Entrar com PIN" }).click();
   await page.getByRole("button", { name: "Entrar com usuário e senha" }).click();
   await signIn(page, "admin-teste");
-  await expect(page).toHaveURL(/\\/$/);
-  await expect(page).not.toHaveURL(/\\/funcionarios$/);
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page).not.toHaveURL(/\/funcionarios$/);
 });
 
 test("bloqueio continua exigindo autenticação sem rede e após recarregar", async ({ page }) => {
