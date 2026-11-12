@@ -16,7 +16,7 @@ import { useMe } from "@/lib/auth";
 import { queryClient } from "@/lib/queryClient";
 import type { Ingredient, IngredientIn, StockMove, Unit, Product, Supplier } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ingredientValues } from "@/lib/catalog-form";
+import { catalogNumber, ingredientValues } from "@/lib/catalog-form";
 
 const UNITS: Unit[] = ["kg", "g", "L", "ml", "un"];
 const MOVE_LABEL: Record<StockMove["type"], string> = { entrada: "Entrada", saida: "Saída", ajuste: "Ajuste/Inventário", venda: "Baixa por venda", estorno: "Estorno", perda: "Perda / Descarte" };
@@ -90,33 +90,40 @@ function PurchasePanel({ ingredients, onSaved }: { ingredients: Ingredient[]; on
   const [expiryDate, setExpiryDate] = useState("");
   const [lotNumber, setLotNumber] = useState("");
   const [note, setNote] = useState("");
-  const number = (s: string) => Number(s.replace(",", "."));
-  const amount = number(qty) * number(unitCost);
-  const valid = !!supplierId && !!ingredientId && number(qty) > 0 && number(unitCost) >= 0 &&
-    Number.isFinite(amount) && unitCost.trim() !== "";
+  const quantity = catalogNumber(qty);
+  const unitPrice = catalogNumber(unitCost);
+  const amount = quantity !== null && unitPrice !== null ? quantity * unitPrice : NaN;
+  const supplierExists = suppliers.data?.some((supplier) => supplier.id === supplierId);
+  const selected = ingredients.find((ingredient) => ingredient.id === ingredientId);
+  const valid = supplierExists && selected && quantity !== null && quantity > 0 &&
+    unitPrice !== null && unitPrice >= 0 && Number.isFinite(amount);
   const save = useMutation({
-    mutationFn: () => apiPost<Purchase>("/purchases", {
-      supplier_id: supplierId, ingredient_id: ingredientId, qty: number(qty),
-      unit_cost: number(unitCost), expiry_date: expiryDate || null, lot_number: lotNumber, note,
+    mutationFn: (values: { qty: number; unit_cost: number }) => apiPost<Purchase>("/purchases", {
+      supplier_id: supplierId, ingredient_id: ingredientId, ...values,
+      expiry_date: expiryDate || null, lot_number: lotNumber.trim(), note: note.trim(),
     }),
     onSuccess: () => { toast.success("Compra registrada e estoque atualizado"); setQty(""); setUnitCost(""); setLotNumber(""); setNote(""); setExpiryDate(""); void purchases.refetch(); void expiry.refetch(); onSaved(); },
     onError: (e) => toast.error(errMsg(e)),
   });
-  const selected = ingredients.find((i) => i.id === ingredientId);
   return <div className="space-y-4">
     <div className="rounded-2xl border border-white/5 bg-panel p-4 space-y-3">
       <h3 className="font-semibold text-white">Registrar compra de insumos</h3>
       <p className="text-xs text-zinc-400">A compra acrescenta a quantidade ao estoque e atualiza o custo médio ponderado do insumo. Não registre a mesma entrada novamente em Movimentações.</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div><Label>Fornecedor</Label><Select value={supplierId} onValueChange={setSupplierId}><SelectTrigger data-testid="purchase-supplier"><SelectValue placeholder="Selecione fornecedor" /></SelectTrigger><SelectContent>{(suppliers.data ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
-        <div><Label>Insumo</Label><Select value={ingredientId} onValueChange={setIngredientId}><SelectTrigger data-testid="purchase-ingredient"><SelectValue placeholder="Selecione insumo" /></SelectTrigger><SelectContent>{ingredients.map((i) => <SelectItem key={i.id} value={i.id}>{i.name} ({i.unit})</SelectItem>)}</SelectContent></Select></div>
-        <div><Label>Quantidade {selected ? "(" + selected.unit + ")" : ""}</Label><Input inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="20" /></div>
-        <div><Label>Preço por {selected?.unit ?? "unidade"} (R$)</Label><Input inputMode="decimal" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} placeholder="32,00" /></div>
-        <div><Label>Validade do lote</Label><Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} /></div>
-        <div><Label>Número do lote</Label><Input value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} placeholder="Opcional" /></div>
+        <div><Label htmlFor="purchase-supplier">Fornecedor</Label><Select value={supplierId} onValueChange={setSupplierId}><SelectTrigger id="purchase-supplier" data-testid="purchase-supplier"><SelectValue placeholder="Selecione fornecedor" /></SelectTrigger><SelectContent>{(suppliers.data ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
+        <div><Label htmlFor="purchase-ingredient">Insumo</Label><Select value={ingredientId} onValueChange={setIngredientId}><SelectTrigger id="purchase-ingredient" data-testid="purchase-ingredient"><SelectValue placeholder="Selecione insumo" /></SelectTrigger><SelectContent>{ingredients.map((i) => <SelectItem key={i.id} value={i.id}>{i.name} ({i.unit})</SelectItem>)}</SelectContent></Select></div>
+        <div><Label htmlFor="purchase-qty">Quantidade {selected ? "(" + selected.unit + ")" : ""}</Label><Input id="purchase-qty" inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="20" /></div>
+        <div><Label htmlFor="purchase-cost">Preço por {selected?.unit ?? "unidade"} (R$)</Label><Input id="purchase-cost" inputMode="decimal" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} placeholder="32,00" /></div>
+        <div><Label htmlFor="purchase-expiry">Validade do lote</Label><Input id="purchase-expiry" type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} /></div>
+        <div><Label htmlFor="purchase-lot">Número do lote</Label><Input id="purchase-lot" value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} placeholder="Opcional" /></div>
       </div>
       <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Observações / nota fiscal (opcional)" />
-      <div className="flex items-center justify-between"><span className="text-sm">Custo total: <strong>{Number.isFinite(amount) ? brl(amount) : "—"}</strong></span><Button disabled={!valid || save.isPending} onClick={() => save.mutate()} data-testid="purchase-save">Registrar compra</Button></div>
+      {suppliers.isError && <p role="alert" className="text-sm text-amber-300">Não foi possível carregar os fornecedores. <Button variant="outline" size="xs" onClick={() => void suppliers.refetch()}>Tentar novamente</Button></p>}
+      {suppliers.isSuccess && !suppliers.data.length && <p className="text-sm text-zinc-400">Cadastre um fornecedor antes de registrar a compra.</p>}
+      {!ingredients.length && <p className="text-sm text-zinc-400">Cadastre um insumo antes de registrar a compra.</p>}
+      {((qty && (quantity === null || quantity <= 0)) || (unitCost && (unitPrice === null || unitPrice < 0))) &&
+        <p role="status" className="text-sm text-amber-300">Informe uma quantidade maior que zero e um preço unitário válido. Use vírgula ou ponto para decimais.</p>}
+      <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm">Custo total: <strong>{Number.isFinite(amount) ? brl(amount) : "—"}</strong></span><Button disabled={!valid || save.isPending} onClick={() => { if (valid && quantity !== null && unitPrice !== null) save.mutate({ qty: quantity, unit_cost: unitPrice }); }} data-testid="purchase-save">Registrar compra</Button></div>
     </div>
     <div className="rounded-2xl border border-amber-400/20 bg-panel p-4">
       <h3 className="mb-2 font-semibold text-amber-200">Validades próximas (até 7 dias) e vencidas</h3>
