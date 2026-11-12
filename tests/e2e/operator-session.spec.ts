@@ -249,6 +249,31 @@ test("faixa, tema, zoom e atendimento em mesa e comanda", async ({ page }) => {
 });
 
 
+test("mesa e comanda permanecem acessíveis em tela pequena", async ({ page }) => {
+  await mockServer(page);
+  await page.setViewportSize({ width: 390, height: 500 });
+  await page.goto("/login");
+  await signIn(page, "admin-teste");
+  await page.goto("/mesas");
+
+  for (const [tab, card, title] of [
+    ["mesa", "table-card-12", "Atendimento — Mesa 12"],
+    ["comanda", "comanda-card-23", "Atendimento — Comanda 23"],
+  ] as const) {
+    await page.getByTestId(`kind-tab-${tab}`).click();
+    await page.getByTestId(card).click();
+    const dialog = page.getByRole("dialog", { name: title });
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveCSS("overflow-y", "auto");
+    await expect.poll(async () => {
+      const box = await dialog.boundingBox();
+      return Boolean(box && box.y >= 0 && box.y + box.height <= 501);
+    }).toBe(true);
+    await dialog.getByTestId("table-workspace-close").click();
+    await expect(dialog).toBeHidden();
+  }
+});
+
 test("busca de fornecedores ignora acentos e diferenças de maiúsculas", async ({ page }) => {
   await mockServer(page);
   await page.goto("/login");
