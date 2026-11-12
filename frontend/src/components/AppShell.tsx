@@ -1,18 +1,19 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "@/lib/api";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { apiGet, apiPut } from "@/lib/api";
 import { Link, NavLink, Navigate, useLocation } from "react-router-dom";
 import {
   Bot, Armchair, Bike, Boxes, ChefHat, LayoutDashboard, LineChart, LogOut, Menu, Music, QrCode, Receipt, ShoppingCart,
-  Users, UtensilsCrossed, Wallet, WifiOff, Wifi, Flame, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone,
+  Users, UtensilsCrossed, Wallet, WifiOff, Wifi, Flame, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone, LockKeyhole, Search, Megaphone, CalendarClock, MessageCircle, ListOrdered,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { NAV, homeFor, useMe, type NavItem } from "@/lib/auth";
+import { queryClient } from "@/lib/queryClient";
 import { endSession } from "@/lib/session";
-import { ROLE_LABEL } from "@/lib/format";
+import { errMsg, ROLE_LABEL } from "@/lib/format";
 import { setForcedOffline, syncQueue, useOffline } from "@/lib/offline";
 import type { Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -21,15 +22,47 @@ import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 
 const RIBBON_GROUPS = [
-  { label: "PRINCIPAL", group: "Operação", icon: ShoppingCart },
-  { label: "CADASTROS", group: "Cadastros", icon: Boxes },
-  { label: "FINANCEIRO", group: "Financeiro", icon: Wallet },
-  { label: "RELATÓRIOS", group: "Relatórios", icon: LineChart },
-  { label: "CONFIGURAÇÕES", group: "Sistema", icon: Settings },
+  { label: "Principal", icon: ShoppingCart },
+  { label: "Produtos", icon: Boxes },
+  { label: "Marketing", icon: Megaphone },
+  { label: "Financeiro", icon: Wallet },
+  { label: "Relatórios", icon: LineChart },
+  { label: "Apps", icon: Smartphone },
+  { label: "Configurações", icon: Settings },
 ] as const;
 
+type RibbonGroup = (typeof RIBBON_GROUPS)[number]["label"];
+
+function ribbonGroup(item: NavItem): RibbonGroup {
+  switch (item.to) {
+    case "/produtos": case "/estoque": return "Produtos";
+    case "/musica-ao-vivo": return "Marketing";
+    case "/comanda-mobile": case "/cozinha": case "/impressao": case "/apollo-ia": return "Apps";
+    case "/funcionarios": case "/config": return "Configurações";
+    case "/auditoria": return "Relatórios";
+    case "/caixa": return "Principal";
+  }
+  return item.group === "Financeiro" || item.group === "Relatórios" ? item.group : "Principal";
+}
+
+const PRINCIPAL_SHORTCUTS = [
+  { label: "Caixa", paths: ["/caixa", "/pdv"] },
+  { label: "Pedidos", paths: ["/mesas", "/delivery", "/comanda-mobile"] },
+  { label: "Clientes", paths: ["/clientes", "/qrcodes"] },
+  { label: "Atendimento", paths: [] },
+];
+
+const PRINCIPAL_LABELS: Record<string, string> = {
+  "/caixa": "Abrir/Fechar Caixa",
+  "/pdv": "Caixa/PDV",
+  "/mesas": "Mesas/Comandas",
+  "/comanda-mobile": "Fila de Atendimento",
+  "/clientes": "Clientes",
+  "/qrcodes": "Cardápio Digital",
+};
+
 const ICONS: Record<string, typeof Menu> = {
-  Bot, LayoutDashboard, Music, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone,
+  Bot, LayoutDashboard, Music, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone, LockKeyhole, Search, Megaphone, CalendarClock, MessageCircle, ListOrdered,
 };
 
 const DEFAULT_SHORTCUTS = ["/mesas", "/pdv", "/estoque"];
@@ -106,8 +139,8 @@ function MenuPreferences({ items, operatorId }: { items: NavItem[]; operatorId: 
         <DialogContent>
           <DialogTitle>Atalhos do meu menu</DialogTitle>
           <div className="grid gap-3">
-            {RIBBON_GROUPS.map(({ group }) => {
-              const groupItems = items.filter((item) => item.group === group);
+            {RIBBON_GROUPS.map(({ label: group }) => {
+              const groupItems = items.filter((item) => ribbonGroup(item) === group);
               return groupItems.length > 0 && <fieldset key={group} className="grid gap-1">
                 <legend className="text-xs font-semibold text-muted-foreground">{group}</legend>
                 {groupItems.map((item) => (
@@ -140,12 +173,12 @@ function NavList({ role, onNavigate, search = "" }: { role: Role; onNavigate?: (
   const normalizedSearch = normalizeMenuSearch(search.trim());
   return (
     <nav className="flex flex-col gap-1">
-      {RIBBON_GROUPS.flatMap(({ group }) => NAV.filter((n) => n.group === group && n.roles.includes(role) && (!normalizedSearch || normalizeMenuSearch(`${n.label} ${n.group}`).includes(normalizedSearch)))).map((n, idx, arr) => {
+      {RIBBON_GROUPS.flatMap(({ label }) => NAV.filter((n) => ribbonGroup(n) === label && n.roles.includes(role) && (!normalizedSearch || normalizeMenuSearch(`${n.label} ${label} ${PRINCIPAL_LABELS[n.to] ?? ""}`).includes(normalizedSearch)))).map((n, idx, arr) => {
         const Icon = ICONS[n.icon];
-        const header = idx === 0 || arr[idx - 1].group !== n.group;
+        const header = idx === 0 || ribbonGroup(arr[idx - 1]) !== ribbonGroup(n);
         return (
           <div key={n.to}>
-          {header && <p className="mb-1 mt-4 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 first:mt-0" data-testid={`nav-group-${n.group}`}>{n.group}</p>}
+          {header && <p className="mb-1 mt-4 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600 first:mt-0" data-testid={`nav-group-${n.group}`}>{ribbonGroup(n)}</p>}
           <NavLink
             to={n.to}
             end={n.to === "/"}
@@ -224,7 +257,8 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
   const { data: me, isLoading, isError } = useMe();
   const [open, setOpen] = useState(false);
   const [menuSearch, setMenuSearch] = useState("");
-  const [activeRibbon, setActiveRibbon] = useState<string | null>(null);
+  const [activeRibbon, setActiveRibbon] = useState<RibbonGroup | null>(null);
+  const [operatorOpen, setOperatorOpen] = useState(false);
   const loc = useLocation();
   useEffect(() => { setActiveRibbon(null); }, [loc.pathname]);
   // Keyboard-first navigation without changing the currently selected operator.
@@ -250,8 +284,8 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
   if (isLoading) return <div className="grid min-h-screen place-items-center text-zinc-500">Carregando…</div>;
   if (isError || !me) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
   const items = NAV.filter((item) => item.roles.includes(me.role));
-  const currentGroup = items.find((item) => item.to === activePath(loc.pathname))?.group ?? "Operação";
-  const visibleGroup = activeRibbon ?? currentGroup;
+  const currentItem = items.find((item) => item.to === activePath(loc.pathname));
+  const visibleGroup = activeRibbon ?? (currentItem ? ribbonGroup(currentItem) : "Principal");
   const allowed = !roles || me.role === "admin" || roles.includes(me.role);
 
   return (
@@ -265,7 +299,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
           <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
             <NavList role={me.role} search={menuSearch} onNavigate={() => setOpen(false)} />
           </div>
-          <UserCard name={me.name} role={me.role} />
+          <UserCard name={me.name} role={me.role} onManage={() => { setOpen(false); setOperatorOpen(true); }} />
         </SheetContent>
       </Sheet>
 
@@ -280,34 +314,48 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
             <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={() => setOpen(true)} aria-label="Abrir todas as funções (Ctrl+K)" title="Buscar funções (Ctrl+K)" data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
             <Brand />
             <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => { setMenuSearch(""); setOpen(true); }}><Search className="size-4" /> Pesquisar</Button>
+              <OfflineBadge />
               <DisplayZoom />
               <button type="button" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
                 aria-label={resolvedTheme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
                 className="grid size-10 shrink-0 place-items-center rounded-lg text-foreground hover:bg-muted" data-testid="theme-toggle">
                 {resolvedTheme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
               </button>
-              <OfflineBadge />
-              <button type="button" onClick={() => void endSession()} className="hidden shrink-0 items-center gap-1.5 rounded-lg px-2 py-2 text-xs text-foreground hover:bg-muted sm:flex" title={`Operador atual: ${me.name}`}>
-                <LogOut className="size-4" aria-hidden="true" /><span>Trocar operador</span>
-              </button>
+              <div className="flex min-w-0 flex-wrap items-center gap-1">
+                <span className="max-w-40 truncate px-1 text-xs text-foreground" title={me.name}>{me.name}</span>
+                <Button variant="ghost" size="sm" onClick={() => setOperatorOpen(true)} className="h-auto min-h-9 whitespace-normal">
+                  <LockKeyhole className="size-4 shrink-0" /> Bloquear ou trocar operador
+                </Button>
+              </div>
             </div>
           </div>
           <nav aria-label="Seções do sistema" data-testid="top-menu-groups" className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,5.75rem),1fr))] gap-1 px-2 py-1 sm:px-4">
-            {RIBBON_GROUPS.filter(({group}) => items.some(n => n.group === group)).map(({label, group, icon: GroupIcon}) => {
-              const selected = visibleGroup === group;
-              return <button key={group} type="button" onClick={() => setActiveRibbon(group)}
+            {RIBBON_GROUPS.filter(({label}) => items.some(n => ribbonGroup(n) === label)).map(({label, icon: GroupIcon}) => {
+              const selected = visibleGroup === label;
+              return <button key={label} type="button" onClick={() => setActiveRibbon(label)}
                 className={cn("flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[10px] font-medium transition-colors hover:bg-muted sm:text-xs", selected ? "bg-muted text-foreground" : "text-muted-foreground")}
                 aria-pressed={selected}><GroupIcon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 wrap-anywhere">{label}</span></button>;
             })}
           </nav>
-          <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts" className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,6.75rem),1fr))] gap-1 bg-elevated px-2 py-1 sm:px-4">
-            {items.filter(n => n.group === visibleGroup).map(n => {
-              const Icon = ICONS[n.icon] ?? LayoutDashboard;
-              return <NavLink key={n.to} to={n.to} end={n.to === "/"} title={n.label} onClick={() => setActiveRibbon(n.group)}
-                className={({isActive}) => cn("flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-center text-xs leading-tight transition-colors hover:bg-muted",(isActive || n.to === activePath(loc.pathname)) ? "bg-muted text-foreground" : "text-muted-foreground")}>
-                <Icon className="size-4 shrink-0 text-primary" strokeWidth={1.8} aria-hidden="true" /><span className="min-w-0 wrap-anywhere">{n.label}</span>
-              </NavLink>;
-            })}
+          <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts" className="flex min-w-0 flex-wrap gap-2 bg-elevated px-2 py-1 sm:px-4">
+            {visibleGroup === "Principal" ? <>
+              {PRINCIPAL_SHORTCUTS.map(({ label, paths }) => {
+                const shortcuts = paths.flatMap((path) => items.filter((item) => item.to === path));
+                if (label !== "Atendimento" && !shortcuts.length) return null;
+                if (label === "Atendimento" && me.role !== "admin" && me.role !== "caixa") return null;
+                return <div key={label} role="group" aria-label={label} className="min-w-0 rounded-md border border-border px-1.5">
+                  <div className="flex min-w-0 flex-wrap gap-1">
+                    {shortcuts.map((item) => <RibbonShortcut key={item.to} item={item} label={PRINCIPAL_LABELS[item.to]} />)}
+                    {label === "Pedidos" && items.some((item) => item.to === "/delivery") &&
+                      <PendingShortcut icon={CalendarClock} label="Agendados" />}
+                    {label === "Atendimento" && <PendingShortcut icon={MessageCircle} label="WhatsApp" />}
+                  </div>
+                  <p className="pb-0.5 text-center text-[10px] text-muted-foreground">{label}</p>
+                </div>;
+              })}
+              {items.filter((item) => item.to === "/").map((item) => <RibbonShortcut key={item.to} item={item} />)}
+            </> : items.filter((item) => ribbonGroup(item) === visibleGroup).map((item) => <RibbonShortcut key={item.to} item={item} />)}
           </nav>
           <MenuPreferences key={me.id} operatorId={me.id} items={items} />
         </header>
@@ -321,12 +369,59 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
           )}
         </main>
       </div>
+      <OperatorDialog open={operatorOpen} onOpenChange={setOperatorOpen} name={me.name} role={me.role} />
       <Toaster richColors />
     </div>
   );
 }
 
-function UserCard({ name, role }: { name: string; role: Role }) {
+function RibbonShortcut({ item, label = item.label }: { item: NavItem; label?: string }) {
+  const Icon = label === "Fila de Atendimento" ? ListOrdered : ICONS[item.icon] ?? LayoutDashboard;
+  return <NavLink to={label === "Fila de Atendimento" ? "/comanda-mobile?fila=1" : item.to} end={item.to === "/"} title={label}
+    className={({ isActive }) => cn("flex min-h-11 min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs leading-tight hover:bg-muted", isActive ? "bg-muted text-foreground" : "text-muted-foreground")}>
+    <Icon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="wrap-anywhere">{label}</span>
+  </NavLink>;
+}
+
+function PendingShortcut({ icon: Icon, label }: { icon: typeof Menu; label: string }) {
+  return <span className="flex min-h-11 items-center gap-1.5 px-2 text-xs text-muted-foreground" aria-disabled="true">
+    <Icon className="size-4 shrink-0" aria-hidden="true" />
+    <span>{label}<small className="block">Indisponível</small></span>
+  </span>;
+}
+
+function OperatorDialog({ open, onOpenChange, name, role }: { open: boolean; onOpenChange: (open: boolean) => void; name: string; role: Role }) {
+  const terminal = useQuery({
+    queryKey: ["operator-terminal"],
+    queryFn: () => apiGet<{ authorized: boolean }>("/auth/operator-terminal"),
+    enabled: open && role === "admin",
+    retry: false,
+  });
+  const updateTerminal = useMutation({
+    mutationFn: (authorized: boolean) => apiPut<{ authorized: boolean }>("/auth/operator-terminal", { authorized }),
+    onSuccess: (result) => queryClient.setQueryData(["operator-terminal"], result),
+    onError: (error) => toast.error(errMsg(error)),
+  });
+  return <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent>
+      <DialogTitle>Operador atual</DialogTitle>
+      <p className="wrap-anywhere">{name} · {ROLE_LABEL[role]}</p>
+      <div className="grid gap-2">
+        <Button onClick={endSession}><LockKeyhole className="size-4" /> Bloquear ou trocar operador</Button>
+        <Button variant="outline" onClick={endSession} data-testid="logout-button"><LogOut className="size-4" /> Sair</Button>
+      </div>
+      {role === "admin" && terminal.data && <div className="border-t border-border pt-3">
+        <p className="mb-2 text-xs text-muted-foreground">O seletor do login mostra os operadores ativos neste terminal autorizado.</p>
+        <Button variant="outline" className="h-auto min-h-9 whitespace-normal" disabled={updateTerminal.isPending}
+          onClick={() => updateTerminal.mutate(!terminal.data.authorized)}>
+          {terminal.data.authorized ? "Desautorizar lista neste terminal" : "Autorizar lista neste terminal"}
+        </Button>
+      </div>}
+    </DialogContent>
+  </Dialog>;
+}
+
+function UserCard({ name, role, onManage }: { name: string; role: Role; onManage: () => void }) {
   return (
     <div className="mt-4 rounded-xl border border-white/5 bg-panel p-3">
       <div className="flex items-center gap-3">
@@ -338,8 +433,8 @@ function UserCard({ name, role }: { name: string; role: Role }) {
           <p className="truncate text-xs text-zinc-500" data-testid="current-user-role">{ROLE_LABEL[role]}</p>
         </div>
       </div>
-      <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => void endSession()} data-testid="logout-button">
-        <LogOut className="size-3.5" /> Trocar operador
+      <Button variant="outline" size="sm" className="mt-3 w-full" onClick={onManage}>
+        <LockKeyhole className="size-3.5" /> Gerenciar operador
       </Button>
     </div>
   );
