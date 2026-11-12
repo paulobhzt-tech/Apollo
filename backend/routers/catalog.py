@@ -276,12 +276,17 @@ async def apply_purchase(body: PurchaseIn, user: dict, *, purchase_id: str | Non
         raise HTTPException(400, "A fabricação deve ser anterior ou igual à data atual e à validade")
     if expiry and expiry < today:
         raise HTTPException(400, "Não é possível cadastrar compra já vencida")
+    if body.bill_due_date:
+        try:
+            date.fromisoformat(body.bill_due_date)
+        except ValueError:
+            raise HTTPException(400, "Vencimento do boleto deve estar no formato AAAA-MM-DD") from None
     qty = round(body.qty, 4)
     if qty <= 0:
         raise HTTPException(400, "Quantidade muito pequena")
     if ing["unit"] == "un" and qty != int(qty):
         raise HTTPException(400, "Compras por unidade exigem quantidades inteiras")
-    total_cost = qty * body.unit_cost
+    total_cost = qty * body.unit_cost + body.freight_cost + body.tax_cost
     if not math.isfinite(total_cost):
         raise HTTPException(400, "Custo total da compra fora do limite")
     purchase = Purchase(**{**body.model_dump(), "qty": qty}, supplier_name=supplier["name"],
