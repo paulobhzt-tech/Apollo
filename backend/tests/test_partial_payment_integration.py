@@ -155,9 +155,10 @@ async def test_concurrent_purchases_and_transaction_rollback(monkeypatch):
         await db.suppliers.delete_one({"id": supplier_id})
 
 
-async def test_counter_payment_rolls_back_on_insufficient_stock_and_retries():
-    from models.schemas import QuickSaleIn
-    from routers.operations import quick_sale
+async def test_counter_payment_rolls_back_on_insufficient_stock_and_retries(monkeypatch):
+    from models.schemas import CancelIn, QuickSaleIn
+    from routers import operations
+    from lib.orders import now
 
     if db.name not in {"apollo_partial_payment_ci", "apollo_partial_ci"}:
         pytest.skip("Venda transacional exige a réplica descartável da CI")
@@ -165,7 +166,7 @@ async def test_counter_payment_rolls_back_on_insufficient_stock_and_retries():
     product_id = prefix + "-product"
     ingredient_id = prefix + "-ingredient"
     cash_id = prefix + "-cash"
-    actor = {"id": prefix, "name": "Caixa fictício"}
+    actor = {"id": prefix, "name": "Caixa fictício", "role": "admin"}
     await db.orders.create_index("client_ref", unique=True,
                                  partialFilterExpression={"client_ref": {"$type": "string"}})
     await db.ingredients.insert_one({"id": ingredient_id, "name": "Teste", "stock": 0,
@@ -174,23 +175,49 @@ async def test_counter_payment_rolls_back_on_insufficient_stock_and_retries():
                                  "category_id": prefix, "price": 20, "sale_unit": "kg",
                                  "recipe": [{"ingredient_id": ingredient_id, "qty": 1}]})
     await db.cash_sessions.insert_one({"id": cash_id, "status": "aberto"})
-    body = QuickSaleIn(client_ref=prefix, items=[{"product_id": product_id, "qty": 0.5}],
+    body = QuickSaleIn(client_ref=prefix, items=[{"product_id": product_id, "qty": 0.25}, {"product_id": product_id, "qty": 0.25}],
                        payments=[{"method": "dinheiro", "amount": 10}], emit_invoice=False, send_to_kitchen=False)
     try:
         with pytest.raises(HTTPException) as error:
-            await quick_sale(body, actor)
+            await operations.quick_sale(body, actor)
         assert error.value.status_code == 409
         assert await db.orders.count_documents({"client_ref": prefix}) == 0
         assert await db.stock_moves.count_documents({"ingredient_id": ingredient_id}) == 0
 
         await db.ingredients.update_one({"id": ingredient_id}, {"$set": {"stock": 1}})
-        paid = await quick_sale(body, actor)
-        replay = await quick_sale(body, actor)
+        await db.purchases.insert_one({"id": prefix + "-lot", "ingredient_id": ingredient_id,
+                                       "remaining_qty": 0.75, "expiry_date": "2099-01-01", "created_at": now()})
+        paid = await operations.quick_sale(body, actor)
+        replay = await operations.quick_sale(body, actor)
         assert paid["order"]["id"] == replay["order"]["id"]
         assert replay["order"]["stock_completion"] == "complete"
         assert (await db.ingredients.find_one({"id": ingredient_id}))["stock"] == 0.5
         assert await db.stock_moves.count_documents({"ingredient_id": ingredient_id}) == 1
+        order = paid["order"]
+        lot = await db.purchases.find_one({"id": prefix + "-lot"})
+        assert lot["remaining_qty"] == 0.25
+        original = operations.move_stock
+
+        async def fail_after_stock(*args, **kwargs):
+            await original(*args, **kwargs)
+            raise RuntimeError("falha fictícia de estorno")
+
+        with monkeypatch.context() as patch:
+            patch.setattr(operations, "move_stock", fail_after_stock)
+            with pytest.raises(RuntimeError, match="falha fictícia"):
+                await operations.refund_item(order["id"], order["items"][0]["id"],
+                                             CancelIn(reason="teste de rollback"), actor)
+        assert (await db.purchases.find_one({"id": prefix + "-lot"}))["remaining_qty"] == 0.25
+        assert (await db.orders.find_one({"id": order["id"]}))["refunds"] == []
+        await operations.refund_item(order["id"], order["items"][0]["id"],
+                                     CancelIn(reason="estorno parcial fictício"), actor)
+        assert (await db.purchases.find_one({"id": prefix + "-lot"}))["remaining_qty"] == 0.5
+        await operations.cancel_order(order["id"], CancelIn(reason="estorno total fictício"), actor)
+        assert (await db.purchases.find_one({"id": prefix + "-lot"}))["remaining_qty"] == 0.75
+        assert (await db.ingredients.find_one({"id": ingredient_id}))["stock"] == 1
     finally:
+        await db.lot_consumptions.delete_many({"ingredient_id": ingredient_id})
+        await db.purchases.delete_many({"ingredient_id": ingredient_id})
         await db.orders.delete_many({"client_ref": prefix})
         await db.stock_moves.delete_many({"ingredient_id": ingredient_id})
         await db.cash_sessions.delete_one({"id": cash_id})

@@ -122,7 +122,9 @@ async def allocate_lots_fefo(ingredient_id: str, qty: float, note: str, by_name:
     """
     lots = await db.purchases.find(
         {"ingredient_id": ingredient_id, "remaining_qty": {"$gt": 0}},
-        {"_id": 0}, **_session_args(session)).to_list(5000)
+        {"_id": 0}, **_session_args(session)).to_list(5001)
+    if len(lots) > 5000:
+        raise HTTPException(409, "Limite de lotes para conferência FEFO excedido")
     if not lots:
         return
     today = local_today()
@@ -132,7 +134,7 @@ async def allocate_lots_fefo(ingredient_id: str, qty: float, note: str, by_name:
     legacy_qty = max(0, round(float(ing.get("stock", 0)) - sum(float(p["remaining_qty"]) for p in lots), 4))
     if sum(float(p["remaining_qty"]) for p in usable) + legacy_qty + 0.00001 < qty:
         raise HTTPException(409, "Estoque disponível insuficiente: lote vencido ou quantidade indisponível")
-    remaining = max(0, qty - legacy_qty)
+    remaining = qty
     for p in usable:
         if remaining <= 0.00001:
             break
@@ -270,13 +272,13 @@ def compute_subtotal(order: dict) -> float:
     return round(sum(i["qty"] * i["unit_price"] for i in order["items"] if not i.get("cancelled")), 2)
 
 
-async def refresh_totals(order_id: str) -> dict:
-    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+async def refresh_totals(order_id: str, *, session=None) -> dict:
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0}, **_session_args(session))
     sub = compute_subtotal(order)
     total = round(sub - order.get("discount", 0) + order.get("service_fee", 0) + order.get("delivery_fee", 0), 2)
-    await db.orders.update_one({"id": order_id}, {"$set": {"subtotal": sub, "total": total}})
+    await db.orders.update_one({"id": order_id}, {"$set": {"subtotal": sub, "total": total}}, **_session_args(session))
     if order.get("table_id"):
-        await db.tables.update_one({"id": order["table_id"]}, {"$set": {"total": total}})
+        await db.tables.update_one({"id": order["table_id"]}, {"$set": {"total": total}}, **_session_args(session))
     order.update(subtotal=sub, total=total)
     return order
 
@@ -420,14 +422,14 @@ def method_totals(orders: list[dict], with_brand: bool = False) -> dict[str, flo
     return {k: round(v, 2) for k, v in out.items()}
 
 
-async def fiado_reverse(order: dict, amount: float, by_name: str, note: str) -> None:
+async def fiado_reverse(order: dict, amount: float, by_name: str, note: str, *, session=None) -> None:
     """Give back store credit when a fiado sale (or part of it) is refunded."""
     if not order.get("fiado_customer_id") or amount <= 0:
         return
     from models.schemas import CustomerMove
-    await adjust_balance(order["fiado_customer_id"], -amount)
+    await adjust_balance(order["fiado_customer_id"], -amount, **_session_args(session))
     await db.customer_moves.insert_one(CustomerMove(customer_id=order["fiado_customer_id"], type="estorno", amount=round(amount, 2),
-                                                    order_number=order["number"], note=note, by_name=by_name).model_dump())
+                                                    order_number=order["number"], note=note, by_name=by_name).model_dump(), **_session_args(session))
 
 
 async def card_fee_table() -> dict[str, float]:

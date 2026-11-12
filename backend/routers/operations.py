@@ -53,14 +53,18 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
             raise HTTPException(409, "Pagamento já registrado. Baixa pendente de conferência administrativa. Não cobre novamente.")
         inv = await db.invoices.find_one({"id": existing.get("invoice_id")}, {"_id": 0}) if existing.get("invoice_id") else None
         return {"order": existing, "invoice": inv}
-    topology = await db.command("hello")
     try:
-        if topology.get("setName") or topology.get("msg") == "isdbgrid":
-            async with await db.client.start_session() as session:
-                return await session.with_transaction(lambda active: record_counter_sale(body, user, session=active))
-        return await record_counter_sale(body, user)
+        return await with_order_transaction(lambda session: record_counter_sale(body, user, session=session))
     except DuplicateKeyError:
         raise HTTPException(409, "Venda em processamento. Tente sincronizar novamente.") from None
+
+
+async def with_order_transaction(operation):
+    topology = await db.command("hello")
+    if topology.get("setName") or topology.get("msg") == "isdbgrid":
+        async with await db.client.start_session() as session:
+            return await session.with_transaction(operation)
+    return await operation(None)
 
 
 async def record_counter_sale(body: QuickSaleIn, user: dict, *, session=None):
@@ -106,38 +110,49 @@ async def list_orders(status: Optional[str] = None, channel: Optional[str] = Non
 
 @router.post("/orders/{id}/cancel", response_model=Order)
 async def cancel_order(id: str, body: CancelIn, user: dict = Depends(current_user)):
-    o = await db.orders.find_one({"id": id}, {"_id": 0})
+    auth = await cancel_authorizer(user, body.manager_pin)
+    return await with_order_transaction(lambda session: apply_cancel_order(id, body, user, auth, session=session))
+
+
+async def apply_cancel_order(id: str, body: CancelIn, user: dict, auth: str, *, session=None):
+    options = {"session": session} if session is not None else {}
+    o = await db.orders.find_one({"id": id}, {"_id": 0}, **options)
     if not o:
         raise HTTPException(404, "Pedido não encontrado")
     if o["status"] == "cancelado":
         raise HTTPException(400, "Pedido já cancelado")
     if o.get("stock_completion") == "pending":
         raise HTTPException(409, "Confira a baixa pendente deste pedido antes de estornar.")
-    auth = await cancel_authorizer(user, body.manager_pin)
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
-    result = await db.orders.update_one({"id": id, "status": o["status"]},
+    result = await db.orders.update_one({"id": id, "status": o["status"], "items": o.get("items", [])},
         {"$set": {"status": "cancelado", "cancel_reason": body.reason, "cancelled_by": who, "cancelled_at": now()},
          "$push": {"audit_events": audit_event("order_cancelled", user, reason=body.reason, authorized_by=auth,
-                                               values={"from": o["status"], "to": "cancelado", "total": o.get("total", 0)})}})
+                                               values={"from": o["status"], "to": "cancelado", "total": o.get("total", 0)})}}, **options)
     if not result.modified_count:
         raise HTTPException(409, "Pedido alterado por outro operador. Atualize antes de cancelar.")
     if o["status"] == "pago":
         fiado = sum(p["amount"] for p in o.get("payments", []) if p["method"] == "fiado") - \
             sum(r["amount"] for r in o.get("refunds", []) if r["method"] == "fiado")
-        await fiado_reverse(o, fiado, who, f"Estorno do pedido #{o['number']}")
-    await move_stock([OrderItem(**i) for i in o["items"] if not i.get("cancelled")], user["name"], f"Cancelamento #{o['number']}", sign=1)
+        await fiado_reverse(o, fiado, who, f"Estorno do pedido #{o['number']}", **options)
+    await move_stock([OrderItem(**i) for i in o["items"] if not i.get("cancelled")], user["name"], f"Cancelamento #{o['number']}", sign=1, **options)
     if o.get("invoice_id"):
-        await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}})
+        await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}}, **options)
     if o.get("table_id") and o["status"] == "aberto":
-        await free_table(o["table_id"])
-    await db.kitchen_tickets.update_many({"order_id": id}, {"$set": {"status": "entregue"}})
-    return await db.orders.find_one({"id": id}, {"_id": 0})
+        await free_table(o["table_id"], expected_order_id=o["id"], **options)
+    await db.kitchen_tickets.update_many({"order_id": id}, {"$set": {"status": "entregue"}}, **options)
+    return await db.orders.find_one({"id": id}, {"_id": 0}, **options)
 
 
 @router.post("/orders/{id}/items/{item_id}/refund", response_model=Order)
 async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depends(current_user)):
     """Cancel one item. Open orders: just removed. Paid orders: partial refund (estorno) recorded on the order."""
-    o = await db.orders.find_one({"id": id}, {"_id": 0})
+    auth = await cancel_authorizer(user, body.manager_pin)
+    return await with_order_transaction(lambda session: apply_refund_item(id, item_id, body, user, auth, session=session))
+
+
+async def apply_refund_item(id: str, item_id: str, body: CancelIn, user: dict, auth: str, *, session=None):
+    options = {"session": session} if session is not None else {}
+    o = await db.orders.find_one({"id": id}, {"_id": 0}, **options)
     if not o:
         raise HTTPException(404, "Pedido não encontrado")
     if o["status"] == "cancelado":
@@ -147,7 +162,6 @@ async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
     item = next((i for i in o["items"] if i["id"] == item_id and not i.get("cancelled")), None)
     if not item:
         raise HTTPException(404, "Item não encontrado ou já cancelado")
-    auth = await cancel_authorizer(user, body.manager_pin)
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
     event = audit_event("item_refunded" if o["status"] == "pago" else "item_cancelled", user,
                         reason=body.reason, authorized_by=auth,
@@ -160,11 +174,11 @@ async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
         if entry["id"] == item_id else entry for entry in o["items"]
     ]}
     if o["status"] == "aberto":
-        result = await db.orders.update_one(criteria, {"$set": set_item, "$push": {"audit_events": event}})
+        result = await db.orders.update_one(criteria, {"$set": set_item, "$push": {"audit_events": event}}, **options)
         if not result.modified_count:
             raise HTTPException(409, "O pedido mudou. Atualize antes de cancelar o item.")
-        await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1)
-        return await refresh_totals(id)
+        await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1, **options)
+        return await refresh_totals(id, **options)
     live = [i for i in o["items"] if not i.get("cancelled") and i["id"] != item_id]
     old_sub = o["subtotal"] or 1
     new_sub = round(sum(i["qty"] * i["unit_price"] for i in live), 2)
@@ -181,15 +195,15 @@ async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
     if not live:
         upd.update(status="cancelado", cancel_reason=body.reason, cancelled_by=who, cancelled_at=now())
     result = await db.orders.update_one(criteria,
-        {"$set": upd, "$push": {"refunds": refund, "audit_events": event}, "$inc": {"refunded_total": amount}})
+        {"$set": upd, "$push": {"refunds": refund, "audit_events": event}, "$inc": {"refunded_total": amount}}, **options)
     if not result.modified_count:
         raise HTTPException(409, "O pedido mudou. Atualize antes de estornar o item.")
-    await move_stock([OrderItem(**item)], user["name"], f"Estorno #{o['number']}: {body.reason}", sign=1)
+    await move_stock([OrderItem(**item)], user["name"], f"Estorno #{o['number']}: {body.reason}", sign=1, **options)
     if not live and o.get("invoice_id"):
-        await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}})
+        await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}}, **options)
     if main["method"] == "fiado":
-        await fiado_reverse(o, amount, who, f"Estorno de {refund['item_name']} (#{o['number']})")
-    return await db.orders.find_one({"id": id}, {"_id": 0})
+        await fiado_reverse(o, amount, who, f"Estorno de {refund['item_name']} (#{o['number']})", **options)
+    return await db.orders.find_one({"id": id}, {"_id": 0}, **options)
 
 
 # ---------- invoices (MOCK fiscal) ----------
