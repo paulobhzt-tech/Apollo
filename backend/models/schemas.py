@@ -4,7 +4,7 @@ from decimal import Decimal
 from datetime import datetime, timezone
 from typing import Annotated, Literal, Optional
 
-from pydantic import AfterValidator, BaseModel, BeforeValidator, Field
+from pydantic import AfterValidator, BaseModel, BeforeValidator, Field, model_validator
 
 
 def _id() -> str:
@@ -156,7 +156,8 @@ class Product(BaseModel):
     price: float
     code: str = ""
     image: str = ""
-    sale_unit: Literal["un", "kg", "L"] = "un"
+    sale_unit: SaleUnit = "un"
+    stock_ingredient_id: Optional[str] = None
     channels: list[ProductChannel] = Field(default_factory=lambda: list(PRODUCT_CHANNELS))
     active: bool = True
     recipe: list[RecipeItem] = []
@@ -175,7 +176,8 @@ class ProductIn(BaseModel):
     price: float = Field(ge=0, allow_inf_nan=False)
     code: str = ""
     image: str = ""
-    sale_unit: Literal["un", "kg", "L"] = "un"
+    sale_unit: SaleUnit = "un"
+    stock_ingredient_id: Optional[str] = None
     channels: list[ProductChannel] = Field(default_factory=lambda: list(PRODUCT_CHANNELS))
     active: bool = True
     recipe: list[RecipeItem] = []
@@ -192,6 +194,8 @@ class Ingredient(BaseModel):
     unit: Unit
     stock: float = 0
     min_stock: float = 0
+    max_stock: Optional[float] = Field(default=None, ge=0, allow_inf_nan=False)
+    block_negative_stock: bool = True
     cost_per_unit: float = 0
     units_per_kg: float = 0  # production yield: finished units from 1 kg
     updated_at: datetime = Field(default_factory=_now)
@@ -202,8 +206,16 @@ class IngredientIn(BaseModel):
     unit: Unit
     stock: float = 0
     min_stock: float = Field(default=0, ge=0)
+    max_stock: Optional[float] = Field(default=None, ge=0, allow_inf_nan=False)
+    block_negative_stock: bool = True
     cost_per_unit: float = Field(default=0, ge=0)
     units_per_kg: float = Field(default=0, ge=0)
+
+    @model_validator(mode="after")
+    def validate_thresholds(self):
+        if self.max_stock is not None and self.max_stock < self.min_stock:
+            raise ValueError("O estoque máximo deve ser igual ou maior que o mínimo")
+        return self
 
 
 class IngredientUpdateIn(IngredientIn):
@@ -268,6 +280,7 @@ class OrderItem(BaseModel):
     qty: int | float
     sale_unit: SaleUnit = "un"
     stock_ref: Optional[str] = None
+    stock_recipe: Optional[list[RecipeItem]] = None
     unit_price: float
     unit_cost: float = 0
     notes: str = ""
@@ -743,6 +756,7 @@ class SupplierIn(BaseModel):
 class PurchaseIn(BaseModel):
     supplier_id: str
     ingredient_id: str
+    product_id: Optional[str] = None
     qty: float = Field(gt=0, allow_inf_nan=False)
     unit_cost: float = Field(ge=0, allow_inf_nan=False)
     manufactured_on: Optional[str] = None
@@ -756,6 +770,7 @@ class Purchase(PurchaseIn):
     id: str = Field(default_factory=_id)
     remaining_qty: float = 0
     supplier_name: str = ""
+    product_name: str = ""
     ingredient_name: str = ""
     unit: Unit = "kg"
     total_cost: float = 0

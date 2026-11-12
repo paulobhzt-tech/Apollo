@@ -77,6 +77,10 @@ async def _validate_product(body: ProductIn) -> None:
     if not await db.categories.find_one({"id": body.category_id}):
         raise HTTPException(400, "Categoria inválida")
     await _check_station(body.station)
+    if body.stock_ingredient_id and not await db.ingredients.find_one(
+        {"id": body.stock_ingredient_id, "unit": body.sale_unit}, {"_id": 1},
+    ):
+        raise HTTPException(400, "Selecione um item de estoque na mesma unidade do produto")
     products = await db.products.find({}, {"_id": 0, "id": 1, "name": 1}).to_list(5000) if body.options else []
     names = {product["name"].strip().lower(): product["id"] for product in products}
     product_ids = {product["id"] for product in products}
@@ -111,7 +115,7 @@ async def create_product(body: ProductIn, _: dict = Depends(require())):
 @router.put("/products/{id}", response_model=Product)
 async def update_product(id: str, body: ProductIn, _: dict = Depends(require())):
     await _validate_product(body)
-    fields = body.model_dump(exclude={"sale_unit", "channels"} - body.model_fields_set)
+    fields = body.model_dump(exclude={"sale_unit", "channels", "stock_ingredient_id"} - body.model_fields_set)
     res = await db.products.find_one_and_update({"id": id}, {"$set": fields}, projection={"_id": 0}, return_document=True)
     if not res:
         raise HTTPException(404, "Produto não encontrado")
@@ -203,6 +207,10 @@ async def apply_purchase(body: PurchaseIn, user: dict, *, purchase_id: str | Non
     options = {"session": session} if session is not None else {}
     supplier = await db.suppliers.find_one({"id": body.supplier_id}, {"_id": 0}, **options)
     ing = await db.ingredients.find_one({"id": body.ingredient_id}, {"_id": 0}, **options)
+    product = await db.products.find_one({"id": body.product_id}, {"_id": 0}, **options) if body.product_id else None
+    if body.product_id and (not product or product.get("stock_ingredient_id") != body.ingredient_id
+                            or product.get("sale_unit", "un") != (ing or {}).get("unit")):
+        raise HTTPException(409, "Produto sem vínculo de estoque válido para esta compra")
     if not supplier:
         raise HTTPException(404, "Fornecedor não encontrado")
     if not ing:
@@ -212,7 +220,7 @@ async def apply_purchase(body: PurchaseIn, user: dict, *, purchase_id: str | Non
         expiry = date.fromisoformat(body.expiry_date) if body.expiry_date else None
     except ValueError:
         raise HTTPException(400, "Datas do lote devem estar no formato AAAA-MM-DD") from None
-    today = local_today()
+    today = date.fromisoformat(local_today())
     if manufactured and (manufactured > today or (expiry and manufactured > expiry)):
         raise HTTPException(400, "A fabricação deve ser anterior ou igual à data atual e à validade")
     if expiry and expiry < today:
@@ -220,11 +228,13 @@ async def apply_purchase(body: PurchaseIn, user: dict, *, purchase_id: str | Non
     qty = round(body.qty, 4)
     if qty <= 0:
         raise HTTPException(400, "Quantidade muito pequena")
+    if ing["unit"] == "un" and qty != int(qty):
+        raise HTTPException(400, "Compras por unidade exigem quantidades inteiras")
     total_cost = qty * body.unit_cost
     if not math.isfinite(total_cost):
         raise HTTPException(400, "Custo total da compra fora do limite")
     purchase = Purchase(**{**body.model_dump(), "qty": qty}, supplier_name=supplier["name"],
-                        ingredient_name=ing["name"], unit=ing["unit"],
+                        ingredient_name=ing["name"], product_name=product["name"] if product else "", unit=ing["unit"],
                         total_cost=round(total_cost, 2),
                         by_name=user["name"]).model_dump()
     if purchase_id:
@@ -255,7 +265,7 @@ async def apply_purchase(body: PurchaseIn, user: dict, *, purchase_id: str | Non
 
 @router.get("/purchases/expiry")
 async def purchase_expiry(_: dict = Depends(require("caixa"))):
-    today = local_today()
+    today = date.fromisoformat(local_today())
     purchases = await db.purchases.find({"expiry_date": {"$nin": [None, ""]}, "remaining_qty": {"$gt": 0}}, {"_id": 0}).to_list(5000)
     result = []
     for p in purchases:
@@ -509,7 +519,7 @@ async def update_ingredient(id: str, body: IngredientUpdateIn, _: dict = Depends
     if body.expected_stock is not None:
         query["stock"] = body.expected_stock
     res = await db.ingredients.find_one_and_update(
-        query, {"$set": {**body.model_dump(exclude={"expected_stock"}), "updated_at": now()}},
+        query, {"$set": {**body.model_dump(exclude={"expected_stock"} | ({"max_stock", "block_negative_stock"} - body.model_fields_set)), "updated_at": now()}},
         projection={"_id": 0}, return_document=True)
     if not res:
         if body.expected_stock is not None and await db.ingredients.find_one({"id": id}, {"_id": 0, "id": 1}):
@@ -520,7 +530,7 @@ async def update_ingredient(id: str, body: IngredientUpdateIn, _: dict = Depends
 
 @router.delete("/ingredients/{id}", response_model=OkOut)
 async def delete_ingredient(id: str, _: dict = Depends(require())):
-    if await db.products.find_one({"recipe.ingredient_id": id}):
+    if await db.products.find_one({"$or": [{"recipe.ingredient_id": id}, {"stock_ingredient_id": id}]}):
         raise HTTPException(400, "Insumo usado em ficha técnica de produto")
     await db.ingredients.delete_one({"id": id})
     return OkOut()
@@ -595,7 +605,7 @@ async def create_move(body: StockMoveIn, user: dict = Depends(require("caixa", "
             # A manual absolute count must not overwrite intervening sales or receipts.
             stock_filter["stock"] = ing["stock"]
         elif body.type == "saida":
-            stock_filter["stock"] = {"$gte": round(body.qty, 4)}
+            stock_filter["$or"] = [{"stock": {"$gte": round(body.qty, 4)}}, {"block_negative_stock": False}]
         result = await db.ingredients.update_one(
             stock_filter,
             {"$inc": {"stock": round(delta, 4)}, "$set": {"updated_at": now()}},

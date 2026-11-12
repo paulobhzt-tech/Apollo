@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDownToLine, ClipboardList, Plus } from "lucide-react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,16 +76,17 @@ function ProductionBatchForm({ ingredients, products, onSaved }: { ingredients: 
 type Purchase = {
   id: string; supplier_id: string; supplier_name: string; ingredient_id: string; ingredient_name: string;
   qty: number; remaining_qty?: number; unit: Unit; unit_cost: number; total_cost: number; expiry_date?: string | null;
-  lot_number: string; note: string; created_at: string;
+  lot_number: string; note: string; created_at: string; product_name?: string; manufactured_on?: string | null;
 };
 type ExpiryPurchase = Purchase & { days_to_expiry: number };
 
-function PurchasePanel({ ingredients, onSaved }: { ingredients: Ingredient[]; onSaved: () => void }) {
+function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingredient[]; products: Product[]; onSaved: () => void }) {
   const suppliers = useQuery({ queryKey: ["suppliers"], queryFn: () => apiGet<Supplier[]>("/suppliers") });
   const purchases = useQuery({ queryKey: ["purchases"], queryFn: () => apiGet<Purchase[]>("/purchases") });
   const expiry = useQuery({ queryKey: ["purchase-expiry"], queryFn: () => apiGet<ExpiryPurchase[]>("/purchases/expiry") });
   const [supplierId, setSupplierId] = useState("");
   const [ingredientId, setIngredientId] = useState("");
+  const [productId, setProductId] = useState("");
   const [qty, setQty] = useState("");
   const [unitCost, setUnitCost] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
@@ -101,7 +103,7 @@ function PurchasePanel({ ingredients, onSaved }: { ingredients: Ingredient[]; on
     unitPrice !== null && unitPrice >= 0 && Number.isFinite(amount);
   const save = useMutation({
     mutationFn: (values: { qty: number; unit_cost: number }) => {
-      const body = { supplier_id: supplierId, ingredient_id: ingredientId, ...values,
+      const body = { supplier_id: supplierId, ingredient_id: ingredientId, product_id: productId || null, ...values,
         manufactured_on: manufacturedOn || null, expiry_date: expiryDate || null,
         lot_number: lotNumber.trim(), note: note.trim() };
       const payload = JSON.stringify(body);
@@ -120,11 +122,22 @@ function PurchasePanel({ ingredients, onSaved }: { ingredients: Ingredient[]; on
   });
   return <div className="space-y-4">
     <div className="rounded-2xl border border-white/5 bg-panel p-4 space-y-3">
-      <h3 className="font-semibold text-white">Registrar compra de insumos</h3>
+      <h3 className="font-semibold text-white">Registrar compra</h3>
       <p className="text-xs text-zinc-400">A compra acrescenta a quantidade ao estoque e atualiza o custo médio ponderado do insumo. Não registre a mesma entrada novamente em Movimentações.</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div><Label htmlFor="purchase-supplier">Fornecedor</Label><Select value={supplierId} onValueChange={setSupplierId}><SelectTrigger id="purchase-supplier" data-testid="purchase-supplier"><SelectValue placeholder="Selecione fornecedor" /></SelectTrigger><SelectContent>{(suppliers.data ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
-        <div><Label htmlFor="purchase-ingredient">Insumo</Label><Select value={ingredientId} onValueChange={setIngredientId}><SelectTrigger id="purchase-ingredient" data-testid="purchase-ingredient"><SelectValue placeholder="Selecione insumo" /></SelectTrigger><SelectContent>{ingredients.map((i) => <SelectItem key={i.id} value={i.id}>{i.name} ({i.unit})</SelectItem>)}</SelectContent></Select></div>
+        <label className="block text-sm">Produto acabado
+          <select className="mt-1 block w-full rounded border border-white/15 bg-background p-2" value={productId}
+            onChange={(event) => {
+              const id = event.target.value;
+              setProductId(id);
+              setIngredientId(products.find((product) => product.id === id)?.stock_ingredient_id ?? "");
+            }}>
+            <option value="">Compra de insumo</option>
+            {products.filter((product) => product.stock_ingredient_id).map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+          </select>
+        </label>
+        <div><Label htmlFor="purchase-ingredient">Item de estoque</Label><Select disabled={!!productId} value={ingredientId} onValueChange={setIngredientId}><SelectTrigger id="purchase-ingredient" data-testid="purchase-ingredient"><SelectValue placeholder="Selecione insumo" /></SelectTrigger><SelectContent>{ingredients.map((i) => <SelectItem key={i.id} value={i.id}>{i.name} ({i.unit})</SelectItem>)}</SelectContent></Select></div>
         <div><Label htmlFor="purchase-qty">Quantidade {selected ? "(" + selected.unit + ")" : ""}</Label><Input id="purchase-qty" inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="20" /></div>
         <div><Label htmlFor="purchase-cost">Preço por {selected?.unit ?? "unidade"} (R$)</Label><Input id="purchase-cost" inputMode="decimal" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} placeholder="32,00" /></div>
         <div><Label htmlFor="purchase-made">Data de fabricação</Label><Input id="purchase-made" type="date" value={manufacturedOn} onChange={(event) => setManufacturedOn(event.target.value)} /></div>
@@ -144,7 +157,7 @@ function PurchasePanel({ ingredients, onSaved }: { ingredients: Ingredient[]; on
       <p className="mb-3 text-xs text-zinc-400">Avisos por data de compra: não representam saldo disponível do lote, pois a saída por lote ainda não é rastreada.</p>
       {(expiry.data ?? []).length === 0 ? <p className="text-sm text-zinc-400">Nenhum lote com alerta.</p> : <ul className="space-y-2 text-sm">{(expiry.data ?? []).map((p) => <li key={p.id} className="flex flex-wrap justify-between gap-2"><span>{p.ingredient_name} · {p.supplier_name} · lote {p.lot_number || "não informado"}</span><strong className={p.days_to_expiry < 0 ? "text-red-300" : "text-amber-200"}>{p.days_to_expiry < 0 ? "Vencido" : p.days_to_expiry === 0 ? "Vence hoje" : "Vence em " + p.days_to_expiry + " dias"} ({p.expiry_date})</strong></li>)}</ul>}
     </div>
-    <div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Fornecedor</TableHead><TableHead>Insumo</TableHead><TableHead>Qtd.</TableHead><TableHead>Custo un.</TableHead><TableHead>Total</TableHead><TableHead>Validade</TableHead></TableRow></TableHeader><TableBody>{(purchases.data ?? []).map((p) => <TableRow key={p.id}><TableCell>{fmtDateTime(p.created_at)}</TableCell><TableCell>{p.supplier_name}</TableCell><TableCell>{p.ingredient_name}</TableCell><TableCell>{p.qty} {p.unit}</TableCell><TableCell>{brl(p.unit_cost)}</TableCell><TableCell>{brl(p.total_cost)}</TableCell><TableCell>{p.expiry_date || "—"}</TableCell></TableRow>)}</TableBody></Table></div>
+    <div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Fornecedor</TableHead><TableHead>Insumo</TableHead><TableHead>Qtd.</TableHead><TableHead>Custo un.</TableHead><TableHead>Total</TableHead><TableHead>Validade</TableHead></TableRow></TableHeader><TableBody>{(purchases.data ?? []).map((p) => <TableRow key={p.id}><TableCell>{fmtDateTime(p.created_at)}</TableCell><TableCell>{p.supplier_name}</TableCell><TableCell>{p.product_name || p.ingredient_name}</TableCell><TableCell>{p.qty} {p.unit}</TableCell><TableCell>{brl(p.unit_cost)}</TableCell><TableCell>{brl(p.total_cost)}</TableCell><TableCell>{p.expiry_date || "—"}</TableCell></TableRow>)}</TableBody></Table></div>
   </div>;
 }
 
@@ -300,7 +313,7 @@ export default function Estoque() {
           </div>
         </TabsContent>
         <TabsContent value="inventario" className="mt-4"><InventoryPanel ingredients={list} onSaved={inv} /></TabsContent>
-        <TabsContent value="compras" className="mt-4"><PurchasePanel ingredients={list} onSaved={inv} /></TabsContent>
+        <TabsContent value="compras" className="mt-4"><PurchasePanel ingredients={list} products={products.data ?? []} onSaved={inv} /></TabsContent>
         <TabsContent value="producao" className="mt-4 space-y-4"><ProductionBatchForm ingredients={list} products={products.data ?? []} onSaved={() => { void batches.refetch(); void ings.refetch(); void products.refetch(); }} /><div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Insumo</TableHead><TableHead>Tipo</TableHead><TableHead>Kg</TableHead><TableHead>Unidades</TableHead><TableHead>Rendimento</TableHead><TableHead>Custo total</TableHead><TableHead>Custo/un.</TableHead></TableRow></TableHeader><TableBody>{(batches.data ?? []).map((b) => <TableRow key={b.id}><TableCell>{fmtDateTime(b.created_at)}</TableCell><TableCell>{b.ingredient_name}</TableCell><TableCell>{b.production_type === "porcao" ? "Porções" : "Espetinhos"}</TableCell><TableCell>{b.kg}</TableCell><TableCell>{b.units}</TableCell><TableCell>{b.units_per_kg.toFixed(2)}</TableCell><TableCell>{brl(b.total_cost)}</TableCell><TableCell>{brl(b.cost_per_unit)}</TableCell></TableRow>)}</TableBody></Table></div></TabsContent>
         <TabsContent value="movs" className="mt-4">
           <div className="rounded-2xl border border-white/5 bg-panel">
@@ -341,7 +354,11 @@ function IngredientForm({ editing, onClose }: { editing: Ingredient | "new"; onC
   const init = editing === "new" ? { name: "", unit: "kg" as Unit, stock: "0", min_stock: "0", cost_per_unit: "0", units_per_kg: "0" }
     : { name: editing.name, unit: editing.unit, stock: String(editing.stock), min_stock: String(editing.min_stock), cost_per_unit: String(editing.cost_per_unit), units_per_kg: String(editing.units_per_kg ?? 0) };
   const [f, setF] = useState(init);
+  const [maximum, setMaximum] = useState(editing === "new" || editing.max_stock == null ? "" : String(editing.max_stock));
+  const [blockNegative, setBlockNegative] = useState(editing === "new" || editing.block_negative_stock !== false);
+  const maxStock = maximum.trim() ? catalogNumber(maximum) : null;
   const numbers = ingredientValues(f, f.unit);
+  const invalidMaximum = !!maximum.trim() && (maxStock === null || maxStock < (numbers?.min_stock ?? 0));
   const save = useMutation({
     mutationFn: (b: IngredientIn) => editing === "new" ? apiPost<Ingredient>("/ingredients", b) : apiPut<Ingredient>(`/ingredients/${editing.id}`, { ...b, expected_stock: editing.stock }),
     onSuccess: () => { toast.success("Insumo salvo"); inv(); void queryClient.invalidateQueries({ queryKey: ["products"] }); onClose(); },
@@ -364,9 +381,12 @@ function IngredientForm({ editing, onClose }: { editing: Ingredient | "new"; onC
         {f.unit === "kg" && <div className="col-span-2"><Label htmlFor="ingredient-yield" className="text-xs text-zinc-400">Produção: quantas unidades rende 1 kg?</Label><Input id="ingredient-yield" value={f.units_per_kg} onChange={(e) => setF({ ...f, units_per_kg: e.target.value })} placeholder="Ex.: 10 espetinhos por kg" inputMode="decimal" className="mt-1 font-mono" data-testid="ingredient-yield-input" /><p className="mt-1 text-xs text-zinc-500">Estimativa: {numbers ? Math.floor(Math.max(0, numbers.stock * numbers.units_per_kg)) : "—"} unidades com o estoque atual. Não altera a baixa em kg da ficha técnica.</p></div>}
         <div><Label htmlFor="ingredient-min" className="text-xs text-zinc-400">Estoque mínimo</Label><Input id="ingredient-min" inputMode="decimal" value={f.min_stock} onChange={(e) => setF({ ...f, min_stock: e.target.value })} className="mt-1 font-mono" data-testid="ingredient-min-input" /></div>
       </div>
+      <div><Label htmlFor="ingredient-max" className="text-xs text-zinc-400">Estoque máximo (opcional)</Label><Input id="ingredient-max" inputMode="decimal" value={maximum} onChange={(event) => setMaximum(event.target.value)} /></div>
+      <label className="flex items-center gap-2 text-sm"><Checkbox checked={blockNegative} onCheckedChange={(checked) => setBlockNegative(!!checked)} /> Bloquear saída e venda com saldo insuficiente</label>
+      {invalidMaximum && <p role="alert" className="text-sm text-amber-300">O estoque máximo deve ser igual ou maior que o mínimo.</p>}
       {!f.name.trim() && <p className="text-sm text-zinc-400">Informe o nome do insumo.</p>}
       {!numbers && <p role="alert" className="text-sm text-amber-300">Preencha os valores numéricos. Use vírgula ou ponto para decimais; custo, mínimo e rendimento devem ser zero ou positivos.</p>}
-      <Button disabled={!f.name.trim() || !numbers || save.isPending} onClick={() => { if (numbers) save.mutate({ name: f.name.trim(), unit: f.unit, ...numbers }); }} data-testid="ingredient-save-button">Salvar</Button>
+      <Button disabled={!f.name.trim() || !numbers || invalidMaximum || save.isPending} onClick={() => { if (numbers) save.mutate({ name: f.name.trim(), unit: f.unit, ...numbers, max_stock: maxStock, block_negative_stock: blockNegative }); }} data-testid="ingredient-save-button">Salvar</Button>
     </>
   );
 }

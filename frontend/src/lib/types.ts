@@ -51,6 +51,7 @@ export interface Product {
   code: string;
   image: string;
   sale_unit?: "un" | "kg" | "L";
+  stock_ingredient_id?: string | null;
   channels?: ProductChannel[];
   active: boolean;
   recipe: RecipeItem[];
@@ -69,6 +70,8 @@ export interface Ingredient {
   unit: Unit;
   stock: number;
   min_stock: number;
+  max_stock?: number | null;
+  block_negative_stock?: boolean;
   cost_per_unit: number;
   units_per_kg?: number;
   updated_at: string;

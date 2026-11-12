@@ -46,6 +46,7 @@ async def menu(channel: Literal["qr", "delivery"] = "qr"):
     prods = await products_with_cost({"active": True, "$or": [{"channels": channel}, {"channels": {"$exists": False}}]})
     for p in prods:  # never expose cost data publicly
         p["cost"], p["margin_pct"], p["recipe"], p["cost_price"] = 0, 0, [], 0
+        p.pop("stock_ingredient_id", None)
     return {"restaurant": RESTAURANT, "categories": cats, "products": prods}
 
 

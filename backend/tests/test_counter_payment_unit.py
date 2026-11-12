@@ -206,3 +206,26 @@ async def test_losing_settlement_attempt_cannot_apply_customer_balance(payment_c
     assert error.value.status_code == 409
     assert collection.update_one.await_args.args[0]["status"] == "aberto"
     adjust.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("unit", "allowed"), [("kg", True), ("L", True), ("un", False)])
+async def test_fractional_sales_validate_unit_and_snapshot_stock_recipe(monkeypatch, unit, allowed):
+    from models.schemas import OrderItemIn
+
+    product = {"id": "p", "name": "Teste", "price": 10, "category_id": "category",
+               "sale_unit": unit, "stock_ingredient_id": "finished", "recipe": [{"ingredient_id": "raw", "qty": 2}]}
+    cursor = lambda records: Mock(return_value=SimpleNamespace(to_list=AsyncMock(return_value=records)))
+    monkeypatch.setattr(orders, "db", SimpleNamespace(
+        products=SimpleNamespace(find=cursor([product])), categories=SimpleNamespace(find=cursor([])),
+    ))
+    monkeypatch.setattr(orders, "ingredient_map", AsyncMock(return_value={"finished": {"cost_per_unit": 5}}))
+    items = [OrderItemIn(product_id="p", qty=0.375)]
+    if allowed:
+        result = await orders.build_items(items, channel="caixa")
+        assert result[0].qty == 0.375
+        assert result[0].sale_unit == unit and result[0].stock_ref
+        assert [entry.ingredient_id for entry in result[0].stock_recipe] == ["finished"]
+    else:
+        with pytest.raises(HTTPException, match="unidades inteiras"):
+            await orders.build_items(items, channel="caixa")

@@ -125,3 +125,40 @@ async def test_purchase_blocks_inconsistent_lot_if_ingredient_unit_changes(monke
     assert update[0]["$set"]["stock"] == {"$add": [{"$ifNull": ["$stock", 0]}, 2.0]}
     purchases.insert_one.assert_not_awaited()
     stock_moves.insert_one.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_fefo_insufficient_stock_does_not_write_lots(monkeypatch):
+    from fastapi import HTTPException
+    from lib import orders
+
+    lot = {"id": "lot", "remaining_qty": 0.25, "expiry_date": "2026-11-01", "created_at": "2026-10-01"}
+    purchases = SimpleNamespace(
+        find=Mock(return_value=SimpleNamespace(to_list=AsyncMock(return_value=[lot]))),
+        update_one=AsyncMock(),
+    )
+    monkeypatch.setattr(orders, "local_today", lambda: "2026-11-02")
+    monkeypatch.setattr(orders, "db", SimpleNamespace(
+        purchases=purchases,
+        ingredients=SimpleNamespace(find_one=AsyncMock(return_value={"stock": 0.25})),
+    ))
+    with pytest.raises(HTTPException) as exc:
+        await orders.allocate_lots_fefo("ingredient", 0.25, "teste", "operador")
+    assert exc.value.status_code == 409
+    purchases.update_one.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_fractional_reversal_restores_original_lot_by_reference(monkeypatch):
+    from lib import orders
+
+    record = {"_id": "movement", "purchase_id": "lot", "qty": 0.375}
+    trail = SimpleNamespace(find=Mock(return_value=SimpleNamespace(
+        sort=Mock(return_value=SimpleNamespace(to_list=AsyncMock(return_value=[record]))),
+    )), update_one=AsyncMock(return_value=SimpleNamespace(modified_count=1)))
+    purchases = SimpleNamespace(update_one=AsyncMock())
+    monkeypatch.setattr(orders, "db", SimpleNamespace(lot_consumptions=trail, purchases=purchases))
+    await orders.restore_lots("ingredient", 0.125, "cancelamento fictício", "operador", "batch")
+    assert trail.find.call_args.args[0] == {"ingredient_id": "ingredient", "stock_ref": "batch"}
+    assert trail.update_one.call_args.args[0]["restored_qty"] == {"$exists": False}
+    purchases.update_one.assert_awaited_once_with({"id": "lot"}, {"$inc": {"remaining_qty": 0.125}})

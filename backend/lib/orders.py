@@ -42,10 +42,15 @@ def recipe_cost(recipe: list[dict], ings: dict[str, dict]) -> float:
     return round(sum(ings[r["ingredient_id"]]["cost_per_unit"] * r["qty"] for r in recipe if r["ingredient_id"] in ings), 2)
 
 
+def stock_recipe(product: dict) -> list[dict]:
+    stock_item = product.get("stock_ingredient_id")
+    return [{"ingredient_id": stock_item, "qty": 1}] if stock_item else product.get("recipe", [])
+
+
 def product_cost(p: dict, ings: dict[str, dict]) -> float:
     """Manual cost price wins when set; otherwise the recipe (ficha técnica) cost."""
     manual = p.get("cost_price") or 0
-    return round(manual, 2) if manual > 0 else recipe_cost(p.get("recipe", []), ings)
+    return round(manual, 2) if manual > 0 else recipe_cost(stock_recipe(p), ings)
 
 
 async def ingredient_map() -> dict[str, dict]:
@@ -86,7 +91,10 @@ async def build_items(items_in: list[OrderItemIn], *, channel: ProductChannel | 
             if not g.get("multi") and n > 1:
                 raise HTTPException(400, f"Escolha apenas uma opção em {g['name']}")
         out.append(OrderItem(
-            product_id=p["id"], name=p["name"], qty=it.qty, sale_unit=sale_unit, stock_ref=stock_ref, unit_price=round(p["price"] + extra, 2), options=labels, option_products=linked,
+            product_id=p["id"], name=p["name"], qty=it.qty, sale_unit=sale_unit, stock_ref=stock_ref,
+            stock_recipe=[entry for pid in [p["id"], *linked]
+                          for entry in stock_recipe(p if pid == p["id"] else linked_map.get(pid, {}))],
+            unit_price=round(p["price"] + extra, 2), options=labels, option_products=linked,
             unit_cost=round(product_cost(p, ings) + sum(product_cost(linked_map[x], ings) for x in linked if x in linked_map), 2), notes=it.notes,
             station=p.get("station") or cats.get(p["category_id"], {}).get("station", "cozinha"), print_ticket=p.get("print_ticket", True),
         ))
@@ -113,7 +121,7 @@ async def allocate_lots_fefo(ingredient_id: str, qty: float, note: str, by_name:
         {"_id": 0}).to_list(5000)
     if not lots:
         return
-    today = local_today().isoformat()
+    today = local_today()
     usable = fefo_usable_lots(lots, today)
     # Legacy stock may have existed before lot tracking was introduced.
     ing = await db.ingredients.find_one({"id": ingredient_id}, {"_id": 0, "stock": 1})
@@ -173,17 +181,19 @@ async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int 
     from decimal import Decimal, ROUND_HALF_UP
 
     ids = list({i.product_id for i in items} | {x for i in items for x in i.option_products})
-    prods = {p["id"]: p for p in await db.products.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "recipe": 1}).to_list(500)}
+    prods = {p["id"]: p for p in await db.products.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "recipe": 1, "stock_ingredient_id": 1}).to_list(500)}
     agg: dict[tuple[str, str | None], Decimal] = {}
     for it in items:
         if it.cancelled:
             continue
-        for pid in [it.product_id, *it.option_products]:
-            for recipe in prods.get(pid, {}).get("recipe", []):
-                ingredient_id = recipe["ingredient_id"]
-                consumed = Decimal(str(recipe["qty"])) * Decimal(str(it.qty))
-                key = (ingredient_id, it.stock_ref)
-                agg[key] = agg.get(key, Decimal(0)) + consumed
+        recipes = ([recipe.model_dump() for recipe in it.stock_recipe] if it.stock_recipe is not None
+                   else [recipe for pid in [it.product_id, *it.option_products]
+                         for recipe in prods.get(pid, {}).get("recipe", [])])
+        for recipe in recipes:
+            ingredient_id = recipe["ingredient_id"]
+            consumed = Decimal(str(recipe["qty"])) * Decimal(str(it.qty))
+            key = (ingredient_id, it.stock_ref)
+            agg[key] = agg.get(key, Decimal(0)) + consumed
     if not agg:
         return
     ings = await ingredient_map()
@@ -199,7 +209,7 @@ async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int 
         else:
             await restore_lots(ing_id, abs(delta), note, by_name, stock_ref)
         result = await db.ingredients.update_one(
-            {"id": ing_id, **({"stock": {"$gte": abs(delta)}} if sign < 0 else {})},
+            {"id": ing_id, **({"$or": [{"stock": {"$gte": abs(delta)}}, {"block_negative_stock": False}]} if sign < 0 else {})},
             {"$inc": {"stock": delta}, "$set": {"updated_at": now()}},
         )
         if sign < 0 and not result.modified_count:

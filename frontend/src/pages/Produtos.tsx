@@ -203,7 +203,7 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
   const [f, setF] = useState<ProductIn>(() => {
     if (!source) return { ...EMPTY, category_id: cats[0]?.id ?? "" };
     const { id: _id, cost: _cost, margin_pct: _margin, ...product } = source;
-    return copySource ? { ...product, name: `${source.name} (cópia)`, code: "", active: false } : product;
+    return copySource ? { ...product, name: `${source.name} (cópia)`, code: "", active: false, stock_ingredient_id: null } : product;
   });
   const channels = f.channels ?? CHANNELS.map(({ id }) => id);
   const invalidOptions = f.options.some((group) => !group.name.trim() || !group.choices.length ||
@@ -218,7 +218,8 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
   const recipeQuantity = catalogNumber(qty);
   const [targetMargin, setTargetMargin] = useState("60");
   const ingMap = Object.fromEntries(ings.map((i) => [i.id, i]));
-  const recipeCost = f.recipe.reduce((s, r) => s + (ingMap[r.ingredient_id]?.cost_per_unit ?? 0) * r.qty, 0);
+  const recipeCost = f.stock_ingredient_id ? (ingMap[f.stock_ingredient_id]?.cost_per_unit ?? 0)
+    : f.recipe.reduce((s, r) => s + (ingMap[r.ingredient_id]?.cost_per_unit ?? 0) * r.qty, 0);
   const parsedCost = costStr.trim() ? catalogNumber(costStr) : 0;
   const manualCost = parsedCost ?? 0;
   const cost = manualCost > 0 ? manualCost : recipeCost;
@@ -334,10 +335,18 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
           <h3 className="font-semibold text-white">Controle de estoque</h3>
           <p className="mt-2 text-sm text-zinc-300">As entradas, compras, lotes e quantidades são controladas no módulo Estoque. A ficha técnica deste produto define os insumos consumidos nas vendas.</p>
           <label className="mt-4 block text-sm">Unidade de venda
-            <select className="ml-3 rounded-md border border-white/15 bg-background p-2" value={f.sale_unit ?? "un"} onChange={(event) => setF({ ...f, sale_unit: event.target.value as ProductIn["sale_unit"] })}>
+            <select className="ml-3 rounded-md border border-white/15 bg-background p-2" value={f.sale_unit ?? "un"} onChange={(event) => setF({ ...f, sale_unit: event.target.value as ProductIn["sale_unit"], stock_ingredient_id: null })}>
               <option value="un">Unidade (un)</option><option value="kg">Quilo (kg)</option><option value="L">Litro (L)</option>
             </select>
           </label>
+          <label className="mt-4 block text-sm">Item de estoque do produto acabado
+            <select className="mt-1 block w-full rounded-md border border-white/15 bg-background p-2" value={f.stock_ingredient_id ?? ""}
+              onChange={(event) => setF({ ...f, stock_ingredient_id: event.target.value || null })}>
+              <option value="">Usar ficha técnica na baixa</option>
+              {ings.filter((item) => item.unit === (f.sale_unit ?? "un")).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </label>
+          {f.stock_ingredient_id && <p className="mt-2 text-xs text-zinc-400">A venda baixa o saldo do produto acabado. A ficha técnica permanece cadastrada.</p>}
           <p className="mt-2 text-xs text-zinc-400">O preço informado corresponde a uma unidade de venda. Use até quatro casas decimais para venda por quilo ou litro.</p>
         </TabsContent>
         <TabsContent value="complementos" className="mt-4">
