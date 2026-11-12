@@ -111,6 +111,8 @@ async def cancel_order(id: str, body: CancelIn, user: dict = Depends(current_use
         raise HTTPException(404, "Pedido não encontrado")
     if o["status"] == "cancelado":
         raise HTTPException(400, "Pedido já cancelado")
+    if o.get("stock_completion") == "pending":
+        raise HTTPException(409, "Confira a baixa pendente deste pedido antes de estornar.")
     auth = await cancel_authorizer(user, body.manager_pin)
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
     result = await db.orders.update_one({"id": id, "status": o["status"]},
@@ -140,6 +142,8 @@ async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
         raise HTTPException(404, "Pedido não encontrado")
     if o["status"] == "cancelado":
         raise HTTPException(400, "Pedido já cancelado")
+    if o.get("stock_completion") == "pending":
+        raise HTTPException(409, "Confira a baixa pendente deste pedido antes de estornar.")
     item = next((i for i in o["items"] if i["id"] == item_id and not i.get("cancelled")), None)
     if not item:
         raise HTTPException(404, "Item não encontrado ou já cancelado")
