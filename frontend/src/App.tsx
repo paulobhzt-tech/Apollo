@@ -7,6 +7,7 @@ import ApolloIA from "@/pages/ApolloIA";
 import Dashboard from "@/pages/Dashboard";
 import Pdv from "@/pages/Pdv";
 import Mesas from "@/pages/Mesas";
+import AdminMobile from "@/pages/AdminMobile";
 import Kds from "@/pages/Kds";
 import Delivery from "@/pages/Delivery";
 import Caixa from "@/pages/Caixa";
@@ -84,6 +85,7 @@ export default function App() {
         <Route path="/auditoria" element={<Auditoria />} />
         <Route path="/apollo-ia" element={<ApolloIA />} />
         <Route path="/mesas" element={<Mesas />} />
+        <Route path="/admin-mobile" element={<AdminMobile />} />
         <Route path="/comanda-mobile" element={<Mesas />} />
         <Route path="/cozinha" element={<Kds />} />
         <Route path="/delivery" element={<Delivery />} />
