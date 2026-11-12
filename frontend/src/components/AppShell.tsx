@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiGet, apiPut } from "@/lib/api";
 import { Link, NavLink, Navigate, useLocation } from "react-router-dom";
@@ -57,10 +57,9 @@ const PRINCIPAL_LABELS: Record<string, string> = {
 };
 
 const ICONS: Record<string, typeof Menu> = {
-  Bot, LayoutDashboard, Music, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone, LockKeyhole, Search, Megaphone, ListOrdered, Ellipsis,
+  Bot, LayoutDashboard, Music, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone, LockKeyhole, Search, Megaphone, ListOrdered,
 };
 
-const DEFAULT_SHORTCUTS = ["/mesas", "/pdv", "/estoque"];
 const ZOOM_LEVELS = [90, 100, 110, 125, 150, 175];
 
 function DisplayZoom() {
@@ -101,64 +100,132 @@ function DisplayZoom() {
 
 const activePath = (path: string) => path === "/fornecedores" ? "/clientes" : path;
 
-function MenuPreferences({ items, operatorId }: { items: NavItem[]; operatorId: string }) {
-  const storageKey = `apollo-menu-shortcuts:${operatorId}`;
-  const [pins, setPins] = useState<string[]>(() => {
-    try {
-      const saved: unknown = JSON.parse(localStorage.getItem(storageKey) ?? JSON.stringify(DEFAULT_SHORTCUTS));
-      return Array.isArray(saved) ? [...new Set(saved.filter((path): path is string => typeof path === "string" && items.some((item) => item.to === path)))] : DEFAULT_SHORTCUTS;
-    } catch {
-      return DEFAULT_SHORTCUTS;
-    }
-  });
-  const loc = useLocation();
+const SIZES = { small: "Pequeno", medium: "Médio", large: "Grande" } as const;
+const ACCENTS = { apollo: "Laranja Apollo", blue: "Azul", teal: "Verde", violet: "Violeta" } as const;
+type MenuSize = keyof typeof SIZES;
+type MenuAccent = keyof typeof ACCENTS;
+type MenuTheme = "light" | "dark";
+
+interface MenuSettings {
+  shortcuts: string[] | null;
+  iconSize: MenuSize;
+  buttonSize: MenuSize;
+  accent: MenuAccent;
+  theme: MenuTheme | null;
+}
+
+const DEFAULT_MENU: MenuSettings = { shortcuts: null, iconSize: "medium", buttonSize: "medium", accent: "apollo", theme: null };
+const menuStorageKey = (id: string) => `apollo-menu:${id}`;
+const validPaths = (value: unknown) => Array.isArray(value)
+  ? [...new Set(value.filter((path): path is string => typeof path === "string" && NAV.some((item) => item.to === path)))]
+  : null;
+const isSize = (value: unknown): value is MenuSize => typeof value === "string" && Object.hasOwn(SIZES, value);
+const isAccent = (value: unknown): value is MenuAccent => typeof value === "string" && Object.hasOwn(ACCENTS, value);
+
+function readMenu(id: string): MenuSettings {
+  try {
+    const saved: Partial<MenuSettings> | null = JSON.parse(localStorage.getItem(menuStorageKey(id)) ?? "null");
+    if (saved) return {
+      shortcuts: validPaths(saved.shortcuts),
+      iconSize: isSize(saved.iconSize) ? saved.iconSize : DEFAULT_MENU.iconSize,
+      buttonSize: isSize(saved.buttonSize) ? saved.buttonSize : DEFAULT_MENU.buttonSize,
+      accent: isAccent(saved.accent) ? saved.accent : DEFAULT_MENU.accent,
+      theme: saved.theme === "light" || saved.theme === "dark" ? saved.theme : null,
+    };
+  } catch {
+    return DEFAULT_MENU;
+  }
+  return DEFAULT_MENU;
+}
+
+function defaultShortcutOrder(items: NavItem[], operatorId: string) {
+  let legacy: string[] = [];
+  try {
+    legacy = validPaths(JSON.parse(localStorage.getItem(`apollo-menu-shortcuts:${operatorId}`) ?? "null")) ?? [];
+  } catch {
+    // Invalid legacy data falls back to the standard menu order.
+  }
+  return [...new Set([...legacy, ...PRINCIPAL_SHORTCUTS, ...items.map((item) => item.to)])];
+}
+
+function MenuPreferences({ items, settings, defaults, theme, onChange, onReset }: {
+  items: NavItem[];
+  settings: MenuSettings;
+  defaults: string[];
+  theme: MenuTheme;
+  onChange: (settings: MenuSettings) => void;
+  onReset: () => void;
+}) {
   const [editing, setEditing] = useState(false);
-  const pinned = [...new Set(pins)].flatMap((path) => items.filter((item) => item.to === path));
+  const selected = settings.shortcuts ?? defaults;
+  const ordered = selected.flatMap((path) => items.filter((item) => item.to === path));
+  const unselected = items.filter((item) => !selected.includes(item.to));
+  const labelFor = (item: NavItem) => PRINCIPAL_LABELS[item.to] ?? item.label;
 
   function toggle(path: string) {
-    const next = pins.includes(path) ? pins.filter((pin) => pin !== path) : [...pins, path];
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(next));
-      setPins(next);
-    } catch {
-      toast.error("O dispositivo não pôde salvar os atalhos.");
-    }
+    onChange({ ...settings, shortcuts: selected.includes(path)
+      ? selected.filter((item) => item !== path) : [...selected, path] });
   }
 
-  return (
-    <div className="flex min-w-0 flex-nowrap items-center gap-1 overflow-hidden border-t border-border px-2 py-1 sm:px-4">
-      <Button type="button" variant="ghost" className="min-h-11 gap-2 px-2 text-xs" onClick={() => setEditing(true)}>
-        <Settings className="size-4 shrink-0" aria-hidden="true" /> Personalizar menu
-      </Button>
-      <Dialog open={editing} onOpenChange={setEditing}>
-        <DialogContent className="flex max-h-[90dvh] flex-col overflow-hidden">
-          <DialogTitle>Atalhos do meu menu</DialogTitle>
-          <div data-testid="menu-preferences-options" className="grid min-h-0 gap-3 overflow-y-auto overscroll-contain pr-1">
-            {RIBBON_GROUPS.map(({ label: group }) => {
-              const groupItems = items.filter((item) => ribbonGroup(item) === group);
-              return groupItems.length > 0 && <fieldset key={group} className="grid gap-1">
-                <legend className="text-xs font-semibold text-muted-foreground">{group}</legend>
-                {groupItems.map((item) => (
-                  <label key={item.to} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-2 text-sm hover:bg-muted">
-                    <input type="checkbox" checked={pins.includes(item.to)} onChange={() => toggle(item.to)} />
-                    {item.label}
-                  </label>
-                ))}
-              </fieldset>;
-            })}
+  function move(index: number, offset: number) {
+    const reordered = ordered.map((item) => item.to);
+    const target = index + offset;
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+    onChange({ ...settings, shortcuts: [...reordered, ...selected.filter((path) => !reordered.includes(path) && !items.some((item) => item.to === path))] });
+  }
+
+  return <>
+    <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)}>
+      <Settings className="size-4 shrink-0" aria-hidden="true" /> Personalizar menu
+    </Button>
+    <Dialog open={editing} onOpenChange={setEditing}>
+      <DialogContent className="flex max-h-[90dvh] max-w-xl flex-col overflow-hidden">
+        <DialogTitle>Atalhos do meu menu</DialogTitle>
+        <div data-testid="menu-preferences-options" className="grid min-h-0 gap-4 overflow-y-auto overscroll-contain pr-1">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="grid gap-1 text-sm">Tamanho dos ícones
+              <select className="min-h-10 rounded-md border border-border bg-elevated px-2" value={settings.iconSize}
+                onChange={(event) => { if (isSize(event.target.value)) onChange({ ...settings, iconSize: event.target.value }); }}>
+                {Object.entries(SIZES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+            <label className="grid gap-1 text-sm">Tamanho dos botões
+              <select className="min-h-10 rounded-md border border-border bg-elevated px-2" value={settings.buttonSize}
+                onChange={(event) => { if (isSize(event.target.value)) onChange({ ...settings, buttonSize: event.target.value }); }}>
+                {Object.entries(SIZES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+            <label className="grid gap-1 text-sm">Tema
+              <select className="min-h-10 rounded-md border border-border bg-elevated px-2" value={theme}
+                onChange={(event) => onChange({ ...settings, theme: event.target.value === "light" ? "light" : "dark" })}>
+                <option value="light">Claro</option><option value="dark">Escuro</option>
+              </select>
+            </label>
+            <label className="grid gap-1 text-sm">Cor do menu
+              <select className="min-h-10 rounded-md border border-border bg-elevated px-2" value={settings.accent}
+                onChange={(event) => { if (isAccent(event.target.value)) onChange({ ...settings, accent: event.target.value }); }}>
+                {Object.entries(ACCENTS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
           </div>
-        </DialogContent>
-      </Dialog>
-      {pinned.map((item) => {
-        const Icon = ICONS[item.icon] ?? LayoutDashboard;
-        return <NavLink key={item.to} to={item.to} end={item.to === "/"}
-          aria-current={item.to === activePath(loc.pathname) ? "page" : undefined}
-          className="flex min-h-11 min-w-0 items-center gap-1.5 rounded px-2 text-xs hover:bg-muted aria-[current=page]:bg-muted">
-          <Icon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 wrap-anywhere">{item.label}</span>
-        </NavLink>;
-      })}
-    </div>
-  );
+          <fieldset className="grid gap-1">
+            <legend className="mb-1 text-sm font-semibold">Atalhos exibidos e ordem</legend>
+            {[...ordered, ...unselected].map((item, index) => <div key={item.to} className="flex min-w-0 items-center gap-1 rounded-md px-2 hover:bg-muted">
+              <label className="flex min-h-10 min-w-0 flex-1 cursor-pointer items-center gap-2 text-sm">
+                <input type="checkbox" checked={selected.includes(item.to)} onChange={() => toggle(item.to)} />
+                <span className="wrap-anywhere">{labelFor(item)}</span>
+              </label>
+              {index < ordered.length && <>
+                <Button type="button" size="icon-sm" variant="ghost" disabled={index === 0} aria-label={`Subir ${labelFor(item)}`} onClick={() => move(index, -1)}>↑</Button>
+                <Button type="button" size="icon-sm" variant="ghost" disabled={index === ordered.length - 1} aria-label={`Descer ${labelFor(item)}`} onClick={() => move(index, 1)}>↓</Button>
+              </>}
+            </div>)}
+          </fieldset>
+        </div>
+        <Button type="button" variant="outline" onClick={onReset}>Restaurar padrão</Button>
+      </DialogContent>
+    </Dialog>
+  </>;
 }
 
 const normalizeMenuSearch = (value: string) =>
@@ -274,6 +341,26 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
     if (input instanceof HTMLInputElement) input.focus();
   }, [open]);
   const { resolvedTheme, setTheme } = useTheme();
+  const operatorId = me?.id;
+  const savedMenu = useMemo(() => operatorId ? readMenu(operatorId) : DEFAULT_MENU, [operatorId]);
+  const [editedMenu, setEditedMenu] = useState<{ id: string; settings: MenuSettings } | null>(null);
+  const menu = editedMenu?.id === operatorId && editedMenu ? editedMenu.settings : savedMenu;
+  const menuTheme = menu.theme ?? "dark";
+  useEffect(() => {
+    if (operatorId) setTheme(menuTheme);
+  }, [operatorId, menuTheme, setTheme]);
+
+  const saveMenu = (settings: MenuSettings) => {
+    if (!operatorId) return;
+    try {
+      localStorage.setItem(menuStorageKey(operatorId), JSON.stringify(settings));
+    } catch {
+      toast.error("O dispositivo não pôde salvar o menu.");
+      return;
+    }
+    setEditedMenu({ id: operatorId, settings });
+  };
+  const defaultOrder = useMemo(() => defaultShortcutOrder(NAV, operatorId ?? ""), [operatorId]);
   const backupChoice = useQuery({ queryKey: ["backup-destination"], queryFn: () => apiGet<{ destination: "pc" | "google_drive" | null }>("/settings/backup-destination"), enabled: me?.role === "admin", staleTime: 60000 });
 
   if (isLoading) return <div className="grid min-h-screen place-items-center text-zinc-500">Carregando…</div>;
@@ -284,10 +371,10 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
     (label === "Principal" && items.some((item) => PRINCIPAL_SHORTCUTS.includes(item.to))));
   const visibleGroup = activeRibbon ?? (currentItem ? ribbonGroup(currentItem) : groups[0]?.label);
   const groupItems = items.filter((item) => ribbonGroup(item) === visibleGroup);
-  const shortcuts = visibleGroup === "Principal"
-    ? [...PRINCIPAL_SHORTCUTS.flatMap((path) => items.filter((item) => item.to === path)),
-        ...groupItems.filter((item) => !PRINCIPAL_SHORTCUTS.includes(item.to))]
+  const availableShortcuts = visibleGroup === "Principal"
+    ? items.filter((item) => PRINCIPAL_SHORTCUTS.includes(item.to) || groupItems.includes(item))
     : groupItems;
+  const shortcuts = (menu.shortcuts ?? defaultOrder).flatMap((path) => availableShortcuts.filter((item) => item.to === path));
   const allowed = !roles || me.role === "admin" || roles.includes(me.role);
 
   return (
@@ -311,7 +398,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
             Configuração obrigatória: escolha backup no Google Drive ou no PC em Configurações → Backup.
           </Link>
         )}
-        <header className="relative z-30 lg:sticky lg:top-0 @container border-b border-border bg-shell text-foreground" data-testid="apollo-ribbon">
+        <header className="relative z-30 lg:sticky lg:top-0 @container border-b border-border bg-shell text-foreground" data-testid="apollo-ribbon" data-menu-accent={menu.accent}>
           <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-border px-3 py-2 sm:px-4">
             <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={() => setOpen(true)} aria-label="Abrir todas as funções (Ctrl+K)" title="Buscar funções (Ctrl+K)" data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
             <Brand />
@@ -319,7 +406,17 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
               <Button variant="ghost" size="sm" onClick={() => { setMenuSearch(""); setOpen(true); }}><Search className="size-4" /> Pesquisar</Button>
               <OfflineBadge />
               <DisplayZoom />
-              <button type="button" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              <MenuPreferences key={me.id} items={items} settings={menu} defaults={defaultOrder} theme={menuTheme}
+                onChange={saveMenu} onReset={() => {
+                  try {
+                    localStorage.removeItem(`apollo-menu-shortcuts:${me.id}`);
+                  } catch {
+                    toast.error("O dispositivo não pôde restaurar o menu.");
+                    return;
+                  }
+                  saveMenu({ ...DEFAULT_MENU, shortcuts: defaultShortcutOrder(NAV, me.id), theme: "dark" });
+                }} />
+              <button type="button" onClick={() => saveMenu({ ...menu, theme: resolvedTheme === "dark" ? "light" : "dark" })}
                 aria-label={resolvedTheme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
                 className="grid size-10 shrink-0 place-items-center rounded-lg text-foreground hover:bg-muted" data-testid="theme-toggle">
                 {resolvedTheme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
@@ -343,14 +440,13 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
             <div className="hidden items-stretch gap-1 @min-[46rem]:flex">
               {groups.map(({ label, icon: GroupIcon }) => (
                 <button key={label} type="button" onClick={() => setActiveRibbon(label)} aria-pressed={visibleGroup === label}
-                  className="flex min-h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border-b-2 border-transparent px-2 text-xs font-semibold text-muted-foreground uppercase hover:bg-muted aria-pressed:border-primary aria-pressed:bg-muted aria-pressed:text-foreground @min-[65rem]:px-3">
+                  className="flex min-h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border-b-2 border-transparent px-2 text-xs font-semibold text-muted-foreground uppercase hover:bg-muted aria-pressed:border-[var(--apollo-menu-accent,var(--primary))] aria-pressed:bg-muted aria-pressed:text-foreground @min-[65rem]:px-3">
                   <GroupIcon className="hidden size-4 shrink-0 text-primary @min-[65rem]:block" aria-hidden="true" />{label}
                 </button>
               ))}
             </div>
           </nav>}
-          <RibbonShortcuts items={shortcuts} principal={visibleGroup === "Principal"} />
-          <MenuPreferences key={me.id} operatorId={me.id} items={items} />
+          <RibbonShortcuts items={shortcuts} available={availableShortcuts} settings={menu} principal={visibleGroup === "Principal"} />
         </header>
         <main className="min-w-0 flex-1 px-3 py-4 lg:px-5">
           {allowed ? children : (
@@ -378,9 +474,15 @@ const SHORTCUT_COLORS: Record<string, string> = {
   "/clientes": "text-teal-700 dark:text-teal-400",
 };
 
-function RibbonShortcuts({ items, principal }: { items: NavItem[]; principal: boolean }) {
+const ICON_SIZES = { small: "1rem", medium: "1.5rem", large: "2rem" };
+const BUTTON_SIZES = { small: "2.75rem", medium: "3.5rem", large: "4.25rem" };
+
+function RibbonShortcuts({ items, available, principal, settings }: {
+  items: NavItem[]; available: NavItem[]; principal: boolean; settings: MenuSettings;
+}) {
   const [open, setOpen] = useState(false);
   return <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts"
+    style={{ "--menu-icon-size": ICON_SIZES[settings.iconSize], "--menu-button-size": BUTTON_SIZES[settings.buttonSize] } as CSSProperties}
     className="flex min-w-0 items-stretch gap-1 bg-elevated px-2 py-1 sm:px-4">
     <div className="flex min-w-0 flex-1 items-stretch gap-1 [&>a:nth-child(n+3)]:hidden @min-[29rem]:[&>a:nth-child(-n+4)]:flex @min-[46rem]:[&>a:nth-child(-n+6)]:flex @min-[64rem]:[&>a:nth-child(-n+8)]:flex @min-[85rem]:[&>a:nth-child(-n+10)]:flex">
       {items.map((item) => <RibbonShortcut key={item.to} item={item} label={principal ? PRINCIPAL_LABELS[item.to] : undefined} />)}
@@ -392,7 +494,7 @@ function RibbonShortcuts({ items, principal }: { items: NavItem[]; principal: bo
       <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <DialogTitle>Atalhos da seção</DialogTitle>
         <div className="grid gap-1 sm:grid-cols-2">
-          {items.map((item) => <RibbonShortcut key={item.to} item={item} label={principal ? PRINCIPAL_LABELS[item.to] : undefined} compact onNavigate={() => setOpen(false)} />)}
+          {available.map((item) => <RibbonShortcut key={item.to} item={item} label={principal ? PRINCIPAL_LABELS[item.to] : undefined} compact onNavigate={() => setOpen(false)} />)}
         </div>
       </DialogContent>
     </Dialog>
@@ -403,9 +505,9 @@ function RibbonShortcut({ item, label = item.label, compact, onNavigate }: { ite
   const Icon = label === "Fila de Atendimento" ? ListOrdered : ICONS[item.icon] ?? LayoutDashboard;
   return <NavLink to={label === "Fila de Atendimento" ? "/comanda-mobile?fila=1" : item.to} end={item.to === "/"} onClick={onNavigate}
     className={({ isActive }) => cn("flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-1.5 py-1.5 text-xs leading-tight hover:bg-muted",
-      compact ? "justify-start text-left" : "max-w-40 flex-col text-center",
+      compact ? "justify-start text-left" : "min-h-(--menu-button-size) max-w-40 flex-col text-center",
       isActive ? "bg-muted text-foreground" : "text-muted-foreground")}>
-    <Icon className={cn("size-5 shrink-0", SHORTCUT_COLORS[item.to] ?? "text-primary")} aria-hidden="true" />
+    <Icon className={cn("shrink-0", compact ? "size-5" : "size-(--menu-icon-size)", SHORTCUT_COLORS[item.to] ?? "text-primary")} aria-hidden="true" />
     <span className="min-w-0 wrap-anywhere">{label}</span>
   </NavLink>;
 }

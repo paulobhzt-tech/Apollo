@@ -166,3 +166,7 @@
   .print-area, .print-area * { visibility: visible; }
   .print-area { position: absolute; left: 0; top: 0; width: 80mm; background: #fff; color: #000; }
 }
+
+[data-menu-accent="blue"] { --apollo-menu-accent: #2563eb; }
+[data-menu-accent="teal"] { --apollo-menu-accent: #0d9488; }
+[data-menu-accent="violet"] { --apollo-menu-accent: #8b5cf6; }
