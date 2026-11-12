@@ -102,12 +102,13 @@ export default function Produtos() {
                 {visible.map((p) => (
                   <TableRow key={p.id} data-testid={`product-row-${p.code || p.id}`}>
                     <TableCell><Checkbox checked={sel.includes(p.id)} onCheckedChange={() => toggle(p.id)} data-testid={`product-select-${p.code || p.id}`} /></TableCell>
+                    <TableCell className="font-mono text-xs text-zinc-400">{p.code || "—"}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         {p.image ? <img src={p.image} alt="" className="size-10 rounded-lg object-cover" /> : <div className="size-10 rounded-lg bg-muted" />}
                         <div>
                           <p className="font-medium text-white">{p.name} {!p.active && <Badge variant="outline">Inativo</Badge>}</p>
-                          <p className="font-mono text-xs text-zinc-500">{p.code} · {p.recipe.length} insumos</p>
+                          <p className="font-mono text-xs text-zinc-500">{p.recipe.length} insumo(s)</p>
                         </div>
                       </div>
                     </TableCell>
@@ -118,7 +119,8 @@ export default function Produtos() {
                     </TableCell>
                     <TableCell className="text-right font-mono">{brl(p.price)}</TableCell>
                     <TableCell className="text-right font-mono text-zinc-400">{brl(p.cost)}{p.cost_price > 0 && <span className="ml-1 text-[10px] text-zinc-500">manual</span>}</TableCell>
-                    <TableCell className={cn("text-right font-mono", p.margin_pct >= 65 ? "text-emerald-300" : p.margin_pct >= 45 ? "text-amber-300" : "text-red-300")}>{p.margin_pct}%</TableCell>\n                    <TableCell><span className={p.active ? "text-emerald-300" : "text-zinc-400"}>{p.active ? "● Ativo" : "○ Inativo"}</span></TableCell>
+                    <TableCell className={cn("text-right font-mono", p.margin_pct >= 65 ? "text-emerald-300" : p.margin_pct >= 45 ? "text-amber-300" : "text-red-300")}>{p.margin_pct}%</TableCell>
+                    <TableCell><span className={p.active ? "text-emerald-300" : "text-zinc-400"}>{p.active ? "● Ativo" : "○ Inativo"}</span></TableCell>
                     <TableCell className="text-right">
                       <Button size="icon-sm" variant="ghost" aria-label={`Duplicar ${p.name}`} title="Duplicar produto" onClick={() => { setCopySource(p); setEditing("new"); }}><Copy /></Button>
                       <Button size="icon-sm" variant="ghost" aria-label={`Editar ${p.name}`} onClick={() => setEditing(p)} data-testid={`edit-product-${p.code || p.id}`}><Pencil /></Button>
@@ -213,6 +215,7 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
   const [costStr, setCostStr] = useState(source?.cost_price ? String(source.cost_price) : "");
   const [ingId, setIngId] = useState("");
   const [qty, setQty] = useState("");
+  const recipeQuantity = catalogNumber(qty);
   const [targetMargin, setTargetMargin] = useState("60");
   const ingMap = Object.fromEntries(ings.map((i) => [i.id, i]));
   const recipeCost = f.recipe.reduce((s, r) => s + (ingMap[r.ingredient_id]?.cost_per_unit ?? 0) * r.qty, 0);
@@ -233,9 +236,8 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
     onError: (e) => toast.error(errMsg(e)),
   });
   const addRecipe = () => {
-    const q = catalogNumber(qty);
-    if (!ingId || q === null || q <= 0) return;
-    const r: RecipeItem = { ingredient_id: ingId, qty: q };
+    if (!ingId || recipeQuantity === null || recipeQuantity <= 0) return;
+    const r: RecipeItem = { ingredient_id: ingId, qty: recipeQuantity };
     setF({ ...f, recipe: [...f.recipe.filter((x) => x.ingredient_id !== ingId), r] });
     setIngId(""); setQty("");
   };
@@ -252,81 +254,81 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
           <TabsTrigger value="perguntas"><CircleHelp /> Perguntas</TabsTrigger>
         </TabsList>
         <TabsContent value="principal" className="mt-4">
-      <div className="grid gap-4 lg:grid-cols-[minmax(12rem,1fr)_3fr]">
-        <div className="min-w-0 rounded-xl border border-white/10 bg-panel p-3">
-          <Label className="text-xs text-zinc-400">Imagem do produto</Label>
-          <div className="mt-2 flex flex-col gap-3">
-            <div className="aspect-square w-full max-h-64 overflow-hidden rounded-xl border border-white/10 bg-muted">{f.image && <img src={f.image} alt="" className="size-full object-cover" data-testid="product-image-preview" />}</div>
-            <div className="flex-1 space-y-2">
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-white/15 px-3 py-2 text-sm text-zinc-300 transition-colors duration-150 hover:border-primary/50">
-                <ImagePlus className="size-4" /> Enviar foto do computador/celular
-                <input type="file" accept="image/*" className="hidden" data-testid="product-image-upload"
-                  disabled={uploading}
-                  onChange={async (event) => {
-                    const file = event.target.files?.[0];
-                    if (!file) return;
-                    setUploading(true);
-                    try {
-                      const image = await fileToDataUrl(file);
-                      setF((current) => ({ ...current, image }));
-                    } catch (error) {
-                      toast.error((error as Error).message);
-                    } finally {
-                      setUploading(false);
-                    }
-                  }} />
-              </label>
-              <Input value={f.image.startsWith("data:") ? "" : f.image} placeholder={f.image.startsWith("data:") ? "Foto enviada ✓ (ou cole uma URL)" : "…ou cole a URL da imagem"} onChange={(e) => setF({ ...f, image: e.target.value })} data-testid="product-image-input" />
-              {f.image && <Button type="button" variant="outline" disabled={uploading} onClick={() => setF((current) => ({ ...current, image: "" }))}><Trash2 /> Remover foto</Button>}
+        <div className="grid gap-4 lg:grid-cols-[minmax(12rem,1fr)_3fr]">
+            <div className="min-w-0 rounded-xl border border-white/10 bg-panel p-3">
+              <Label className="text-xs text-zinc-400">Imagem do produto</Label>
+              <div className="mt-2 flex flex-col gap-3">
+                <div className="aspect-square w-full max-h-64 overflow-hidden rounded-xl border border-white/10 bg-muted">{f.image && <img src={f.image} alt="" className="size-full object-cover" data-testid="product-image-preview" />}</div>
+                <div className="flex-1 space-y-2">
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-white/15 px-3 py-2 text-sm text-zinc-300 transition-colors duration-150 hover:border-primary/50">
+                    <ImagePlus className="size-4" /> Enviar foto do computador/celular
+                    <input type="file" accept="image/*" className="hidden" data-testid="product-image-upload"
+                      disabled={uploading}
+                      onChange={async (event) => {
+                        const file = event.target.files?.[0];
+                        if (!file) return;
+                        setUploading(true);
+                        try {
+                          const image = await fileToDataUrl(file);
+                          setF((current) => ({ ...current, image }));
+                        } catch (error) {
+                          toast.error((error as Error).message);
+                        } finally {
+                          setUploading(false);
+                        }
+                      }} />
+                  </label>
+                  <Input value={f.image.startsWith("data:") ? "" : f.image} placeholder={f.image.startsWith("data:") ? "Foto enviada ✓ (ou cole uma URL)" : "…ou cole a URL da imagem"} onChange={(e) => setF({ ...f, image: e.target.value })} data-testid="product-image-input" />
+                  {f.image && <Button type="button" variant="outline" disabled={uploading} onClick={() => setF((current) => ({ ...current, image: "" }))}><Trash2 /> Remover foto</Button>}
+                </div>
+              </div>
             </div>
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2"><Label htmlFor="product-name" className="text-xs text-zinc-400">Nome</Label><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} className="mt-1" id="product-name" data-testid="product-name-input" /></div>
+              <div className="sm:col-span-2"><Label htmlFor="product-description" className="text-xs text-zinc-400">Descrição</Label><Textarea value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} className="mt-1" id="product-description" data-testid="product-description-input" /></div>
+              <div>
+                <Label htmlFor="product-category" className="text-xs text-zinc-400">Categoria</Label>
+                <Select value={f.category_id} onValueChange={(v: string) => setF({ ...f, category_id: v })}>
+                  <SelectTrigger className="mt-1 w-full" id="product-category" data-testid="product-category-select"><SelectValue>{(v) => cats.find((c) => c.id === v)?.name ?? "Selecione"}</SelectValue></SelectTrigger>
+                  <SelectContent>{cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label htmlFor="product-price" className="text-xs text-zinc-400">Preço de venda (R$)</Label><Input value={priceStr} inputMode="decimal" onChange={(e) => setPriceStr(e.target.value)} className="mt-1 font-mono" id="product-price" data-testid="product-price-input" /></div>
+              <div>
+                <Label htmlFor="product-cost" className="text-xs text-zinc-400">Preço de custo (R$)</Label>
+                <Input value={costStr} inputMode="decimal" placeholder={recipeCost > 0 ? `Ficha técnica: ${brl(recipeCost)}` : "0,00"} onChange={(e) => setCostStr(e.target.value)} className="mt-1 font-mono" id="product-cost" data-testid="product-cost-input" />
+                <p className="mt-1 text-[11px] text-zinc-500">{manualCost > 0 ? "Custo manual (substitui a ficha técnica)" : "Vazio = usa o custo da ficha técnica"}</p>
+              </div>
+              <div className="flex flex-col justify-center rounded-xl border border-white/5 bg-panel px-3 py-2">
+                <p className="text-[11px] text-zinc-500">Lucro por unidade</p>
+                <p className={cn("font-mono text-lg", price - cost >= 0 ? "text-emerald-300" : "text-red-300")} data-testid="product-profit">{brl(price - cost)} <span className="text-xs text-zinc-400">({margin.toFixed(1)}%)</span></p>
+              </div>
+              <div><Label htmlFor="product-code" className="text-xs text-zinc-400">Código / PLU</Label><Input value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} className="mt-1 font-mono" id="product-code" data-testid="product-code-input" /></div>
+              <div>
+                <Label htmlFor="product-station" className="text-xs text-zinc-400">Ambiente de produção (onde é preparado e impresso)</Label>
+                <Select value={f.station || "__cat"} onValueChange={(v: string) => setF({ ...f, station: v === "__cat" ? "" : v })}>
+                  <SelectTrigger className="mt-1 w-full" id="product-station" data-testid="product-station-select"><SelectValue>{(v) => (v === "__cat" ? `Da categoria (${envName(envs.data, catStation)})` : envName(envs.data, v as string))}</SelectValue></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__cat">Da categoria ({envName(envs.data, catStation)})</SelectItem>
+                    {(envs.data ?? []).map((e) => <SelectItem key={e.key} value={e.key}>{e.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <label className="flex items-center gap-2 self-end rounded-xl border border-white/5 bg-panel px-3 py-2.5 text-sm text-zinc-300">
+                <Checkbox checked={f.print_ticket} onCheckedChange={(v) => setF({ ...f, print_ticket: !!v })} data-testid="product-print-checkbox" />
+                <PrinterIcon className="size-4 text-primary" /> Imprimir ticket no ambiente
+              </label>
+              <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={f.active} onCheckedChange={(v) => setF({ ...f, active: !!v })} data-testid="product-active-checkbox" /> Disponível para venda</label>
+              <fieldset className="grid gap-2 rounded-xl border border-white/10 p-3 sm:col-span-2 sm:grid-cols-2">
+                <legend className="px-1 text-sm font-medium">Disponibilidade por canal</legend>
+                {CHANNELS.map(({ id, label }) => <label key={id} className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={channels.includes(id)} onCheckedChange={(checked) => setF({
+                    ...f, channels: checked ? [...channels, id] : channels.filter((channel) => channel !== id),
+                  })} /> {label}
+                </label>)}
+              </fieldset>
           </div>
         </div>
-      <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-        <div className="sm:col-span-2"><Label htmlFor="product-name" className="text-xs text-zinc-400">Nome</Label><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} className="mt-1" id="product-name" data-testid="product-name-input" /></div>
-        <div className="sm:col-span-2"><Label htmlFor="product-description" className="text-xs text-zinc-400">Descrição</Label><Textarea value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} className="mt-1" id="product-description" data-testid="product-description-input" /></div>
-        <div>
-          <Label htmlFor="product-category" className="text-xs text-zinc-400">Categoria</Label>
-          <Select value={f.category_id} onValueChange={(v: string) => setF({ ...f, category_id: v })}>
-            <SelectTrigger className="mt-1 w-full" id="product-category" data-testid="product-category-select"><SelectValue>{(v) => cats.find((c) => c.id === v)?.name ?? "Selecione"}</SelectValue></SelectTrigger>
-            <SelectContent>{cats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-        <div><Label htmlFor="product-price" className="text-xs text-zinc-400">Preço de venda (R$)</Label><Input value={priceStr} inputMode="decimal" onChange={(e) => setPriceStr(e.target.value)} className="mt-1 font-mono" id="product-price" data-testid="product-price-input" /></div>
-        <div>
-          <Label htmlFor="product-cost" className="text-xs text-zinc-400">Preço de custo (R$)</Label>
-          <Input value={costStr} inputMode="decimal" placeholder={recipeCost > 0 ? `Ficha técnica: ${brl(recipeCost)}` : "0,00"} onChange={(e) => setCostStr(e.target.value)} className="mt-1 font-mono" id="product-cost" data-testid="product-cost-input" />
-          <p className="mt-1 text-[11px] text-zinc-500">{manualCost > 0 ? "Custo manual (substitui a ficha técnica)" : "Vazio = usa o custo da ficha técnica"}</p>
-        </div>
-        <div className="flex flex-col justify-center rounded-xl border border-white/5 bg-panel px-3 py-2">
-          <p className="text-[11px] text-zinc-500">Lucro por unidade</p>
-          <p className={cn("font-mono text-lg", price - cost >= 0 ? "text-emerald-300" : "text-red-300")} data-testid="product-profit">{brl(price - cost)} <span className="text-xs text-zinc-400">({margin.toFixed(1)}%)</span></p>
-        </div>
-        <div><Label htmlFor="product-code" className="text-xs text-zinc-400">Código / PLU</Label><Input value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} className="mt-1 font-mono" id="product-code" data-testid="product-code-input" /></div>
-        <div>
-          <Label htmlFor="product-station" className="text-xs text-zinc-400">Ambiente de produção (onde é preparado e impresso)</Label>
-          <Select value={f.station || "__cat"} onValueChange={(v: string) => setF({ ...f, station: v === "__cat" ? "" : v })}>
-            <SelectTrigger className="mt-1 w-full" id="product-station" data-testid="product-station-select"><SelectValue>{(v) => (v === "__cat" ? `Da categoria (${envName(envs.data, catStation)})` : envName(envs.data, v as string))}</SelectValue></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__cat">Da categoria ({envName(envs.data, catStation)})</SelectItem>
-              {(envs.data ?? []).map((e) => <SelectItem key={e.key} value={e.key}>{e.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <label className="flex items-center gap-2 self-end rounded-xl border border-white/5 bg-panel px-3 py-2.5 text-sm text-zinc-300">
-          <Checkbox checked={f.print_ticket} onCheckedChange={(v) => setF({ ...f, print_ticket: !!v })} data-testid="product-print-checkbox" />
-          <PrinterIcon className="size-4 text-primary" /> Imprimir ticket no ambiente
-        </label>
-        <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={f.active} onCheckedChange={(v) => setF({ ...f, active: !!v })} data-testid="product-active-checkbox" /> Disponível para venda</label>
-        <fieldset className="grid gap-2 rounded-xl border border-white/10 p-3 sm:col-span-2 sm:grid-cols-2">
-          <legend className="px-1 text-sm font-medium">Disponibilidade por canal</legend>
-          {CHANNELS.map(({ id, label }) => <label key={id} className="flex items-center gap-2 text-sm">
-            <Checkbox checked={channels.includes(id)} onCheckedChange={(checked) => setF({
-              ...f, channels: checked ? [...channels, id] : channels.filter((channel) => channel !== id),
-            })} /> {label}
-          </label>)}
-        </fieldset>
-      </div>
-      </div>
         </TabsContent>
         <TabsContent value="estoque" className="mt-4 rounded-xl border border-white/10 bg-panel p-5">
           <h3 className="font-semibold text-white">Controle de estoque</h3>
@@ -353,7 +355,7 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
             <SelectContent>{ings.map((i) => <SelectItem key={i.id} value={i.id}>{i.name} ({i.unit})</SelectItem>)}</SelectContent>
           </Select>
           <Input placeholder={`Qtd${ingId ? ` (${ingMap[ingId]?.unit})` : ""}`} value={qty} inputMode="decimal" onChange={(e) => setQty(e.target.value)} className="w-28 font-mono" data-testid="recipe-qty-input" />
-          <Button variant="outline" onClick={addRecipe} data-testid="recipe-add-button"><Plus /></Button>
+          <Button variant="outline" onClick={addRecipe} disabled={!ingId || recipeQuantity === null || recipeQuantity <= 0} aria-label="Adicionar insumo à ficha técnica" data-testid="recipe-add-button"><Plus /></Button>
         </div>
         <ul className="mt-3 space-y-1.5">
           {f.recipe.map((r) => {
