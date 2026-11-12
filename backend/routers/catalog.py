@@ -1,11 +1,13 @@
 from datetime import date, datetime, timedelta, timezone
 import math
+from uuid import NAMESPACE_URL, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pymongo.errors import DuplicateKeyError
 
 from lib.auth import current_user, require
 from lib.db import db
-from lib.orders import ingredient_map, now, product_cost
+from lib.orders import ingredient_map, local_today, now, product_cost
 from models.schemas import (BulkDeleteIn, Category, CategoryIn, Ingredient, IngredientIn, IngredientUpdateIn, OkOut, Product, ProductIn, Supplier, SupplierIn,
                             StockMove, StockMoveIn, ProductionBatch, ProductionBatchIn, Purchase, PurchaseIn, InventoryCount, InventoryCountIn, LotCountIn)
 
@@ -166,19 +168,55 @@ async def list_purchases(_: dict = Depends(require("caixa"))):
 
 @router.post("/purchases", response_model=Purchase)
 async def register_purchase(body: PurchaseIn, user: dict = Depends(require("caixa"))):
-    supplier = await db.suppliers.find_one({"id": body.supplier_id}, {"_id": 0})
-    ing = await db.ingredients.find_one({"id": body.ingredient_id}, {"_id": 0})
+    if not body.client_ref:
+        return await apply_purchase(body, user)
+    topology = await db.command("hello")
+    if not (topology.get("setName") or topology.get("msg") == "isdbgrid"):
+        # Preserve standalone behavior for existing Windows installations.
+        return await apply_purchase(body, user)
+    purchase_id = str(uuid5(NAMESPACE_URL, f"apollo-purchase:{user['id']}:{body.client_ref}"))
+
+    def verify_replay(previous):
+        expected = body.model_dump()
+        expected["qty"] = round(body.qty, 4)
+        if any(previous.get(key) != value for key, value in expected.items()):
+            raise HTTPException(409, "Referência de compra já usada com outros dados")
+        return previous
+
+    async def apply(session):
+        previous = await db.purchases.find_one({"id": purchase_id}, {"_id": 0}, session=session)
+        if previous:
+            return verify_replay(previous)
+        return await apply_purchase(body, user, purchase_id=purchase_id, session=session)
+
+    try:
+        async with await db.client.start_session() as session:
+            return await session.with_transaction(apply)
+    except DuplicateKeyError:
+        previous = await db.purchases.find_one({"id": purchase_id}, {"_id": 0})
+        if previous:
+            return verify_replay(previous)
+        raise
+
+
+async def apply_purchase(body: PurchaseIn, user: dict, *, purchase_id: str | None = None, session=None):
+    options = {"session": session} if session is not None else {}
+    supplier = await db.suppliers.find_one({"id": body.supplier_id}, {"_id": 0}, **options)
+    ing = await db.ingredients.find_one({"id": body.ingredient_id}, {"_id": 0}, **options)
     if not supplier:
         raise HTTPException(404, "Fornecedor não encontrado")
     if not ing:
         raise HTTPException(404, "Insumo não encontrado")
-    if body.expiry_date:
-        try:
-            expiry = date.fromisoformat(body.expiry_date)
-        except ValueError:
-            raise HTTPException(400, "Validade deve estar no formato AAAA-MM-DD")
-        if expiry < date.today():
-            raise HTTPException(400, "Não é possível cadastrar compra já vencida")
+    try:
+        manufactured = date.fromisoformat(body.manufactured_on) if body.manufactured_on else None
+        expiry = date.fromisoformat(body.expiry_date) if body.expiry_date else None
+    except ValueError:
+        raise HTTPException(400, "Datas do lote devem estar no formato AAAA-MM-DD") from None
+    today = local_today()
+    if manufactured and (manufactured > today or (expiry and manufactured > expiry)):
+        raise HTTPException(400, "A fabricação deve ser anterior ou igual à data atual e à validade")
+    if expiry and expiry < today:
+        raise HTTPException(400, "Não é possível cadastrar compra já vencida")
     qty = round(body.qty, 4)
     if qty <= 0:
         raise HTTPException(400, "Quantidade muito pequena")
@@ -189,6 +227,8 @@ async def register_purchase(body: PurchaseIn, user: dict = Depends(require("caix
                         ingredient_name=ing["name"], unit=ing["unit"],
                         total_cost=round(total_cost, 2),
                         by_name=user["name"]).model_dump()
+    if purchase_id:
+        purchase["id"] = purchase_id
     # Calculate the average from the same document revision that receives the stock.
     current_stock = {"$ifNull": ["$stock", 0]}
     positive_stock = {"$max": [0, current_stock]}
@@ -200,21 +240,22 @@ async def register_purchase(body: PurchaseIn, user: dict = Depends(require("caix
             {"$add": [positive_stock, qty]},
         ]}, 4]},
         "updated_at": now(),
-    }}])
+    }}], **options)
     if updated.matched_count != 1:
         raise HTTPException(409, "O insumo foi alterado. Atualize o estoque antes de registrar a compra.")
     purchase['remaining_qty'] = qty
-    await db.purchases.insert_one(dict(purchase))
+    document = {**purchase, "_id": purchase_id} if purchase_id else dict(purchase)
+    await db.purchases.insert_one(document, **options)
     await db.stock_moves.insert_one(StockMove(
         ingredient_id=ing["id"], ingredient_name=ing["name"], type="entrada",
         qty=qty, note=f"Compra {purchase['id'][:8]} - {supplier['name']}",
-        by_name=user["name"]).model_dump())
+        by_name=user["name"]).model_dump(), **options)
     return purchase
 
 
 @router.get("/purchases/expiry")
 async def purchase_expiry(_: dict = Depends(require("caixa"))):
-    today = date.today()
+    today = local_today()
     purchases = await db.purchases.find({"expiry_date": {"$nin": [None, ""]}, "remaining_qty": {"$gt": 0}}, {"_id": 0}).to_list(5000)
     result = []
     for p in purchases:

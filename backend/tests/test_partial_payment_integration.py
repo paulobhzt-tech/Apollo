@@ -103,3 +103,53 @@ async def test_concurrent_partial_payments_cannot_oversell(scenario):
         await db.orders.delete_many({"$or": [{"id": order["id"]}, {"parent_order_id": order["id"]}]})
         await db.tables.delete_one({"id": table["id"]})
         await db.cash_sessions.delete_one({"id": cash_id})
+
+
+async def test_concurrent_purchases_and_transaction_rollback(monkeypatch):
+    from models.schemas import PurchaseIn
+    from routers import catalog
+
+    if db.name not in {"apollo_partial_payment_ci", "apollo_partial_ci"}:
+        pytest.skip("Compra concorrente exige o banco descartável da CI")
+    prefix = "purchase-test-" + uuid.uuid4().hex
+    supplier_id = f"{prefix}-supplier"
+    ingredient_id = f"{prefix}-ingredient"
+    await db.suppliers.insert_one({"id": supplier_id, "name": "Fornecedor fictício"})
+    await db.ingredients.insert_one({"id": ingredient_id, "name": "Insumo fictício",
+                                    "unit": "kg", "stock": 1, "cost_per_unit": 10})
+    actor = {"id": prefix, "name": "Operador fictício"}
+
+    def purchase(ref, qty, cost):
+        return PurchaseIn(supplier_id=supplier_id, ingredient_id=ingredient_id,
+                          qty=qty, unit_cost=cost, client_ref=f"{prefix}-{ref}")
+
+    try:
+        first = purchase("first", 0.5, 20)
+        second = purchase("second", 0.5, 20)
+        result = await asyncio.gather(catalog.register_purchase(first, actor),
+                                      catalog.register_purchase(first, actor),
+                                      catalog.register_purchase(second, actor))
+        assert result[0]["id"] == result[1]["id"] != result[2]["id"]
+        ingredient = await db.ingredients.find_one({"id": ingredient_id})
+        assert ingredient["stock"] == 2
+        assert ingredient["cost_per_unit"] == pytest.approx(15, abs=0.0001)
+        assert await db.purchases.count_documents({"ingredient_id": ingredient_id}) == 2
+        assert await db.stock_moves.count_documents({"ingredient_id": ingredient_id}) == 2
+
+        original = catalog.apply_purchase
+        async def fail_after_write(*args, **kwargs):
+            await original(*args, **kwargs)
+            raise RuntimeError("Falha fictícia após as gravações")
+
+        monkeypatch.setattr(catalog, "apply_purchase", fail_after_write)
+        with pytest.raises(RuntimeError, match="Falha fictícia"):
+            await catalog.register_purchase(purchase("rollback", 1, 30), actor)
+        ingredient = await db.ingredients.find_one({"id": ingredient_id})
+        assert ingredient["stock"] == 2
+        assert await db.purchases.count_documents({"ingredient_id": ingredient_id}) == 2
+        assert await db.stock_moves.count_documents({"ingredient_id": ingredient_id}) == 2
+    finally:
+        await db.stock_moves.delete_many({"ingredient_id": ingredient_id})
+        await db.purchases.delete_many({"ingredient_id": ingredient_id})
+        await db.ingredients.delete_one({"id": ingredient_id})
+        await db.suppliers.delete_one({"id": supplier_id})

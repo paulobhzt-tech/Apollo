@@ -43,6 +43,7 @@ INDEXES: dict[str, list[IndexModel]] = {
                           partialFilterExpression={"client_ref": {"$type": "string"}})],
     "kitchen_tickets": [_id_idx(), IndexModel([("status", ASCENDING), ("created_at", ASCENDING)], name="status_created")],
     "invoices": [_id_idx(), IndexModel([("emitted_at", DESCENDING)], name="emitted_desc")],
+    "purchases": [_id_idx(), IndexModel([("ingredient_id", ASCENDING), ("expiry_date", ASCENDING)], name="ingredient_expiry")],
     "cash_sessions": [_id_idx(), IndexModel([("status", ASCENDING)], name="status"),
                       IndexModel([("status", ASCENDING)], name="single_open_cash", unique=True,
                                  partialFilterExpression={"status": "aberto"})],

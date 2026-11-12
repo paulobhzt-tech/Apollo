@@ -745,6 +745,8 @@ class PurchaseIn(BaseModel):
     ingredient_id: str
     qty: float = Field(gt=0, allow_inf_nan=False)
     unit_cost: float = Field(ge=0, allow_inf_nan=False)
+    manufactured_on: Optional[str] = None
+    client_ref: Optional[str] = Field(default=None, min_length=6, max_length=120)
     expiry_date: Optional[str] = None  # ISO YYYY-MM-DD
     lot_number: str = ""
     note: str = ""

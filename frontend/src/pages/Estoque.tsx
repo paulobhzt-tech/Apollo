@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDownToLine, ClipboardList, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiGet, apiPost, apiPut } from "@/lib/api";
-import { brl, errMsg, fmtDateTime } from "@/lib/format";
+import { brl, errMsg, fmtDateTime, uid } from "@/lib/format";
 import { useMe } from "@/lib/auth";
 import { queryClient } from "@/lib/queryClient";
 import type { Ingredient, IngredientIn, StockMove, Unit, Product, Supplier } from "@/lib/types";
@@ -88,6 +88,8 @@ function PurchasePanel({ ingredients, onSaved }: { ingredients: Ingredient[]; on
   const [qty, setQty] = useState("");
   const [unitCost, setUnitCost] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
+  const [manufacturedOn, setManufacturedOn] = useState("");
+  const purchaseAttempt = useRef<{ payload: string; reference: string } | null>(null);
   const [lotNumber, setLotNumber] = useState("");
   const [note, setNote] = useState("");
   const quantity = catalogNumber(qty);
@@ -98,11 +100,22 @@ function PurchasePanel({ ingredients, onSaved }: { ingredients: Ingredient[]; on
   const valid = supplierExists && selected && quantity !== null && quantity > 0 &&
     unitPrice !== null && unitPrice >= 0 && Number.isFinite(amount);
   const save = useMutation({
-    mutationFn: (values: { qty: number; unit_cost: number }) => apiPost<Purchase>("/purchases", {
-      supplier_id: supplierId, ingredient_id: ingredientId, ...values,
-      expiry_date: expiryDate || null, lot_number: lotNumber.trim(), note: note.trim(),
-    }),
-    onSuccess: () => { toast.success("Compra registrada e estoque atualizado"); setQty(""); setUnitCost(""); setLotNumber(""); setNote(""); setExpiryDate(""); void purchases.refetch(); void expiry.refetch(); onSaved(); },
+    mutationFn: (values: { qty: number; unit_cost: number }) => {
+      const body = { supplier_id: supplierId, ingredient_id: ingredientId, ...values,
+        manufactured_on: manufacturedOn || null, expiry_date: expiryDate || null,
+        lot_number: lotNumber.trim(), note: note.trim() };
+      const payload = JSON.stringify(body);
+      if (purchaseAttempt.current?.payload !== payload) {
+        purchaseAttempt.current = { payload, reference: uid() };
+      }
+      return apiPost<Purchase>("/purchases", { ...body, client_ref: purchaseAttempt.current.reference });
+    },
+    onSuccess: () => {
+      purchaseAttempt.current = null;
+      toast.success("Compra registrada e estoque atualizado");
+      setQty(""); setUnitCost(""); setLotNumber(""); setNote(""); setExpiryDate(""); setManufacturedOn("");
+      void purchases.refetch(); void expiry.refetch(); onSaved();
+    },
     onError: (e) => toast.error(errMsg(e)),
   });
   return <div className="space-y-4">
@@ -114,6 +127,7 @@ function PurchasePanel({ ingredients, onSaved }: { ingredients: Ingredient[]; on
         <div><Label htmlFor="purchase-ingredient">Insumo</Label><Select value={ingredientId} onValueChange={setIngredientId}><SelectTrigger id="purchase-ingredient" data-testid="purchase-ingredient"><SelectValue placeholder="Selecione insumo" /></SelectTrigger><SelectContent>{ingredients.map((i) => <SelectItem key={i.id} value={i.id}>{i.name} ({i.unit})</SelectItem>)}</SelectContent></Select></div>
         <div><Label htmlFor="purchase-qty">Quantidade {selected ? "(" + selected.unit + ")" : ""}</Label><Input id="purchase-qty" inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="20" /></div>
         <div><Label htmlFor="purchase-cost">Preço por {selected?.unit ?? "unidade"} (R$)</Label><Input id="purchase-cost" inputMode="decimal" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} placeholder="32,00" /></div>
+        <div><Label htmlFor="purchase-made">Data de fabricação</Label><Input id="purchase-made" type="date" value={manufacturedOn} onChange={(event) => setManufacturedOn(event.target.value)} /></div>
         <div><Label htmlFor="purchase-expiry">Validade do lote</Label><Input id="purchase-expiry" type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} /></div>
         <div><Label htmlFor="purchase-lot">Número do lote</Label><Input id="purchase-lot" value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} placeholder="Opcional" /></div>
       </div>
