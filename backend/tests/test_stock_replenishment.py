@@ -96,3 +96,32 @@ async def test_route_rejects_unbounded_target_without_database_access(monkeypatc
         response = await client.get("/inventory/replenishment?target_multiplier=100")
     assert response.status_code == 422
     find.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_purchase_blocks_inconsistent_lot_if_ingredient_unit_changes(monkeypatch):
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+    from fastapi import HTTPException
+    from models.schemas import PurchaseIn
+    from routers import catalog
+
+    ingredients = SimpleNamespace(
+        find_one=AsyncMock(return_value={"id": "i1", "name": "Insumo", "unit": "kg"}),
+        update_one=AsyncMock(return_value=SimpleNamespace(matched_count=0)),
+    )
+    purchases = SimpleNamespace(insert_one=AsyncMock())
+    stock_moves = SimpleNamespace(insert_one=AsyncMock())
+    monkeypatch.setattr(catalog, "db", SimpleNamespace(
+        ingredients=ingredients, purchases=purchases, stock_moves=stock_moves,
+        suppliers=SimpleNamespace(find_one=AsyncMock(return_value={"id": "s1", "name": "Fornecedor"})),
+    ))
+    body = PurchaseIn(ingredient_id="i1", supplier_id="s1", qty=2, unit_cost=4.5)
+    with pytest.raises(HTTPException) as error:
+        await catalog.register_purchase(body, {"name": "Caixa de teste"})
+    assert error.value.status_code == 409
+    query, update = ingredients.update_one.call_args.args
+    assert query == {"id": "i1", "unit": "kg"}
+    assert update[0]["$set"]["stock"] == {"$add": [{"$ifNull": ["$stock", 0]}, 2.0]}
+    purchases.insert_one.assert_not_awaited()
+    stock_moves.insert_one.assert_not_awaited()

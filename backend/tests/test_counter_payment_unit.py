@@ -157,10 +157,6 @@ async def test_payment_audit_is_written_with_settlement_and_actor(payment_contex
     ([], "comanda", False),
 ])
 async def test_catalog_availability_is_enforced_at_order_entry(monkeypatch, channels, channel, allowed):
-    from types import SimpleNamespace
-    from unittest.mock import AsyncMock, Mock
-    from fastapi import HTTPException
-    from lib import orders
     from models.schemas import OrderItemIn
 
     product = {"id": "test-product", "name": "Produto fictício", "price": 10, "category_id": "test-category"}

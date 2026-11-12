@@ -108,12 +108,12 @@ class CategoryIn(BaseModel):
 
 class RecipeItem(BaseModel):
     ingredient_id: str
-    qty: float = Field(gt=0)
+    qty: float = Field(gt=0, allow_inf_nan=False)
 
 
 class OptionChoice(BaseModel):
     name: str = Field(min_length=1)
-    price: float = Field(default=0, ge=0)
+    price: float = Field(default=0, ge=0, allow_inf_nan=False)
     product_id: Optional[str] = None  # combo choice linked to a real product (stock + cost)
 
 
@@ -154,14 +154,14 @@ class ProductIn(BaseModel):
     name: str = Field(min_length=1)
     description: str = ""
     category_id: str
-    price: float = Field(ge=0)
+    price: float = Field(ge=0, allow_inf_nan=False)
     code: str = ""
     image: str = ""
     sale_unit: Literal["un", "kg", "L"] = "un"
     channels: list[ProductChannel] = Field(default_factory=lambda: list(PRODUCT_CHANNELS))
     active: bool = True
     recipe: list[RecipeItem] = []
-    cost_price: float = Field(default=0, ge=0)
+    cost_price: float = Field(default=0, ge=0, allow_inf_nan=False)
     options: list[OptionGroup] = []
     station: str = ""
     print_ticket: bool = True

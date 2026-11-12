@@ -182,16 +182,27 @@ async def register_purchase(body: PurchaseIn, user: dict = Depends(require("caix
     qty = round(body.qty, 4)
     if qty <= 0:
         raise HTTPException(400, "Quantidade muito pequena")
-    # Weighted average unit cost keeps existing inventory value when receiving a new purchase.
-    old_stock = max(0, float(ing.get("stock", 0)))
-    old_cost = max(0, float(ing.get("cost_per_unit", 0)))
-    new_cost = round((old_stock * old_cost + qty * body.unit_cost) / (old_stock + qty), 4)
+    total_cost = qty * body.unit_cost
+    if not math.isfinite(total_cost):
+        raise HTTPException(400, "Custo total da compra fora do limite")
     purchase = Purchase(**{**body.model_dump(), "qty": qty}, supplier_name=supplier["name"],
                         ingredient_name=ing["name"], unit=ing["unit"],
-                        total_cost=round(qty * body.unit_cost, 2),
+                        total_cost=round(total_cost, 2),
                         by_name=user["name"]).model_dump()
-    await db.ingredients.update_one({"id": ing["id"]}, {"$inc": {"stock": qty},
-                                    "$set": {"cost_per_unit": new_cost, "updated_at": now()}})
+    # Calculate the average from the same document revision that receives the stock.
+    current_stock = {"$ifNull": ["$stock", 0]}
+    positive_stock = {"$max": [0, current_stock]}
+    positive_cost = {"$max": [0, {"$ifNull": ["$cost_per_unit", 0]}]}
+    updated = await db.ingredients.update_one({"id": ing["id"], "unit": ing["unit"]}, [{"$set": {
+        "stock": {"$add": [current_stock, qty]},
+        "cost_per_unit": {"$round": [{"$divide": [
+            {"$add": [{"$multiply": [positive_stock, positive_cost]}, total_cost]},
+            {"$add": [positive_stock, qty]},
+        ]}, 4]},
+        "updated_at": now(),
+    }}])
+    if updated.matched_count != 1:
+        raise HTTPException(409, "O insumo foi alterado. Atualize o estoque antes de registrar a compra.")
     purchase['remaining_qty'] = qty
     await db.purchases.insert_one(dict(purchase))
     await db.stock_moves.insert_one(StockMove(

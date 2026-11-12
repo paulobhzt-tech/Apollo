@@ -85,7 +85,7 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
             <div className="p-3 pr-10">
               <p className="line-clamp-1 text-sm font-medium text-white">{p.name}</p>
               <div className="mt-1 flex items-center justify-between">
-                <span className="font-mono text-sm text-primary">{brl(p.price)}</span>
+                <span className="font-mono text-sm text-primary">{brl(p.price)}{p.sale_unit && p.sale_unit !== "un" ? ` / ${p.sale_unit}` : ""}</span>
                 <span className="font-mono text-[10px] text-zinc-500">{p.code}</span>
               </div>
             </div>

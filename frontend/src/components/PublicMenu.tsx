@@ -82,7 +82,7 @@ export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOp
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2"><h3 className="font-heading text-base font-semibold text-white">{p.name}</h3><button type="button" aria-label={favorites.includes(p.id) ? `Remover ${p.name} dos favoritos` : `Favoritar ${p.name}`} aria-pressed={favorites.includes(p.id)} onClick={() => toggleFavorite(p.id)} className="rounded-lg p-1 text-rose-300" data-testid={`public-favorite-${p.code || p.id}`}><Heart className={cn("size-5", favorites.includes(p.id) && "fill-current")} /></button></div>
                 <p className="mt-1 line-clamp-2 text-xs text-zinc-400">{p.description}</p>
-                <p className="mt-2 font-mono text-primary">{brl(p.price)}</p>
+                <p className="mt-2 font-mono text-primary">{brl(p.price)}{p.sale_unit && p.sale_unit !== "un" ? ` / ${p.sale_unit}` : ""}</p>
               </div>
               <div className="relative size-24 shrink-0 overflow-hidden rounded-xl bg-white/5">
                 {p.image && <img src={p.image} alt={p.name} loading="lazy" className="size-full object-cover" />}
