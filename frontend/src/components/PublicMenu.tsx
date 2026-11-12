@@ -13,13 +13,14 @@ import { cn } from "@/lib/utils";
 
 export interface CartLine { key: string; product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number }
 
-export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOpen }: {
+export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOpen, channel }: {
+  channel: "qr" | "delivery";
   header: ReactNode;
   renderCheckout: (lines: CartLine[], items: OrderItemIn[], total: number, clear: () => void) => ReactNode;
   cartOpen: boolean;
   setCartOpen: (v: boolean) => void;
 }) {
-  const menu = useQuery({ queryKey: ["public-menu"], queryFn: () => apiGet<Menu>("/public/menu") });
+  const menu = useQuery({ queryKey: ["public-menu", channel], queryFn: () => apiGet<Menu>(`/public/menu?channel=${channel}`) });
   const [cat, setCat] = useState("all");
   const [search, setSearch] = useState("");
   const [favorites, setFavorites] = useState<string[]>([]);

@@ -36,6 +36,7 @@ export default function PedirDelivery() {
 
   return (
     <PublicMenu
+      channel="delivery"
       cartOpen={cartOpen}
       setCartOpen={setCartOpen}
       header={

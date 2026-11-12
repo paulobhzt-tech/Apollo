@@ -8,7 +8,7 @@ from pymongo import ReturnDocument
 
 from lib.audit import audit_event
 from lib.db import db
-from models.schemas import Invoice, InvoiceItem, KitchenItem, KitchenTicket, OrderItem, OrderItemIn, PayIn, StockMove
+from models.schemas import Invoice, InvoiceItem, KitchenItem, KitchenTicket, OrderItem, OrderItemIn, PayIn, PRODUCT_CHANNELS, ProductChannel, StockMove
 
 TZ = ZoneInfo("America/Sao_Paulo")
 MARKET_FEES = {"ifood": 0.23, "99food": 0.15, "keeta": 0.12, "site": 0.0}
@@ -51,7 +51,7 @@ async def ingredient_map() -> dict[str, dict]:
     return {i["id"]: i for i in await db.ingredients.find({}, {"_id": 0}).to_list(5000)}
 
 
-async def build_items(items_in: list[OrderItemIn]) -> list[OrderItem]:
+async def build_items(items_in: list[OrderItemIn], *, channel: ProductChannel | None = None) -> list[OrderItem]:
     ids = list({i.product_id for i in items_in})
     prods = {p["id"]: p for p in await db.products.find({"id": {"$in": ids}, "active": True}, {"_id": 0}).to_list(500)}
     cats = {c["id"]: c for c in await db.categories.find({}, {"_id": 0}).to_list(500)}
@@ -61,8 +61,8 @@ async def build_items(items_in: list[OrderItemIn]) -> list[OrderItem]:
     out: list[OrderItem] = []
     for it in items_in:
         p = prods.get(it.product_id)
-        if not p:
-            raise HTTPException(400, "Produto indisponível ou inexistente")
+        if not p or (channel is not None and channel not in p.get("channels", PRODUCT_CHANNELS)):
+            raise HTTPException(400, "Produto indisponível neste canal ou inexistente")
         groups = {g["name"]: g for g in p.get("options", [])}
         labels, extra, linked = [], 0.0, []
         for ch in it.options:

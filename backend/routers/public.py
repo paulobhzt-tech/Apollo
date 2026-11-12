@@ -1,3 +1,4 @@
+from typing import Literal
 """Unauthenticated endpoints used by the QR-code table menu and the own delivery site."""
 import os
 
@@ -40,9 +41,9 @@ RESTAURANT = os.environ.get("RESTAURANT_NAME", "Espeteria Churras Burguer")
 
 
 @router.get("/menu", response_model=PublicMenu)
-async def menu():
+async def menu(channel: Literal["qr", "delivery"] = "qr"):
     cats = await db.categories.find({}, {"_id": 0}).sort([("sort", 1), ("name", 1)]).to_list(500)
-    prods = await products_with_cost({"active": True})
+    prods = await products_with_cost({"active": True, "$or": [{"channels": channel}, {"channels": {"$exists": False}}]})
     for p in prods:  # never expose cost data publicly
         p["cost"], p["margin_pct"], p["recipe"], p["cost_price"] = 0, 0, [], 0
     return {"restaurant": RESTAURANT, "categories": cats, "products": prods}
@@ -121,7 +122,7 @@ async def public_table_order(id: str, body: PublicOrderIn, request: Request):
     t = await get_table(id)
     if t["status"] in ("reservada", "conta"):
         raise HTTPException(409, "Mesa indisponível para novos pedidos. Chame um garçom.")
-    items = await build_items(body.items)
+    items = await build_items(body.items, channel="qr")
     order = await get_or_open_order(t, None, source="cardapio")
     updated = await db.orders.update_one({"id": order["id"], "status": "aberto"}, {"$push": {"items": {"$each": [i.model_dump() for i in items]}}})
     if updated.modified_count != 1:
@@ -145,7 +146,7 @@ async def public_delivery(body: PublicDeliveryIn):
     c = body.customer
     if len(c.name.strip()) < 2 or len(c.phone.strip()) < 8 or len(c.address.strip()) < 5:
         raise HTTPException(400, "Informe nome, telefone e endereço completos")
-    items = await build_items(body.items)
+    items = await build_items(body.items, channel="delivery")
     o = await create_delivery_order("site", items, c.model_dump(), pay_on_delivery=body.payment_method)
     # Never let a CRM failure make a successfully created order look unsuccessful.
     try:

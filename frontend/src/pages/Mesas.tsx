@@ -390,7 +390,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   const addPending = (p: Product) => (p.options?.length ? setOptFor(p) : push(p));
   const o = table?.order_id ? order.data ?? null : null;
   const items = (o?.items ?? []);
-  const visibleProducts = (products.data ?? []).filter((p) => p.active && (!productSearch.trim() || [p.name, p.code, p.description].some((v) => v?.toLocaleLowerCase("pt-BR").includes(productSearch.trim().toLocaleLowerCase("pt-BR")))));
+  const visibleProducts = (products.data ?? []).filter((p) => p.active && (p.channels?.includes("comanda") ?? true) && (!productSearch.trim() || [p.name, p.code, p.description].some((v) => v?.toLocaleLowerCase("pt-BR").includes(productSearch.trim().toLocaleLowerCase("pt-BR")))));
 
   return (
     <>

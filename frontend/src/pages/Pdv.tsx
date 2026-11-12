@@ -32,7 +32,7 @@ export default function Pdv() {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
 
   useEffect(() => { if (products.data) cacheMenu(products.data); }, [products.data]);
-  const prodList = products.data ?? cachedMenu();
+  const prodList = (products.data ?? cachedMenu()).filter((product) => product.channels?.includes("caixa") ?? true);
   const itemCount = cart.reduce((sum, line) => sum + line.qty, 0);
   const subtotal = Math.round(cart.reduce((s, l) => s + l.qty * (l.product.price + l.extra), 0) * 100) / 100;
 

@@ -67,13 +67,29 @@ async def list_products(_: dict = Depends(current_user)):
 
 
 async def _validate_product(body: ProductIn) -> None:
+    body.name = body.name.strip()
+    body.code = body.code.strip()
+    if not body.name:
+        raise HTTPException(400, "Informe o nome do produto")
+    body.channels = list(dict.fromkeys(body.channels))
     if not await db.categories.find_one({"id": body.category_id}):
         raise HTTPException(400, "Categoria inválida")
     await _check_station(body.station)
     names = {p["name"].strip().lower(): p["id"] for p in await db.products.find({}, {"_id": 0, "id": 1, "name": 1}).to_list(5000)}
-    for g in body.options:  # a choice named exactly like a product becomes a combo link
-        for c in g.choices:
-            c.product_id = names.get(c.name.strip().lower())
+    group_names = set()
+    for group in body.options:
+        group.name = group.name.strip()
+        if not group.name or group.name.casefold() in group_names:
+            raise HTTPException(400, "Informe nomes distintos para os grupos de opções")
+        group_names.add(group.name.casefold())
+        choice_names = set()
+        for choice in group.choices:
+            choice.name = choice.name.strip()
+            if not choice.name or choice.name.casefold() in choice_names:
+                raise HTTPException(400, f"Informe opções com nomes distintos em {group.name}")
+            choice_names.add(choice.name.casefold())
+            if choice.product_id not in names.values():
+                choice.product_id = names.get(choice.name.lower())
     ids = {r.ingredient_id for r in body.recipe}
     if ids and await db.ingredients.count_documents({"id": {"$in": list(ids)}}) != len(ids):
         raise HTTPException(400, "Insumo inválido na ficha técnica")

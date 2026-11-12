@@ -163,7 +163,7 @@ async def table_order(id: str, _: dict = Depends(current_user)):
 @router.post("/tables/{id}/items", response_model=Order)
 async def add_items(id: str, body: AddItemsIn, user: dict = Depends(require(*STAFF))):
     t = await get_table(id)
-    items = await build_items(body.items)
+    items = await build_items(body.items, channel="comanda")
     order = await get_or_open_order(t, user)
     customers = t.get("customers") or ([t["customer_name"]] if t.get("customer_name") else [])
     for entry, item in zip(body.items, items):

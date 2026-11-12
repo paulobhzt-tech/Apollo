@@ -38,9 +38,10 @@ export interface Profile { id: string; name: string; role: Role }
 export interface Category { id: string; name: string; station: Station; sort: number }
 export type CategoryIn = Omit<Category, "id">;
 export interface OptionChoice { name: string; price: number; product_id?: string | null }
-export interface OptionGroup { name: string; required: boolean; multi: boolean; choices: OptionChoice[] }
+export interface OptionGroup { kind?: "complemento" | "pergunta"; name: string; required: boolean; multi: boolean; choices: OptionChoice[] }
 export interface ChosenOption { group: string; name: string }
 export interface RecipeItem { ingredient_id: string; qty: number }
+export type ProductChannel = "caixa" | "comanda" | "qr" | "delivery";
 export interface Product {
   id: string;
   name: string;
@@ -49,6 +50,8 @@ export interface Product {
   price: number;
   code: string;
   image: string;
+  sale_unit?: "un" | "kg" | "L";
+  channels?: ProductChannel[];
   active: boolean;
   recipe: RecipeItem[];
   cost_price: number;

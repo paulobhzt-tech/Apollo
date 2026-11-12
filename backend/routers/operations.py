@@ -47,7 +47,7 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
         return {"order": existing, "invoice": inv}
     if not await current_cash():
         raise HTTPException(400, "Caixa fechado. Abra o caixa para receber pagamentos.")
-    items = await build_items(body.items)
+    items = await build_items(body.items, channel="caixa")
     try:
         order = await new_order(channel="balcao", source="pdv", items=[i.model_dump() for i in items],
                                 client_ref=body.client_ref, request_fingerprint=sale_fingerprint(body), customer={"name": body.customer_name, "cpf": body.customer_cpf},

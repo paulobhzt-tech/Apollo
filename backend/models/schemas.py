@@ -17,6 +17,8 @@ def _now() -> datetime:
 Role = Literal["admin", "caixa", "garcom", "cozinha"]
 Station = str  # key of an Environment (ambiente de produção), e.g. "cozinha", "churrasqueira"
 Unit = Literal["kg", "g", "L", "ml", "un"]
+ProductChannel = Literal["caixa", "comanda", "qr", "delivery"]
+PRODUCT_CHANNELS = ("caixa", "comanda", "qr", "delivery")
 PayMethod = str  # builtin (dinheiro, credito, debito, pix, fiado, voucher, online) or a custom payment method key
 Source = Literal["pdv", "mesa", "cardapio", "ifood", "99food", "keeta", "site"]
 
@@ -116,6 +118,7 @@ class OptionChoice(BaseModel):
 
 
 class OptionGroup(BaseModel):
+    kind: Literal["complemento", "pergunta"] = "complemento"
     name: str = Field(min_length=1)
     required: bool = False
     multi: bool = False
@@ -135,6 +138,8 @@ class Product(BaseModel):
     price: float
     code: str = ""
     image: str = ""
+    sale_unit: Literal["un", "kg", "L"] = "un"
+    channels: list[ProductChannel] = Field(default_factory=lambda: list(PRODUCT_CHANNELS))
     active: bool = True
     recipe: list[RecipeItem] = []
     cost_price: float = 0  # manual cost; when > 0 it overrides the recipe cost
@@ -152,6 +157,8 @@ class ProductIn(BaseModel):
     price: float = Field(ge=0)
     code: str = ""
     image: str = ""
+    sale_unit: Literal["un", "kg", "L"] = "un"
+    channels: list[ProductChannel] = Field(default_factory=lambda: list(PRODUCT_CHANNELS))
     active: bool = True
     recipe: list[RecipeItem] = []
     cost_price: float = Field(default=0, ge=0)

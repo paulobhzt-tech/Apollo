@@ -38,6 +38,7 @@ export default function Cardapio() {
 
   return (
     <PublicMenu
+      channel="qr"
       cartOpen={cartOpen}
       setCartOpen={setCartOpen}
       header={
