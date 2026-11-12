@@ -42,9 +42,10 @@ async function mockServer(page: Page) {
         }
         json = { authorized };
         break;
-      case "/auth/profiles": status = authorized ? 200 : 403; json = authorized ? operators : { detail: "Terminal não autorizado" }; break;
+      case "/auth/profiles": json = authorized ? operators : []; break;
       case "/auth/sync-context": status = 503; json = { detail: "Fila de teste isolada" }; break;
       case "/tables": json = tables; break;
+      case "/bills/alerts": json = { overdue: [], due_today: [], due_tomorrow: [] }; break;
       case "/cash/current": json = null; break;
       case "/reports/dashboard":
       case "/reports/executive":
@@ -114,6 +115,8 @@ test("login, recuperação, memorização e troca entre perfis", async ({ page }
   await expect(page.getByLabel("Usuário", { exact: true })).toHaveValue("caixa-teste");
   await signIn(page, "caixa-teste");
   await expect(page).toHaveURL(/\/pdv$/);
+  await page.keyboard.press("F3");
+  await expect(page.getByTestId("product-search-input")).toBeFocused();
   await page.goto("/funcionarios");
   await expect(page.getByTestId("no-permission")).toBeVisible();
   await lock(page);
@@ -121,6 +124,10 @@ test("login, recuperação, memorização e troca entre perfis", async ({ page }
   await expect(page).toHaveURL(/\/comanda-mobile$/);
   await page.goto("/pdv");
   await expect(page.getByTestId("no-permission")).toBeVisible();
+  await page.getByRole("button", { name: "Bloquear ou trocar operador" }).click();
+  await page.getByRole("button", { name: "Sair", exact: true }).click();
+  await expect(login).toBeVisible();
+  await expect(password).toHaveValue("");
 });
 
 test("bloqueio continua exigindo autenticação sem rede e após recarregar", async ({ page }) => {
