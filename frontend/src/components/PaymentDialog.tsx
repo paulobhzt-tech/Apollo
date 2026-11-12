@@ -1,7 +1,7 @@
 import { setReceiptPref } from "@/lib/receipt";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { cashAmount } from "@/lib/catalog-form";
+import { cashAmount, formatCurrencyTyping } from "@/lib/catalog-form";
 import { equalBillShares, previewBillShare } from "@/lib/bill-split";
 import { apiGet } from "@/lib/api";
 import { usePayMethods } from "@/lib/payMethods";
@@ -190,21 +190,21 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
           )}
           <div className="flex flex-wrap gap-2">
             <Input aria-label="Valor do pagamento" inputMode="decimal" placeholder={brl(remaining)} value={amount}
-              onChange={(event) => { setAmount(event.target.value); setConfirmedPixAmount(null); }} onKeyDown={(event) => { if (event.key === "Enter") add(); }}
+              onChange={(event) => { setAmount(formatCurrencyTyping(event.target.value)); setConfirmedPixAmount(null); }} onKeyDown={(event) => { if (event.key === "Enter") add(); }}
               data-testid="payment-amount-input" className="min-w-28 flex-1 font-mono" />
-            <Button variant="outline" disabled={!remaining} onClick={() => { setAmount(remaining.toFixed(2)); setConfirmedPixAmount(null); }}>Usar saldo</Button>
+            <Button variant="outline" disabled={!remaining} onClick={() => { setAmount(remaining.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })); setConfirmedPixAmount(null); }}>Usar saldo</Button>
           </div>
           <div className="flex flex-wrap gap-2">
             {[2, 5, 10, 20, 50, 100].map((quick) => (
               <Button key={quick} variant="outline" size="sm" disabled={method !== "dinheiro" && quick > remaining}
-                onClick={() => { setAmount(quick.toFixed(2)); setConfirmedPixAmount(null); }} className="font-mono">{brl(quick)}</Button>
+                onClick={() => { setAmount(quick.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })); setConfirmedPixAmount(null); }} className="font-mono">{brl(quick)}</Button>
             ))}
           </div>
           <div className="flex flex-wrap gap-2">
             <Input aria-label="Percentual do total" className="w-28" inputMode="decimal" placeholder="% do total"
               value={percentage} onChange={(event) => setPercentage(event.target.value)} />
             <Button size="sm" variant="outline" disabled={!percentShare || !remaining || pending}
-              onClick={() => { if (percentShare) { setAmount(Math.min(remaining, percentShare.amount).toFixed(2)); setConfirmedPixAmount(null); } }}>Usar percentual</Button>
+              onClick={() => { if (percentShare) { setAmount(Math.min(remaining, percentShare.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })); setConfirmedPixAmount(null); } }}>Usar percentual</Button>
           </div>
           {method === "pix" && (
             <div className="space-y-3 rounded-lg border border-sky-400/25 p-3">
@@ -255,7 +255,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-zinc-400">Desconto (R$)</Label>
-              <Input inputMode="decimal" value={discount} onChange={(e) => setDiscount(e.target.value)} className="mt-1 font-mono" data-testid="payment-discount-input" />
+              <Input inputMode="decimal" value={discount} onChange={(e) => setDiscount(formatCurrencyTyping(e.target.value))} className="mt-1 font-mono" data-testid="payment-discount-input" />
             </div>
             <div>
               <Label className="text-xs text-zinc-400">Dividir por</Label>
@@ -271,7 +271,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
             <div className="flex flex-wrap gap-2">
               {[share, ...(extraPeople ? [extraAmount] : [])].filter((value) => value > 0).map((value) =>
                 <Button key={value} variant="outline" size="xs" disabled={value > remaining || pending} onClick={() => {
-                  setAmount(value.toFixed(2)); setConfirmedPixAmount(null);
+                  setAmount(value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })); setConfirmedPixAmount(null);
                 }}>Usar cota de {brl(value)}</Button>)}
             </div>
           </div>}
