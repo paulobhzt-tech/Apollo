@@ -144,7 +144,7 @@ function CompanyForm({ init }: { init: GeneralSettings }) {
     onSuccess: () => { toast.success("Configurações salvas"); void queryClient.invalidateQueries({ queryKey: ["settings-general"] }); },
     onError: (e) => toast.error(errMsg(e)),
   });
-  const field = (k: keyof GeneralSettings, label: string, ph: string) => (
+  const field = (k: Exclude<keyof GeneralSettings, "pix_extra_keys" | "card_brands">, label: string, ph: string) => (
     <div><Label className="text-xs text-zinc-400">{label}</Label><Input value={f[k]} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} className="mt-1" data-testid={`settings-${k}-input`} /></div>
   );
   return (
@@ -163,6 +163,22 @@ function CompanyForm({ init }: { init: GeneralSettings }) {
         {field("phone", "Telefone / WhatsApp da loja", "(11) 99999-0000")}
         {field("address", "Endereço", "Rua…")}
       </div>
+      <label className="mt-3 block text-sm">Chaves PIX adicionais, uma por linha (até 10)
+        <textarea className="mt-1 block w-full rounded border border-white/15 bg-background p-2"
+          defaultValue={f.pix_extra_keys?.join("\n") ?? ""}
+          onChange={(event) => setF({ ...f, pix_extra_keys: event.target.value.split("\n").map((key) => key.trim()).filter(Boolean).slice(0, 10) })} />
+      </label>
+      <fieldset className="mt-3 flex flex-wrap gap-3">
+        <legend className="mb-2 text-sm">Bandeiras disponíveis no caixa</legend>
+        {(["visa", "mastercard", "elo"] as const).map((brand) => {
+          const brands = f.card_brands ?? ["visa", "mastercard", "elo"];
+          return <label key={brand} className="flex items-center gap-2 capitalize">
+            <Checkbox checked={brands.includes(brand)} disabled={brands.length === 1 && brands.includes(brand)}
+              onCheckedChange={(checked) => setF({ ...f, card_brands: checked ? [...brands, brand] : brands.filter((entry) => entry !== brand) })} />
+            {brand}
+          </label>;
+        })}
+      </fieldset>
       <Button className="mt-4" onClick={() => save.mutate()} disabled={save.isPending} data-testid="settings-save-button">Salvar</Button>
     </Panel>
   );

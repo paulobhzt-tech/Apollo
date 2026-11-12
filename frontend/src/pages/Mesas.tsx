@@ -594,7 +594,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
           onPrinted={() => { if (table.status !== "conta") status.mutate("conta"); setPreBill(false); }} />
       )}
       {table && <PartialBillDialog tableId={table.id} items={items} open={partialOpen} onClose={() => setPartialOpen(false)} />}
-      <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} defaultService={10}
+      <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} items={o?.items.filter((item) => !item.cancelled)} defaultService={10}
         title={`Fechamento · ${table ? tableLabel(table) : ""}`} pending={pay.isPending} onConfirm={(p) => pay.mutate(p)} />
       <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />
       <OptionsDialog product={optFor} onClose={() => setOptFor(null)} onConfirm={push} />
@@ -697,7 +697,7 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
         </div>}
       </DialogContent>
     </Dialog>
-    <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} defaultService={10} partialMode title="Recebimento parcial (não fiscal)" pending={payment.isPending} onConfirm={(p) => payment.mutate(p)} />
+    <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} items={available.flatMap((item) => quantities[item.id] > 0 ? [{ name: item.name, qty: quantities[item.id] }] : [])} defaultService={10} partialMode title="Recebimento parcial (não fiscal)" pending={payment.isPending} onConfirm={(p) => payment.mutate(p)} />
     </>
   );
 }

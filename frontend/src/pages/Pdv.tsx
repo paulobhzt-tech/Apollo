@@ -155,7 +155,7 @@ export default function Pdv() {
           </div>
         </aside>
       </div>
-      <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={subtotal} title="Pagamento · Balcão" pending={sale.isPending} onConfirm={confirm} />
+      <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={subtotal} items={cart.map((line) => ({ name: line.product.name, qty: line.qty }))} title="Pagamento · Balcão" pending={sale.isPending} onConfirm={confirm} />
       <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />
       <OptionsDialog product={optFor} onClose={() => setOptFor(null)} onConfirm={push} />
     </AppShell>
