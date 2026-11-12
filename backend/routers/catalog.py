@@ -180,20 +180,22 @@ async def list_purchases(_: dict = Depends(require("caixa"))):
 async def register_purchase(body: PurchaseIn, user: dict = Depends(require("caixa"))):
     if not body.client_ref:
         return await apply_purchase(body, user)
-    topology = await db.command("hello")
-    if not (topology.get("setName") or topology.get("msg") == "isdbgrid"):
-        # Preserve standalone behavior for existing Windows installations.
-        return await apply_purchase(body, user)
     purchase_id = str(uuid5(NAMESPACE_URL, f"apollo-purchase:{user['id']}:{body.client_ref}"))
+    expected = {**body.model_dump(), "qty": round(body.qty, 4)}
 
     def verify_replay(previous):
-        expected = body.model_dump()
-        expected["qty"] = round(body.qty, 4)
         if any(previous.get(key) != value for key, value in expected.items()):
             raise HTTPException(409, "Referência de compra já usada com outros dados")
         return previous
 
+    topology = await db.command("hello")
+    if not (topology.get("setName") or topology.get("msg") == "isdbgrid"):
+        return await register_standalone_purchase(body, user, purchase_id, expected, verify_replay)
+
     async def apply(session):
+        attempt = await db.purchase_attempts.find_one({"_id": purchase_id}, session=session)
+        if attempt and not attempt.get("completed"):
+            raise HTTPException(409, "Compra já iniciada e ainda sem confirmação. Confira o estoque antes de repetir.")
         previous = await db.purchases.find_one({"id": purchase_id}, {"_id": 0}, session=session)
         if previous:
             return verify_replay(previous)
@@ -209,7 +211,34 @@ async def register_purchase(body: PurchaseIn, user: dict = Depends(require("caix
         raise
 
 
-async def apply_purchase(body: PurchaseIn, user: dict, *, purchase_id: str | None = None, session=None):
+async def register_standalone_purchase(body, user, purchase_id, expected, verify_replay):
+    pending = "Compra já iniciada e ainda sem confirmação. Confira o estoque antes de repetir."
+    attempts = db.purchase_attempts
+    attempt = await attempts.find_one({"_id": purchase_id})
+    previous = await db.purchases.find_one({"id": purchase_id}, {"_id": 0})
+    if attempt:
+        if attempt["fingerprint"] != recovery_token(expected):
+            raise HTTPException(409, "Referência de compra já usada com outros dados")
+        if attempt.get("completed") and previous:
+            return verify_replay(previous)
+        raise HTTPException(409, pending)
+    if previous:
+        # A prior transaction may have completed before the server switched topology.
+        return verify_replay(previous)
+
+    async def reserve():
+        try:
+            await attempts.insert_one({"_id": purchase_id, "fingerprint": recovery_token(expected),
+                                       "completed": False, "created_at": now()})
+        except DuplicateKeyError as error:
+            raise HTTPException(409, pending) from error
+
+    result = await apply_purchase(body, user, purchase_id=purchase_id, reserve=reserve)
+    await attempts.update_one({"_id": purchase_id}, {"$set": {"completed": True}})
+    return result
+
+
+async def apply_purchase(body: PurchaseIn, user: dict, *, purchase_id: str | None = None, session=None, reserve=None):
     options = {"session": session} if session is not None else {}
     supplier = await db.suppliers.find_one({"id": body.supplier_id}, {"_id": 0}, **options)
     ing = await db.ingredients.find_one({"id": body.ingredient_id}, {"_id": 0}, **options)
@@ -249,6 +278,8 @@ async def apply_purchase(body: PurchaseIn, user: dict, *, purchase_id: str | Non
     current_stock = {"$ifNull": ["$stock", 0]}
     positive_stock = {"$max": [0, current_stock]}
     positive_cost = {"$max": [0, {"$ifNull": ["$cost_per_unit", 0]}]}
+    if reserve is not None:
+        await reserve()
     updated = await db.ingredients.update_one({"id": ing["id"], "unit": ing["unit"]}, [{"$set": {
         "stock": {"$add": [current_stock, qty]},
         "cost_per_unit": {"$round": [{"$divide": [

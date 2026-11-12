@@ -22,12 +22,12 @@ from models.schemas import GeneralSettings, OkOut, Printer, PrinterIn, RestoreIn
 router = APIRouter()
 BACKUP_COLLS = ["employees", "suppliers", "categories", "products", "ingredients", "stock_moves", "tables", "orders", "kitchen_tickets",
                 "invoices", "cash_sessions", "expenses", "fiado_customers", "customer_moves", "printers", "settings", "environments", "counters",
-                "purchases", "lot_consumptions", "inventory_counts", "production_batches",
+                "purchases", "purchase_attempts", "lot_consumptions", "inventory_counts", "production_batches",
                 "bills", "bill_audit", "account_categories", "payment_methods", "supplier_quotes",
                 "employee_audit", "employee_time_entries", "backup_audit", "live_music_events"]
 RESERVED_SETTINGS = {"drive", "selftest_last", "sync_identity"}
 LOCAL_EMPLOYEE_AUTH_FIELDS = ("pin_hash", "password_hash", "credential_version", "must_change_password", "admin_access_audit")
-KEEP_ID = {"settings", "counters"}  # these use their own _id
+KEEP_ID = {"settings", "counters", "purchase_attempts"}  # these use their own _id
 ISO = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 
 

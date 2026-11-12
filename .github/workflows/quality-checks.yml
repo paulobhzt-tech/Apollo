@@ -120,7 +120,7 @@ jobs:
           done
           exit 1
       - name: Testar backup e restauracao real apenas no banco descartavel
-        run: python -m pytest -q -n 0 tests/test_restore_disposable_integration.py tests/test_admin_access_integration.py
+        run: python -m pytest -q -n 0 tests/test_restore_disposable_integration.py tests/test_admin_access_integration.py tests/test_catalog_standalone.py
       - name: Remover apenas container descartavel desta execucao
         if: always()
         run: docker rm -f apollo-restore-mongo || true
