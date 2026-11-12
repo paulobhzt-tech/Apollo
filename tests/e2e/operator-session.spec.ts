@@ -44,6 +44,7 @@ async function mockServer(page: Page) {
         break;
       case "/auth/profiles": json = authorized ? operators : []; break;
       case "/auth/sync-context": status = 503; json = { detail: "Fila de teste isolada" }; break;
+      case "/suppliers": json = [{ id: "s1", name: "Frigorífico São João", phone: "31999990000", doc: "", supplies: "Carnes", contact: "", cpf: "", cnpj: "" }]; break;
       case "/tables": json = tables; break;
       case "/products": json = [{ id: "prod", code: "TESTE", name: "Produto fictício", price: 5, active: true }]; break;
       case "/bills/alerts": json = { overdue: [], due_today: [], due_tomorrow: [] }; break;
@@ -225,4 +226,17 @@ test("faixa, tema, zoom e atendimento em mesa e comanda", async ({ page }) => {
   await expect(comanda).toBeVisible();
   await comanda.getByRole("button", { name: "Fechar", exact: true }).click();
   await expect(comanda).toBeHidden();
+});
+
+
+test("busca de fornecedores ignora acentos e diferenças de maiúsculas", async ({ page }) => {
+  await mockServer(page);
+  await page.goto("/login");
+  await signIn(page, "admin-teste");
+  await page.goto("/fornecedores");
+  await expect(page.getByTestId("supplier-row-s1")).toBeVisible();
+  await page.getByTestId("supplier-search-input").fill("FRIGORIFICO SAO");
+  await expect(page.getByTestId("supplier-row-s1")).toBeVisible();
+  await page.getByTestId("supplier-search-input").fill("outro fornecedor");
+  await expect(page.getByTestId("supplier-row-s1")).toHaveCount(0);
 });
