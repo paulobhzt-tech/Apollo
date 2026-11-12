@@ -42,3 +42,33 @@ async def test_employee_audit_never_records_credentials(monkeypatch):
     assert entry["fields"] == ["active", "role"]
     assert "password" not in str(entry)
     assert "pin" not in str(entry)
+
+
+@pytest.mark.asyncio
+async def test_pin_only_operator_can_authenticate_without_password_reset(monkeypatch):
+    from types import SimpleNamespace
+    from fastapi import HTTPException, Response
+    from models.schemas import LoginIn
+
+    operator = {"id": "operator-test", "name": "Operador de teste", "pin_hash": "stored"}
+    employees = SimpleNamespace(find_one=AsyncMock(return_value=operator))
+    monkeypatch.setattr(auth_router, "db", SimpleNamespace(employees=employees))
+    monkeypatch.setattr(auth_router, "check_login_limit", AsyncMock())
+    monkeypatch.setattr(auth_router, "failed_login", AsyncMock())
+    monkeypatch.setattr(auth_router, "successful_login", AsyncMock())
+    monkeypatch.setattr(auth_router, "find_employee_by_pin", AsyncMock(return_value=dict(operator)))
+    monkeypatch.setattr(auth_router, "create_session", AsyncMock(return_value="test-session"))
+    request = SimpleNamespace()
+
+    with pytest.raises(HTTPException) as error:
+        await auth_router.login(LoginIn(username=" OPERADOR ", password="fictional-test-password"),
+                                Response(), request)
+    assert error.value.status_code == 401
+    assert error.value.detail == "Credenciais inválidas"
+    employees.find_one.assert_awaited_once_with({"username": "operador", "active": True}, {"_id": 0})
+    auth_router.create_session.assert_not_awaited()
+
+    response = Response()
+    result = await auth_router.login(LoginIn(pin="459142"), response, request)
+    assert result == {"id": "operator-test", "name": "Operador de teste"}
+    assert "HttpOnly" in response.headers["set-cookie"]

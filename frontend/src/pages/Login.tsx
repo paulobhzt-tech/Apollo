@@ -48,9 +48,9 @@ export default function Login() {
         nav(homeFor(emp.role), { replace: true });
       }
     },
-    onError: (e) => {
+    onError: (e, credentials) => {
       if (e instanceof ApiError && e.status === 401) {
-        toast.error(mode === "password"
+        toast.error(credentials.username
           ? "Credenciais inválidas. Confira o usuário e a senha. Se sua conta usa PIN, selecione a aba PIN."
           : "Credenciais inválidas. Confira o PIN e o ambiente em que sua conta foi cadastrada.");
       } else {

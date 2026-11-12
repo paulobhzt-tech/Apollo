@@ -8,7 +8,7 @@ const ME_KEY = "pdv_last_operator";
 export async function bindOperatorQueue(operator: Employee) {
   setQueueContext(null);
   try {
-    const context = await apiGet<QueueContext>("/auth/sync-context");
+    const context = await apiGet<QueueContext>("/auth/sync-context", AbortSignal.timeout(5000));
     if (context.operator_id === operator.id) setQueueContext(context);
   } catch {
     // Older servers still work online. Their queues remain unbound.
