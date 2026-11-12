@@ -1,3 +1,6 @@
+import hashlib
+import json
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -386,6 +389,11 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
     cash = await current_cash()
     if not cash:
         raise HTTPException(400, "Abra o caixa para receber pagamentos")
+    request_data = body.model_dump(mode="json", exclude={"client_ref"})
+    request_data["table_id"] = id
+    fingerprint = hashlib.sha256(json.dumps(
+        request_data, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+    ).encode()).hexdigest()
     # Allocate the sequence before the transaction: a skipped number is preferable
     # to a non-transactional counter update inside a financial transaction.
     number = await next_seq("order")
@@ -395,6 +403,15 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
             async with session.start_transaction():
                 previous = await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0}, session=session)
                 if previous:
+                    parent_id = previous.get("parent_order_id")
+                    origin = previous.get("partial_table_id")
+                    if parent_id and origin is None:
+                        parent = await db.orders.find_one({"id": parent_id}, {"table_id": 1}, session=session)
+                        origin = (parent or {}).get("table_id")
+                    recorded_fingerprint = previous.get("request_fingerprint")
+                    if (not parent_id or origin != id or previous.get("status") != "pago"
+                            or (recorded_fingerprint and recorded_fingerprint != fingerprint)):
+                        raise HTTPException(409, "Referência de pagamento já usada em outra operação")
                     return {"order": previous, "invoice": None}
                 table = await db.tables.find_one({"id": id}, session=session)
                 if not table or not table.get("order_id"):
@@ -440,13 +457,14 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
                     subtotal=subtotal, discount=body.payment.discount, service_fee=service_fee,
                     total=total, payments=body.payment.payments,
                     change=max(0, change), paid_at=now(), cash_session_id=cash["id"],
-                    client_ref=body.client_ref, waiter_id=order.get("waiter_id"),
+                    client_ref=body.client_ref, request_fingerprint=fingerprint, waiter_id=order.get("waiter_id"),
                     waiter_name=order.get("waiter_name", ""),
                     audit_events=[audit_event("partial_payment_recorded", user, correlation=body.client_ref, reason=body.payment.discount_reason.strip(),
                         values={"total": total, "discount": body.payment.discount, "service_fee": service_fee,
                                 "change": max(0, change)})],
                     cmv=round(sum(i["qty"] * i.get("unit_cost", 0) for i in chosen), 2)).model_dump()
                 receipt["parent_order_id"] = order["id"]
+                receipt["partial_table_id"] = id
                 await db.orders.insert_one(dict(receipt), session=session)
                 remaining_sub = round(sum(i["qty"] * i["unit_price"] for i in remaining if not i.get("cancelled")), 2)
                 result = await db.orders.update_one({"id": order["id"], "status": "aberto"},

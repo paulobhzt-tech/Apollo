@@ -90,7 +90,8 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
   const share = shareCents / 100;
   const percent = catalogNumber(percentage);
   const value = amount.trim() ? cashAmount(amount) : remaining;
-  const roundedValue = value === null ? 0 : Math.round(value * 100) / 100;
+  const valueCents = value === null ? 0 : Math.round(value * 100);
+  const roundedValue = Number.isSafeInteger(valueCents) ? valueCents / 100 : 0;
   const methodsReady = METHODS.some((entry) => entry.m === method);
   const availableBrands = settings.data?.card_brands ?? BRANDS;
   const duplicatePix = method === "pix" && payments.some((payment) => payment.method === "pix" &&

@@ -57,6 +57,13 @@ async def test_partial_payment_replay_and_cash_reconciliation(scenario):
         assert replay["order"]["id"] == paid["id"]
         assert await db.orders.count_documents({"client_ref": body.client_ref}) == 1
         assert (await db.orders.find_one({"id": order["id"]}))["total"] == 30
+        changed = body.model_copy(update={"quantities": {order["items"][0]["id"]: 1}})
+        with pytest.raises(HTTPException) as changed_error:
+            await pay_partial_bill(table["id"], changed, {})
+        assert changed_error.value.status_code == 409
+        with pytest.raises(HTTPException) as wrong_table:
+            await pay_partial_bill("other-table", body, {})
+        assert wrong_table.value.status_code == 409
         # Attempt to pay more than the remaining quantity: no new sale.
         body2 = PartialPaymentIn(quantities={order["items"][0]["id"]: 4},
                                  client_ref="partial-" + uuid.uuid4().hex,
