@@ -26,6 +26,12 @@ router = APIRouter()
 def sale_fingerprint(body: QuickSaleIn) -> str:
     """Bind the idempotency reference to the validated request, without storing PII twice."""
     payload = body.model_dump(mode="json", exclude={"client_ref", "sync_context"})
+    # Preserve the reference fingerprint for queues created before payment details existed.
+    if not payload["discount_reason"]:
+        payload.pop("discount_reason")
+    for payment in payload["payments"]:
+        if payment["details"] is None:
+            payment.pop("details")
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
 
 

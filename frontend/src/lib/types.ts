@@ -107,7 +107,7 @@ export interface OrderItem {
 }
 export interface OrderItemIn { product_id: string; qty: number; notes: string; options?: ChosenOption[] }
 export type CardBrand = "visa" | "mastercard" | "elo";
-export interface Payment { method: PayMethod; amount: number; brand?: CardBrand | null }
+export interface Payment { method: PayMethod; amount: number; brand?: CardBrand | null; details?: { note: string; reference: string; pix_key_label: string; pix_received: boolean } }
 export interface Refund { item_name: string; amount: number; method: string; brand: string | null; reason: string; by_name: string; at: string }
 export interface Order {
   id: string;
@@ -148,6 +148,7 @@ export interface Order {
 export interface PayIn {
   payments: Payment[];
   discount: number;
+  discount_reason?: string;
   service_pct: number;
   emit_invoice: boolean;
   doc_type: "nfce" | "nfe";
@@ -311,7 +312,7 @@ export interface CardFees { fees: Record<string, number> }
 export type PrinterPurpose = string; // "caixa" or an environment key
 export interface Printer { id: string; name: string; purpose: PrinterPurpose; paper: "58mm" | "80mm" | "A4"; ip: string; device_name: string; copies: number; active: boolean }
 export type PrinterIn = Omit<Printer, "id">;
-export interface GeneralSettings { company_name: string; trade_name: string; logo_url: string; cnpj: string; ie: string; city: string; receipt_footer: string; alert_phone: string; pix_key: string; pix_holder: string; phone: string; address: string }
+export interface GeneralSettings { company_name: string; trade_name: string; logo_url: string; cnpj: string; ie: string; city: string; receipt_footer: string; alert_phone: string; pix_key: string; pix_extra_keys?: string[]; card_brands?: CardBrand[]; pix_holder: string; phone: string; address: string }
 export interface OptionRank { group: string; name: string; qty: number; products: string[] }
 export interface RestoreIn { data: Record<string, unknown[]>; data_sha256?: string }
 export interface RestoreOut { ok: boolean; counts: Record<string, number>; message: string }

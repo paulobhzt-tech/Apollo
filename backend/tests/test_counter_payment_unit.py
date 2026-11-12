@@ -175,3 +175,34 @@ async def test_catalog_availability_is_enforced_at_order_entry(monkeypatch, chan
     else:
         with pytest.raises(HTTPException, match="indisponível neste canal"):
             await orders.build_items(items, channel=channel)
+
+
+def test_manual_pix_requires_explicit_receipt_and_distinct_transaction_references():
+    from models.schemas import PaymentDetails
+
+    details = PaymentDetails(reference="TEST-PIX-001")
+    payment = Payment(method="pix", amount=10, details=details)
+    with pytest.raises(HTTPException, match="Confirme o recebimento"):
+        orders.validate_payment_details(PayIn(payments=[payment]))
+    details.pix_received = True
+    orders.validate_payment_details(PayIn(payments=[payment]))
+    second = Payment(method="pix", amount=10, details=PaymentDetails(reference=" test-pix-001 ", pix_received=True))
+    with pytest.raises(HTTPException, match="Referência PIX repetida"):
+        orders.validate_payment_details(PayIn(payments=[payment, second]))
+
+
+@pytest.mark.asyncio
+async def test_losing_settlement_attempt_cannot_apply_customer_balance(payment_context, monkeypatch):
+    order, collection, _, _ = payment_context
+    collection.update_one = AsyncMock(return_value=SimpleNamespace(modified_count=0))
+    monkeypatch.setattr(orders.db, "fiado_customers", SimpleNamespace(
+        find_one=AsyncMock(return_value={"id": "customer", "name": "Cliente fictício", "credit_limit": 0, "balance": 0}),
+    ), raising=False)
+    adjust = AsyncMock()
+    monkeypatch.setattr(orders, "adjust_balance", adjust)
+    body = PayIn(payments=[Payment(method="fiado", amount=20)], fiado_customer_id="customer", emit_invoice=False)
+    with pytest.raises(HTTPException) as error:
+        await orders.finalize_payment(order, body)
+    assert error.value.status_code == 409
+    assert collection.update_one.await_args.args[0]["status"] == "aberto"
+    adjust.assert_not_awaited()

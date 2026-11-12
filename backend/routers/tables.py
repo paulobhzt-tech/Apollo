@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from lib.audit import audit_event
 from lib.auth import cancel_authorizer, current_user, require
 from lib.db import client, db
-from lib.orders import (build_items, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods,
+from lib.orders import (build_items, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods, validate_payment_details,
                         refresh_totals)
 from models.schemas import (AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, OrderItem, PayIn, SaleResult, Table, TableIn,
                             TableStatusIn, TableUpdate, TransferIn, table_label)
@@ -379,6 +379,7 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
         raise HTTPException(400, "Emissão fiscal parcial ainda não habilitada. Use comprovante não fiscal.")
     if body.payment.fiado_customer_id or any(p.method == "fiado" for p in body.payment.payments):
         raise HTTPException(400, "Fiado não está habilitado no pagamento parcial")
+    validate_payment_details(body.payment)
     await validate_methods([p.method for p in body.payment.payments])
     if any(p.method in ("credito", "debito") and not p.brand for p in body.payment.payments):
         raise HTTPException(400, "Informe a bandeira do cartão")
@@ -441,7 +442,7 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
                     change=max(0, change), paid_at=now(), cash_session_id=cash["id"],
                     client_ref=body.client_ref, waiter_id=order.get("waiter_id"),
                     waiter_name=order.get("waiter_name", ""),
-                    audit_events=[audit_event("partial_payment_recorded", user, correlation=body.client_ref,
+                    audit_events=[audit_event("partial_payment_recorded", user, correlation=body.client_ref, reason=body.payment.discount_reason.strip(),
                         values={"total": total, "discount": body.payment.discount, "service_fee": service_fee,
                                 "change": max(0, change)})],
                     cmv=round(sum(i["qty"] * i.get("unit_cost", 0) for i in chosen), 2)).model_dump()

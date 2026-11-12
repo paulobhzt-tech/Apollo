@@ -118,3 +118,18 @@ async def test_payment_failure_cleanup_cannot_delete_a_paid_sale(monkeypatch):
     with pytest.raises(HTTPException):
         await operations.quick_sale(sale_body(), {"id": "cashier", "name": "Cashier"})
     operations.db.orders.delete_one.assert_awaited_once_with({"id": "order-1", "status": "aberto"})
+
+
+def test_payment_details_keep_legacy_sale_fingerprint_compatible():
+    import hashlib
+    import json
+    from models.schemas import PaymentDetails
+
+    body = sale_body()
+    legacy = body.model_dump(mode="json", exclude={"client_ref", "sync_context", "discount_reason"})
+    for payment in legacy["payments"]:
+        del payment["details"]
+    expected = hashlib.sha256(json.dumps(legacy, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
+    assert operations.sale_fingerprint(body) == expected
+    body.payments[0].details = PaymentDetails(reference="TEST-REF")
+    assert operations.sale_fingerprint(body) != expected

@@ -75,8 +75,11 @@ async def put_general(body: GeneralSettings, _: dict = Depends(require())):
         parsed = urlsplit(body.logo_url)
         if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
             raise HTTPException(400, "A imagem da marca deve usar uma URL HTTPS válida")
-    await db.settings.update_one({"_id": "general"}, {"$set": body.model_dump()}, upsert=True)
-    return body
+    fields = body.model_dump(exclude={"pix_extra_keys", "card_brands"} - body.model_fields_set)
+    updated = await db.settings.find_one_and_update(
+        {"_id": "general"}, {"$set": fields}, upsert=True, return_document=True,
+    )
+    return GeneralSettings.model_validate(updated)
 
 
 def backup_data_checksum(data: dict) -> str:

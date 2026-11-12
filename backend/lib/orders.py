@@ -286,6 +286,20 @@ async def emit_invoice(order: dict, doc_type: str = "nfce", cpf: str = "") -> di
     return inv
 
 
+def validate_payment_details(pay: PayIn) -> None:
+    references = set()
+    for payment in pay.payments:
+        if payment.method != "pix" or payment.details is None:
+            continue
+        details = payment.details
+        reference = details.reference.strip().casefold()
+        if not details.pix_received or not reference:
+            raise HTTPException(400, "Confirme o recebimento e informe a referência do PIX manual")
+        if reference in references:
+            raise HTTPException(400, "Referência PIX repetida neste pagamento")
+        references.add(reference)
+
+
 async def finalize_payment(order: dict, pay: PayIn, actor: dict | None = None) -> tuple[dict, dict | None]:
     if order["status"] != "aberto":
         raise HTTPException(400, "Este pedido já foi fechado")
@@ -303,6 +317,7 @@ async def finalize_payment(order: dict, pay: PayIn, actor: dict | None = None) -
     if paid + 0.009 < total:
         raise HTTPException(400, f"Valor pago insuficiente (faltam R$ {total - paid:.2f})")
     change = round(paid - total, 2)
+    validate_payment_details(pay)
     await validate_methods([p.method for p in pay.payments])
     if any(p.method in ("credito", "debito") and not p.brand for p in pay.payments):
         raise HTTPException(400, "Informe a bandeira do cartão (Visa, Mastercard ou Elo)")
@@ -327,15 +342,24 @@ async def finalize_payment(order: dict, pay: PayIn, actor: dict | None = None) -
         upd["customer.cpf"] = pay.customer_cpf
     if cust:
         upd["fiado_customer_id"] = cust["id"]
+    result = await db.orders.update_one(
+        {"id": order["id"], "status": "aberto", "items": order["items"]},
+        {"$set": upd, "$push": {"audit_events": audit_event(
+            "payment_recorded", actor or {}, correlation=order.get("client_ref") or "",
+            reason=pay.discount_reason.strip(),
+            values={**{k: upd[k] for k in ("total", "discount", "service_fee", "change")},
+                    "payment_methods": [payment.method for payment in pay.payments]},
+        )}},
+    )
+    if result.modified_count != 1:
+        raise HTTPException(409, "Pedido alterado ou já pago. Confira o histórico antes de tentar novamente.")
+    if cust:
         await adjust_balance(cust["id"], fiado)
         from models.schemas import CustomerMove
         await db.customer_moves.insert_one(CustomerMove(customer_id=cust["id"], type="compra", amount=fiado,
                                                         order_number=order["number"], note="Venda no fiado").model_dump())
-    await db.orders.update_one({"id": order["id"]}, {"$set": upd, "$push": {"audit_events":
-        audit_event("payment_recorded", actor or {}, correlation=order.get("client_ref") or "",
-                    values={k: upd[k] for k in ("total", "discount", "service_fee", "change")})}})
     if order.get("table_id"):
-        await free_table(order["table_id"])
+        await free_table(order["table_id"], expected_order_id=order["id"])
     order = await db.orders.find_one({"id": order["id"]}, {"_id": 0})
     inv = await emit_invoice(order, pay.doc_type, pay.customer_cpf) if pay.emit_invoice else None
     if inv:
@@ -343,8 +367,11 @@ async def finalize_payment(order: dict, pay: PayIn, actor: dict | None = None) -
     return order, inv
 
 
-async def free_table(table_id: str) -> None:
-    await db.tables.update_one({"id": table_id}, {"$set": {
+async def free_table(table_id: str, expected_order_id: str | None = None) -> None:
+    query = {"id": table_id}
+    if expected_order_id is not None:
+        query["order_id"] = expected_order_id
+    await db.tables.update_one(query, {"$set": {
         "status": "livre", "customer_name": "", "people": 0, "waiter_id": None, "waiter_name": "",
         "order_id": None, "opened_at": None, "call": "", "total": 0, "customers": [],
     }, "$unset": {"split_request": ""}})

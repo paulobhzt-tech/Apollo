@@ -272,10 +272,18 @@ class OrderItemIn(BaseModel):
 CardBrand = Literal["visa", "mastercard", "elo"]
 
 
+class PaymentDetails(BaseModel):
+    note: str = Field(default="", max_length=300)
+    reference: str = Field(default="", max_length=120)
+    pix_key_label: str = Field(default="", max_length=80)
+    pix_received: bool = False
+
+
 class Payment(BaseModel):
     method: PayMethod
-    amount: float = Field(gt=0)
+    amount: float = Field(gt=0, allow_inf_nan=False)
     brand: Optional[CardBrand] = None
+    details: Optional[PaymentDetails] = None
 
 
 class Refund(BaseModel):
@@ -329,7 +337,8 @@ class Order(BaseModel):
 
 class PayIn(BaseModel):
     payments: list[Payment] = Field(min_length=1)
-    discount: float = Field(default=0, ge=0)
+    discount: float = Field(default=0, ge=0, allow_inf_nan=False)
+    discount_reason: str = Field(default="", max_length=300)
     service_pct: float = Field(default=0, ge=0, le=20)
     emit_invoice: bool = True
     doc_type: Literal["nfce", "nfe"] = "nfce"
@@ -812,6 +821,8 @@ class GeneralSettings(BaseModel):
     receipt_footer: str = ""
     alert_phone: str = ""  # WhatsApp do dono para lembretes de contas
     pix_key: str = ""
+    pix_extra_keys: list[str] = Field(default_factory=list, max_length=10)
+    card_brands: list[CardBrand] = Field(default_factory=lambda: ["visa", "mastercard", "elo"], min_length=1)
     pix_holder: str = ""
     phone: str = ""
     address: str = ""
