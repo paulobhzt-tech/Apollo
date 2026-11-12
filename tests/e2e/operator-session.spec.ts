@@ -297,3 +297,80 @@ test("busca de fornecedores ignora acentos e diferenças de maiúsculas", async 
   await page.getByTestId("supplier-search-input").fill("outro fornecedor");
   await expect(page.getByTestId("supplier-row-s1")).toHaveCount(0);
 });
+
+test("garçom consulta pedidos prontos e a conta sem acesso ao pagamento", async ({ page }) => {
+  await mockServer(page);
+  await page.route("**/api/tables", (route) => route.fulfill({ json: [
+    { ...tables[0], status: "ocupada", order_id: "order-1", total: 10, waiter_id: "g" },
+    { ...tables[1], status: "conta", order_id: "order-2", total: 20 },
+    { id: "c2", kind: "comanda", number: 24, status: "livre", seats: 1 },
+  ] }));
+  await page.route("**/api/kds/tickets", (route) => route.fulfill({ json: [
+    { id: "ready-1", status: "pronto", order_id: "order-1", order_number: 17 },
+    { id: "ready-2", status: "pronto", order_id: "closed-order", order_number: 18 },
+  ] }));
+  await page.route("**/api/tables/m1/order", (route) => route.fulfill({ json: {
+    id: "order-1", subtotal: 10, total: 10,
+    items: [
+      { id: "i1", product_id: "prod", name: "Produto fictício", qty: 1, unit_price: 5, ordered_at: "2026-11-12T23:15:00Z" },
+      { id: "i2", product_id: "prod", name: "Produto fictício", qty: 1, unit_price: 5, ordered_at: "2026-11-12T23:30:00Z" },
+    ],
+  } }));
+  await page.goto("/login");
+  await signIn(page, "garcom-teste");
+
+  const ready = page.getByTestId("mobile-ready-orders");
+  await expect(ready.getByRole("button")).toHaveCount(1);
+  await ready.getByRole("button", { name: /Mesa 12.*#17/ }).click();
+  const workspace = page.getByRole("dialog", { name: "Atendimento — Mesa 12" });
+  await expect(workspace.getByTestId("close-table-button")).toHaveCount(0);
+  await workspace.getByRole("button", { name: "Ver conta", exact: true }).click();
+  const bill = page.getByTestId("prebill-dialog");
+  await expect(bill.getByTestId("prebill-line")).toHaveCount(1);
+  await expect(bill.getByText(/Horário:/)).toHaveCount(0);
+  await bill.getByRole("checkbox", { name: "Mostrar horário dos lançamentos" }).click();
+  await expect(bill.getByTestId("prebill-line")).toContainText(/Horário: (?=.*:15)(?=.*:30)/);
+  await bill.getByRole("checkbox", { name: /Agrupar produtos iguais/ }).click();
+  await expect(bill.getByTestId("prebill-line")).toHaveCount(2);
+  await bill.getByRole("button", { name: "Fechar", exact: true }).click();
+
+  await workspace.getByTestId("transfer-select").click();
+  await expect(page.getByRole("option", { name: "Comanda 23" })).toHaveCount(0);
+  await page.getByRole("option", { name: "Comanda 24" }).click();
+  const confirmation = page.waitForEvent("dialog").then(async (dialog) => {
+    const message = dialog.message();
+    await dialog.dismiss();
+    return message;
+  });
+  await workspace.getByTestId("transfer-button").click();
+  expect(await confirmation).toContain("Mesa 12 para Comanda 24");
+  await expect(workspace).toBeVisible();
+
+  await workspace.getByTestId("table-workspace-close").click();
+
+  await page.getByTestId("waiter-tab-fechar").click();
+  await expect(page.getByTestId("table-card-12")).toBeVisible();
+  await expect(page.getByTestId("comanda-card-23")).toBeVisible();
+});
+
+test("indicadores financeiros mobile respeitam o perfil administrativo", async ({ page }) => {
+  await mockServer(page);
+  const requested: string[] = [];
+  await page.route("**/api/reports/{dre,forecast}*", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    requested.push(path);
+    return route.fulfill({ json: path.endsWith("/dre") ? { gross_revenue: 150, expenses: 60 } : { average_monthly_profit: 75 } });
+  });
+  await page.goto("/admin-mobile");
+  await signIn(page, "garcom-teste");
+  await page.goto("/admin-mobile");
+  await expect(page.getByTestId("no-permission")).toBeVisible();
+  expect(requested).toEqual([]);
+
+  await lock(page);
+  await signIn(page, "admin-teste");
+  await page.goto("/admin-mobile");
+  await expect(page.getByTestId("admin-month-revenue")).toContainText("150,00");
+  await expect(page.getByTestId("admin-month-expenses")).toContainText("60,00");
+  await expect(page.getByTestId("admin-profit-forecast")).toContainText("75,00");
+});
