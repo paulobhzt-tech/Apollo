@@ -140,7 +140,7 @@ export default function Login() {
               <label htmlFor="login-username" className="block text-sm">Usuário</label>
               <div className="mt-1 flex rounded-xl border border-border bg-elevated focus-within:ring-2 focus-within:ring-primary">
                 <input id="login-username" className="min-w-0 flex-1 rounded-xl bg-transparent p-3 text-foreground outline-none"
-                  value={username} autoComplete="username" onChange={(event) => setUsername(event.target.value)} />
+                  value={username} autoComplete="username" onChange={(event) => { setUsername(event.target.value); setError(""); }} />
                 {namedOperators.length > 0 && <button type="button" className="grid w-11 shrink-0 place-items-center rounded-r-xl hover:bg-muted"
                   aria-label="Selecionar usuário" aria-expanded={showOperators} aria-controls="login-operator-list"
                   onClick={() => setShowOperators(!showOperators)}><ChevronDown className="size-4" /></button>}
@@ -158,7 +158,7 @@ export default function Login() {
             </div>
             <div>
               <label htmlFor="login-password" className="mb-1 block text-sm">Senha</label>
-              <input id="login-password" type="password" className="w-full rounded-xl border border-border bg-elevated p-3 text-foreground" value={password} autoComplete="current-password" onChange={(event) => setPassword(event.target.value)} />
+              <input id="login-password" type="password" className="w-full rounded-xl border border-border bg-elevated p-3 text-foreground" value={password} autoComplete="current-password" onChange={(event) => { setPassword(event.target.value); setError(""); }} />
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <label className="flex cursor-pointer items-center gap-2">
