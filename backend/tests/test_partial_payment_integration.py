@@ -257,3 +257,38 @@ async def test_delivery_stock_failure_rolls_back_and_concurrent_retry_is_idempot
     finally:
         await db.kitchen_tickets.delete_many({"order_id": order["id"]})
         await db.orders.delete_one({"id": order["id"]})
+
+
+async def test_lot_count_rolls_back_if_audit_write_fails(monkeypatch):
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    from models.schemas import LotCountIn
+    from routers import catalog
+
+    if db.name not in {"apollo_partial_payment_ci", "apollo_partial_ci"}:
+        pytest.skip("Conferência de lote exige o banco descartável replicado da CI")
+    prefix = uuid.uuid4().hex
+    ingredient_id, lot_id = f"lot-ingredient-{prefix}", f"lot-count-{prefix}"
+    await db.ingredients.insert_one({"id": ingredient_id, "stock": 5})
+    await db.purchases.insert_one({"id": lot_id, "ingredient_id": ingredient_id, "remaining_qty": 5})
+    body = LotCountIn(purchase_id=lot_id, counted_qty=3)
+    try:
+        fake_counts = SimpleNamespace(insert_one=AsyncMock(side_effect=RuntimeError("Falha de auditoria simulada")))
+        with monkeypatch.context() as patch:
+            patch.setattr(catalog, "db", SimpleNamespace(
+                purchases=db.purchases, ingredients=db.ingredients, inventory_counts=fake_counts,
+            ))
+            with pytest.raises(RuntimeError, match="Falha de auditoria"):
+                await catalog.count_purchase_lot(body, {"name": "Operador fictício"})
+        assert (await db.ingredients.find_one({"id": ingredient_id}))["stock"] == 5
+        assert (await db.purchases.find_one({"id": lot_id}))["remaining_qty"] == 5
+        result = await catalog.count_purchase_lot(body, {"name": "Operador fictício"})
+        assert result["difference"] == -2
+        assert (await db.ingredients.find_one({"id": ingredient_id}))["stock"] == 3
+        assert (await db.purchases.find_one({"id": lot_id}))["remaining_qty"] == 3
+        assert await db.inventory_counts.count_documents({"purchase_id": lot_id}) == 1
+    finally:
+        await db.inventory_counts.delete_many({"purchase_id": lot_id})
+        await db.purchases.delete_one({"id": lot_id})
+        await db.ingredients.delete_one({"id": ingredient_id})

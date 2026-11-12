@@ -15,6 +15,8 @@ from lib.orders import ingredient_map, local_today, now, product_cost
 from models.schemas import (BulkDeleteIn, Category, CategoryIn, Ingredient, IngredientIn, IngredientUpdateIn, OkOut, Product, ProductIn, Supplier, SupplierIn,
                             StockMove, StockMoveIn, ProductionBatch, ProductionBatchIn, Purchase, PurchaseIn, InventoryCount, InventoryCountIn, LotCountIn)
 
+from routers.operations import with_order_transaction
+
 router = APIRouter()
 
 
@@ -291,23 +293,33 @@ async def inventory_lots(_: dict = Depends(require("caixa"))):
 
 @router.post("/inventory/lots/count")
 async def count_purchase_lot(body: LotCountIn, user: dict = Depends(require("caixa"))):
-    purchase = await db.purchases.find_one({"id": body.purchase_id}, {"_id": 0})
+    return await with_order_transaction(lambda session: apply_lot_count(body, user, session=session))
+
+
+async def apply_lot_count(body: LotCountIn, user: dict, *, session=None):
+    options = {"session": session} if session is not None else {}
+    purchase = await db.purchases.find_one({"id": body.purchase_id}, {"_id": 0}, **options)
     if not purchase or "remaining_qty" not in purchase:
         raise HTTPException(404, "Lote não encontrado")
+    ingredient_id = purchase["ingredient_id"]
+    if not await db.ingredients.find_one({"id": ingredient_id}, {"_id": 1}, **options):
+        raise HTTPException(409, "O insumo vinculado ao lote não está disponível")
     counted = round(body.counted_qty, 4)
     previous = round(float(purchase["remaining_qty"]), 4)
     delta = round(counted - previous, 4)
     result = await db.purchases.update_one(
         {"id": body.purchase_id, "remaining_qty": purchase["remaining_qty"]},
-        {"$set": {"remaining_qty": counted}})
-    if not result.modified_count and delta != 0:
+        {"$set": {"remaining_qty": counted}}, **options)
+    if result.matched_count != 1:
         raise HTTPException(409, "Lote alterado durante a conferência")
-    await db.ingredients.update_one({"id": purchase["ingredient_id"]},
-                                    {"$inc": {"stock": delta}, "$set": {"updated_at": now()}})
+    stock = await db.ingredients.update_one(
+        {"id": ingredient_id}, {"$inc": {"stock": delta}, "$set": {"updated_at": now()}}, **options)
+    if stock.matched_count != 1:
+        raise HTTPException(409, "O insumo foi alterado durante a conferência")
     await db.inventory_counts.insert_one({
-        "id": __import__("uuid").uuid4().hex, "ingredient_id": purchase["ingredient_id"],
+        "id": __import__("uuid").uuid4().hex, "ingredient_id": ingredient_id,
         "purchase_id": purchase["id"], "counted_qty": counted, "previous_qty": previous,
-        "difference": delta, "note": body.note, "by_name": user["name"], "created_at": now()})
+        "difference": delta, "note": body.note, "by_name": user["name"], "created_at": now()}, **options)
     return {"ok": True, "difference": delta, "remaining_qty": counted}
 
 

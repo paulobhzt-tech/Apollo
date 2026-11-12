@@ -25,7 +25,7 @@ async def test_inventory_count_detects_concurrent_stock_change(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_stock_outflow_requires_available_quantity(monkeypatch):
+async def test_stock_outflow_requires_available_quantity_unless_explicitly_allowed(monkeypatch):
     ing = {"id": "i-1", "name": "Carne", "stock": 3.0}
     ingredients = SimpleNamespace(
         find_one=AsyncMock(return_value=ing),
@@ -37,5 +37,7 @@ async def test_stock_outflow_requires_available_quantity(monkeypatch):
     with pytest.raises(HTTPException) as error:
         await catalog.create_move(body, {"name": "Operador"})
     assert error.value.status_code == 409
-    assert ingredients.update_one.await_args.args[0]["stock"] == {"$gte": 5.0}
+    assert ingredients.update_one.await_args.args[0]["$or"] == [
+        {"stock": {"$gte": 5.0}}, {"block_negative_stock": False},
+    ]
     fake_db.stock_moves.insert_one.assert_not_awaited()
