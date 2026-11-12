@@ -358,6 +358,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const pending = draft ?? [];
   const setPending = onDraftChange;
   const [adding, setAdding] = useState(!!draft?.length);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [transferTo, setTransferTo] = useState("");
@@ -376,7 +377,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   });
   const send = useMutation({
     mutationFn: () => apiPost<Order>(`/tables/${table!.id}/items`, { items: pending.map((p) => ({ product_id: p.product.id, qty: p.qty, notes: p.notes, options: p.options, customer_name: p.customerName })) }),
-    onSuccess: () => { toast.success("Itens enviados para a cozinha"); setPending([]); setAdding(false); invalidateTables(); },
+    onSuccess: () => { toast.success("Itens enviados para a cozinha"); setReviewOpen(false); setPending([]); setAdding(false); invalidateTables(); },
     onError: onErr,
   });
 
@@ -560,7 +561,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                       <label className="flex items-center gap-2 rounded-md border border-white/15 bg-background px-3"><Search className="size-4 text-zinc-400" /><Input autoFocus aria-label="Buscar produto na comanda" placeholder="Buscar produto por nome ou código..." value={productSearch} onChange={(e) => setProductSearch(e.target.value)} className="border-0 bg-transparent shadow-none" data-testid="table-product-search" /></label>
                       <ProductGrid products={visibleProducts} categories={categories.data ?? []} onAdd={addPending} compact />
                       {visibleProducts.length === 0 && <p className="text-xs text-amber-200">Nenhum produto encontrado. Confira o nome ou código.</p>}
-                      <p className="text-xs text-zinc-400">Selecione quem pediu cada item. O funcionário que lançou o pedido será registrado automaticamente.</p>
+                      <p className="text-xs text-zinc-400">Novo pedido: ajuste quantidades, cliente e observações antes de revisar. O operador será registrado automaticamente.</p>
                       {pending.map((p, i) => (
                         <div key={p.key} className="flex flex-wrap items-center gap-2 text-sm" data-testid={`pending-line-${i}`}>
                           <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.flatMap((x, j) => j !== i ? [x] : x.qty <= 1 ? [] : [{ ...x, qty: Number((x.qty - 1).toFixed(4)) }]))}><Minus /></Button>
@@ -573,15 +574,15 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                             <option value="">Mesa inteira</option>
                             {(table.customers ?? []).map(customer => <option key={customer} value={customer}>{customer}</option>)}
                           </select>
-                          <Input value={p.notes} placeholder="Obs." onChange={(e) => setPending((c) => c.map((x, j) => j === i ? { ...x, notes: e.target.value } : x))} className="w-full text-sm" data-testid={`pending-notes-${i}`} />
+                          <Input value={p.notes} placeholder="Observação: sem cebola, ponto da carne..." aria-label={`Observação do item ${p.product.name}`} onChange={(e) => setPending((c) => c.map((x, j) => j === i ? { ...x, notes: e.target.value } : x))} className="w-full text-sm" data-testid={`pending-notes-${i}`} />
                         </div>
                       ))}
                       <div className="flex flex-wrap gap-2">
                         <Button variant="ghost" disabled={send.isPending} onClick={() => {
                           if (!pending.length || window.confirm("Descartar os itens ainda não enviados?")) { setAdding(false); setPending([]); }
                         }}>Cancelar</Button>
-                        <Button className="flex-1" disabled={!pending.length || send.isPending} onClick={() => send.mutate()} data-testid="send-to-kitchen-button">
-                          <Send className="size-4" /> Enviar {pending.reduce((s, p) => s + p.qty, 0)} itens
+                        <Button className="flex-1" disabled={!pending.length || send.isPending} onClick={() => setReviewOpen(true)} data-testid="send-to-kitchen-button">
+                          <Send className="size-4" /> Revisar {pending.reduce((s, p) => s + p.qty, 0)} itens
                         </Button>
                       </div>
                     </fieldset>
@@ -648,6 +649,15 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
           className="w-[calc(100%-1rem)] max-h-[90dvh] max-w-[min(calc(100%-1rem),900px)] grid-cols-[minmax(0,1fr)] gap-0 overflow-y-auto overscroll-contain border border-border bg-elevated p-0 sm:max-w-[min(calc(100%-2rem),900px)]"
           data-testid="table-sheet">
           {content}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={reviewOpen} onOpenChange={(open) => { if (!send.isPending) setReviewOpen(open); }}>
+        <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto" data-testid="waiter-review-dialog">
+          <DialogHeader><DialogTitle>Revisar pedido antes de enviar</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">{tableLabel(table)} · Confira itens, quantidades e observações. Nenhum item foi enviado ainda.</p>
+          <div className="space-y-2">{pending.map((p) => <div key={p.key} className="rounded-lg border border-border p-3 text-sm"><div className="flex justify-between gap-3"><strong>{p.qty} × {p.product.name}</strong><span>{brl(p.qty * p.product.price)}</span></div>{p.labels.length > 0 && <p className="text-muted-foreground">{p.labels.join(" · ")}</p>}{p.customerName && <p>Cliente: {p.customerName}</p>}{p.notes.trim() && <p className="font-medium text-amber-500">Obs.: {p.notes}</p>}</div>)}</div>
+          <p className="text-right font-semibold">Total dos novos itens: {brl(pending.reduce((sum, p) => sum + p.qty * p.product.price, 0))}</p>
+          <div className="grid grid-cols-2 gap-2"><Button type="button" variant="outline" disabled={send.isPending} onClick={() => setReviewOpen(false)}>Editar itens</Button><Button type="button" disabled={!pending.length || send.isPending} onClick={() => send.mutate()} data-testid="waiter-confirm-send"><Send className="size-4" /> Confirmar envio</Button></div>
         </DialogContent>
       </Dialog>
       <RemoveItemDialog group={removing} needsPin={!canCancel(me)} pending={removeItems.isPending} onClose={() => setRemoving(null)} onConfirm={(r) => removeItems.mutate(r)} />
