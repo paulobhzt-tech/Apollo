@@ -111,7 +111,7 @@ function MenuPreferences({ items, operatorId }: { items: NavItem[]; operatorId: 
   const [pins, setPins] = useState<string[]>(() => {
     try {
       const saved: unknown = JSON.parse(localStorage.getItem(storageKey) ?? JSON.stringify(DEFAULT_SHORTCUTS));
-      return Array.isArray(saved) ? saved.filter((path): path is string => typeof path === "string") : DEFAULT_SHORTCUTS;
+      return Array.isArray(saved) ? [...new Set(saved.filter((path): path is string => typeof path === "string" && items.some((item) => item.to === path)))] : DEFAULT_SHORTCUTS;
     } catch {
       return DEFAULT_SHORTCUTS;
     }
