@@ -1,9 +1,10 @@
 """All Pydantic v2 models. Mirrored by hand in frontend/src/lib/types.ts — keep in sync."""
 import uuid
+from decimal import Decimal
 from datetime import datetime, timezone
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import AfterValidator, BaseModel, BeforeValidator, Field
 
 
 def _id() -> str:
@@ -17,6 +18,23 @@ def _now() -> datetime:
 Role = Literal["admin", "caixa", "garcom", "cozinha"]
 Station = str  # key of an Environment (ambiente de produção), e.g. "cozinha", "churrasqueira"
 Unit = Literal["kg", "g", "L", "ml", "un"]
+SaleUnit = Literal["un", "kg", "L"]
+
+
+def _reject_boolean_quantity(value):
+    if isinstance(value, bool):
+        raise ValueError("Informe uma quantidade numérica")
+    return value
+
+
+def _sale_quantity(value: int | float) -> int | float:
+    exact = Decimal(str(value))
+    if not exact.is_finite() or not 0 < exact <= 99 or exact != round(exact, 4):
+        raise ValueError("Informe quantidade maior que zero, até 99 e com até 4 casas decimais")
+    return int(exact) if exact == exact.to_integral_value() else float(exact)
+
+
+SaleQuantity = Annotated[int | float, BeforeValidator(_reject_boolean_quantity), AfterValidator(_sale_quantity)]
 ProductChannel = Literal["caixa", "comanda", "qr", "delivery"]
 PRODUCT_CHANNELS = ("caixa", "comanda", "qr", "delivery")
 PayMethod = str  # builtin (dinheiro, credito, debito, pix, fiado, voucher, online) or a custom payment method key
@@ -247,7 +265,9 @@ class OrderItem(BaseModel):
     id: str = Field(default_factory=_id)
     product_id: str
     name: str
-    qty: int
+    qty: int | float
+    sale_unit: SaleUnit = "un"
+    stock_ref: Optional[str] = None
     unit_price: float
     unit_cost: float = 0
     notes: str = ""
@@ -263,7 +283,7 @@ class OrderItem(BaseModel):
 
 class OrderItemIn(BaseModel):
     product_id: str
-    qty: int = Field(ge=1, le=99)
+    qty: SaleQuantity
     notes: str = ""
     options: list[ChosenOption] = []
     customer_name: str = Field(default="", max_length=80)
@@ -368,13 +388,13 @@ class SaleResult(BaseModel):
 class CancelIn(BaseModel):
     reason: str = Field(min_length=3)
     manager_pin: Optional[str] = None
-    qty: Optional[float] = Field(default=None, gt=0)  # table items: remove only part of the quantity
+    qty: Optional[SaleQuantity] = None  # table items: remove only part of the quantity
 
 
 # ---------- kitchen ----------
 class KitchenItem(BaseModel):
     name: str
-    qty: int
+    qty: int | float
     notes: str = ""
     customer_name: str = ""
     station: Station = "cozinha"
@@ -463,7 +483,7 @@ class TableStatusIn(BaseModel):
 # ---------- invoices ----------
 class InvoiceItem(BaseModel):
     name: str
-    qty: int
+    qty: int | float
     unit_price: float
 
 
@@ -563,7 +583,7 @@ class NamedValue(BaseModel):
 
 class TopProduct(BaseModel):
     name: str
-    qty: int
+    qty: int | float
     revenue: float
 
 
@@ -831,7 +851,7 @@ class GeneralSettings(BaseModel):
 class OptionRank(BaseModel):
     group: str
     name: str
-    qty: int
+    qty: int | float
     products: list[str]
 
 

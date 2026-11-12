@@ -338,7 +338,7 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
               <option value="un">Unidade (un)</option><option value="kg">Quilo (kg)</option><option value="L">Litro (L)</option>
             </select>
           </label>
-          <p className="mt-2 text-xs text-zinc-400">O preço informado corresponde a uma unidade de venda. O lançamento atual usa quantidades inteiras.</p>
+          <p className="mt-2 text-xs text-zinc-400">O preço informado corresponde a uma unidade de venda. Use até quatro casas decimais para venda por quilo ou litro.</p>
         </TabsContent>
         <TabsContent value="complementos" className="mt-4">
           <OptionsEditor kind="complemento" value={f.options} onChange={(options) => setF({ ...f, options })} />

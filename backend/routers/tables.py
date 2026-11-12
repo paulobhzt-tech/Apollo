@@ -9,7 +9,7 @@ from lib.auth import cancel_authorizer, current_user, require
 from lib.db import client, db
 from lib.orders import (build_items, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods, validate_payment_details,
                         refresh_totals)
-from models.schemas import (AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, OrderItem, PayIn, SaleResult, Table, TableIn,
+from models.schemas import (SaleQuantity, AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, OrderItem, PayIn, SaleResult, Table, TableIn,
                             TableStatusIn, TableUpdate, TransferIn, table_label)
 
 router = APIRouter()
@@ -199,13 +199,26 @@ async def cancel_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
     reason = body.reason if auth == user["name"] else f"{body.reason} (autorizado por {auth})"
     from models.schemas import OrderItem
     qty = body.qty if body.qty and body.qty < item["qty"] else item["qty"]
-    if qty < item["qty"]:  # partial: keep the rest, record the removed units as a cancelled line
-        removed = OrderItem(**{**item, "id": OrderItem.model_fields["id"].default_factory(), "qty": qty, "cancelled": True, "cancel_reason": reason})
-        await db.orders.update_one({"id": order["id"], "items.id": item_id}, {"$set": {"items.$.qty": item["qty"] - qty}})
-        await db.orders.update_one({"id": order["id"]}, {"$push": {"items": removed.model_dump()}})
-    else:
-        await db.orders.update_one({"id": order["id"], "items.id": item_id},
-                                   {"$set": {"items.$.cancelled": True, "items.$.cancel_reason": reason}})
+    if item.get("sale_unit", "un") == "un" and qty != int(qty):
+        raise HTTPException(400, "Informe uma quantidade inteira para este produto")
+    updated_items = [
+        ({**entry, "qty": round(entry["qty"] - qty, 4)} if qty < entry["qty"]
+         else {**entry, "cancelled": True, "cancel_reason": reason})
+        if entry["id"] == item_id else entry
+        for entry in order["items"]
+    ]
+    if qty < item["qty"]:
+        removed = OrderItem(**{**item, "id": OrderItem.model_fields["id"].default_factory(),
+                               "qty": qty, "cancelled": True, "cancel_reason": reason})
+        updated_items.append(removed.model_dump())
+    result = await db.orders.update_one(
+        {"id": order["id"], "status": "aberto", "items": order["items"]},
+        {"$set": {"items": updated_items}, "$push": {"audit_events": audit_event(
+            "item_cancelled", user, reason=body.reason, authorized_by=auth, values={"item_id": item_id, "qty": qty},
+        )}},
+    )
+    if result.modified_count != 1:
+        raise HTTPException(409, "Pedido alterado durante o cancelamento. Atualize a comanda.")
     await move_stock([OrderItem(**{**item, "qty": qty})], user["name"], f"Cancelamento: {body.reason}", sign=1)
     return await refresh_totals(order["id"])
 
@@ -337,7 +350,7 @@ async def clear_split_request(id: str, _: dict = Depends(require("caixa"))):
 
 class PartialBillIn(BaseModel):
     """Item quantities to include in a separate bill preview."""
-    quantities: dict[str, int] = Field(min_length=1)
+    quantities: dict[str, SaleQuantity] = Field(min_length=1)
 
 
 @router.post("/tables/{id}/partial-bill/preview")
@@ -355,7 +368,7 @@ async def preview_partial_bill(id: str, body: PartialBillIn, _: dict = Depends(r
         item = available.get(item_id)
         if not item:
             raise HTTPException(400, f"Item indisponível: {item_id}")
-        if isinstance(qty, bool) or qty <= 0 or qty > item["qty"]:
+        if isinstance(qty, bool) or qty <= 0 or qty > item["qty"] or (item.get("sale_unit", "un") == "un" and qty != int(qty)):
             raise HTTPException(400, f"Quantidade inválida para {item['name']}")
         chosen.append({"item_id": item_id, "name": item["name"], "qty": qty,
                        "unit_price": item["unit_price"], "total": round(qty * item["unit_price"], 2)})
@@ -423,12 +436,13 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
                 remaining = []
                 for item in order["items"]:
                     qty = body.quantities.get(item["id"], 0)
-                    if isinstance(qty, bool) or qty < 0 or qty > (0 if item.get("cancelled") else item["qty"]):
+                    if (qty > (0 if item.get("cancelled") else item["qty"])
+                            or (item.get("sale_unit", "un") == "un" and qty != int(qty))):
                         raise HTTPException(400, f"Quantidade inválida: {item['name']}")
                     if qty:
                         chosen.append({**item, "qty": qty})
                     if item["qty"] > qty:
-                        remaining.append({**item, "qty": item["qty"] - qty})
+                        remaining.append({**item, "qty": round(item["qty"] - qty, 4)})
                 if not chosen or any(k not in {i["id"] for i in order["items"]} for k in body.quantities):
                     raise HTTPException(400, "Selecione itens válidos")
                 guest = body.customer_name.strip()

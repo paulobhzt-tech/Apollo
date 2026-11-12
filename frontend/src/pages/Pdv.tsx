@@ -1,3 +1,4 @@
+import SaleQuantityInput from "@/components/SaleQuantityInput";
 import { getReceiptPref, printSimpleReceipt } from "@/lib/receipt";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -40,13 +41,13 @@ export default function Pdv() {
   const push = (p: Product, picked?: Picked) => setCart((c) => {
     if (!picked) {
       const i = c.findIndex((l) => l.product.id === p.id && !l.notes && !l.options.length);
-      if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
+      if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: Math.min(99, Number((l.qty + 1).toFixed(4))) } : l));
     }
     return [...c, { key: uid(), product: p, qty: 1, notes: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
   });
   const add = (p: Product) => (p.options?.length ? setOptFor(p) : push(p));
   const setQty = (i: number, d: number) =>
-    setCart((c) => c.flatMap((l, j) => (j !== i ? [l] : l.qty + d <= 0 ? [] : [{ ...l, qty: l.qty + d }])));
+    setCart((c) => c.flatMap((l, j) => (j !== i ? [l] : l.qty + d <= 0 ? [] : [{ ...l, qty: Math.min(99, Number((l.qty + d).toFixed(4))) }])));
 
   const reset = () => { saleRef.current = null; setCart([]); setCustomer(""); setPayOpen(false); };
 
@@ -132,7 +133,8 @@ export default function Pdv() {
                   </div>
                   <div className="mt-2 flex items-center gap-2">
                     <Button size="icon-xs" variant="outline" onClick={() => setQty(i, -1)} data-testid={`cart-dec-${i}`}><Minus /></Button>
-                    <span className="w-6 text-center font-mono text-sm" data-testid={`cart-qty-${i}`}>{l.qty}</span>
+                    <span data-testid={`cart-qty-${i}`}><SaleQuantityInput qty={l.qty} unit={l.product.sale_unit}
+                      onChange={(qty) => setCart((current) => current.map((line) => line.key === l.key ? { ...line, qty } : line))} /></span>
                     <Button size="icon-xs" variant="outline" onClick={() => setQty(i, 1)} data-testid={`cart-inc-${i}`}><Plus /></Button>
                     <Input value={l.notes} placeholder="Obs.: sem cebola…" onChange={(e) => setCart((c) => c.map((x, j) => (j === i ? { ...x, notes: e.target.value } : x)))}
                       className="h-7 flex-1 text-xs" data-testid={`cart-notes-${i}`} />

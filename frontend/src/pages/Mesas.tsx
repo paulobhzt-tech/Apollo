@@ -1,3 +1,4 @@
+import SaleQuantityInput from "@/components/SaleQuantityInput";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -383,7 +384,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   const push = (p: Product, picked?: Picked) => setPending((c) => {
     if (!picked) {
       const i = c.findIndex((l) => l.product.id === p.id && !l.notes && !l.options.length && !l.customerName);
-      if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
+      if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: Math.min(99, Number((l.qty + 1).toFixed(4))) } : l));
     }
     return [...c, { key: uid(), product: p, qty: 1, notes: "", customerName: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
   });
@@ -513,9 +514,10 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                       <p className="text-xs text-zinc-400">Selecione quem pediu cada item. O funcionário que lançou o pedido será registrado automaticamente.</p>
                       {pending.map((p, i) => (
                         <div key={p.key} className="flex items-center gap-2 text-sm" data-testid={`pending-line-${i}`}>
-                          <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.flatMap((x, j) => j !== i ? [x] : x.qty <= 1 ? [] : [{ ...x, qty: x.qty - 1 }]))}><Minus /></Button>
-                          <span className="w-5 text-center font-mono">{p.qty}</span>
-                          <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.map((x, j) => (j === i ? { ...x, qty: x.qty + 1 } : x)))}><Plus /></Button>
+                          <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.flatMap((x, j) => j !== i ? [x] : x.qty <= 1 ? [] : [{ ...x, qty: Number((x.qty - 1).toFixed(4)) }]))}><Minus /></Button>
+                          <SaleQuantityInput qty={p.qty} unit={p.product.sale_unit}
+                            onChange={(qty) => setPending((current) => current.map((line) => line.key === p.key ? { ...line, qty } : line))} />
+                          <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.map((x, j) => (j === i ? { ...x, qty: Math.min(99, Number((x.qty + 1).toFixed(4))) } : x)))}><Plus /></Button>
                           <span className="flex-1 truncate">{p.product.name}{p.labels.length > 0 && <span className="block text-xs text-primary">{p.labels.join(" · ")}</span>}</span>
                           <select aria-label="Cliente responsável pelo item" value={p.customerName} onChange={e => setPending(old => old.map((line, j) => j === i ? { ...line, customerName: e.target.value } : line))}
                             className="max-w-32 rounded-md border border-white/15 bg-panel px-2 py-1 text-xs" data-testid={`pending-customer-${i}`}>
@@ -682,7 +684,7 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
           {available.map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-panel p-3">
               <span className="text-sm">{item.name} · {brl(item.unit_price)} (até {item.qty})<span className="block text-xs text-zinc-400">{item.customer_name || "Mesa inteira"}</span></span>
-              <Input className="w-20" type="number" min={0} max={item.qty} disabled={!!selectedCustomer && !!item.customer_name && item.customer_name !== selectedCustomer} value={quantities[item.id] ?? 0}
+              <Input className="w-20" type="number" min={0} max={item.qty} step={item.sale_unit === "kg" || item.sale_unit === "L" ? "0.0001" : "1"} disabled={!!selectedCustomer && !!item.customer_name && item.customer_name !== selectedCustomer} value={quantities[item.id] ?? 0}
                 onChange={(e) => { setQuantities((old) => ({ ...old, [item.id]: Math.max(0, Math.min(item.qty, Number(e.target.value) || 0)) })); setPreview(null); }} />
             </div>
           ))}

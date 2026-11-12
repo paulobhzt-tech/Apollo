@@ -13,7 +13,7 @@ from lib.orders import build_items, create_ticket, move_stock, refresh_totals
 from routers.catalog import products_with_cost
 from routers.operations import create_delivery_order
 from routers.tables import get_or_open_order, get_table
-from models.schemas import CallIn, OkOut, PublicDeliveryIn, PublicMenu, PublicOrderIn, PublicOrderStatus, PublicTable, table_label
+from models.schemas import SaleQuantity, CallIn, OkOut, PublicDeliveryIn, PublicMenu, PublicOrderIn, PublicOrderStatus, PublicTable, table_label
 
 router = APIRouter(prefix="/public")
 QR_WINDOW_SECONDS = 60
@@ -84,7 +84,7 @@ async def public_table_preparation(id: str, request: Request):
 
 
 class SplitRequestIn(BaseModel):
-    quantities: dict[str, int] = Field(min_length=1, max_length=100)
+    quantities: dict[str, SaleQuantity] = Field(min_length=1, max_length=100)
 
 
 @router.post("/tables/{id}/split-request")
@@ -102,7 +102,7 @@ async def request_table_split(id: str, body: SplitRequestIn, request: Request):
     chosen = []
     for item_id, qty in body.quantities.items():
         item = available.get(item_id)
-        if not item or isinstance(qty, bool) or qty <= 0 or qty > item["qty"]:
+        if not item or isinstance(qty, bool) or qty <= 0 or qty > item["qty"] or (item.get("sale_unit", "un") == "un" and qty != int(qty)):
             raise HTTPException(400, "Seleção inválida. Atualize o consumo e tente novamente.")
         chosen.append({"item_id": item_id, "name": item["name"], "qty": qty,
                        "unit_price": item["unit_price"]})

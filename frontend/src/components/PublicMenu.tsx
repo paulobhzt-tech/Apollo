@@ -1,3 +1,4 @@
+import SaleQuantityInput from "@/components/SaleQuantityInput";
 import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Flame, Heart, Minus, Plus, Search, ShoppingBag } from "lucide-react";
@@ -40,12 +41,12 @@ export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOp
   const push = (p: Product, picked?: Picked) => setCart((c) => {
     if (!picked) {
       const i = c.findIndex((l) => l.product.id === p.id && !l.notes && !l.options.length);
-      if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: l.qty + 1 } : l));
+      if (i >= 0) return c.map((l, j) => (j === i ? { ...l, qty: Math.min(99, Number((l.qty + 1).toFixed(4))) } : l));
     }
     return [...c, { key: uid(), product: p, qty: 1, notes: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
   });
   const add = (p: Product) => (p.options?.length ? setOptFor(p) : push(p));
-  const dec = (i: number) => setCart((c) => c.flatMap((l, j) => (j !== i ? [l] : l.qty <= 1 ? [] : [{ ...l, qty: l.qty - 1 }])));
+  const dec = (i: number) => setCart((c) => c.flatMap((l, j) => (j !== i ? [l] : l.qty <= 1 ? [] : [{ ...l, qty: Number((l.qty - 1).toFixed(4)) }])));
 
   return (
     <div className="min-h-screen bg-[#0B0C10] pb-28">
@@ -112,8 +113,9 @@ export default function PublicMenu({ header, renderCheckout, cartOpen, setCartOp
               <div key={l.key} className="rounded-xl bg-white/5 p-3" data-testid={`public-cart-line-${i}`}>
                 <div className="flex items-center gap-3">
                   <Button size="icon-xs" variant="outline" onClick={() => dec(i)} data-testid={`public-cart-dec-${i}`}><Minus /></Button>
-                  <span className="w-5 text-center font-mono">{l.qty}</span>
-                  <Button size="icon-xs" variant="outline" onClick={() => setCart((c) => c.map((x, j) => (j === i ? { ...x, qty: x.qty + 1 } : x)))} data-testid={`public-cart-inc-${i}`}><Plus /></Button>
+                  <SaleQuantityInput qty={l.qty} unit={l.product.sale_unit}
+                    onChange={(qty) => setCart((current) => current.map((line) => line.key === l.key ? { ...line, qty } : line))} />
+                  <Button size="icon-xs" variant="outline" onClick={() => setCart((c) => c.map((x, j) => (j === i ? { ...x, qty: Math.min(99, Number((x.qty + 1).toFixed(4))) } : x)))} data-testid={`public-cart-inc-${i}`}><Plus /></Button>
                   <span className="flex-1 text-sm text-white">{l.product.name}{l.labels.length > 0 && <span className="block text-xs text-primary">{l.labels.join(" · ")}</span>}</span>
                   <span className="font-mono text-sm">{brl(l.qty * (l.product.price + l.extra))}</span>
                 </div>

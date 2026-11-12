@@ -93,6 +93,7 @@ export interface OrderItem {
   product_id: string;
   name: string;
   qty: number;
+  sale_unit?: "un" | "kg" | "L";
   unit_price: number;
   unit_cost: number;
   notes: string;
