@@ -59,7 +59,8 @@ export default function Mesas() {
     refetchInterval: 8000,
   });
   const pendingSplits = splitAlerts.data ?? [];
-  const readyTickets = useQuery({ queryKey: ["waiter-ready-tickets"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets"), refetchInterval: 5000, enabled: mobileMode });
+  const [showReady, setShowReady] = useState(true);
+  const readyTickets = useQuery({ queryKey: ["waiter-ready-tickets"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets"), refetchInterval: 5000, enabled: mobileMode && showReady });
   const ready = (readyTickets.data ?? []).filter(ticket => ticket.status === "pronto");
   const myReady = ready.filter((ticket) => (tables.data ?? []).some((t) => t.order_id === ticket.order_id && t.waiter_id === me?.id));
   const [selId, setSelId] = useState<string | null>(null);
@@ -120,7 +121,7 @@ export default function Mesas() {
           <p className="mt-2 text-xs text-zinc-400">Abra a mesa e selecione “Dividir conta por itens” para conferir a solicitação.</p>
         </div>
       )}
-      {mobileMode && ready.length > 0 && (
+      {mobileMode && showReady && ready.length > 0 && (
         <div role="status" className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4" data-testid="mobile-ready-orders">
           <p className="font-semibold text-emerald-300">Pedidos prontos para entregar ({ready.length}){myReady.length > 0 && ` · ${myReady.length} de suas mesas`}</p>
           <ul className="mt-2 space-y-1 text-sm text-white">{ready.map(ticket => <li key={ticket.id}>#{ticket.order_number} · {ticket.label}</li>)}</ul>
@@ -128,7 +129,10 @@ export default function Mesas() {
         </div>
       )}
       {mobileMode && <div className="mb-4 space-y-3 rounded-2xl border border-white/10 bg-white/5 p-3" data-testid="mobile-quick-filter">
-        <div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold">Atendimento rápido</p><Button size="sm" variant="outline" onClick={() => { void tables.refetch(); void readyTickets.refetch(); }}>Atualizar</Button></div>
+        <div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold">Atendimento rápido</p><Button size="sm" variant="outline" onClick={() => { void tables.refetch(); if (showReady) void readyTickets.refetch(); }}>Atualizar</Button></div>
+        <label className="flex min-h-10 items-center gap-2 text-sm text-muted-foreground">
+          <input type="checkbox" checked={showReady} onChange={(event) => setShowReady(event.target.checked)} /> Exibir avisos de pedidos prontos
+        </label>
         <Input aria-label="Buscar mesa, comanda ou cliente" placeholder="Buscar número, mesa ou cliente..." value={mobileSearch} onChange={(e) => setMobileSearch(e.target.value)} data-testid="mobile-table-search" />
         <div className="flex flex-wrap gap-2">{([["todas", "Todas"], ["minhas", "Minhas mesas"], ["ocupadas", "Em atendimento"], ["livres", "Livres"]] as const).map(([value, label]) => <Button key={value} size="sm" variant={mobileFilter === value ? "default" : "outline"} onClick={() => setMobileFilter(value)}>{label}</Button>)}</div>
       </div>}

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiGet } from "@/lib/api";
 import { brl, fmtDateTime, tableLabel } from "@/lib/format";
+import { equalBillShares, previewBillShare } from "@/lib/bill-split";
 import { groupItems } from "@/lib/group";
 import { printHtml } from "@/lib/printTicket";
 import type { GeneralSettings, Order, Printer, Table } from "@/lib/types";
@@ -20,11 +21,20 @@ export default function PreBillDialog({ table, order, open, onClose, onPrinted }
   const printers = useQuery({ queryKey: ["printers"], queryFn: () => apiGet<Printer[]>("/printers"), enabled: open });
   const [service, setService] = useState(true);
   const [people, setPeople] = useState(String(table.people || 1));
+  const [splitMode, setSplitMode] = useState<"people" | "amount" | "percentage">("people");
+  const [shareInput, setShareInput] = useState("");
   const groups = groupItems(order?.items ?? []);
   const subtotal = r2(groups.reduce((s, g) => s + g.total, 0));
   const fee = service ? r2(subtotal * 0.1) : 0;
   const total = r2(subtotal + fee);
-  const n = Math.max(1, Number(people) || 1);
+  const shares = equalBillShares(total, Number(people));
+  const share = splitMode === "people" ? null : previewBillShare(total, splitMode, shareInput);
+  const equalLabel = shares.extraPeople
+    ? `${shares.people - shares.extraPeople} × ${brl(shares.amount)} + ${shares.extraPeople} × ${brl(shares.extraAmount)}`
+    : brl(shares.amount);
+  const splitLabel = splitMode === "people"
+    ? (shares.people > 1 ? `Por pessoa (${shares.people}): ${equalLabel}` : "")
+    : (share ? `Parte: ${brl(share.amount)} · Restante: ${brl(share.remaining)}` : "");
   const qtyTotal = groups.reduce((s, g) => s + g.qty, 0);
   const pix = settings.data?.pix_key;
 
@@ -50,7 +60,7 @@ export default function PreBillDialog({ table, order, open, onClose, onPrinted }
       <div class="row"><span>${qtyTotal} itens · Subtotal</span><span>${brl(subtotal)}</span></div>
       ${service ? `<div class="row"><span>Serviço 10% (opcional)</span><span>${brl(fee)}</span></div>` : ""}
       <div class="row tot"><span>TOTAL</span><span>${brl(total)}</span></div>
-      ${n > 1 ? `<div class="row"><span>Por pessoa (${n})</span><span>${brl(r2(total / n))}</span></div>` : ""}
+      ${splitLabel ? `<div class="row">${esc(splitLabel)}</div>` : ""}
       ${pix ? `<div class="sep"></div><div class="c">PIX: ${esc(pix)}${settings.data?.pix_holder ? `<br>${esc(settings.data.pix_holder)}` : ""}</div>` : ""}
       <div class="sep"></div><div class="c"><b>NÃO É DOCUMENTO FISCAL</b><br>Confira seu pedido antes do pagamento</div>
       <div class="c" style="font-size:10px">${fmtDateTime(new Date().toISOString())}</div>
@@ -61,7 +71,7 @@ export default function PreBillDialog({ table, order, open, onClose, onPrinted }
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md border-white/10 bg-shell" data-testid="prebill-dialog">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-md overflow-y-auto border-border bg-shell" data-testid="prebill-dialog">
         <DialogTitle className="font-heading text-xl text-white">Pré-conta · {tableLabel(table)}</DialogTitle>
         <div className="max-h-[45vh] space-y-1.5 overflow-y-auto rounded-xl bg-white p-4 font-mono text-[12px] text-black" data-testid="prebill-preview">
           {groups.map((g) => (
@@ -75,13 +85,24 @@ export default function PreBillDialog({ table, order, open, onClose, onPrinted }
             <div className="flex justify-between"><span>{qtyTotal} itens · Subtotal</span><span data-testid="prebill-subtotal">{brl(subtotal)}</span></div>
             {service && <div className="flex justify-between"><span>Serviço 10%</span><span data-testid="prebill-service">{brl(fee)}</span></div>}
             <div className="flex justify-between text-base font-bold"><span>TOTAL</span><span data-testid="prebill-total">{brl(total)}</span></div>
-            {n > 1 && <div className="flex justify-between"><span>Por pessoa ({n})</span><span data-testid="prebill-per-person">{brl(r2(total / n))}</span></div>}
+            {splitLabel && <p data-testid={splitMode === "people" ? "prebill-per-person" : "prebill-split-share"}>{splitLabel}</p>}
           </div>
         </div>
-        <div className="flex items-end gap-4">
-          <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={service} onCheckedChange={(v) => setService(!!v)} data-testid="prebill-service-checkbox" /> Incluir 10% de serviço</label>
-          <div className="w-24"><Label className="text-xs text-zinc-400">Dividir por</Label><Input value={people} onChange={(e) => setPeople(e.target.value)} inputMode="numeric" className="mt-1" data-testid="prebill-people-input" /></div>
+        <label className="flex items-center gap-2 text-sm text-muted-foreground"><Checkbox checked={service} onCheckedChange={(v) => setService(!!v)} data-testid="prebill-service-checkbox" /> Incluir 10% de serviço</label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div><Label htmlFor="prebill-mode">Dividir por</Label>
+            <select id="prebill-mode" value={splitMode}
+              className="mt-1 h-9 w-full rounded-lg border border-border bg-elevated px-2"
+              onChange={(event) => { setSplitMode(event.target.value as typeof splitMode); setShareInput(""); }}>
+              <option value="people">Pessoas</option><option value="amount">Valor</option><option value="percentage">Porcentagem</option>
+            </select>
+          </div>
+          {splitMode === "people"
+            ? <div><Label htmlFor="prebill-people">Pessoas</Label><Input id="prebill-people" value={people} onChange={(e) => setPeople(e.target.value)} inputMode="numeric" className="mt-1 h-9" data-testid="prebill-people-input" /></div>
+            : <div><Label htmlFor="prebill-share">{splitMode === "amount" ? "Valor (R$)" : "Porcentagem (%)"}</Label><Input id="prebill-share" value={shareInput} onChange={(e) => setShareInput(e.target.value)} inputMode="decimal" className="mt-1 h-9" /></div>}
         </div>
+        {splitMode !== "people" && shareInput.trim() && !share && <p role="status" className="text-sm text-muted-foreground">Informe uma parte maior que zero e dentro do total.</p>}
+        <p className="text-xs text-muted-foreground">Prévia para conferência. O recebimento é registrado no caixa.</p>
         <Button className="h-11" onClick={() => void print()} disabled={!groups.length} data-testid="prebill-print-button"><PrinterIcon className="size-4" /> Imprimir pré-conta</Button>
       </DialogContent>
     </Dialog>

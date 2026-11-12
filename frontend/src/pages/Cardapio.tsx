@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import PublicMenu from "@/components/PublicMenu";
 import { Button } from "@/components/ui/button";
 import { apiGet, apiPost } from "@/lib/api";
+import { equalBillShares } from "@/lib/bill-split";
 import { brl, errMsg } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
 import type { OkOut, OrderItemIn, PublicTable } from "@/lib/types";
@@ -21,6 +22,7 @@ export default function Cardapio() {
   const preparation = useQuery({ queryKey: ["public-preparation", tableId], queryFn: () => apiGet<{ tickets: { id: string; status: "novo" | "preparo" | "pronto" | "entregue"; items: { name: string; qty: number; station: string }[] }[] }>(`/public/tables/${tableId}/preparo`), enabled: showPreparation && !!tableId, refetchInterval: 5000 });
   const table = useQuery({ queryKey: ["public-table", tableId], queryFn: () => apiGet<PublicTable>(`/public/tables/${tableId}`), refetchInterval: showConsumed ? 5000 : 15000 });
   const t = table.isError ? undefined : table.data;
+  const equalShares = equalBillShares(t?.total ?? 0, splitPeople);
   const order = useMutation({
     mutationFn: (items: OrderItemIn[]) => apiPost<PublicTable>(`/public/tables/${tableId}/order`, { items }),
     onError: (e) => toast.error(errMsg(e)),
@@ -66,8 +68,9 @@ export default function Cardapio() {
                 <Button type="button" variant="outline" size="sm" disabled={splitPeople >= 30} onClick={() => setSplitPeople(n => Math.min(30, n + 1))} aria-label="Aumentar pessoas">+</Button>
               </div>
               <p className="mt-3 text-sm">Total da mesa: <strong>{brl(t.total)}</strong></p>
-              <p className="mt-1 text-lg font-semibold text-emerald-300">Por pessoa: {brl(Math.floor(Math.round(t.total * 100) / splitPeople) / 100)}</p>
-              <p className="mt-1 text-xs text-zinc-400">O valor é uma referência. Centavos restantes e descontos são acertados no caixa.</p>
+              <p className="mt-1 text-lg font-semibold text-emerald-300">Por pessoa: {equalShares.extraPeople
+                ? `${splitPeople - equalShares.extraPeople} × ${brl(equalShares.amount)} + ${equalShares.extraPeople} × ${brl(equalShares.extraAmount)}`
+                : brl(equalShares.amount)}</p>
               <div className="mt-4 border-t border-white/10 pt-3" data-testid="public-item-split">
                 <p className="font-semibold text-white">Ou selecione itens para uma conta separada</p>
                 <p className="mt-1 text-xs text-zinc-400">Prévia dos itens selecionados. O caixa confirma a divisão e o pagamento.</p>
