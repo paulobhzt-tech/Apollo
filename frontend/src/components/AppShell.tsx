@@ -122,9 +122,9 @@ function MenuPreferences({ items, operatorId }: { items: NavItem[]; operatorId: 
 
   function toggle(path: string) {
     const next = pins.includes(path) ? pins.filter((pin) => pin !== path) : [...pins, path];
-    setPins(next);
     try {
       localStorage.setItem(storageKey, JSON.stringify(next));
+      setPins(next);
     } catch {
       toast.error("O dispositivo não pôde salvar os atalhos.");
     }
