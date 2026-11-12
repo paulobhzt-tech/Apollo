@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Delete, Flame, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Toaster } from "@/components/ui/sonner";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { beginSession } from "@/lib/session";
@@ -29,14 +30,14 @@ export default function Login() {
     if (!rememberOperator || !profiles.data?.length) return;
     const id = localStorage.getItem("apollo-last-operator-id");
     const remembered = profiles.data.find((p) => p.id === id);
-    if (remembered) setSelected(remembered);
+    if (remembered && remembered.pin_enabled !== false) setSelected(remembered);
   }, [rememberOperator, profiles.data]);
 
 
   const login = useMutation({
-    mutationFn: (credentials: {pin?: string; username?: string; password?: string}) => apiPost<Employee>("/auth/login", credentials),
+    mutationFn: (credentials: {pin?: string; username?: string; password?: string; employee_id?: string}) => apiPost<Employee>("/auth/login", credentials),
     onSuccess: async (emp) => {
-      if (rememberOperator && selected) localStorage.setItem("apollo-last-operator-id", selected.id);
+      if (rememberOperator) localStorage.setItem("apollo-last-operator-id", emp.id);
       if (rememberOperator && mode === "password") localStorage.setItem("apollo-login-username", username.trim());
       beginSession();
       await bindOperatorQueue(emp);
@@ -66,7 +67,7 @@ export default function Login() {
     const next = (pin + d).slice(0, 6);
     setPin(next);
   };
-  const submit = (p = pin) => p.length >= 4 && login.mutate({pin: p});
+  const submit = (p = pin) => p.length >= 4 && login.mutate({pin: p, employee_id: selected?.id});
   const submitPassword = () => username.trim() && password && login.mutate({username: username.trim(), password});
 
   return (
@@ -86,13 +87,17 @@ export default function Login() {
           </h1>
           <p className="mt-4 max-w-md text-zinc-400">Use o usuário e a senha cadastrados neste servidor ou selecione a aba PIN se sua conta usa PIN.</p>
           <p className="mt-2 break-all text-sm text-zinc-400">Servidor · {window.location.host}</p>
-          {profiles.isSuccess && profiles.data.length === 0 && <p role="status" className="mt-3 text-sm text-amber-300">Este ambiente não tem perfis ativos. Confira o servidor com o administrador da homologação.</p>}
+          {profiles.isSuccess && profiles.data.length === 0 && <p role="status" className="mt-3 text-sm text-amber-300">Nenhum operador ativo neste servidor. Confira o endereço da homologação ou solicite a configuração inicial pelo terminal do servidor.</p>}
+          {mode === "pin" && profiles.data?.length && profiles.data.every((p) => p.pin_enabled === false)
+            ? <p role="status" className="mt-3 text-sm text-amber-300">Nenhum operador ativo tem PIN neste servidor. Use usuário e senha.</p>
+            : null}
           <div className="mt-8 grid max-w-lg grid-cols-2 gap-2 sm:grid-cols-3" data-testid="profile-list">
-            {(profiles.data ?? []).map((p) => (
+            {mode === "pin" && (profiles.data ?? []).filter((p) => p.pin_enabled !== false).map((p) => (
               <button
                 key={p.id}
                 type="button"
-                onClick={() => setSelected(p)}
+                onClick={() => { setSelected(selected?.id === p.id ? null : p); setPin(""); }}
+                aria-pressed={selected?.id === p.id}
                 data-testid={`profile-${p.id}`}
                 className={cn(
                   "rounded-xl border p-3 text-left transition-colors duration-200",
@@ -108,7 +113,7 @@ export default function Login() {
 
         <section className="rounded-3xl border border-white/8 bg-panel/80 p-6 shadow-2xl backdrop-blur-xl sm:p-8 animate-rise" data-testid="pin-panel">
           <div className="mb-5 flex gap-2"><button type="button" onClick={() => setMode("password")} className={mode === "password" ? "rounded-lg bg-primary px-3 py-2 text-white" : "rounded-lg border px-3 py-2"}>Usuário e senha</button><button type="button" onClick={() => setMode("pin")} className={mode === "pin" ? "rounded-lg bg-primary px-3 py-2 text-white" : "rounded-lg border px-3 py-2"}>PIN</button></div>
-          {mode === "password" ? <form onSubmit={(e) => { e.preventDefault(); submitPassword(); }} className="space-y-4"><label className="block text-sm">Usuário<input className="mt-1 w-full rounded-xl border border-border bg-elevated p-3 text-foreground" value={username} autoComplete="username" onChange={(e) => setUsername(e.target.value)} /></label><label className="block text-sm">Senha<input type="password" className="mt-1 w-full rounded-xl border border-border bg-elevated p-3 text-foreground" value={password} autoComplete="current-password" onChange={(e) => setPassword(e.target.value)} /></label><button type="submit" disabled={!username.trim() || !password || login.isPending} className="w-full rounded-xl bg-primary p-3 font-semibold text-white disabled:opacity-40">Entrar</button></form> : <><p className="text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-500">
+          {mode === "password" ? <form onSubmit={(e) => { e.preventDefault(); submitPassword(); }} className="space-y-4"><label className="block text-sm">Usuário<input className="mt-1 w-full rounded-xl border border-border bg-elevated p-3 text-foreground" value={username} autoComplete="username" onChange={(e) => setUsername(e.target.value)} /></label><div><label htmlFor="login-password" className="mb-1 block text-sm">Senha</label><PasswordInput id="login-password" className="p-3 pr-12" value={password} autoComplete="current-password" onChange={(e) => setPassword(e.target.value)} /></div><button type="submit" disabled={!username.trim() || !password || login.isPending} className="w-full rounded-xl bg-primary p-3 font-semibold text-white disabled:opacity-40">Entrar</button></form> : <><p className="text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-500">
             {selected ? `Olá, ${selected.name}` : "Acesso por PIN"}
           </p>
           <div className="mt-4 flex justify-center gap-3" data-testid="pin-display">
@@ -133,13 +138,13 @@ export default function Login() {
             <p className="font-semibold text-white">{help === "register" ? "Cadastro de usuários" : "Esqueceu a senha?"}</p>
             <p className="mt-2">{help === "register"
               ? "Por segurança, somente um administrador pode cadastrar usuários. Entre com uma conta de administrador para abrir o cadastro de funcionários."
-              : "Solicite ao administrador do Apollo a redefinição da sua senha na tela Funcionários > Editar. Se você é o único administrador, procure o suporte responsável pela instalação. Não compartilhe seu PIN ou senha."}</p>
+              : "Solicite ao administrador do Apollo a redefinição da sua senha na tela Funcionários > Editar. Se você é o único administrador, o responsável pelo servidor pode recuperar a sua conta pelo terminal com python first_run.py --list-admins e python first_run.py --recover ID. No primeiro acesso, o comando python first_run.py configura o administrador somente se ainda não houver um cadastrado."}</p>
             <div className="mt-3 flex gap-3">
               {help === "register" && <button type="button" className="rounded-lg bg-primary px-3 py-2 font-medium text-white" onClick={() => { setRegisterAfterLogin(true); setMode("password"); setHelp(null); }}>Entrar como administrador</button>}
               <button type="button" className="rounded-lg border border-white/20 px-3 py-2" onClick={() => setHelp(null)}>Fechar</button>
             </div>
           </div>}
-          <label className="mt-5 flex cursor-pointer items-center gap-2 text-sm text-zinc-400"><input type="checkbox" checked={rememberOperator} onChange={(e) => { const value = e.target.checked; setRememberOperator(value); localStorage.setItem("apollo-remember-operator", String(value)); if (!value) localStorage.removeItem("apollo-last-operator-id"); }} /> Lembrar meu usuário neste dispositivo (não salva PIN)</label>
+          <label className="mt-5 flex cursor-pointer items-center gap-2 text-sm text-zinc-400"><input type="checkbox" checked={rememberOperator} onChange={(e) => { const value = e.target.checked; setRememberOperator(value); localStorage.setItem("apollo-remember-operator", String(value)); if (!value) { localStorage.removeItem("apollo-last-operator-id"); localStorage.removeItem("apollo-login-username"); } }} /> Lembrar meu usuário neste dispositivo (não salva PIN)</label>
           {mode === "pin" && <button
             type="button"
             onClick={() => submit()}

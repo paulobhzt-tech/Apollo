@@ -32,13 +32,14 @@ def verify_pin(pin: str, stored: str) -> bool:
     return hmac.compare_digest(hash_pin(pin), stored)
 
 
-async def create_session(employee_id: str) -> str:
+async def create_session(employee_id: str, credential_version: str | None = None) -> str:
     token = secrets.token_urlsafe(32)
     digest = hashlib.sha256(token.encode()).hexdigest()
     await db.sessions.insert_one({
         "token": digest,
         "token_hash": digest,
         "employee_id": employee_id,
+        "credential_version": credential_version,
         "expires_at": datetime.now(timezone.utc) + timedelta(hours=SESSION_HOURS),
     })
     return token
@@ -55,6 +56,8 @@ async def current_user(request: Request) -> dict:
     emp = await db.employees.find_one({"id": s["employee_id"], "active": True}, {"_id": 0, "pin_hash": 0, "password_hash": 0})
     if not emp:
         raise HTTPException(401, "Funcionário inativo")
+    if emp.get("credential_version") != s.get("credential_version"):
+        raise HTTPException(401, "Sessão expirada")
     if emp.get("must_change_password") and request.url.path not in ("/auth/first-password", "/api/auth/first-password", "/auth/logout", "/api/auth/logout"):
         raise HTTPException(403, "É obrigatório alterar a senha inicial antes de usar o PDV")
     return emp
@@ -95,8 +98,10 @@ async def require_cancel(user: dict = Depends(current_user)) -> dict:
     return user
 
 
-async def find_employee_by_pin(pin: str, active_only: bool = True) -> dict | None:
+async def find_employee_by_pin(pin: str, active_only: bool = True, *, employee_id: str | None = None) -> dict | None:
     query = {"active": True} if active_only else {}
+    if employee_id is not None:
+        query["id"] = employee_id
     legacy = await db.employees.find_one({**query, "pin_hash": hash_pin(pin)}, {"_id": 0})
     if legacy:
         new_hash = secure_hash_pin(pin)
@@ -139,7 +144,7 @@ def login_key(request: Request) -> str:
 async def check_login_limit(request: Request) -> None:
     record = await db.login_attempts.find_one({"_id": login_key(request)})
     if record and record.get("attempts", 0) >= LOGIN_LIMIT:
-        raise HTTPException(429, "Muitas tentativas de PIN. Tente novamente mais tarde.")
+        raise HTTPException(429, "Muitas tentativas de acesso. Tente novamente mais tarde.")
 
 
 async def failed_login(request: Request) -> None:

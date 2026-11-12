@@ -1,6 +1,5 @@
 import os
 import bcrypt
-import secrets
 import hmac
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
@@ -9,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from lib.auth import (COOKIE, SESSION_HOURS, create_session, current_user, secure_hash_pin, require,
                       find_employee_by_pin, pin_in_use, revoke_session,
                       check_login_limit, failed_login, successful_login)
+from lib.admin_access import provision_first_admin
 from lib.db import db
 from models.schemas import Employee, EmployeeIn, EmployeeUpdate, LoginIn, OkOut, Profile
 
@@ -17,7 +17,11 @@ router = APIRouter()
 
 @router.get("/auth/profiles", response_model=list[Profile])
 async def profiles():
-    return await db.employees.find({"active": True}, {"_id": 0, "id": 1, "name": 1, "role": 1}).sort("name", 1).to_list(200)
+    operators = await db.employees.find(
+        {"active": True}, {"_id": 0, "id": 1, "name": 1, "role": 1, "pin_hash": 1},
+    ).sort("name", 1).to_list(200)
+    return [{**{key: operator[key] for key in ("id", "name", "role")},
+             "pin_enabled": bool(operator.get("pin_hash"))} for operator in operators]
 
 
 class FirstAccessIn(BaseModel):
@@ -34,20 +38,12 @@ async def first_access(body: FirstAccessIn, response: Response, request: Request
     # Never accept hard-coded/default credentials, even on localhost.
     expected = os.environ.get("APOLLO_BOOTSTRAP_TOKEN", "")
     supplied = request.headers.get("x-apollo-bootstrap-token", "")
-    if len(expected) < 32 or not supplied or not hmac.compare_digest(expected, supplied):
+    if len(expected) < 32 or not supplied or not hmac.compare_digest(expected.encode(), supplied.encode()):
         raise HTTPException(403, "Configuração inicial não autorizada")
-    if body.username.strip().lower() != "admin" or body.password.lower() in ("admin", "admin123", "123456789012"):
-        raise HTTPException(422, "Informe administrador e senha inicial forte")
-    if await db.employees.count_documents({}, limit=1):
-        raise HTTPException(409, "Administrador inicial já configurado")
-    pin = f"{secrets.randbelow(900000) + 100000:06d}"
-    emp = Employee(name="Administrador", role="admin", can_cancel=True).model_dump()
     try:
-        await db.employees.insert_one({**emp, "username": "admin",
-            "password_hash": secure_hash_pin(body.password), "pin_hash": secure_hash_pin(pin),
-            "must_change_password": False})
-    except Exception:
-        raise HTTPException(409, "Não foi possível criar o administrador inicial")
+        emp = await provision_first_admin(db, "Administrador", body.username, body.password)
+    except ValueError as error:
+        raise HTTPException(409, str(error)) from error
     token = await create_session(emp["id"])
     response.set_cookie(COOKIE, token, httponly=True,
         secure=os.environ.get("COOKIE_SECURE", "true").lower() != "false",
@@ -84,7 +80,8 @@ async def login(body: LoginIn, response: Response, request: Request):
             except ValueError:
                 pass
     elif body.pin:
-        emp = await find_employee_by_pin(body.pin)
+        emp = (await find_employee_by_pin(body.pin, employee_id=body.employee_id)
+               if body.employee_id else await find_employee_by_pin(body.pin))
     if not emp:
         await failed_login(request)
         raise HTTPException(401, "Credenciais inválidas")
@@ -94,7 +91,7 @@ async def login(body: LoginIn, response: Response, request: Request):
     emp.pop("pin_hash", None)
     emp.pop("password_hash", None)
     emp.pop("_id", None)
-    token = await create_session(emp["id"])
+    token = await create_session(emp["id"], emp.get("credential_version"))
     response.set_cookie(COOKIE, token, httponly=True, secure=os.environ.get("COOKIE_SECURE", "true").lower() != "false", samesite="lax", max_age=SESSION_HOURS * 3600, path="/")
     return emp
 

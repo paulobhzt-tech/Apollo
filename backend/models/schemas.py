@@ -84,6 +84,7 @@ class EmployeeUpdate(BaseModel):
 
 
 class LoginIn(BaseModel):
+    employee_id: Optional[str] = Field(default=None, min_length=1, max_length=128)
     pin: Optional[str] = Field(default=None, pattern=r"^\d{4,6}$")
     username: Optional[str] = None
     password: Optional[str] = None
@@ -93,6 +94,7 @@ class Profile(BaseModel):
     id: str
     name: str
     role: Role
+    pin_enabled: bool = False
 
 
 # ---------- catalog ----------

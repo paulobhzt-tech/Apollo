@@ -4,6 +4,7 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -155,7 +156,7 @@ function EmployeeForm({ editing, onClose }: { editing: Employee | "new"; onClose
         </div>
         <div><Label className="text-xs text-zinc-400">{isNew ? "PIN (4-6 dígitos)" : "Novo PIN (opcional)"}</Label><Input value={f.pin} inputMode="numeric" maxLength={6} onChange={(e) => setF({ ...f, pin: e.target.value.replace(/\D/g, "") })} className="mt-1 font-mono" data-testid="employee-pin-input" /></div>
         <div><Label className="text-xs text-zinc-400">Usuário de acesso (opcional)</Label><Input value={f.username} autoComplete="off" onChange={(e) => setF({ ...f, username: e.target.value })} className="mt-1" placeholder={isNew ? "ex.: operador01" : "Manter atual se vazio"} /></div>
-        <div><Label className="text-xs text-zinc-400">Senha (mín. 8 caracteres)</Label><Input type="password" value={f.password} autoComplete="new-password" onChange={(e) => setF({ ...f, password: e.target.value })} className="mt-1" /></div>
+        <div><Label htmlFor="employee-password" className="text-xs text-zinc-400">Senha (mín. 8 caracteres)</Label><PasswordInput id="employee-password" value={f.password} autoComplete="new-password" onChange={(e) => setF({ ...f, password: e.target.value })} className="mt-1" /></div>
         <div><Label className="text-xs text-zinc-400">Telefone</Label><Input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} className="mt-1" data-testid="employee-phone-input" /></div>
         <div><Label className="text-xs text-zinc-400">CPF</Label><Input value={f.cpf} onChange={(e) => setF({ ...f, cpf: e.target.value })} className="mt-1" placeholder="000.000.000-00" /></div>
         <div><Label className="text-xs text-zinc-400">CNPJ</Label><Input value={f.cnpj} onChange={(e) => setF({ ...f, cnpj: e.target.value })} className="mt-1" placeholder="00.000.000/0000-00" /></div>

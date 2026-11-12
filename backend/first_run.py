@@ -1,42 +1,67 @@
-"""Provision a blank Apollo installation from a trusted server terminal.
-
-Usage: docker compose exec apollo python first_run.py
-Never expose this operation through unauthenticated HTTP endpoints.
-"""
+"""Provision or recover an administrator from the trusted Apollo server terminal."""
+import argparse
 import asyncio
 import getpass
 import sys
 
+from lib.admin_access import provision_first_admin, recover_admin_password
 from lib.auth import pin_in_use, secure_hash_pin
 from lib.db import db
-from models.schemas import Employee
 
 
-async def first_run() -> int:
-    if await db.employees.count_documents({}) > 0:
-        print("Já existem funcionários cadastrados. Cadastro inicial bloqueado.")
-        return 1
+def secret(prompt: str) -> str:
+    value = getpass.getpass(prompt)
+    if getpass.getpass("Confirme: ") != value:
+        raise ValueError("As duas entradas precisam ser iguais.")
+    return value
+
+
+async def first_run(recover: str | None) -> None:
+    if recover is not None:
+        employee = await db.employees.find_one({"id": recover, "role": "admin", "active": True})
+        if not employee:
+            raise ValueError("Administrador ativo não encontrado para esse ID.")
+        print(f"Conta selecionada: {employee['name']}")
+        username = employee.get("username") or input("Novo usuário para a conta existente: ")
+        await recover_admin_password(db, employee, username, secret("Nova senha: "))
+        print("Senha atualizada. Entre novamente com o usuário e a nova senha.")
+        return
+
+    if await db.employees.find_one({"role": "admin"}, {"_id": 1}):
+        raise ValueError("Já existe administrador cadastrado. Use --list-admins para localizar a conta.")
     name = input("Nome do administrador: ").strip()
-    if len(name) < 2 or len(name) > 100:
-        print("Nome inválido.", file=sys.stderr)
-        return 1
-    pin = getpass.getpass("PIN exclusivo de 4 a 6 números: ")
-    if not pin.isascii() or not pin.isdecimal() or not (4 <= len(pin) <= 6):
-        print("PIN inválido.", file=sys.stderr)
-        return 1
-    repeat = getpass.getpass("Confirme o PIN: ")
-    if pin != repeat:
-        print("PINs diferentes.", file=sys.stderr)
-        return 1
-    if await pin_in_use(pin):
-        print("PIN já utilizado.", file=sys.stderr)
-        return 1
-    emp = Employee(name=name, role="admin", can_cancel=True).model_dump()
-    # Atomic insert of one administrator only. DB user must be private to this installation.
-    await db.employees.insert_one({**emp, "pin_hash": secure_hash_pin(pin)})
-    print("Administrador inicial criado. Configure os dados da empresa em Configurações.")
-    return 0
+    if not 2 <= len(name) <= 100:
+        raise ValueError("Nome inválido.")
+    username = input("Usuário do administrador: ")
+    password = secret("Senha inicial: ")
+    pin = secret("PIN exclusivo de 4 a 6 dígitos (vazio para usar apenas senha): ")
+    if pin and (not pin.isascii() or not pin.isdecimal() or not 4 <= len(pin) <= 6 or await pin_in_use(pin)):
+        raise ValueError("PIN inválido ou já utilizado.")
+    await provision_first_admin(db, name, username, password, secure_hash_pin(pin) if pin else None)
+    print("Administrador inicial criado. Entre com as credenciais escolhidas.")
+
+
+async def run() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    actions = parser.add_mutually_exclusive_group()
+    actions.add_argument("--list-admins", action="store_true")
+    actions.add_argument("--recover", metavar="ID")
+    args = parser.parse_args()
+    if args.list_admins:
+        async for employee in db.employees.find(
+            {"role": "admin"}, {"_id": 0, "id": 1, "name": 1, "username": 1, "active": 1}
+        ):
+            username = employee.get("username") or "sem usuário de senha"
+            status = "ativo" if employee.get("active") else "inativo"
+            print(f"{employee['id']}  {employee['name']}  {username}  {status}")
+        return
+    if not sys.stdin.isatty() or not sys.stderr.isatty():
+        raise ValueError("Abra um terminal interativo no servidor para inserir credenciais com segurança.")
+    await first_run(args.recover)
 
 
 if __name__ == "__main__":
-    raise SystemExit(asyncio.run(first_run()))
+    try:
+        asyncio.run(run())
+    except ValueError as error:
+        sys.exit(str(error))

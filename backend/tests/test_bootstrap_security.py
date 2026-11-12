@@ -48,8 +48,8 @@ def test_bootstrap_requires_strong_password():
 async def test_bootstrap_stores_chosen_password_not_default(monkeypatch):
     monkeypatch.setenv("APOLLO_BOOTSTRAP_TOKEN", "x" * 40)
     inserted = AsyncMock()
-    monkeypatch.setattr(auth.db.employees, "count_documents", AsyncMock(return_value=0))
-    monkeypatch.setattr(auth.db.employees, "insert_one", inserted)
+    employees = SimpleNamespace(find_one=AsyncMock(return_value=None), insert_one=inserted)
+    monkeypatch.setattr(auth, "db", SimpleNamespace(employees=employees))
     monkeypatch.setattr(auth, "create_session", AsyncMock(return_value="session"))
     await auth.first_access(auth.FirstAccessIn(username="admin", password="A_Strong_Password_2026!"),
                             Response(), request("x" * 40))
