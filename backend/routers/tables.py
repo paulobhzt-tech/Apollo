@@ -412,8 +412,9 @@ async def preview_partial_bill(id: str, body: PartialBillIn, _: dict = Depends(r
             raise HTTPException(400, f"Quantidade inválida para {item['name']}")
         chosen.append({"item_id": item_id, "name": item["name"], "qty": qty,
                        "unit_price": item["unit_price"], "total": round(qty * item["unit_price"], 2)})
-    subtotal = round(sum(i["total"] for i in chosen), 2)
-    remaining = round(sum(i["qty"] * i["unit_price"] for i in available.values()) - subtotal, 2)
+    subtotal = round(sum(i["qty"] * i["unit_price"] for i in chosen), 2)
+    remaining = round(sum((item["qty"] - body.quantities.get(item_id, 0)) * item["unit_price"]
+                          for item_id, item in available.items()), 2)
     return {"table_id": id, "order_id": order["id"], "items": chosen,
             "subtotal": subtotal, "remaining_subtotal": remaining,
             "message": "Prévia apenas: nenhum pagamento foi registrado"}
@@ -422,6 +423,8 @@ async def preview_partial_bill(id: str, body: PartialBillIn, _: dict = Depends(r
 class PartialPaymentIn(PartialBillIn):
     customer_name: str = Field(default="", max_length=80)
     payment: PayIn
+    expected_order_id: str | None = Field(default=None, min_length=1, max_length=120)
+    expected_subtotal: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     client_ref: str = Field(min_length=6, max_length=120)
 
 
@@ -443,6 +446,10 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
     if not cash:
         raise HTTPException(400, "Abra o caixa para receber pagamentos")
     request_data = body.model_dump(mode="json", exclude={"client_ref"})
+    # Preserve fingerprints of requests sent before the preview fields existed.
+    for key in ("expected_order_id", "expected_subtotal"):
+        if request_data[key] is None:
+            del request_data[key]
     request_data["table_id"] = id
     fingerprint = hashlib.sha256(json.dumps(
         request_data, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
@@ -469,6 +476,8 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
                 table = await db.tables.find_one({"id": id}, session=session)
                 if not table or not table.get("order_id"):
                     raise HTTPException(400, "Mesa sem comanda aberta")
+                if body.expected_order_id is not None and table["order_id"] != body.expected_order_id:
+                    raise HTTPException(409, "A comanda mudou. Calcule a divisão novamente.")
                 order = await db.orders.find_one({"id": table["order_id"], "status": "aberto"}, session=session)
                 if not order:
                     raise HTTPException(409, "Comanda foi alterada ou fechada")
@@ -493,6 +502,8 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
                     if any(i.get("customer_name") not in ("", guest, None) for i in chosen):
                         raise HTTPException(400, "Há itens de outro cliente na seleção")
                 subtotal = round(sum(i["qty"] * i["unit_price"] for i in chosen), 2)
+                if body.expected_subtotal is not None and subtotal != body.expected_subtotal:
+                    raise HTTPException(409, "O subtotal mudou. Calcule a divisão novamente.")
                 if body.payment.discount > subtotal:
                     raise HTTPException(400, "Desconto maior que o valor dos itens selecionados")
                 service_fee = round(subtotal * body.payment.service_pct / 100, 2)

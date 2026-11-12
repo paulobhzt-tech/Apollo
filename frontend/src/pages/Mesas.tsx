@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
+import { ApiError, apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, uid } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
@@ -606,7 +606,7 @@ function TableSheet({ clock, table, onClose, onQr, tables, canDelete }: { clock:
         <PreBillDialog table={table} order={o} open={preBill} onClose={() => setPreBill(false)}
           onPrinted={() => { if (table.status !== "conta") status.mutate("conta"); setPreBill(false); }} />
       )}
-      {table && <PartialBillDialog tableId={table.id} items={items} open={partialOpen} onClose={() => setPartialOpen(false)} />}
+      {table && <PartialBillDialog key={table.id} table={table} items={items} open={partialOpen} onClose={() => setPartialOpen(false)} />}
       <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} items={o?.items.filter((item) => !item.cancelled)} defaultService={10}
         title={`Fechamento · ${table ? tableLabel(table) : ""}`} pending={pay.isPending} onConfirm={(p) => pay.mutate(p)} />
       <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />
@@ -615,16 +615,24 @@ function TableSheet({ clock, table, onClose, onQr, tables, canDelete }: { clock:
   );
 }
 
-function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string; items: Order["items"]; open: boolean; onClose: () => void }) {
+interface PartialBillPreview {
+  order_id: string;
+  subtotal: number;
+  remaining_subtotal: number;
+  items: { item_id: string; name: string; qty: number }[];
+}
+
+function PartialBillDialog({ table, items, open, onClose }: { table: Table; items: Order["items"]; open: boolean; onClose: () => void }) {
+  const tableId = table.id;
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [selectedCustomer, setSelectedCustomer] = useState("");
-  const customers = [...new Set(items.map(i => i.customer_name?.trim()).filter((name): name is string => !!name))].sort();
+  const customers = table.customers ?? [];
   const selectCustomer = (name: string) => {
     setSelectedCustomer(name);
     setQuantities(name ? Object.fromEntries(items.filter(i => !i.cancelled && i.customer_name === name).map(i => [i.id, i.qty])) : {});
     setPreview(null);
   };
-  const [preview, setPreview] = useState<{ subtotal: number; remaining_subtotal: number } | null>(null);
+  const [preview, setPreview] = useState<PartialBillPreview | null>(null);
   const [payOpen, setPayOpen] = useState(false);
   const [clientRef, setClientRef] = useState(() => uid());
   const request = useQuery({
@@ -643,30 +651,38 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
     if (!q) return;
     const valid = Object.fromEntries(items.filter(i => !i.cancelled && q[i.id] > 0).map(i => [i.id, Math.min(i.qty, q[i.id])]));
     if (!Object.keys(valid).length) { toast.error("Itens não estão mais disponíveis"); return; }
-    setQuantities(valid); setPreview(null);
+    setSelectedCustomer(""); setQuantities(valid); setPreview(null);
     toast.info("Itens carregados. Confira e calcule antes de receber.");
   };
   const available = items.filter((i) => !i.cancelled);
   const calculation = useMutation({
-    mutationFn: () => apiPost<{ subtotal: number; remaining_subtotal: number }>(
-      `/tables/${tableId}/partial-bill/preview`, { quantities: Object.fromEntries(Object.entries(quantities).filter(([, qty]) => qty > 0)) }),
+    mutationFn: (selection: Record<string, number>) => apiPost<PartialBillPreview>(
+      `/tables/${tableId}/partial-bill/preview`, { quantities: selection }),
     onSuccess: setPreview,
     onError: (e) => toast.error(errMsg(e)),
   });
   const payment = useMutation({
-    mutationFn: (p: PayIn) => apiPost<SaleResult>(`/tables/${tableId}/partial-bill/pay`, {
-      quantities: Object.fromEntries(Object.entries(quantities).filter(([, qty]) => qty > 0)),
-      payment: { ...p, emit_invoice: false },
-      client_ref: clientRef,
-      customer_name: selectedCustomer,
-    }),
+    mutationFn: ({ payment: p, quote }: { payment: PayIn; quote: PartialBillPreview }) =>
+      apiPost<SaleResult>(`/tables/${tableId}/partial-bill/pay`, {
+        quantities: Object.fromEntries(quote.items.map(item => [item.item_id, item.qty])),
+        payment: { ...p, emit_invoice: false },
+        client_ref: clientRef,
+        customer_name: selectedCustomer,
+        expected_order_id: quote.order_id,
+        expected_subtotal: quote.subtotal,
+      }),
     onSuccess: (result) => {
       toast.success(`Pagamento parcial registrado: ${brl(result.order.total)}`);
       if (getReceiptPref()) void printSimpleReceipt(result.order);
       setPayOpen(false); setPreview(null); setQuantities({}); setSelectedCustomer(""); setClientRef(uid());
       invalidateTables(); void queryClient.invalidateQueries({ queryKey: ["pending-split-requests"] }); onClose();
     },
-    onError: (e) => toast.error(errMsg(e)),
+    onError: (e) => {
+      toast.error(errMsg(e));
+      if (e instanceof ApiError && e.status === 409) {
+        setPayOpen(false); setPreview(null); invalidateTables();
+      }
+    },
   });
   return (
     <>
@@ -676,7 +692,7 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
         <p className="text-sm text-zinc-400">Selecione um cliente para carregar automaticamente os itens dele. Confira os itens compartilhados antes de receber.</p>
         <div className="space-y-1">
           <Label htmlFor="partial-bill-customer">Cliente responsável pelo pagamento</Label>
-          <select id="partial-bill-customer" value={selectedCustomer} onChange={e => selectCustomer(e.target.value)}
+          <select id="partial-bill-customer" disabled={calculation.isPending || payOpen} value={selectedCustomer} onChange={e => selectCustomer(e.target.value)}
             className="w-full rounded-md border border-white/15 bg-panel p-3 text-sm" data-testid="partial-bill-customer">
             <option value="">Seleção manual / itens compartilhados</option>
             {customers.map(name => <option key={name} value={name}>{name}</option>)}
@@ -687,7 +703,7 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
           <p className="mt-1 text-sm">Valor informado pelo cliente: {brl(request.data.request.subtotal)}</p>
           <p className="mt-1 text-xs text-zinc-400">Confira os itens e preços atuais antes de receber.</p>
           <div className="mt-2 flex gap-2">
-            <Button size="sm" onClick={importRequest}>Carregar itens solicitados</Button>
+            <Button size="sm" disabled={calculation.isPending || payOpen} onClick={importRequest}>Carregar itens solicitados</Button>
             <Button size="sm" variant="outline" disabled={dismiss.isPending} onClick={() => dismiss.mutate()}>Descartar</Button>
           </div>
         </div>}
@@ -695,13 +711,13 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
           {available.map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-panel p-3">
               <span className="text-sm">{item.name} · {brl(item.unit_price)} (até {item.qty})<span className="block text-xs text-zinc-400">{item.customer_name || "Mesa inteira"}</span></span>
-              <Input className="w-20" type="number" min={0} max={item.qty} step={item.sale_unit === "kg" || item.sale_unit === "L" ? "0.0001" : "1"} disabled={!!selectedCustomer && !!item.customer_name && item.customer_name !== selectedCustomer} value={quantities[item.id] ?? 0}
+              <Input className="w-20" type="number" min={0} max={item.qty} step={item.sale_unit === "kg" || item.sale_unit === "L" ? "0.0001" : "1"} disabled={calculation.isPending || payOpen || (!!selectedCustomer && !!item.customer_name && item.customer_name !== selectedCustomer)} value={quantities[item.id] ?? 0}
                 onChange={(e) => { setQuantities((old) => ({ ...old, [item.id]: Math.max(0, Math.min(item.qty, Number(e.target.value) || 0)) })); setPreview(null); }} />
             </div>
           ))}
         </div>
         <Button disabled={calculation.isPending || !Object.values(quantities).some((v) => v > 0)}
-          onClick={() => calculation.mutate()}>Calcular divisão</Button>
+          onClick={() => calculation.mutate(Object.fromEntries(Object.entries(quantities).filter(([, qty]) => qty > 0)))}>Calcular divisão</Button>
         {preview && <div className="rounded-xl border border-white/10 p-3 text-sm">
           <p>Selecionado: <strong>{brl(preview.subtotal)}</strong></p>
           <p>Restante na mesa: <strong>{brl(preview.remaining_subtotal)}</strong></p>
@@ -710,7 +726,7 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
         </div>}
       </DialogContent>
     </Dialog>
-    <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} items={available.flatMap((item) => quantities[item.id] > 0 ? [{ name: item.name, qty: quantities[item.id] }] : [])} defaultService={10} partialMode title="Recebimento parcial (não fiscal)" pending={payment.isPending} onConfirm={(p) => payment.mutate(p)} />
+    <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} items={preview?.items} defaultService={10} partialMode title="Recebimento parcial (não fiscal)" pending={payment.isPending} onConfirm={(p) => { if (preview) payment.mutate({ payment: p, quote: preview }); }} />
     </>
   );
 }

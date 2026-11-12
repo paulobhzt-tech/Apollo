@@ -10,7 +10,7 @@ from fastapi import HTTPException
 from lib.db import db
 from lib.orders import method_totals
 from models.schemas import Order, OrderItem, PayIn, Payment, Table
-from routers.tables import PartialPaymentIn, pay_partial_bill
+from routers.tables import PartialBillIn, PartialPaymentIn, pay_partial_bill, preview_partial_bill
 
 
 @pytest.fixture
@@ -72,6 +72,37 @@ async def test_partial_payment_replay_and_cash_reconciliation(scenario):
             await pay_partial_bill(table["id"], body2, {})
         assert err.value.status_code == 400
         assert await db.orders.count_documents({"parent_order_id": order["id"]}) == 1
+    finally:
+        await db.orders.delete_many({"$or": [{"id": order["id"]}, {"parent_order_id": order["id"]}]})
+        await db.tables.delete_one({"id": table["id"]})
+        await db.cash_sessions.delete_one({"id": cash_id})
+
+
+@pytest.mark.parametrize("changed", ["expected_order_id", "expected_subtotal"])
+async def test_partial_payment_rejects_stale_preview_and_records_shared_payer(scenario, changed):
+    table, order = scenario
+    table["customers"] = ["Paula"]
+    cash_id = "cash-" + uuid.uuid4().hex
+    await db.tables.insert_one(table)
+    await db.orders.insert_one(order)
+    await db.cash_sessions.insert_one({"id": cash_id, "status": "aberto"})
+    try:
+        quantities = {order["items"][0]["id"]: 2}
+        quote = await preview_partial_bill(table["id"], PartialBillIn(quantities=quantities), {})
+        body = PartialPaymentIn(
+            quantities=quantities, customer_name="Paula", client_ref="partial-" + uuid.uuid4().hex,
+            expected_order_id=quote["order_id"], expected_subtotal=quote["subtotal"],
+            payment=PayIn(payments=[Payment(method="dinheiro", amount=20)], emit_invoice=False),
+        )
+        wrong = {"expected_order_id": "another-order", "expected_subtotal": 19.99}
+        with pytest.raises(HTTPException, match="Calcule a divisão novamente") as error:
+            await pay_partial_bill(table["id"], body.model_copy(update={changed: wrong[changed]}), {})
+        assert error.value.status_code == 409
+        assert await db.orders.count_documents({"client_ref": body.client_ref}) == 0
+        result = await pay_partial_bill(table["id"], body, {})
+        assert result["order"]["customer"]["name"] == "Paula"
+        replay = await pay_partial_bill(table["id"], body, {})
+        assert replay["order"]["id"] == result["order"]["id"]
     finally:
         await db.orders.delete_many({"$or": [{"id": order["id"]}, {"parent_order_id": order["id"]}]})
         await db.tables.delete_one({"id": table["id"]})
