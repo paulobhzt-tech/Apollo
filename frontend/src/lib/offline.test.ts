@@ -202,3 +202,20 @@ it("does not mistake old records for sales in the authenticated queue", async ()
   expect(post).not.toHaveBeenCalled();
   expect(storage.get("pdv_offline_queue")).toContain("legacy-a");
 });
+
+it("starts replay after restart only when the original authenticated context returns", async () => {
+  const previous = await import("./offline");
+  previous.enqueue({ payload: { client_ref: "persisted-sale" } as never, total: 10, queued_at: "now" });
+  vi.clearAllTimers();
+  vi.resetModules();
+  const restarted = await import("./offline");
+  post.mockResolvedValue({});
+  restarted.setQueueContext({ ...CONTEXT, operator_id: "other" });
+  await vi.advanceTimersByTimeAsync(1);
+  expect(post).not.toHaveBeenCalled();
+  restarted.setQueueContext(CONTEXT);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(post).toHaveBeenCalledOnce();
+  expect(post.mock.calls[0][1].client_ref).toBe("persisted-sale");
+  expect(JSON.parse(storage.get(QUEUE_KEY)!)).toEqual([]);
+});

@@ -20,6 +20,11 @@ export function setQueueContext(context: QueueContext | null) {
   activeContext = context ? { ...context } : null;
   ({ KEY, REJ_KEY, ARCHIVE_KEY, LOG_KEY, MENU_KEY } = queueKeys(activeContext));
   emit();
+  if (context && cachedQueue.length && !isOffline()) {
+    setTimeout(() => {
+      if (sameContext(activeContext, context)) void backgroundSync();
+    }, 0);
+  }
 }
 export function legacyQueueStatus() {
   const raw = kv.get("pdv_offline_queue");
@@ -291,6 +296,4 @@ window.addEventListener("storage", (event) => {
 });
 window.addEventListener("online", () => { emit(); void backgroundSync(); });
 window.addEventListener("offline", emit);
-// desktop app: the online window flushes whatever the offline window recorded
-if (read().length) setTimeout(() => void backgroundSync(), 3000);
 setInterval(() => { if (read().length) void backgroundSync(); }, 60_000);
