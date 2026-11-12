@@ -92,6 +92,7 @@ class LoginIn(BaseModel):
 
 class Profile(BaseModel):
     id: str
+    username: Optional[str] = None
     name: str
     role: Role
     pin_enabled: bool = False

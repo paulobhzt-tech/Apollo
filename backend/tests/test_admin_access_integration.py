@@ -63,15 +63,13 @@ async def test_standalone_provision_and_recover_legacy_admin(monkeypatch):
 
         for hook in ("check_login_limit", "failed_login", "successful_login"):
             monkeypatch.setattr(routes, hook, noop)
-        request = SimpleNamespace()
+        request = SimpleNamespace(cookies={})
         with pytest.raises(HTTPException) as wrong:
             await routes.login(LoginIn(pin=legacy_pin, employee_id=admin_id), Response(), request)
         assert wrong.value.status_code == 401
         logged_in = await routes.login(LoginIn(pin=legacy_pin, employee_id=operator["id"]), Response(), request)
         assert logged_in["id"] == operator["id"]
         assert (await db.employees.find_one({"id": operator["id"]}))["pin_hash"].startswith("$2")
-        profile = next(item for item in await routes.profiles() if item["id"] == operator["id"])
-        assert profile == {"id": operator["id"], "name": operator["name"], "role": "caixa", "pin_enabled": True}
         response = Response()
         logged_in = await routes.login(LoginIn(username="ADMIN-RECUPERADO", password=new_password), response, request)
         assert logged_in["id"] == admin_id

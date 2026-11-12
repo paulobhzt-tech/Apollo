@@ -28,6 +28,7 @@ INDEXES: dict[str, list[IndexModel]] = {
     "sessions": [IndexModel([("token_hash", ASCENDING)], name="token_hash", unique=True, partialFilterExpression={"token_hash": {"$type": "string"}}),
                  IndexModel([("token", ASCENDING)], name="token", unique=True),
                  IndexModel([("expires_at", ASCENDING)], name="expires_ttl", expireAfterSeconds=0)],
+    "operator_terminals": [IndexModel([("expires_at", ASCENDING)], name="expires_ttl", expireAfterSeconds=0)],
     "login_attempts": [IndexModel([("expires_at", ASCENDING)], name="login_attempts_ttl", expireAfterSeconds=0)],
     "public_qr_limits": [IndexModel([("expires_at", ASCENDING)], name="public_qr_limits_ttl", expireAfterSeconds=0)],
     "categories": [_id_idx()],

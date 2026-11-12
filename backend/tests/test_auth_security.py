@@ -59,7 +59,7 @@ async def test_pin_only_operator_can_authenticate_without_password_reset(monkeyp
     monkeypatch.setattr(auth_router, "successful_login", AsyncMock())
     monkeypatch.setattr(auth_router, "find_employee_by_pin", AsyncMock(return_value=dict(operator)))
     monkeypatch.setattr(auth_router, "create_session", AsyncMock(return_value="test-session"))
-    request = SimpleNamespace()
+    request = SimpleNamespace(cookies={})
 
     with pytest.raises(HTTPException) as error:
         await auth_router.login(LoginIn(username=" OPERADOR ", password="fictional-test-password"),
@@ -70,9 +70,13 @@ async def test_pin_only_operator_can_authenticate_without_password_reset(monkeyp
     auth_router.create_session.assert_not_awaited()
 
     response = Response()
+    revoke = AsyncMock()
+    monkeypatch.setattr(auth_router, "revoke_session", revoke)
+    request.cookies[auth_router.COOKIE] = "previous-operator"
     result = await auth_router.login(LoginIn(pin="459142"), response, request)
     assert result == {"id": "operator-test", "name": "Operador de teste"}
     assert "HttpOnly" in response.headers["set-cookie"]
+    revoke.assert_awaited_once_with("previous-operator")
 
 
 @pytest.mark.asyncio
@@ -92,3 +96,48 @@ async def test_legacy_pin_is_rechecked_after_concurrent_credential_change(monkey
         current if current_pin == "749216" else None
     )
     assert employees.find_one.await_args.args[0] == {"id": "test", "active": True}
+
+
+@pytest.mark.asyncio
+async def test_operator_directory_requires_a_terminal_grant(monkeypatch):
+    from datetime import datetime, timezone
+    from hashlib import sha256
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+    from fastapi import HTTPException, Response
+
+    grants = {}
+    terminals = SimpleNamespace(
+        insert_one=AsyncMock(side_effect=lambda grant: grants.update({grant["_id"]: grant})),
+        find_one=AsyncMock(side_effect=lambda query: grants.get(query["_id"])),
+        delete_one=AsyncMock(side_effect=lambda query: grants.pop(query["_id"], None)),
+    )
+    operators = [{"id": "op", "name": "Operador", "username": "op-login", "role": "caixa", "pin_hash": "hash"}]
+    find = Mock(return_value=SimpleNamespace(sort=Mock(return_value=SimpleNamespace(to_list=AsyncMock(return_value=operators)))))
+    monkeypatch.setattr(auth_router, "db", SimpleNamespace(operator_terminals=terminals, employees=SimpleNamespace(find=find)))
+    request = SimpleNamespace(cookies={})
+    with pytest.raises(HTTPException) as denied:
+        await auth_router.profiles(request, Response())
+    assert denied.value.status_code == 403
+    find.assert_not_called()
+
+    response = Response()
+    await auth_router.set_operator_terminal(auth_router.OperatorTerminalIn(authorized=True), request, response, {"id": "admin"})
+    cookie = response.headers["set-cookie"]
+    token = cookie.split(";", 1)[0].split("=", 1)[1]
+    assert "HttpOnly" in cookie
+    assert token not in grants
+    assert sha256(token.encode()).hexdigest() in grants
+    request.cookies[auth_router.DIRECTORY_COOKIE] = token
+
+    response = Response()
+    assert await auth_router.profiles(request, response) == [
+        {"id": "op", "name": "Operador", "username": "op-login", "role": "caixa", "pin_enabled": True}
+    ]
+    assert response.headers["cache-control"] == "no-store"
+    assert find.call_args.args[0] == {"active": True}
+    assert terminals.find_one.call_args.args[0]["expires_at"]["$gt"] <= datetime.now(timezone.utc)
+    await auth_router.set_operator_terminal(auth_router.OperatorTerminalIn(authorized=False), request, Response(), {"id": "admin"})
+    with pytest.raises(HTTPException) as revoked:
+        await auth_router.profiles(request, Response())
+    assert revoked.value.status_code == 403

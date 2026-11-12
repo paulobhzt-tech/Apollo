@@ -1,7 +1,9 @@
 import os
 import bcrypt
 import hmac
-from datetime import datetime, timezone
+import hashlib
+import secrets
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
 
@@ -15,12 +17,64 @@ from models.schemas import Employee, EmployeeIn, EmployeeUpdate, LoginIn, OkOut,
 router = APIRouter()
 
 
+DIRECTORY_COOKIE = "pdv_operator_directory"
+DIRECTORY_DAYS = 30
+
+
+def directory_key(request: Request) -> str | None:
+    token = request.cookies.get(DIRECTORY_COOKIE)
+    return hashlib.sha256(token.encode()).hexdigest() if token else None
+
+
+async def directory_allowed(request: Request) -> bool:
+    key = directory_key(request)
+    return bool(key and await db.operator_terminals.find_one({
+        "_id": key, "expires_at": {"$gt": datetime.now(timezone.utc)},
+    }))
+
+
+@router.get("/auth/operator-terminal")
+async def operator_terminal(request: Request, response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    return {"authorized": await directory_allowed(request)}
+
+
+class OperatorTerminalIn(BaseModel):
+    authorized: bool
+
+
+@router.put("/auth/operator-terminal")
+async def set_operator_terminal(body: OperatorTerminalIn, request: Request, response: Response,
+                                admin: dict = Depends(require())):
+    key = directory_key(request)
+    if key:
+        await db.operator_terminals.delete_one({"_id": key})
+    if body.authorized:
+        token = secrets.token_urlsafe(32)
+        await db.operator_terminals.insert_one({
+            "_id": hashlib.sha256(token.encode()).hexdigest(),
+            "authorized_by": admin["id"],
+            "expires_at": datetime.now(timezone.utc) + timedelta(days=DIRECTORY_DAYS),
+        })
+        response.set_cookie(DIRECTORY_COOKIE, token, httponly=True,
+            secure=os.environ.get("COOKIE_SECURE", "true").lower() != "false",
+            samesite="strict", max_age=DIRECTORY_DAYS * 86400, path="/")
+    else:
+        response.delete_cookie(DIRECTORY_COOKIE, path="/")
+    response.headers["Cache-Control"] = "no-store"
+    return {"authorized": body.authorized}
+
+
 @router.get("/auth/profiles", response_model=list[Profile])
-async def profiles():
+async def profiles(request: Request, response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    if not await directory_allowed(request):
+        raise HTTPException(403, "Terminal não autorizado", headers={"Cache-Control": "no-store"})
     operators = await db.employees.find(
-        {"active": True}, {"_id": 0, "id": 1, "name": 1, "role": 1, "pin_hash": 1},
+        {"active": True}, {"_id": 0, "id": 1, "name": 1, "role": 1, "pin_hash": 1, "username": 1},
     ).sort("name", 1).to_list(200)
     return [{**{key: operator[key] for key in ("id", "name", "role")},
+             "username": operator.get("username"),
              "pin_enabled": bool(operator.get("pin_hash"))} for operator in operators]
 
 
@@ -91,6 +145,7 @@ async def login(body: LoginIn, response: Response, request: Request):
     emp.pop("pin_hash", None)
     emp.pop("password_hash", None)
     emp.pop("_id", None)
+    await revoke_session(request.cookies.get(COOKIE))
     token = await create_session(emp["id"], emp.get("credential_version"))
     response.set_cookie(COOKIE, token, httponly=True, secure=os.environ.get("COOKIE_SECURE", "true").lower() != "false", samesite="lax", max_age=SESSION_HOURS * 3600, path="/")
     return emp

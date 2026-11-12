@@ -33,7 +33,7 @@ export interface EmployeeIn {
   can_cancel: boolean;
   active: boolean;
 }
-export interface Profile { id: string; name: string; role: Role; pin_enabled?: boolean }
+export interface Profile { id: string; username?: string | null; name: string; role: Role; pin_enabled?: boolean }
 
 export interface Category { id: string; name: string; station: Station; sort: number }
 export type CategoryIn = Omit<Category, "id">;
