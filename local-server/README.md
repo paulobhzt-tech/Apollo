@@ -10,7 +10,7 @@ Use para operar vários caixas, garçons e cozinha na mesma rede da loja, inclus
 3. O script cria uma autoridade certificadora exclusiva da loja e emite um certificado TLS para o IP identificado, `localhost` e `127.0.0.1`. O servidor passa a atender em **https://IP-LOCAL:8001** com cookies `Secure`.
 4. O próprio PC servidor confia na autoridade local. Nos outros PCs e celulares, o administrador deve instalar **apenas** `C:\ApolloPDV\security\apollo-local-ca.crt` na lista de autoridades confiáveis, seguindo a política de segurança do aparelho. Não ignore alertas de certificado. Alguns celulares exigem habilitar manualmente a confiança no certificado.
 5. Configure o aplicativo Apollo PDV e os navegadores dos celulares para usar `https://IP-LOCAL:8001` (não HTTP). Teste em cada equipamento.
-6. Crie um administrador com PIN exclusivo usando `local-server\criar-admin.ps1` ou restaure um backup autorizado.
+6. Execute `local-server\criar-admin.ps1` no servidor para configurar o primeiro administrador, caso ainda não exista. A senha é escolhida no terminal e o PIN é opcional. Para localizar uma conta existente use `-Listar`. Para recuperar a senha de uma conta ativa use `-Recuperar ID`. Consulte o [roteiro de acesso](../docs/homologacao/acesso-administrativo-3.0.1.md).
 
 ## Segurança e manutenção
 
