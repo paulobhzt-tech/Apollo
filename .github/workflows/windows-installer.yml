@@ -80,7 +80,7 @@ jobs:
           node --check preload.js
       - name: Testar deteccao do servidor e atualizacao da configuracao
         working-directory: desktop
-        run: node --test scripts/server-connection.test.js scripts/durable-store.test.js
+        run: node --test scripts/server-connection.test.js scripts/durable-store.test.js scripts/exit-queue.test.js
       - name: Validar frontend antes de gerar o instalador
         working-directory: frontend
         shell: pwsh

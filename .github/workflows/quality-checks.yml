@@ -93,7 +93,7 @@ jobs:
           node --check preload.js
           node --check scripts/build-web.js
           node --check durable-store.js
-          node --test scripts/server-connection.test.js scripts/durable-store.test.js
+          node --test scripts/server-connection.test.js scripts/durable-store.test.js scripts/exit-queue.test.js
 
   restore-disposable:
     runs-on: ubuntu-latest

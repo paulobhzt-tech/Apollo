@@ -1,9 +1,10 @@
 const { atomicWriteWithBackup, recoverMissingPrimary } = require("./durable-store");
+const { summarizeExitQueue } = require("./exit-queue");
 // Apollo PDV — Windows desktop shell (Electron).
 // Online: opens the published system (always the latest version, same data as browsers and phones).
 // Offline: opens the copy of the screens bundled in the installer (pdv://app) so counter sales keep being
 // recorded; they are stored encrypted on disk and synced automatically when the connection returns.
-const { app, BrowserWindow, ipcMain, net, protocol, safeStorage, shell, Menu } = require("electron");
+const { app, BrowserWindow, ipcMain, net, protocol, safeStorage, shell, Menu, dialog } = require("electron");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
@@ -200,6 +201,41 @@ function createWindow() {
   });
   win.loadFile(path.join(__dirname, "offline.html"));
   win.once("ready-to-show", () => win.show());
+  let exitConfirmed = false;
+  let exitPromptOpen = false;
+  const appWindow = win;
+  appWindow.on("close", (event) => {
+    if (process.env.PDV_SMOKE || exitConfirmed) return;
+    event.preventDefault();
+    if (exitPromptOpen) return;
+    exitPromptOpen = true;
+    let queue;
+    try {
+      queue = summarizeExitQueue(kvLoad());
+    } catch {
+      queue = { pending: 0, review: 0, unreadable: true };
+    }
+    const notices = [];
+    if (queue.pending) notices.push(`${queue.pending} venda(s) aguardam sincronização.`);
+    if (queue.review) notices.push(`${queue.review} registro(s) aguardam revisão.`);
+    if (queue.unreadable) notices.push("Não foi possível verificar toda a fila offline.");
+    if (notices.length) notices.push("Confira a fila em Configurações. Os registros locais ficam neste dispositivo ao fechar.");
+    void dialog.showMessageBox(appWindow, {
+      type: notices.length ? "warning" : "question",
+      title: "Apollo PDV",
+      message: "Deseja fechar o Apollo PDV?",
+      detail: notices.join("\n"),
+      buttons: ["Continuar no Apollo", notices.length ? "Fechar mesmo assim" : "Fechar Apollo"],
+      defaultId: 0,
+      cancelId: 0,
+    }).then(({ response }) => {
+      if (response === 1 && !appWindow.isDestroyed()) {
+        exitConfirmed = true;
+        appWindow.close();
+      }
+    }).catch((error) => console.error("Apollo: falha ao confirmar fechamento", error.message))
+      .finally(() => { exitPromptOpen = false; });
+  });
   // external links (Google Drive, WhatsApp, Google login) open in the normal browser
   win.webContents.setWindowOpenHandler(({ url }) => { if (!isInternal(url)) openTrustedExternal(url); return { action: "deny" }; });
   win.webContents.on("will-navigate", (e, url) => { if (!isInternal(url)) { e.preventDefault(); openTrustedExternal(url); } });

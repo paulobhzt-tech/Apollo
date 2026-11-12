@@ -27,6 +27,7 @@
       "main.js",
       "server-connection.js",
       "durable-store.js",
+      "exit-queue.js",
       "preload.js",
       "offline.html",
       "connection-screen.js",
