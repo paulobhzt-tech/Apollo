@@ -278,6 +278,29 @@ function createWindow() {
         app.exit(2);
         return;
       }
+      const loginReady = await win.webContents.executeJavaScript(`
+        new Promise((resolve) => {
+          const deadline = Date.now() + 15000;
+          const check = () => {
+            const login = document.querySelector('[data-testid="pin-panel"]');
+            const ribbon = document.querySelector('[data-testid="apollo-ribbon"]');
+            if (login && !ribbon && login.textContent.includes(${JSON.stringify("Versão " + app.getVersion())})) {
+              resolve(true);
+            } else if (Date.now() >= deadline) {
+              resolve(false);
+            } else {
+              setTimeout(check, 100);
+            }
+          };
+          check();
+        })
+      `).catch(() => false);
+      if (!loginReady) {
+        console.error("PDV_SMOKE_FAIL: login inicial ou versao do instalador indisponivel");
+        app.exit(2);
+        return;
+      }
+      console.log("PDV_SMOKE_LOGIN_PASS");
       console.log("PDV_SMOKE_VERSION", app.getVersion());
       console.log("PDV_SMOKE_PASS");
       setTimeout(() => app.quit(), 1500);

@@ -114,11 +114,13 @@ async def test_operator_directory_requires_a_terminal_grant(monkeypatch):
     )
     operators = [{"id": "op", "name": "Operador", "username": "op-login", "role": "caixa", "pin_hash": "hash"}]
     find = Mock(return_value=SimpleNamespace(sort=Mock(return_value=SimpleNamespace(to_list=AsyncMock(return_value=operators)))))
-    monkeypatch.setattr(auth_router, "db", SimpleNamespace(operator_terminals=terminals, employees=SimpleNamespace(find=find)))
+    readiness = AsyncMock(return_value={"_id": "op"})
+    monkeypatch.setattr(auth_router, "db", SimpleNamespace(
+        operator_terminals=terminals, employees=SimpleNamespace(find=find, find_one=readiness),
+    ))
     request = SimpleNamespace(cookies={})
-    with pytest.raises(HTTPException) as denied:
-        await auth_router.profiles(request, Response())
-    assert denied.value.status_code == 403
+    assert await auth_router.profiles(request, Response()) == []
+    readiness.assert_awaited_once_with({}, {"_id": 1})
     find.assert_not_called()
 
     response = Response()
@@ -138,6 +140,8 @@ async def test_operator_directory_requires_a_terminal_grant(monkeypatch):
     assert find.call_args.args[0] == {"active": True}
     assert terminals.find_one.call_args.args[0]["expires_at"]["$gt"] <= datetime.now(timezone.utc)
     await auth_router.set_operator_terminal(auth_router.OperatorTerminalIn(authorized=False), request, Response(), {"id": "admin"})
-    with pytest.raises(HTTPException) as revoked:
+    assert await auth_router.profiles(request, Response()) == []
+    readiness.side_effect = TimeoutError
+    with pytest.raises(HTTPException) as unavailable:
         await auth_router.profiles(request, Response())
-    assert revoked.value.status_code == 403
+    assert unavailable.value.status_code == 503

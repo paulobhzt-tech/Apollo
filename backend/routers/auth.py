@@ -1,3 +1,4 @@
+import asyncio
 import os
 import bcrypt
 import hmac
@@ -5,6 +6,7 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, Field
+from pymongo.errors import PyMongoError
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
 
 from lib.auth import (COOKIE, SESSION_HOURS, create_session, current_user, secure_hash_pin, require,
@@ -69,7 +71,13 @@ async def set_operator_terminal(body: OperatorTerminalIn, request: Request, resp
 async def profiles(request: Request, response: Response):
     response.headers["Cache-Control"] = "no-store"
     if not await directory_allowed(request):
-        raise HTTPException(403, "Terminal não autorizado", headers={"Cache-Control": "no-store"})
+        # Existing Windows installers use this endpoint as a database readiness probe.
+        # An unauthorized terminal receives only an empty list after the readiness check.
+        try:
+            await asyncio.wait_for(db.employees.find_one({}, {"_id": 1}), timeout=3)
+        except (TimeoutError, PyMongoError) as error:
+            raise HTTPException(503, "Serviço de login indisponível", headers={"Cache-Control": "no-store"}) from error
+        return []
     operators = await db.employees.find(
         {"active": True}, {"_id": 0, "id": 1, "name": 1, "role": 1, "pin_hash": 1, "username": 1},
     ).sort("name", 1).to_list(200)

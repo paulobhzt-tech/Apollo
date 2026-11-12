@@ -51,6 +51,7 @@ try {
   $output = Get-Content $stdout -Raw -ErrorAction SilentlyContinue
   Write-Host $output
   if ($process.ExitCode -ne 0) { throw "Apollo falhou ao iniciar: $($process.ExitCode)" }
+  if ($output -notmatch 'PDV_SMOKE_LOGIN_PASS') { throw 'Apollo nao confirmou o login inicial bloqueado' }
   if ($output -notmatch 'PDV_SMOKE_PASS') { throw 'Apollo nao confirmou tela offline e ponte desktop' }
   if ($Channel -eq 'production' -and $output -notmatch 'PDV_SMOKE_HTTPS_PASS') {
     throw 'Apollo nao confirmou a recuperacao da configuracao antiga e a conexao HTTPS'
