@@ -4,7 +4,7 @@ import { apiGet, apiPut } from "@/lib/api";
 import { Link, NavLink, Navigate, useLocation } from "react-router-dom";
 import {
   Bot, Armchair, Bike, Boxes, ChefHat, LayoutDashboard, LineChart, LogOut, Menu, Music, QrCode, Receipt, ShoppingCart,
-  Users, UtensilsCrossed, Wallet, WifiOff, Wifi, Flame, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone, LockKeyhole, Search, Megaphone, CalendarClock, MessageCircle, ListOrdered,
+  Users, UtensilsCrossed, Wallet, WifiOff, Wifi, Flame, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone, LockKeyhole, Search, Megaphone, ListOrdered, Ellipsis,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -45,12 +45,7 @@ function ribbonGroup(item: NavItem): RibbonGroup {
   return item.group === "Financeiro" || item.group === "Relatórios" ? item.group : "Principal";
 }
 
-const PRINCIPAL_SHORTCUTS = [
-  { label: "Caixa", paths: ["/caixa", "/pdv"] },
-  { label: "Pedidos", paths: ["/mesas", "/delivery", "/comanda-mobile"] },
-  { label: "Clientes", paths: ["/clientes", "/qrcodes"] },
-  { label: "Atendimento", paths: [] },
-];
+const PRINCIPAL_SHORTCUTS = ["/caixa", "/mesas", "/delivery", "/pdv", "/comanda-mobile", "/qrcodes", "/clientes", "/"];
 
 const PRINCIPAL_LABELS: Record<string, string> = {
   "/caixa": "Abrir/Fechar Caixa",
@@ -62,7 +57,7 @@ const PRINCIPAL_LABELS: Record<string, string> = {
 };
 
 const ICONS: Record<string, typeof Menu> = {
-  Bot, LayoutDashboard, Music, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone, LockKeyhole, Search, Megaphone, CalendarClock, MessageCircle, ListOrdered,
+  Bot, LayoutDashboard, Music, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone, LockKeyhole, Search, Megaphone, ListOrdered, Ellipsis,
 };
 
 const DEFAULT_SHORTCUTS = ["/mesas", "/pdv", "/estoque"];
@@ -285,7 +280,14 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
   if (isError || !me) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
   const items = NAV.filter((item) => item.roles.includes(me.role));
   const currentItem = items.find((item) => item.to === activePath(loc.pathname));
-  const visibleGroup = activeRibbon ?? (currentItem ? ribbonGroup(currentItem) : "Principal");
+  const groups = RIBBON_GROUPS.filter(({ label }) => items.some((item) => ribbonGroup(item) === label) ||
+    (label === "Principal" && items.some((item) => PRINCIPAL_SHORTCUTS.includes(item.to))));
+  const visibleGroup = activeRibbon ?? (currentItem ? ribbonGroup(currentItem) : groups[0]?.label);
+  const groupItems = items.filter((item) => ribbonGroup(item) === visibleGroup);
+  const shortcuts = visibleGroup === "Principal"
+    ? [...PRINCIPAL_SHORTCUTS.flatMap((path) => items.filter((item) => item.to === path)),
+        ...groupItems.filter((item) => !PRINCIPAL_SHORTCUTS.includes(item.to))]
+    : groupItems;
   const allowed = !roles || me.role === "admin" || roles.includes(me.role);
 
   return (
@@ -309,7 +311,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
             Configuração obrigatória: escolha backup no Google Drive ou no PC em Configurações → Backup.
           </Link>
         )}
-        <header className="relative z-30 lg:sticky lg:top-0 border-b border-border bg-shell text-foreground" data-testid="apollo-ribbon">
+        <header className="relative z-30 lg:sticky lg:top-0 @container border-b border-border bg-shell text-foreground" data-testid="apollo-ribbon">
           <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-border px-3 py-2 sm:px-4">
             <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={() => setOpen(true)} aria-label="Abrir todas as funções (Ctrl+K)" title="Buscar funções (Ctrl+K)" data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
             <Brand />
@@ -330,33 +332,24 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
               </div>
             </div>
           </div>
-          <nav aria-label="Seções do sistema" data-testid="top-menu-groups" className="grid min-w-0 grid-cols-7 gap-0.5 px-1 py-1 sm:px-3">
-            {RIBBON_GROUPS.filter(({label}) => items.some(n => ribbonGroup(n) === label)).map(({label, icon: GroupIcon}) => {
-              const selected = visibleGroup === label;
-              return <button key={label} type="button" onClick={() => setActiveRibbon(label)}
-                className={cn("flex min-h-10 min-w-0 items-center justify-center gap-1 rounded-md px-1 py-1.5 text-[9px] font-medium transition-colors hover:bg-muted sm:text-xs", selected ? "bg-muted text-foreground" : "text-muted-foreground")}
-                aria-pressed={selected}><GroupIcon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 truncate" title={label}>{label}</span></button>;
-            })}
-          </nav>
-          <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts" className="flex min-w-0 flex-nowrap items-stretch gap-1 overflow-hidden bg-elevated px-1 py-1 sm:px-3">
-            {visibleGroup === "Principal" ? <>
-              {PRINCIPAL_SHORTCUTS.map(({ label, paths }) => {
-                const shortcuts = paths.flatMap((path) => items.filter((item) => item.to === path));
-                if (label !== "Atendimento" && !shortcuts.length) return null;
-                if (label === "Atendimento" && me.role !== "admin" && me.role !== "caixa") return null;
-                return <div key={label} role="group" aria-label={label} className="min-w-0 flex-1 rounded-md border border-border px-0.5">
-                  <div className="flex min-w-0 flex-nowrap justify-center gap-0.5">
-                    {shortcuts.map((item) => <RibbonShortcut key={item.to} item={item} label={PRINCIPAL_LABELS[item.to]} />)}
-                    {label === "Pedidos" && items.some((item) => item.to === "/delivery") &&
-                      <PendingShortcut icon={CalendarClock} label="Agendados" />}
-                    {label === "Atendimento" && <PendingShortcut icon={MessageCircle} label="WhatsApp" />}
-                  </div>
-                  <p className="pb-0.5 text-center text-[10px] text-muted-foreground">{label}</p>
-                </div>;
-              })}
-              {items.filter((item) => item.to === "/").map((item) => <RibbonShortcut key={item.to} item={item} />)}
-            </> : items.filter((item) => ribbonGroup(item) === visibleGroup).map((item) => <RibbonShortcut key={item.to} item={item} />)}
-          </nav>
+          {visibleGroup && <nav aria-label="Seções do sistema" data-testid="top-menu-groups" className="border-b border-border px-2 py-1 sm:px-4">
+            <label className="flex items-center gap-2 @min-[46rem]:hidden">
+              <span className="text-xs text-muted-foreground">Seção</span>
+              <select aria-label="Seção do menu" value={visibleGroup} onChange={(event) => setActiveRibbon(groups.find(({ label }) => label === event.target.value)?.label ?? null)}
+                className="min-h-10 min-w-0 flex-1 rounded-md border border-border bg-elevated px-2 text-sm font-semibold">
+                {groups.map(({ label }) => <option key={label}>{label}</option>)}
+              </select>
+            </label>
+            <div className="hidden items-stretch gap-1 @min-[46rem]:flex">
+              {groups.map(({ label, icon: GroupIcon }) => (
+                <button key={label} type="button" onClick={() => setActiveRibbon(label)} aria-pressed={visibleGroup === label}
+                  className="flex min-h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border-b-2 border-transparent px-2 text-xs font-semibold text-muted-foreground uppercase hover:bg-muted aria-pressed:border-primary aria-pressed:bg-muted aria-pressed:text-foreground @min-[65rem]:px-3">
+                  <GroupIcon className="hidden size-4 shrink-0 text-primary @min-[65rem]:block" aria-hidden="true" />{label}
+                </button>
+              ))}
+            </div>
+          </nav>}
+          <RibbonShortcuts items={shortcuts} principal={visibleGroup === "Principal"} />
           <MenuPreferences key={me.id} operatorId={me.id} items={items} />
         </header>
         <main className="min-w-0 flex-1 px-3 py-4 lg:px-5">
@@ -375,19 +368,46 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
   );
 }
 
-function RibbonShortcut({ item, label = item.label }: { item: NavItem; label?: string }) {
-  const Icon = label === "Fila de Atendimento" ? ListOrdered : ICONS[item.icon] ?? LayoutDashboard;
-  return <NavLink to={label === "Fila de Atendimento" ? "/comanda-mobile?fila=1" : item.to} end={item.to === "/"} title={label}
-    className={({ isActive }) => cn("flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-1 py-1.5 text-[10px] leading-tight hover:bg-muted sm:text-xs", isActive ? "bg-muted text-foreground" : "text-muted-foreground")}>
-    <Icon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 truncate" title={label}>{label}</span>
-  </NavLink>;
+const SHORTCUT_COLORS: Record<string, string> = {
+  "/caixa": "text-emerald-700 dark:text-emerald-400",
+  "/mesas": "text-amber-700 dark:text-amber-400",
+  "/delivery": "text-cyan-700 dark:text-cyan-400",
+  "/pdv": "text-orange-700 dark:text-orange-400",
+  "/comanda-mobile": "text-violet-700 dark:text-violet-400",
+  "/qrcodes": "text-blue-700 dark:text-blue-400",
+  "/clientes": "text-teal-700 dark:text-teal-400",
+};
+
+function RibbonShortcuts({ items, principal }: { items: NavItem[]; principal: boolean }) {
+  const [open, setOpen] = useState(false);
+  return <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts"
+    className="flex min-w-0 items-stretch gap-1 bg-elevated px-2 py-1 sm:px-4">
+    <div className="flex min-w-0 flex-1 items-stretch gap-1 [&>a:nth-child(n+3)]:hidden @min-[29rem]:[&>a:nth-child(-n+4)]:flex @min-[46rem]:[&>a:nth-child(-n+6)]:flex @min-[64rem]:[&>a:nth-child(-n+8)]:flex @min-[85rem]:[&>a:nth-child(-n+10)]:flex">
+      {items.map((item) => <RibbonShortcut key={item.to} item={item} label={principal ? PRINCIPAL_LABELS[item.to] : undefined} />)}
+    </div>
+    <Button type="button" variant="ghost" className="h-auto shrink-0 gap-1 px-2 text-xs" onClick={() => setOpen(true)}>
+      <Ellipsis className="size-4" aria-hidden="true" /> Mais atalhos
+    </Button>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
+        <DialogTitle>Atalhos da seção</DialogTitle>
+        <div className="grid gap-1 sm:grid-cols-2">
+          {items.map((item) => <RibbonShortcut key={item.to} item={item} label={principal ? PRINCIPAL_LABELS[item.to] : undefined} compact onNavigate={() => setOpen(false)} />)}
+        </div>
+      </DialogContent>
+    </Dialog>
+  </nav>;
 }
 
-function PendingShortcut({ icon: Icon, label }: { icon: typeof Menu; label: string }) {
-  return <span className="flex min-h-11 items-center gap-1.5 px-2 text-xs text-muted-foreground" aria-disabled="true">
-    <Icon className="size-4 shrink-0" aria-hidden="true" />
-    <span>{label}<small className="block">Indisponível</small></span>
-  </span>;
+function RibbonShortcut({ item, label = item.label, compact, onNavigate }: { item: NavItem; label?: string; compact?: boolean; onNavigate?: () => void }) {
+  const Icon = label === "Fila de Atendimento" ? ListOrdered : ICONS[item.icon] ?? LayoutDashboard;
+  return <NavLink to={label === "Fila de Atendimento" ? "/comanda-mobile?fila=1" : item.to} end={item.to === "/"} onClick={onNavigate}
+    className={({ isActive }) => cn("flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-1.5 py-1.5 text-xs leading-tight hover:bg-muted",
+      compact ? "justify-start text-left" : "max-w-40 flex-col text-center",
+      isActive ? "bg-muted text-foreground" : "text-muted-foreground")}>
+    <Icon className={cn("size-5 shrink-0", SHORTCUT_COLORS[item.to] ?? "text-primary")} aria-hidden="true" />
+    <span className="min-w-0 wrap-anywhere">{label}</span>
+  </NavLink>;
 }
 
 function OperatorDialog({ open, onOpenChange, name, role }: { open: boolean; onOpenChange: (open: boolean) => void; name: string; role: Role }) {
