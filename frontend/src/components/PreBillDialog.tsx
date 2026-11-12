@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiGet } from "@/lib/api";
-import { brl, fmtDateTime, tableLabel } from "@/lib/format";
+import { brl, fmtDateTime, fmtTime, tableLabel } from "@/lib/format";
 import { equalBillShares, previewBillShare } from "@/lib/bill-split";
 import { groupItems } from "@/lib/group";
 import { printHtml } from "@/lib/printTicket";
@@ -21,12 +21,17 @@ export default function PreBillDialog({ table, order, open, onClose, onPrinted }
   const printers = useQuery({ queryKey: ["printers"], queryFn: () => apiGet<Printer[]>("/printers"), enabled: open });
   const [service, setService] = useState(true);
   const [grouped, setGrouped] = useState(true);
+  const [showItemTimes, setShowItemTimes] = useState(false);
   const [people, setPeople] = useState(String(table.people || 1));
   const [splitMode, setSplitMode] = useState<"people" | "amount" | "percentage">("people");
   const [shareInput, setShareInput] = useState("");
   const groups = groupItems(order?.items ?? []);
   const visibleItems = (order?.items ?? []).filter((item) => !item.cancelled);
-  const displayLines = grouped ? groups.map((g) => ({ key: g.key, qty: g.qty, name: g.name, options: g.options, total: g.total, unit_price: g.unit_price })) : visibleItems.map((item) => ({ key: item.id, qty: item.qty, name: item.name, options: item.options ?? [], total: Math.round(item.qty * item.unit_price * 100) / 100, unit_price: item.unit_price }));
+  const displayLines = grouped
+    ? groups.map((g) => ({ key: g.key, qty: g.qty, name: g.name, options: g.options, total: g.total, unit_price: g.unit_price, dates: g.lines.map((line) => line.ordered_at) }))
+    : visibleItems.map((item) => ({ key: item.id, qty: item.qty, name: item.name, options: item.options ?? [], total: r2(item.qty * item.unit_price), unit_price: item.unit_price, dates: [item.ordered_at] }));
+  const displayTimes = (dates: (string | null | undefined)[]) =>
+    showItemTimes ? dates.flatMap((date) => date ? [fmtTime(date)] : []).join(", ") : "";
   const subtotal = r2(groups.reduce((s, g) => s + g.total, 0));
   const fee = service ? r2(subtotal * 0.1) : 0;
   const total = r2(subtotal + fee);
@@ -45,7 +50,10 @@ export default function PreBillDialog({ table, order, open, onClose, onPrinted }
     const pr = printers.data?.find((p) => p.active && p.purpose === "caixa");
     const paper = pr?.paper ?? "80mm";
     const width = paper === "A4" ? "190mm" : paper === "58mm" ? "54mm" : "76mm";
-    const rows = displayLines.map((g) => `<tr><td>${g.qty}x ${esc(g.name)}${g.options.length ? `<div class="op">${esc(g.options.join(" · "))}</div>` : ""}</td><td class="r">${brl(g.unit_price)}</td><td class="r">${brl(g.total)}</td></tr>`).join("");
+    const rows = displayLines.map((g) => {
+      const times = displayTimes(g.dates);
+      return `<tr><td>${g.qty}x ${esc(g.name)}${g.options.length ? `<div class="op">${esc(g.options.join(" · "))}</div>` : ""}${times ? `<div class="op">Horário: ${esc(times)}</div>` : ""}</td><td class="r">${brl(g.unit_price)}</td><td class="r">${brl(g.total)}</td></tr>`;
+    }).join("");
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Pré-conta ${esc(tableLabel(table))}</title><style>
       @page { size: ${paper === "A4" ? "A4" : `${width} auto`}; margin: 2mm; }
       body { font-family: "Courier New", monospace; width: ${width}; margin: 0; color: #000; font-size: 12px; }
@@ -77,13 +85,17 @@ export default function PreBillDialog({ table, order, open, onClose, onPrinted }
       <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-md overflow-y-auto border-border bg-shell" data-testid="prebill-dialog">
         <DialogTitle className="font-heading text-xl text-white">Pré-conta · {tableLabel(table)}</DialogTitle>
         <label className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground"><Checkbox checked={grouped} onCheckedChange={(v) => setGrouped(!!v)} data-testid="prebill-group-checkbox" /> Agrupar produtos iguais na pré-conta (tela e impressão)</label>
+        <label className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground"><Checkbox checked={showItemTimes} onCheckedChange={(value) => setShowItemTimes(!!value)} /> Mostrar horário dos lançamentos</label>
         <div className="max-h-[45vh] space-y-1.5 overflow-y-auto rounded-xl bg-white p-4 font-mono text-[12px] text-black" data-testid="prebill-preview">
-          {displayLines.map((g) => (
-            <div key={g.key} className="flex justify-between gap-2" data-testid="prebill-line">
-              <span><b data-testid="prebill-line-qty">{g.qty}x</b> {g.name}{g.options.length > 0 && <span className="block pl-3 text-[10px] text-zinc-600">{g.options.join(" · ")}</span>}</span>
-              <span className="whitespace-nowrap">{brl(g.total)}</span>
-            </div>
-          ))}
+          {displayLines.map((g) => {
+            const times = displayTimes(g.dates);
+            return (
+              <div key={g.key} className="flex justify-between gap-2" data-testid="prebill-line">
+                <span><b data-testid="prebill-line-qty">{g.qty}x</b> {g.name}{g.options.length > 0 && <span className="block pl-3 text-[10px] text-zinc-600">{g.options.join(" · ")}</span>}{times && <span className="block pl-3 text-[10px] text-zinc-600">Horário: {times}</span>}</span>
+                <span className="whitespace-nowrap">{brl(g.total)}</span>
+              </div>
+            );
+          })}
           {!groups.length && <p className="text-center text-zinc-500">Sem itens</p>}
           <div className="mt-2 border-t border-dashed border-zinc-400 pt-1">
             <div className="flex justify-between"><span>{qtyTotal} itens · Subtotal</span><span data-testid="prebill-subtotal">{brl(subtotal)}</span></div>
