@@ -120,10 +120,26 @@ async def create_product(body: ProductIn, _: dict = Depends(require())):
 
 @router.put("/products/{id}", response_model=Product)
 async def update_product(id: str, body: ProductIn, _: dict = Depends(require())):
+    omitted = {"sale_unit", "channels", "stock_ingredient_id"} - body.model_fields_set
+    link_fields = {"sale_unit", "stock_ingredient_id"}
+    missing_link_fields = link_fields & omitted
+    query = {"id": id}
+    if len(missing_link_fields) == 1:
+        # A legacy client may send only one half of the inventory linkage.
+        missing_field, = missing_link_fields
+        current = await db.products.find_one(query, {"_id": 0, missing_field: 1})
+        if current is None:
+            raise HTTPException(404, "Produto não encontrado")
+        query[missing_field] = current.get(missing_field)
+        saved_value = current.get(missing_field, getattr(body, missing_field))
+        body = body.model_copy(update={missing_field: saved_value})
+
     await _validate_product(body)
-    fields = body.model_dump(exclude={"sale_unit", "channels", "stock_ingredient_id"} - body.model_fields_set)
-    res = await db.products.find_one_and_update({"id": id}, {"$set": fields}, projection={"_id": 0}, return_document=True)
+    fields = body.model_dump(exclude=omitted)
+    res = await db.products.find_one_and_update(query, {"$set": fields}, projection={"_id": 0}, return_document=True)
     if not res:
+        if len(missing_link_fields) == 1 and await db.products.find_one({"id": id}, {"_id": 1}):
+            raise HTTPException(409, "O vínculo de estoque mudou. Reabra o produto antes de salvar.")
         raise HTTPException(404, "Produto não encontrado")
     return with_cost(res, await ingredient_map())
 

@@ -72,3 +72,35 @@ async def test_catalog_purchase_recovers_replay_without_duplicating_stock(monkey
         await db.categories.delete_one({"id": category["id"]})
         await db.suppliers.delete_one({"id": supplier["id"]})
         await db.environments.delete_one({"key": station})
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_legacy_product_updates_validate_the_effective_stock_link():
+    if not db.name.startswith("apollo_restore_test_"):
+        pytest.skip("Requer um MongoDB descartável")
+    suffix = uuid4().hex
+    category = await catalog.create_category(CategoryIn(name=f"Categoria {suffix}", station=""), {})
+    ingredient = await catalog.create_ingredient(IngredientIn(name=f"Carne {suffix}", unit="kg"), {})
+    product_fields = {"name": f"Produto {suffix}", "category_id": category["id"], "price": 10}
+    product = await catalog.create_product(ProductIn(**product_fields, sale_unit="kg"), {})
+    try:
+        linked = await catalog.update_product(
+            product["id"], ProductIn(**product_fields, stock_ingredient_id=ingredient["id"]), {},
+        )
+        assert linked["sale_unit"] == "kg"
+        assert linked["stock_ingredient_id"] == ingredient["id"]
+        with pytest.raises(HTTPException, match="mesma unidade"):
+            await catalog.update_product(product["id"], ProductIn(**product_fields, sale_unit="un"), {})
+
+        renamed = await catalog.update_product(product["id"], ProductIn(**{**product_fields, "name": "Carne"}), {})
+        assert renamed["sale_unit"] == "kg"
+        assert renamed["stock_ingredient_id"] == ingredient["id"]
+        changed_unit = await catalog.update_product(
+            product["id"], ProductIn(**product_fields, sale_unit="un", stock_ingredient_id=None), {},
+        )
+        assert changed_unit["sale_unit"] == "un"
+        assert changed_unit["stock_ingredient_id"] is None
+    finally:
+        await db.products.delete_one({"id": product["id"]})
+        await db.ingredients.delete_one({"id": ingredient["id"]})
+        await db.categories.delete_one({"id": category["id"]})
