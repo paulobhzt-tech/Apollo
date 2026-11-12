@@ -200,7 +200,7 @@ async def apply_add_items(id: str, body: AddItemsIn, user: dict, *, session=None
             raise HTTPException(400, "Cliente não cadastrado nesta mesa")
         item.customer_name = guest
         item.ordered_by = user["name"]
-        item.ordered_at = datetime.now(timezone.utc)
+        item.ordered_at = now()
     result = await db.orders.update_one(
         {"id": order["id"], "status": "aberto"},
         {"$push": {"items": {"$each": [i.model_dump() for i in items]}}},
