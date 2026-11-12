@@ -164,3 +164,34 @@ async def test_simultaneous_withdrawals_cannot_both_use_stale_movement_balance(m
     assert len(stored) == 1
     conflicts = [result for result in results if isinstance(result, operations.HTTPException)]
     assert len(conflicts) == 1 and conflicts[0].status_code == 409
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", ["aberto", "pago"])
+async def test_concurrent_item_change_blocks_refund_side_effects(monkeypatch, status):
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+    from fastapi import HTTPException
+    from routers import operations
+
+    item = {"id": "item", "qty": 1, "name": "Produto", "unit_price": 10}
+    order = {"id": "order", "number": 1, "status": status, "items": [item],
+             "subtotal": 10, "total": 10, "invoice_id": "invoice",
+             "payments": [{"method": "fiado", "amount": 10}]}
+    orders = SimpleNamespace(find_one=AsyncMock(return_value=order),
+                             update_one=AsyncMock(return_value=SimpleNamespace(modified_count=0)))
+    invoices = SimpleNamespace(update_one=AsyncMock())
+    monkeypatch.setattr(operations, "db", SimpleNamespace(orders=orders, invoices=invoices))
+    monkeypatch.setattr(operations, "cancel_authorizer", AsyncMock(return_value="Caixa"))
+    monkeypatch.setattr(operations, "move_stock", AsyncMock())
+    monkeypatch.setattr(operations, "fiado_reverse", AsyncMock())
+
+    with pytest.raises(HTTPException) as error:
+        await operations.refund_item("order", "item", operations.CancelIn(reason="Conferência de teste"),
+                                     {"id": "cashier", "name": "Caixa"})
+    assert error.value.status_code == 409
+    criteria = orders.update_one.call_args.args[0]
+    assert criteria["status"] == status and criteria["items"] == [item]
+    operations.move_stock.assert_not_awaited()
+    operations.fiado_reverse.assert_not_awaited()
+    invoices.update_one.assert_not_awaited()
