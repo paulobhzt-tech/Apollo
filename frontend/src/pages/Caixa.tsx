@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import AppShell, { PageHeader, Stat } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cashAmount } from "@/lib/catalog-form";
+import { cashAmount, formatCurrencyTyping } from "@/lib/catalog-form";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,7 +21,7 @@ const inv = () => { void queryClient.invalidateQueries({ queryKey: ["cash"] }); 
 export default function Caixa() {
   const current = useQuery({ queryKey: ["cash", "current"], queryFn: () => apiGet<CashSession | null>("/cash/current"), refetchInterval: 15000 });
   const history = useQuery({ queryKey: ["cash", "history"], queryFn: () => apiGet<CashSession[]>("/cash/history") });
-  const [opening, setOpening] = useState("0");
+  const [opening, setOpening] = useState("0,00");
   const [openingNote, setOpeningNote] = useState("");
   const [closingNote, setClosingNote] = useState("");
   const [moveType, setMoveType] = useState<"sangria" | "suprimento">("sangria");
@@ -60,7 +60,7 @@ export default function Caixa() {
           <h3 className="font-heading text-xl text-white">Caixa fechado</h3>
           <p className="mt-1 text-sm text-zinc-400">Informe o fundo de troco para iniciar o turno.</p>
           <Label htmlFor="cash-opening" className="mt-4 block text-xs text-zinc-400">Fundo de troco (R$)</Label>
-          <Input id="cash-opening" value={opening} onChange={(e) => setOpening(e.target.value)} inputMode="decimal" className="mt-1 font-mono" data-testid="cash-opening-input" />
+          <Input id="cash-opening" value={opening} onChange={(e) => setOpening(formatCurrencyTyping(e.target.value))} inputMode="decimal" className="mt-1 font-mono" data-testid="cash-opening-input" />
           <Label htmlFor="cash-opening-note" className="mt-3 block text-xs text-zinc-400">Observações da abertura</Label>
           <Textarea id="cash-opening-note" maxLength={500} value={openingNote} onChange={(event) => setOpeningNote(event.target.value)} className="mt-1" />
           <Button className="mt-4 h-12 w-full" onClick={() => open.mutate()} disabled={updating || openingAmount === null} data-testid="cash-open-button"><LockKeyholeOpen /> Abrir caixa</Button>
@@ -90,7 +90,7 @@ export default function Caixa() {
                   <Button key={t} variant={moveType === t ? "default" : "outline"} onClick={() => setMoveType(t)} aria-pressed={moveType === t} disabled={updating} data-testid={`cash-move-type-${t}`} className="h-11 capitalize">{t === "sangria" ? <ArrowUpFromLine /> : <ArrowDownToLine />}{t}</Button>
                 ))}
               </div>
-              <Input aria-label="Valor da movimentação" placeholder="Valor" value={moveAmt} onChange={(e) => setMoveAmt(e.target.value)} inputMode="decimal" className="mt-3 font-mono" data-testid="cash-move-amount-input" />
+              <Input aria-label="Valor da movimentação" placeholder="Valor" value={moveAmt} onChange={(e) => setMoveAmt(formatCurrencyTyping(e.target.value))} inputMode="decimal" className="mt-3 font-mono" data-testid="cash-move-amount-input" />
               <Input aria-label="Motivo da movimentação" placeholder="Motivo" value={moveNote} onChange={(e) => setMoveNote(e.target.value)} className="mt-2" data-testid="cash-move-note-input" />
               <p className="mt-1 text-xs text-zinc-500">Informe um valor positivo e o motivo da movimentação.</p>
               <Button className="mt-3 h-11 w-full" disabled={updating || movementAmount === null || movementAmount <= 0 || moveNote.trim().length < (moveType === "sangria" ? 3 : 1)} onClick={() => move.mutate()} data-testid="cash-move-button">Registrar</Button>
@@ -102,7 +102,7 @@ export default function Caixa() {
             </Panel>
             <Panel title="Fechamento" actions={<Button size="xs" variant="outline" onClick={() => setPrinting(s)} data-testid="cash-print-partial"><Printer className="size-3" /> Imprimir parcial</Button>}>
               <p className="text-sm text-zinc-400">Conte o dinheiro na gaveta e informe o valor.</p>
-              <Input aria-label="Valor contado em reais" placeholder="Valor contado (R$)" value={counted} onChange={(e) => setCounted(e.target.value)} inputMode="decimal" className="mt-3 font-mono" data-testid="cash-counted-input" />
+              <Input aria-label="Valor contado em reais" placeholder="Valor contado (R$)" value={counted} onChange={(e) => setCounted(formatCurrencyTyping(e.target.value))} inputMode="decimal" className="mt-3 font-mono" data-testid="cash-counted-input" />
               <Label htmlFor="cash-closing-note" className="mt-3 block text-xs text-zinc-400">Observações do fechamento</Label>
               <Textarea id="cash-closing-note" maxLength={500} value={closingNote} onChange={(event) => setClosingNote(event.target.value)} className="mt-1" />
               <Button variant="destructive" className="mt-3 h-11 w-full" disabled={updating || countedAmount === null} onClick={() => window.confirm("Confirmar fechamento do caixa?") && close.mutate()} data-testid="cash-close-button"><LockKeyhole /> Fechar caixa</Button>
