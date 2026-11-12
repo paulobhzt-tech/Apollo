@@ -15,6 +15,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { brl, errMsg, uid } from "@/lib/format";
 import { cacheMenu, cachedMenu, enqueue, newClientRef, useOffline } from "@/lib/offline";
+import { useMe } from "@/lib/auth";
+import { useOperatorDraft } from "@/lib/operator-draft";
 import { queryClient } from "@/lib/queryClient";
 import type { Category, ChosenOption, Invoice, PayIn, Product, QuickSaleIn, SaleResult } from "@/lib/types";
 
@@ -22,13 +24,16 @@ interface CartLine { key: string; product: Product; qty: number; notes: string; 
 
 export default function Pdv() {
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const saleRef = useRef<string | null>(null);
+  const { data: me } = useMe();
+  const draftKey = `apollo-pdv-draft:${me?.id}`;
   const { offline, queue, context } = useOffline();
   const products = useQuery({ queryKey: ["products"], queryFn: () => apiGet<Product[]>("/products") });
   const categories = useQuery({ queryKey: ["categories"], queryFn: () => apiGet<Category[]>("/categories") });
-  const [cart, setCart] = useState<CartLine[]>([]);
-  const [customer, setCustomer] = useState("");
-  const [kitchen, setKitchen] = useState(true);
+  const [cart, setCart] = useOperatorDraft<CartLine[]>(`${draftKey}:items`, []);
+  const [customer, setCustomer] = useOperatorDraft(`${draftKey}:customer`, "");
+  const [kitchen, setKitchen] = useOperatorDraft(`${draftKey}:kitchen`, true);
+  const [clientRef, setClientRef] = useOperatorDraft<string | null>(`${draftKey}:reference`, null);
+  const saleRef = useRef(clientRef);
   const [payOpen, setPayOpen] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
 
@@ -49,7 +54,7 @@ export default function Pdv() {
   const setQty = (i: number, d: number) =>
     setCart((c) => c.flatMap((l, j) => (j !== i ? [l] : l.qty + d <= 0 ? [] : [{ ...l, qty: Math.min(99, Number((l.qty + d).toFixed(4))) }])));
 
-  const reset = () => { saleRef.current = null; setCart([]); setCustomer(""); setPayOpen(false); };
+  const reset = () => { saleRef.current = null; setClientRef(null); setCart([]); setCustomer(""); setPayOpen(false); };
 
   const sale = useMutation({
     mutationFn: (p: QuickSaleIn) => apiPost<SaleResult>("/pdv/sale", p),
@@ -86,8 +91,10 @@ export default function Pdv() {
 
   const confirm = (pay: PayIn) => {
     if (!cart.length || sale.isPending) return;
+    const reference = (saleRef.current ??= newClientRef());
+    setClientRef(reference);
     const payload: QuickSaleIn = {
-      ...pay, sync_context: context ?? undefined, client_ref: (saleRef.current ??= newClientRef()), customer_name: customer, send_to_kitchen: kitchen,
+      ...pay, sync_context: context ?? undefined, client_ref: reference, customer_name: customer, send_to_kitchen: kitchen,
       items: cart.map((l) => ({ product_id: l.product.id, qty: l.qty, notes: l.notes, options: l.options })),
     };
     if (offline) {

@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ApiError, apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, uid } from "@/lib/format";
+import { useOperatorDraft } from "@/lib/operator-draft";
 import { queryClient } from "@/lib/queryClient";
 import type { Category, ChosenOption, Invoice, KitchenTicket, Order, PayIn, Product, SaleResult, Table, TableIn } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -44,7 +45,9 @@ const invalidateTables = () => {
 
 export default function Mesas() {
   const { data: me } = useMe();
-  const mobileMode = useLocation().pathname === "/comanda-mobile";
+  const { pathname, search } = useLocation();
+  const mobileMode = pathname === "/comanda-mobile";
+  const queueView = mobileMode && new URLSearchParams(search).get("fila") === "1";
   const [clock, setClock] = useState(Date.now);
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 15_000);
@@ -63,7 +66,7 @@ export default function Mesas() {
   const ready = (readyTickets.data ?? []).filter(ticket => ticket.status === "pronto");
   const myReady = ready.filter((ticket) => (tables.data ?? []).some((t) => t.order_id === ticket.order_id && t.waiter_id === me?.id));
   const [selId, setSelId] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, Pending[]>>({});
+  const [drafts, setDrafts] = useOperatorDraft<Record<string, Pending[]>>(`apollo-table-drafts:${me?.id}`, {});
   useEffect(() => {
     if (!Object.keys(drafts).length) return;
     window.addEventListener("beforeunload", guardWorkspaceUnload);
@@ -73,7 +76,8 @@ export default function Mesas() {
   const [desktopSearch, setDesktopSearch] = useState("");
   const [desktopStatus, setDesktopStatus] = useState<"todas" | Table["status"]>("todas");
   const [desktopSort, setDesktopSort] = useState<"numero" | "tempo" | "valor">("numero");
-  const [mobileFilter, setMobileFilter] = useState<"todas" | "minhas" | "ocupadas" | "livres">("todas");
+  const [mobileFilter, setMobileFilter] = useState<"todas" | "minhas" | "ocupadas" | "livres">(queueView ? "ocupadas" : "todas");
+  useEffect(() => { setMobileFilter(queueView ? "ocupadas" : "todas"); }, [queueView]);
   const [qrTable, setQrTable] = useState<Table | null>(null);
   const [kind, setKind] = useState<Kind>("mesa");
   const [creating, setCreating] = useState(false);
@@ -112,7 +116,7 @@ export default function Mesas() {
 
   return (
     <AppShell roles={["caixa", "garcom"]}>
-      <PageHeader title={mobileMode ? "Comanda Mobile" : "Mesas & Comandas"} subtitle={mobileMode ? "Atendimento do garçom · selecione a mesa para lançar pedidos e acompanhar o consumo" : "Toque em uma mesa ou comanda para lançar itens no celular ou tablet"} actions={
+      <PageHeader title={queueView ? "Fila de Atendimento" : mobileMode ? "Comanda Mobile" : "Mesas & Comandas"} subtitle={mobileMode ? "Atendimento do garçom · selecione a mesa para lançar pedidos e acompanhar o consumo" : "Toque em uma mesa ou comanda para lançar itens no celular ou tablet"} actions={
         <>
           <div className="flex gap-1 rounded-xl border border-white/8 p-1">
             {(["mesa", "comanda"] as const).map((k) => (
@@ -436,8 +440,11 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const busy = openT.isPending || send.isPending || removeItems.isPending || status.isPending ||
     release.isPending || cancelTable.isPending || transfer.isPending || merge.isPending || pay.isPending;
   const nestedOpen = qrOpen || partialOpen || payOpen || preBill || !!invoice || !!removing || !!optFor;
+  const editingOpening = !table.order_id && (people !== "2" || !!name.trim());
+  const [editingCustomers, setEditingCustomers] = useState(false);
   const requestClose = () => {
-    if (busy || nestedOpen) return;
+    if (busy || nestedOpen || queryClient.isMutating()) return;
+    if ((editingOpening || editingCustomers) && !window.confirm("Descartar os dados de atendimento ainda não salvos?")) return;
     onClose();
   };
   useEffect(() => {
@@ -466,7 +473,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                 <p className="flex items-start gap-2 text-sm"><Clock className="size-4 shrink-0" /> <span>{table.opened_at ? `${minutesSince(table.opened_at, clock)} min de ocupação · desde ${fmtTime(table.opened_at)}` : "Aguardando abertura"}</span></p>
                 <p className="flex items-start gap-2 text-sm"><Users className="size-4 shrink-0" /> <span>{table.people ?? 0} cliente(s){table.waiter_name ? ` · Garçom: ${table.waiter_name}` : " · Garçom não atribuído"}</span></p>
                 {table.customer_name && <p className="text-sm text-muted-foreground">{table.customer_name}</p>}
-                <Button variant="outline" onClick={() => onQr(table)} data-testid="table-qr-button"><QrCode className="size-4" /> QR da mesa</Button>
+                <Button variant="outline" onClick={() => onQr(table)} data-testid="table-qr-button"><QrCode className="size-4" /> QR {table.kind === "mesa" ? "da mesa" : "da comanda"}</Button>
               </aside>
               <div className="min-w-0 p-4 wrap-anywhere [&_button]:whitespace-normal">
               <RenameRow key={table.id + table.name} table={table} canDelete={canDelete} onDeleted={onClose} />
@@ -495,7 +502,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                 </div>
               ) : (
                 <>
-                  <TableCustomers key={table.id + (table.order_id ?? "")} table={table} />
+                  <TableCustomers key={table.id + (table.order_id ?? "")} table={table} onDirtyChange={setEditingCustomers} />
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-2">
                     <div className="flex items-center gap-2"><strong className="text-sm text-foreground">Itens do Pedido ({items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)})</strong></div>
                     <span className="text-xs uppercase tracking-[0.15em] text-zinc-500">Itens · {items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)} un.</span>
@@ -772,12 +779,17 @@ function PartialBillDialog({ table, items, open, onClose }: { table: Table; item
   );
 }
 
-function TableCustomers({ table }: { table: Table }) {
+function TableCustomers({ table, onDirtyChange }: { table: Table; onDirtyChange: (dirty: boolean) => void }) {
   const [draft, setDraft] = useState("");
-  const [names, setNames] = useState<string[]>(table.customers?.length ? table.customers : table.customer_name ? [table.customer_name] : []);
+  const [saved, setSaved] = useState<string[]>(table.customers?.length ? table.customers : table.customer_name ? [table.customer_name] : []);
+  const [names, setNames] = useState(saved);
+  useEffect(() => {
+    onDirtyChange(Boolean(draft.trim()) || JSON.stringify(names) !== JSON.stringify(saved));
+    return () => onDirtyChange(false);
+  }, [draft, names, onDirtyChange, saved]);
   const save = useMutation({
     mutationFn: (customers: string[]) => apiPut<Table>(`/tables/${table.id}/customers`, { customers }),
-    onSuccess: (updated) => { setNames(updated.customers ?? []); invalidateTables(); toast.success("Clientes da mesa atualizados"); },
+    onSuccess: (updated) => { setSaved(updated.customers ?? []); setNames(updated.customers ?? []); invalidateTables(); toast.success("Clientes da mesa atualizados"); },
     onError: (error) => toast.error(errMsg(error)),
   });
   const add = () => {
