@@ -89,6 +89,9 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
   const [productId, setProductId] = useState("");
   const [qty, setQty] = useState("");
   const [unitCost, setUnitCost] = useState("");
+  const [freightCost, setFreightCost] = useState("0");
+  const [taxCost, setTaxCost] = useState("0");
+  const [billDueDate, setBillDueDate] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [manufacturedOn, setManufacturedOn] = useState("");
   const purchaseAttempt = useRef<{ payload: string; reference: string } | null>(null);
@@ -96,7 +99,9 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
   const [note, setNote] = useState("");
   const quantity = catalogNumber(qty);
   const unitPrice = catalogNumber(unitCost);
-  const amount = quantity !== null && unitPrice !== null ? quantity * unitPrice : NaN;
+  const freight = catalogNumber(freightCost);
+  const taxes = catalogNumber(taxCost);
+  const amount = quantity !== null && unitPrice !== null && freight !== null && taxes !== null ? quantity * unitPrice + freight + taxes : NaN;
   const supplierExists = suppliers.data?.some((supplier) => supplier.id === supplierId);
   const selected = ingredients.find((ingredient) => ingredient.id === ingredientId);
   const quantityValid = quantity !== null && Math.round(quantity * 10000) > 0 &&
@@ -108,11 +113,12 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
   const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const expiredLot = !!expiryDate && expiryDate < localToday;
   const valid = supplierExists && selected && quantityValid && validLink && validDates && !expiredLot &&
-    unitPrice !== null && unitPrice >= 0 && Number.isFinite(amount);
+    unitPrice !== null && unitPrice >= 0 && freight !== null && freight >= 0 && taxes !== null && taxes >= 0 && Number.isFinite(amount);
   const save = useMutation({
     mutationFn: (values: { qty: number; unit_cost: number }) => {
       const body = { supplier_id: supplierId, ingredient_id: ingredientId, product_id: productId || null, ...values,
         manufactured_on: manufacturedOn || null, expiry_date: expiryDate || null,
+        freight_cost: freight, tax_cost: taxes, bill_due_date: billDueDate || null,
         lot_number: lotNumber.trim(), note: note.trim() };
       const payload = JSON.stringify(body);
       if (purchaseAttempt.current?.payload !== payload) {
@@ -123,7 +129,7 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
     onSuccess: () => {
       purchaseAttempt.current = null;
       toast.success("Compra registrada e estoque atualizado");
-      setQty(""); setUnitCost(""); setLotNumber(""); setNote(""); setExpiryDate(""); setManufacturedOn("");
+      setQty(""); setUnitCost(""); setFreightCost("0"); setTaxCost("0"); setBillDueDate(""); setLotNumber(""); setNote(""); setExpiryDate(""); setManufacturedOn("");
       void purchases.refetch(); void expiry.refetch(); onSaved();
     },
     onError: (e) => toast.error(errMsg(e)),
@@ -151,6 +157,9 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
         <div><Label htmlFor="purchase-ingredient">Item de estoque</Label><Select disabled={!!productId} value={ingredientId} onValueChange={setIngredientId}><SelectTrigger id="purchase-ingredient" data-testid="purchase-ingredient"><SelectValue placeholder="Selecione insumo" /></SelectTrigger><SelectContent>{ingredients.map((i) => <SelectItem key={i.id} value={i.id}>{i.name} ({i.unit})</SelectItem>)}</SelectContent></Select></div>
         <div><Label htmlFor="purchase-qty">Quantidade {selected ? "(" + selected.unit + ")" : ""}</Label><Input id="purchase-qty" inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="20" /></div>
         <div><Label htmlFor="purchase-cost">Preço por {selected?.unit ?? "unidade"} (R$)</Label><Input id="purchase-cost" inputMode="decimal" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} placeholder="32,00" /></div>
+        <div><Label htmlFor="purchase-freight">Frete (R$)</Label><Input id="purchase-freight" data-testid="purchase-freight" inputMode="decimal" value={freightCost} onChange={(e) => setFreightCost(e.target.value)} /></div>
+        <div><Label htmlFor="purchase-taxes">Impostos (R$)</Label><Input id="purchase-taxes" data-testid="purchase-taxes" inputMode="decimal" value={taxCost} onChange={(e) => setTaxCost(e.target.value)} /></div>
+        <div><Label htmlFor="purchase-bill-due">Vencimento do boleto (opcional)</Label><Input id="purchase-bill-due" data-testid="purchase-bill-due" type="date" value={billDueDate} onChange={(e) => setBillDueDate(e.target.value)} /></div>
         <div><Label htmlFor="purchase-made">Data de fabricação</Label><Input id="purchase-made" type="date" value={manufacturedOn} onChange={(event) => setManufacturedOn(event.target.value)} /></div>
         <div><Label htmlFor="purchase-expiry">Validade do lote</Label><Input id="purchase-expiry" type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} /></div>
         <div><Label htmlFor="purchase-lot">Número do lote</Label><Input id="purchase-lot" value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} placeholder="Opcional" /></div>
@@ -165,6 +174,7 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
       {!validDates && <p role="status" className="text-sm text-muted-foreground">A fabricação deve ser anterior ou igual à validade.</p>}
       {expiredLot && <p role="alert" data-testid="purchase-expired-warning" className="text-sm text-amber-300">A validade informada já passou. Esta compra não pode ser registrada com lote vencido. Corrija a data ou confira o fornecedor.</p>}
       {!validLink && <p role="status" className="text-sm text-muted-foreground">O produto selecionado precisa de um item de estoque na mesma unidade.</p>}
+      <p className="text-xs text-muted-foreground">Frete e impostos são incorporados ao custo médio do estoque. O vencimento do boleto é apenas informativo; nenhuma cobrança é criada automaticamente.</p>
       <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm">Custo total: <strong>{Number.isFinite(amount) ? brl(amount) : "—"}</strong></span><Button type="submit" className="h-11" disabled={!valid || save.isPending} data-testid="purchase-save">{save.isPending ? "Registrando…" : "Registrar compra"}</Button></div>
     </form>
     <div className="rounded-2xl border border-amber-400/20 bg-panel p-4">
