@@ -31,10 +31,17 @@ async def check_database() -> SelfTestCheck:
 
 
 async def check_access() -> SelfTestCheck:
-    admins = await db.employees.count_documents({"role": "admin", "active": True, "pin_hash": {"$exists": True}})
-    no_pin = await db.employees.count_documents({"pin_hash": {"$exists": False}})
-    detail = f"{admins} administrador(es) ativo(s)" + (f" · {no_pin} funcionário(s) sem PIN" if no_pin else "")
-    return _c("acesso", "Acesso de administrador", "ok" if admins else "falha", detail, "" if admins and not no_pin else "Funcionários")
+    valid_text = {"$type": "string", "$ne": ""}
+    credentials = [{"pin_hash": valid_text}, {"username": valid_text, "password_hash": valid_text}]
+    admins = await db.employees.count_documents(
+        {"role": "admin", "active": True, "must_change_password": {"$ne": True}, "$or": credentials},
+    )
+    no_login = await db.employees.count_documents({"active": True, "$nor": credentials})
+    detail = f"{admins} administrador(es) com acesso configurado"
+    if no_login:
+        detail += f" · {no_login} operador(es) ativo(s) sem credencial"
+    status = "falha" if not admins else "aviso" if no_login else "ok"
+    return _c("acesso", "Acesso de administrador", status, detail, "Funcionários" if status != "ok" else "")
 
 
 def check_products(prods: list[dict], cats: dict) -> SelfTestCheck:
@@ -131,7 +138,7 @@ async def check_backup() -> SelfTestCheck:
 
 def check_scheduler() -> SelfTestCheck:
     if os.environ.get("WEBHOOK_CRON_SECRET"):
-        return _c("agendador", "Agendador noturno", "ok", "Backup programado todo dia às 03:00 (Brasília)")
+        return _c("agendador", "Agendador noturno", "aviso", "Chave configurada. Confira o histórico de backups para validar as execuções.")
     return _c("agendador", "Agendador noturno", "falha", "Agendador sem chave de segurança")
 
 
