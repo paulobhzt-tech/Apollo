@@ -396,6 +396,11 @@ test("menu compacto mantém duas faixas e acesso aos atalhos em várias resoluç
   const shortcuts = page.getByTestId("top-menu-shortcuts");
   for (const [width, height] of [[1366, 768], [1600, 900], [1920, 1080], [2560, 1440], [900, 640], [768, 1024], [390, 844]]) {
     await page.setViewportSize({ width, height });
+    if (width >= 1366) {
+      await expect(groups.getByRole("button")).toHaveCount(7);
+      await expect(shortcuts.getByRole("link", { name: "Clientes", exact: true })).toBeVisible();
+      await expect(shortcuts.getByRole("link", { name: "Fila de Atendimento" })).toBeVisible();
+    }
     for (const [bar, selector] of [[groups, "button"], [shortcuts, "a"]] as const) {
       await expect.poll(() => bar.evaluate((element, selector) => {
         const bounds = element.getBoundingClientRect();

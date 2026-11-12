@@ -484,7 +484,7 @@ function RibbonShortcuts({ items, available, principal, settings }: {
   return <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts"
     style={{ "--menu-icon-size": ICON_SIZES[settings.iconSize], "--menu-button-size": BUTTON_SIZES[settings.buttonSize] } as CSSProperties}
     className="flex min-w-0 items-stretch gap-1 bg-elevated px-2 py-1 sm:px-4">
-    <div className="flex min-w-0 flex-1 items-stretch gap-1 [&>a:nth-child(n+3)]:hidden @min-[29rem]:[&>a:nth-child(-n+4)]:flex @min-[46rem]:[&>a:nth-child(-n+6)]:flex @min-[64rem]:[&>a:nth-child(-n+8)]:flex @min-[85rem]:[&>a:nth-child(-n+10)]:flex">
+    <div className="apollo-shortcut-row flex min-w-0 flex-1 items-stretch gap-1">
       {items.map((item) => <RibbonShortcut key={item.to} item={item} label={principal ? PRINCIPAL_LABELS[item.to] : undefined} />)}
     </div>
     <Button type="button" variant="ghost" className="h-auto shrink-0 gap-1 px-2 text-xs" onClick={() => setOpen(true)}>

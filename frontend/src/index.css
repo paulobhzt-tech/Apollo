@@ -170,3 +170,19 @@
 [data-menu-accent="blue"] { --apollo-menu-accent: #2563eb; }
 [data-menu-accent="teal"] { --apollo-menu-accent: #0d9488; }
 [data-menu-accent="violet"] { --apollo-menu-accent: #8b5cf6; }
+
+@container (width < 29rem) {
+    .apollo-shortcut-row > a:nth-child(n + 3) { display: none; }
+}
+@container (29rem <= width < 46rem) {
+    .apollo-shortcut-row > a:nth-child(n + 5) { display: none; }
+}
+@container (46rem <= width < 64rem) {
+    .apollo-shortcut-row > a:nth-child(n + 7) { display: none; }
+}
+@container (64rem <= width < 85rem) {
+    .apollo-shortcut-row > a:nth-child(n + 9) { display: none; }
+}
+@container (width >= 85rem) {
+    .apollo-shortcut-row > a:nth-child(n + 11) { display: none; }
+}
