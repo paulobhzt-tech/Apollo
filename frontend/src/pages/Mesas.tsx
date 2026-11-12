@@ -520,7 +520,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                             <p className="wrap-anywhere text-foreground">{g.name}</p>
                             {g.options.length > 0 && <p className="truncate text-xs text-primary">{g.options.join(" · ")}</p>}
                             {g.notes.length > 0 && <p className="truncate text-xs text-amber-300">{g.notes.join(" · ")}</p>}
-                            <p className="text-xs text-zinc-400">Cliente: {g.customer_name || "Mesa inteira"}{g.ordered_by ? ` · Lançado por: ${g.ordered_by}` : ""}</p>
+                            <p className="text-xs text-zinc-400">Cliente: {g.customer_name || "Mesa inteira"}{g.ordered_by ? ` · Lançado por: ${g.ordered_by}` : ""}{g.lines.some((line) => line.ordered_at) ? ` · Horário: ${g.lines.filter((line) => line.ordered_at).map((line) => fmtTime(line.ordered_at!)).join(", ")}` : ""}</p>
                           </div>
                           <span className="font-mono text-xs text-zinc-500">{brl(g.unit_price)}</span>
                           <span className="font-mono text-zinc-200">{brl(g.total)}</span>
@@ -539,7 +539,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                           <p className="truncate text-foreground">{i.name}</p>
                           {i.options?.length > 0 && <p className="truncate text-xs text-primary">{i.options.join(" · ")}</p>}
                           {(i.notes || i.cancel_reason) && <p className="truncate text-xs text-amber-300">{i.cancel_reason || i.notes}</p>}
-                          <p className="text-xs text-zinc-400">Cliente: {i.customer_name || "Mesa inteira"}{i.ordered_by ? ` · Lançado por: ${i.ordered_by}` : ""}</p>
+                          <p className="text-xs text-zinc-400">Cliente: {i.customer_name || "Mesa inteira"}{i.ordered_by ? ` · Lançado por: ${i.ordered_by}` : ""}{i.ordered_at ? ` · Horário: ${fmtTime(i.ordered_at)}` : ""}</p>
                         </div>
                         <span className="font-mono text-zinc-200">{brl(i.qty * i.unit_price)}</span>
                         {!i.cancelled && (
