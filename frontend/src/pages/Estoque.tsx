@@ -499,8 +499,8 @@ function IngredientForm({ editing, onClose }: { editing: Ingredient | "new"; onC
   return (
     <>
       <DialogHeader><DialogTitle className="font-heading text-white">{editing === "new" ? "Novo insumo" : "Editar insumo"}</DialogTitle></DialogHeader>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2"><Label htmlFor="ingredient-name" className="text-xs text-zinc-400">Nome</Label><Input id="ingredient-name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} className="mt-1" data-testid="ingredient-name-input" /></div>
+      <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2"><Label htmlFor="ingredient-name" className="text-xs text-zinc-400">Nome</Label><Input id="ingredient-name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} className="mt-1" data-testid="ingredient-name-input" /></div>
         <div>
           <Label htmlFor="ingredient-unit" className="text-xs text-zinc-400">Unidade</Label>
           <Select value={f.unit} onValueChange={(v: string) => setF({ ...f, unit: v as Unit })}>
@@ -510,7 +510,7 @@ function IngredientForm({ editing, onClose }: { editing: Ingredient | "new"; onC
         </div>
         <div><Label htmlFor="ingredient-cost" className="text-xs text-zinc-400">Custo por unidade (R$)</Label><Input id="ingredient-cost" inputMode="decimal" value={f.cost_per_unit} onChange={(e) => setF({ ...f, cost_per_unit: e.target.value })} className="mt-1 font-mono" data-testid="ingredient-cost-input" /></div>
         <div><Label htmlFor="ingredient-stock" className="text-xs text-zinc-400">Estoque atual</Label><Input id="ingredient-stock" inputMode="decimal" value={f.stock} onChange={(e) => setF({ ...f, stock: e.target.value })} className="mt-1 font-mono" data-testid="ingredient-stock-input" /></div>
-        {f.unit === "kg" && <div className="col-span-2"><Label htmlFor="ingredient-yield" className="text-xs text-zinc-400">Produção: quantas unidades rende 1 kg?</Label><Input id="ingredient-yield" value={f.units_per_kg} onChange={(e) => setF({ ...f, units_per_kg: e.target.value })} placeholder="Ex.: 10 espetinhos por kg" inputMode="decimal" className="mt-1 font-mono" data-testid="ingredient-yield-input" /><p className="mt-1 text-xs text-zinc-500">Estimativa: {numbers ? Math.floor(Math.max(0, numbers.stock * numbers.units_per_kg)) : "—"} unidades com o estoque atual. Não altera a baixa em kg da ficha técnica.</p></div>}
+        {f.unit === "kg" && <div className="sm:col-span-2"><Label htmlFor="ingredient-yield" className="text-xs text-zinc-400">Produção: quantas unidades rende 1 kg?</Label><Input id="ingredient-yield" value={f.units_per_kg} onChange={(e) => setF({ ...f, units_per_kg: e.target.value })} placeholder="Ex.: 10 espetinhos por kg" inputMode="decimal" className="mt-1 font-mono" data-testid="ingredient-yield-input" /><p className="mt-1 text-xs text-zinc-500">Estimativa: {numbers ? Math.floor(Math.max(0, numbers.stock * numbers.units_per_kg)) : "—"} unidades com o estoque atual. Não altera a baixa em kg da ficha técnica.</p></div>}
         <div><Label htmlFor="ingredient-min" className="text-xs text-zinc-400">Estoque mínimo</Label><Input id="ingredient-min" inputMode="decimal" value={f.min_stock} onChange={(e) => setF({ ...f, min_stock: e.target.value })} className="mt-1 font-mono" data-testid="ingredient-min-input" /></div>
       </div>
       <div><Label htmlFor="ingredient-max" className="text-xs text-zinc-400">Estoque máximo (opcional)</Label><Input id="ingredient-max" inputMode="decimal" value={maximum} onChange={(event) => setMaximum(event.target.value)} /></div>
@@ -518,7 +518,7 @@ function IngredientForm({ editing, onClose }: { editing: Ingredient | "new"; onC
       {invalidMaximum && <p role="alert" className="text-sm text-amber-300">O estoque máximo deve ser igual ou maior que o mínimo.</p>}
       {!f.name.trim() && <p className="text-sm text-zinc-400">Informe o nome do insumo.</p>}
       {!numbers && <p role="alert" className="text-sm text-amber-300">Preencha os valores numéricos. Use vírgula ou ponto para decimais; custo, mínimo e rendimento devem ser zero ou positivos.</p>}
-      <Button disabled={!f.name.trim() || !numbers || invalidMaximum || save.isPending} onClick={() => { if (numbers) save.mutate({ name: f.name.trim(), unit: f.unit, ...numbers, max_stock: maxStock, block_negative_stock: blockNegative }); }} data-testid="ingredient-save-button">Salvar</Button>
+      <Button className="h-11" disabled={!f.name.trim() || !numbers || invalidMaximum || save.isPending} onClick={() => { if (numbers) save.mutate({ name: f.name.trim(), unit: f.unit, ...numbers, max_stock: maxStock, block_negative_stock: blockNegative }); }} data-testid="ingredient-save-button">{save.isPending ? "Salvando…" : "Salvar insumo"}</Button>
     </>
   );
 }

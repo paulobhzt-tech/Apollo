@@ -31,20 +31,59 @@ const ICONS: Record<string, typeof Menu> = {
   Bot, LayoutDashboard, Music, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone,
 };
 
+const DEFAULT_SHORTCUTS = ["/mesas", "/pdv", "/estoque"];
+const ZOOM_LEVELS = [90, 100, 110, 125];
+
+function DisplayZoom() {
+  const key = "apollo-display-zoom";
+  const [zoom, setZoom] = useState(() => {
+    try {
+      const saved = Number(localStorage.getItem(key));
+      return ZOOM_LEVELS.includes(saved) ? saved : 100;
+    } catch {
+      return 100;
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.style.setProperty("--apollo-display-zoom", `${zoom}%`);
+    return () => { document.documentElement.style.removeProperty("--apollo-display-zoom"); };
+  }, [zoom]);
+
+  return (
+    <label className="flex min-h-10 items-center gap-1.5 text-xs text-muted-foreground">
+      Zoom
+      <select aria-label="Zoom da interface" value={zoom}
+        className="min-h-10 rounded-md border border-border bg-elevated px-1.5 text-foreground"
+        onChange={(event) => {
+          const value = Number(event.target.value);
+          setZoom(value);
+          try {
+            localStorage.setItem(key, String(value));
+          } catch {
+            toast.error("O dispositivo não pôde salvar o zoom.");
+          }
+        }}>
+        {ZOOM_LEVELS.map((value) => <option key={value} value={value}>{value}%</option>)}
+      </select>
+    </label>
+  );
+}
+
 const activePath = (path: string) => path === "/fornecedores" ? "/clientes" : path;
 
 function MenuPreferences({ items, operatorId }: { items: NavItem[]; operatorId: string }) {
   const storageKey = `apollo-menu-shortcuts:${operatorId}`;
   const [pins, setPins] = useState<string[]>(() => {
     try {
-      const saved: unknown = JSON.parse(localStorage.getItem(storageKey) ?? "[]");
-      return Array.isArray(saved) ? saved.filter((path): path is string => typeof path === "string") : [];
+      const saved: unknown = JSON.parse(localStorage.getItem(storageKey) ?? JSON.stringify(DEFAULT_SHORTCUTS));
+      return Array.isArray(saved) ? saved.filter((path): path is string => typeof path === "string") : DEFAULT_SHORTCUTS;
     } catch {
-      return [];
+      return DEFAULT_SHORTCUTS;
     }
   });
   const loc = useLocation();
-  const pinned = items.filter((item) => pins.includes(item.to));
+  const pinned = pins.flatMap((path) => items.filter((item) => item.to === path));
 
   function toggle(path: string) {
     const next = pins.includes(path) ? pins.filter((pin) => pin !== path) : [...pins, path];
@@ -57,12 +96,12 @@ function MenuPreferences({ items, operatorId }: { items: NavItem[]; operatorId: 
   }
 
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-1 border-t border-white/10 px-2 py-1 sm:px-4">
+    <div className="flex min-w-0 flex-wrap items-center gap-1 border-t border-border px-2 py-1 sm:px-4">
       <details className="relative">
-        <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 rounded px-2 text-xs hover:bg-white/10">
+        <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 rounded px-2 text-xs hover:bg-muted">
           <Settings className="size-4 shrink-0" aria-hidden="true" /> Personalizar menu
         </summary>
-        <div className="absolute left-0 top-full z-10 max-h-[45dvh] w-64 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-lg border border-white/15 bg-shell p-3 shadow-xl">
+        <div className="absolute left-0 top-full z-10 max-h-[45dvh] w-64 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-lg border border-border bg-shell p-3 shadow-xl">
           {items.map((item) => (
             <label key={item.to} className="flex min-h-9 items-center gap-2 text-sm">
               <input type="checkbox" checked={pins.includes(item.to)} onChange={() => toggle(item.to)} />
@@ -75,8 +114,8 @@ function MenuPreferences({ items, operatorId }: { items: NavItem[]; operatorId: 
         const Icon = ICONS[item.icon] ?? LayoutDashboard;
         return <NavLink key={item.to} to={item.to} end={item.to === "/"}
           aria-current={item.to === activePath(loc.pathname) ? "page" : undefined}
-          className="flex min-h-9 min-w-0 items-center gap-1.5 rounded px-2 text-xs hover:bg-white/10 aria-[current=page]:bg-white/15">
-          <Icon className="size-4 shrink-0 text-[#e6b44d]" aria-hidden="true" /><span className="break-words">{item.label}</span>
+          className="flex min-h-9 min-w-0 items-center gap-1.5 rounded px-2 text-xs hover:bg-muted aria-[current=page]:bg-muted">
+          <Icon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="break-words">{item.label}</span>
         </NavLink>;
       })}
     </div>
@@ -126,7 +165,6 @@ function Brand() {
       </span>
       <span className="leading-tight">
         <span className="block font-heading text-base font-semibold text-white" data-testid="brand-name">Apollo PDV</span>
-        <span className="block text-[10px] uppercase tracking-[0.2em] text-zinc-500">PDV · Gestão</span>
       </span>
     </Link>
   );
@@ -226,18 +264,19 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
             Configuração obrigatória: escolha backup no Google Drive ou no PC em Configurações → Backup.
           </Link>
         )}
-        <header className="relative z-30 lg:sticky lg:top-0 border-b border-white/10 bg-[#252527] text-white" data-testid="apollo-ribbon">
-          <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-white/10 px-3 py-2 sm:px-4">
+        <header className="relative z-30 lg:sticky lg:top-0 border-b border-border bg-shell text-foreground" data-testid="apollo-ribbon">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-border px-3 py-2 sm:px-4">
             <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={() => setOpen(true)} aria-label="Abrir todas as funções (Ctrl+K)" title="Buscar funções (Ctrl+K)" data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
             <Brand />
             <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+              <DisplayZoom />
               <button type="button" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
                 aria-label={resolvedTheme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
-                className="grid size-9 shrink-0 place-items-center rounded-lg text-zinc-200 hover:bg-white/10" data-testid="theme-toggle">
+                className="grid size-10 shrink-0 place-items-center rounded-lg text-foreground hover:bg-muted" data-testid="theme-toggle">
                 {resolvedTheme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
               </button>
               <OfflineBadge />
-              <button type="button" onClick={() => void endSession()} className="hidden shrink-0 items-center gap-1.5 rounded-lg px-2 py-2 text-xs text-zinc-200 hover:bg-white/10 sm:flex" title={`Operador atual: ${me.name}`}>
+              <button type="button" onClick={() => void endSession()} className="hidden shrink-0 items-center gap-1.5 rounded-lg px-2 py-2 text-xs text-foreground hover:bg-muted sm:flex" title={`Operador atual: ${me.name}`}>
                 <LogOut className="size-4" aria-hidden="true" /><span>Trocar operador</span>
               </button>
             </div>
@@ -246,22 +285,22 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
             {RIBBON_GROUPS.filter(({group}) => items.some(n => n.group === group)).map(({label, group, icon: GroupIcon}) => {
               const selected = visibleGroup === group;
               return <button key={group} type="button" onClick={() => setActiveRibbon(group)}
-                className={cn("flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[10px] font-medium transition-colors hover:bg-white/10 sm:text-xs", selected ? "bg-[#36363a] text-white" : "text-zinc-300")}
-                aria-pressed={selected}><GroupIcon className="size-4 shrink-0 text-[#e6b44d]" aria-hidden="true" /><span className="min-w-0 break-words">{label}</span></button>;
+                className={cn("flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-[10px] font-medium transition-colors hover:bg-muted sm:text-xs", selected ? "bg-muted text-foreground" : "text-muted-foreground")}
+                aria-pressed={selected}><GroupIcon className="size-4 shrink-0 text-primary" aria-hidden="true" /><span className="min-w-0 break-words">{label}</span></button>;
             })}
           </nav>
-          <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts" className="grid min-w-0 grid-cols-2 gap-1 bg-[#303034] min-[420px]:grid-cols-3 px-2 py-1.5 sm:grid-cols-4 sm:px-4 lg:grid-cols-6 xl:grid-cols-8">
+          <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts" className="grid min-w-0 grid-cols-2 gap-1 bg-elevated min-[420px]:grid-cols-3 px-2 py-1.5 sm:grid-cols-4 sm:px-4 lg:grid-cols-6 xl:grid-cols-8">
             {items.filter(n => n.group === visibleGroup).map(n => {
               const Icon = ICONS[n.icon] ?? LayoutDashboard;
               return <NavLink key={n.to} to={n.to} end={n.to === "/"} title={n.label} onClick={() => setActiveRibbon(n.group)}
-                className={({isActive}) => cn("flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-center text-[11px] leading-tight transition-colors hover:bg-white/10",(isActive || n.to === activePath(loc.pathname)) ? "bg-[#414147] text-white" : "text-zinc-200")}>
-                <Icon className="size-4 shrink-0 text-[#e6b44d]" strokeWidth={1.8} aria-hidden="true" /><span className="min-w-0 break-words">{n.label}</span>
+                className={({isActive}) => cn("flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-center text-xs leading-tight transition-colors hover:bg-muted",(isActive || n.to === activePath(loc.pathname)) ? "bg-muted text-foreground" : "text-muted-foreground")}>
+                <Icon className="size-4 shrink-0 text-primary" strokeWidth={1.8} aria-hidden="true" /><span className="min-w-0 break-words">{n.label}</span>
               </NavLink>;
             })}
           </nav>
           <MenuPreferences key={me.id} operatorId={me.id} items={items} />
         </header>
-        <main className="flex-1 px-3 py-4 lg:px-5">
+        <main className="min-w-0 flex-1 px-3 py-4 lg:px-5">
           {allowed ? children : (
             <div className="mx-auto mt-20 max-w-md text-center" data-testid="no-permission">
               <h2 className="text-2xl font-semibold text-white">Acesso restrito</h2>

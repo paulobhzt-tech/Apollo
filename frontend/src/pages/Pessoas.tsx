@@ -202,7 +202,10 @@ function SupplierForm({ s, onClose }: { s: Supplier | null; onClose: () => void 
       <Input id={`supplier-${k}`} value={f[k]} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} className="mt-1" data-testid={`supplier-${k}-input`} /></div>
   );
   return (
-    <>
+    <form className="grid min-w-0 gap-4" onSubmit={(event) => {
+      event.preventDefault();
+      if (f.name.trim().length >= 2 && !save.isPending) save.mutate();
+    }}>
       <DialogHeader><DialogTitle className="font-heading text-white">{s ? `Editar ${s.name}` : "Novo fornecedor"}</DialogTitle></DialogHeader>
       <div className="grid gap-3 sm:grid-cols-2">
         {field("name", "Nome / razão social", "Ex.: Frigorífico Boi Bom", true)}
@@ -218,7 +221,7 @@ function SupplierForm({ s, onClose }: { s: Supplier | null; onClose: () => void 
           <Textarea id="supplier-notes" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} className="mt-1" placeholder="Dia de entrega, prazo de pagamento…" data-testid="supplier-notes-input" /></div>
       </div>
       {f.name.trim().length < 2 && <p className="text-sm text-zinc-400">Informe um nome ou razão social com pelo menos 2 caracteres.</p>}
-      <Button className="mt-2 h-11" disabled={f.name.trim().length < 2 || save.isPending} onClick={() => save.mutate()} data-testid="supplier-save-button">Salvar fornecedor</Button>
-    </>
+      <Button type="submit" className="mt-2 h-11" disabled={f.name.trim().length < 2 || save.isPending} data-testid="supplier-save-button">{save.isPending ? "Salvando…" : "Salvar fornecedor"}</Button>
+    </form>
   );
 }

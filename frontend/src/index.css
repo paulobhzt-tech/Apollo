@@ -152,6 +152,7 @@
     }
   html {
     @apply font-sans;
+    font-size: var(--apollo-display-zoom, 100%);
     color-scheme: light;
     }
   html.dark { color-scheme: dark; }

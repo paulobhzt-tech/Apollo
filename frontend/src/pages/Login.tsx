@@ -73,26 +73,23 @@ export default function Login() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
       <div className="pointer-events-none absolute -left-40 -top-40 size-[520px] rounded-full bg-primary/10 blur-3xl" />
-      <div className="relative mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-10 lg:grid-cols-[1.2fr_1fr]">
-        <section className="animate-rise">
-          <div className="flex items-center gap-3">
+      <div className="relative mx-auto grid min-h-dvh w-full max-w-lg items-center px-4 py-5 sm:py-10">
+        <section className="min-w-0 rounded-2xl border border-border bg-panel p-5 shadow-xl sm:p-7" data-testid="pin-panel">
+          <div className="flex flex-col items-center gap-3 text-center">
             <span className="grid size-12 place-items-center rounded-2xl bg-primary text-white shadow-xl shadow-primary/30">{branding.data?.logo_url ? <img src={branding.data.logo_url} alt="Logomarca" className="size-12 rounded-2xl object-cover" /> : <Flame className="size-6" />}</span>
             <div>
-              <p className="font-heading text-2xl font-semibold text-white" data-testid="login-brand">{branding.data?.trade_name || "Apollo PDV"}</p>
-              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Gestão de atendimento, vendas e estoque</p>
+              <h1 className="font-heading text-2xl font-semibold text-foreground" data-testid="login-brand">{branding.data?.trade_name || "Apollo PDV"}</h1>
             </div>
           </div>
-          <h1 className="mt-10 max-w-lg text-4xl font-semibold leading-tight text-white sm:text-5xl">
-            Frente de caixa, salão, cozinha e delivery <span className="text-primary">em um só lugar.</span>
-          </h1>
-          <p className="mt-4 max-w-md text-zinc-400">Use o usuário e a senha cadastrados neste servidor ou selecione a aba PIN se sua conta usa PIN.</p>
-          <p className="mt-2 break-all text-sm text-zinc-400">Servidor · {window.location.host}</p>
-          {profiles.isSuccess && profiles.data.length === 0 && <p role="status" className="mt-3 text-sm text-amber-300">Nenhum operador ativo neste servidor. Confira o endereço da homologação ou solicite a configuração inicial pelo terminal do servidor.</p>}
+          <p className="mt-2 break-all text-center text-xs text-zinc-400">Servidor · {window.location.host}</p>
+          {profiles.isSuccess && profiles.data.length === 0 && <p role="status" className="mt-3 text-sm text-amber-700 dark:text-amber-300">Nenhum operador ativo neste servidor. Confira o endereço da homologação ou solicite a configuração inicial pelo terminal do servidor.</p>}
           {mode === "pin" && profiles.data?.length && profiles.data.every((p) => p.pin_enabled === false)
-            ? <p role="status" className="mt-3 text-sm text-amber-300">Nenhum operador ativo tem PIN neste servidor. Use usuário e senha.</p>
+            ? <p role="status" className="mt-3 text-sm text-amber-700 dark:text-amber-300">Nenhum operador ativo tem PIN neste servidor. Use usuário e senha.</p>
             : null}
-          <div className="mt-8 grid max-w-lg grid-cols-2 gap-2 sm:grid-cols-3" data-testid="profile-list">
-            {mode === "pin" && (profiles.data ?? []).filter((p) => p.pin_enabled !== false).map((p) => (
+          <div className="my-5 flex flex-wrap gap-2"><button type="button" onClick={() => setMode("password")} className={mode === "password" ? "rounded-lg bg-primary px-3 py-2 text-white" : "rounded-lg border px-3 py-2"}>Usuário e senha</button><button type="button" onClick={() => setMode("pin")} className={mode === "pin" ? "rounded-lg bg-primary px-3 py-2 text-white" : "rounded-lg border px-3 py-2"}>PIN</button></div>
+          {mode === "pin" && (
+          <div className="mb-4 grid max-h-40 grid-cols-2 gap-2 overflow-y-auto" data-testid="profile-list">
+            {(profiles.data ?? []).filter((p) => p.pin_enabled !== false).map((p) => (
               <button
                 key={p.id}
                 type="button"
@@ -101,7 +98,7 @@ export default function Login() {
                 data-testid={`profile-${p.id}`}
                 className={cn(
                   "rounded-xl border p-3 text-left transition-colors duration-200",
-                  selected?.id === p.id ? "border-primary bg-primary/10" : "border-white/8 bg-panel hover:border-white/20",
+                  selected?.id === p.id ? "border-primary bg-primary/10" : "border-border bg-elevated hover:border-primary/50",
                 )}
               >
                 <p className="truncate text-sm font-medium text-white">{p.name}</p>
@@ -109,10 +106,7 @@ export default function Login() {
               </button>
             ))}
           </div>
-        </section>
-
-        <section className="rounded-3xl border border-white/8 bg-panel/80 p-6 shadow-2xl backdrop-blur-xl sm:p-8 animate-rise" data-testid="pin-panel">
-          <div className="mb-5 flex gap-2"><button type="button" onClick={() => setMode("password")} className={mode === "password" ? "rounded-lg bg-primary px-3 py-2 text-white" : "rounded-lg border px-3 py-2"}>Usuário e senha</button><button type="button" onClick={() => setMode("pin")} className={mode === "pin" ? "rounded-lg bg-primary px-3 py-2 text-white" : "rounded-lg border px-3 py-2"}>PIN</button></div>
+          )}
           {mode === "password" ? <form onSubmit={(e) => { e.preventDefault(); submitPassword(); }} className="space-y-4"><label className="block text-sm">Usuário<input className="mt-1 w-full rounded-xl border border-border bg-elevated p-3 text-foreground" value={username} autoComplete="username" onChange={(e) => setUsername(e.target.value)} /></label><div><label htmlFor="login-password" className="mb-1 block text-sm">Senha</label><PasswordInput id="login-password" className="p-3 pr-12" value={password} autoComplete="current-password" onChange={(e) => setPassword(e.target.value)} /></div><button type="submit" disabled={!username.trim() || !password || login.isPending} className="w-full rounded-xl bg-primary p-3 font-semibold text-white disabled:opacity-40">Entrar</button></form> : <><p className="text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-500">
             {selected ? `Olá, ${selected.name}` : "Acesso por PIN"}
           </p>
@@ -132,19 +126,19 @@ export default function Login() {
           </>}
           <div className="mt-4 flex flex-wrap justify-between gap-3 text-sm">
             <button type="button" onClick={() => setHelp("register")} className="text-primary hover:underline" data-testid="register-user-link">Cadastrar usuário</button>
-            <button type="button" onClick={() => setHelp("forgot")} className="text-zinc-300 hover:underline" data-testid="forgot-password-link">Esqueceu a senha?</button>
+            <button type="button" onClick={() => setHelp("forgot")} className="text-muted-foreground hover:underline" data-testid="forgot-password-link">Esqueceu a senha?</button>
           </div>
-          {help && <div role="dialog" aria-label={help === "register" ? "Cadastrar usuário" : "Recuperar acesso"} className="mt-4 rounded-xl border border-white/15 bg-elevated p-4 text-sm text-zinc-300">
+          {help && <div role="dialog" aria-label={help === "register" ? "Cadastrar usuário" : "Recuperar acesso"} className="mt-4 rounded-xl border border-border bg-elevated p-4 text-sm text-muted-foreground">
             <p className="font-semibold text-white">{help === "register" ? "Cadastro de usuários" : "Esqueceu a senha?"}</p>
             <p className="mt-2">{help === "register"
               ? "Por segurança, somente um administrador pode cadastrar usuários. Entre com uma conta de administrador para abrir o cadastro de funcionários."
               : "Solicite ao administrador do Apollo a redefinição da sua senha na tela Funcionários > Editar. Se você é o único administrador, o responsável pelo servidor pode recuperar a sua conta pelo terminal com python first_run.py --list-admins e python first_run.py --recover ID. No primeiro acesso, o comando python first_run.py configura o administrador somente se ainda não houver um cadastrado."}</p>
-            <div className="mt-3 flex gap-3">
+            <div className="mt-3 flex flex-wrap gap-3">
               {help === "register" && <button type="button" className="rounded-lg bg-primary px-3 py-2 font-medium text-white" onClick={() => { setRegisterAfterLogin(true); setMode("password"); setHelp(null); }}>Entrar como administrador</button>}
-              <button type="button" className="rounded-lg border border-white/20 px-3 py-2" onClick={() => setHelp(null)}>Fechar</button>
+              <button type="button" className="rounded-lg border border-border px-3 py-2" onClick={() => setHelp(null)}>Fechar</button>
             </div>
           </div>}
-          <label className="mt-5 flex cursor-pointer items-center gap-2 text-sm text-zinc-400"><input type="checkbox" checked={rememberOperator} onChange={(e) => { const value = e.target.checked; setRememberOperator(value); localStorage.setItem("apollo-remember-operator", String(value)); if (!value) { localStorage.removeItem("apollo-last-operator-id"); localStorage.removeItem("apollo-login-username"); } }} /> Lembrar meu usuário neste dispositivo (não salva PIN)</label>
+          <label className="mt-5 flex cursor-pointer items-center gap-2 text-sm text-zinc-400"><input type="checkbox" checked={rememberOperator} onChange={(e) => { const value = e.target.checked; setRememberOperator(value); localStorage.setItem("apollo-remember-operator", String(value)); if (!value) { localStorage.removeItem("apollo-last-operator-id"); localStorage.removeItem("apollo-login-username"); } }} /> Lembrar usuário neste dispositivo</label>
           {mode === "pin" && <button
             type="button"
             onClick={() => submit()}
@@ -168,7 +162,7 @@ function Key({ children, onClick, testid, muted }: { children: React.ReactNode; 
       onClick={onClick}
       data-testid={testid}
       className={cn(
-        "h-16 rounded-2xl border border-white/8 font-mono text-2xl transition-[background-color,transform] duration-100 active:scale-95",
+        "h-12 rounded-xl sm:h-14 border border-white/8 font-mono text-2xl transition-[background-color,transform] duration-100 active:scale-95",
         muted ? "bg-transparent text-zinc-400 hover:bg-white/5" : "bg-elevated text-white hover:bg-white/10",
       )}
     >

@@ -165,16 +165,19 @@ function Categorias({ cats }: { cats: Category[] }) {
           </div>
         ))}
       </div>
-      <div className="space-y-3 rounded-2xl border border-white/5 bg-panel p-4">
-        <p className="text-sm font-medium text-white">Nova categoria</p>
+      <form className="space-y-3 rounded-2xl border border-border bg-panel p-4" onSubmit={(event) => {
+        event.preventDefault();
+        if (name.trim() && !create.isPending) create.mutate({ name: name.trim(), station, sort: cats.length });
+      }}>
+        <p className="text-sm font-medium text-foreground">Nova categoria</p>
         <Label htmlFor="category-name">Nome</Label>
         <Input id="category-name" placeholder="Nome da categoria" value={name} onChange={(e) => setName(e.target.value)} data-testid="category-name-input" />
         <Select value={station} onValueChange={(v: string) => setStation(v as Station)}>
           <SelectTrigger className="w-full" data-testid="category-station-select"><SelectValue>{(v) => envName(envs.data, v as string)}</SelectValue></SelectTrigger>
           <SelectContent>{(envs.data ?? []).map((e) => <SelectItem key={e.key} value={e.key}>{e.name}</SelectItem>)}</SelectContent>
         </Select>
-        <Button className="w-full" disabled={!name.trim() || create.isPending} onClick={() => create.mutate({ name: name.trim(), station, sort: cats.length })} data-testid="category-save-button">Salvar</Button>
-      </div>
+        <Button type="submit" className="h-11 w-full" disabled={!name.trim() || create.isPending} data-testid="category-save-button">{create.isPending ? "Salvando…" : "Salvar categoria"}</Button>
+      </form>
     </div>
   );
 }
@@ -395,7 +398,7 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
       {invalidAmounts && <p className="text-sm text-amber-300">Informe um preço válido. Preço e custo devem ser zero ou maiores.</p>}
       {invalidOptions && <p role="alert" className="text-sm text-amber-300">Revise Complementos e Perguntas. Cada grupo precisa de nome e de pelo menos uma opção com nome e preço válido.</p>}
       {copySource && <p className="text-sm text-zinc-400">A cópia começa inativa e com o código em branco. Revise antes de salvar.</p>}
-      <Button className="mt-2" disabled={!f.name.trim() || !categoryExists || invalidAmounts || invalidOptions || uploading || save.isPending} onClick={() => save.mutate({ ...f, name: f.name.trim(), code: f.code.trim(), price, cost_price: manualCost })} data-testid="product-save-button">Salvar produto</Button>
+      <Button className="mt-2 h-11" disabled={!f.name.trim() || !categoryExists || invalidAmounts || invalidOptions || uploading || save.isPending} onClick={() => save.mutate({ ...f, name: f.name.trim(), code: f.code.trim(), price, cost_price: manualCost })} data-testid="product-save-button">{save.isPending ? "Salvando…" : "Salvar produto"}</Button>
     </>
   );
 }
