@@ -136,9 +136,9 @@ function MenuPreferences({ items, operatorId }: { items: NavItem[]; operatorId: 
         <Settings className="size-4 shrink-0" aria-hidden="true" /> Personalizar menu
       </Button>
       <Dialog open={editing} onOpenChange={setEditing}>
-        <DialogContent>
+        <DialogContent className="flex max-h-[90dvh] flex-col overflow-hidden">
           <DialogTitle>Atalhos do meu menu</DialogTitle>
-          <div className="grid gap-3">
+          <div data-testid="menu-preferences-options" className="grid min-h-0 gap-3 overflow-y-auto overscroll-contain pr-1">
             {RIBBON_GROUPS.map(({ label: group }) => {
               const groupItems = items.filter((item) => ribbonGroup(item) === group);
               return groupItems.length > 0 && <fieldset key={group} className="grid gap-1">
