@@ -53,6 +53,10 @@ export default function Cardapio() {
             <div className="mt-4 flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => call.mutate("garcom")} data-testid="public-call-waiter"><Bell className="size-4" /> Chamar garçom</Button>
               <Button variant="outline" size="sm" onClick={() => setCartOpen(true)} data-testid="public-order-table"><ShoppingCart className="size-4" /> Pedir pela mesa</Button>
+              <Button variant="outline" size="sm" aria-expanded={showPreparation} aria-controls="public-preparation-status"
+                onClick={() => setShowPreparation((visible) => !visible)} data-testid="public-track-preparation">
+                <ChefHat className="size-4" /> {showPreparation ? "Ocultar preparo" : "Acompanhar preparo"}
+              </Button>
               <Button variant="outline" size="sm" onClick={() => { setShowConsumed(!showConsumed); void table.refetch(); }} data-testid="public-view-consumed"><ListChecks className="size-4" /> Ver o que consumiu</Button>
               <Button variant="outline" size="sm" onClick={() => setShowSplit(!showSplit)} data-testid="public-split-bill"><Receipt className="size-4" /> Dividir conta</Button>
               <Button variant="outline" size="sm" onClick={() => call.mutate("conta")} data-testid="public-request-bill"><Receipt className="size-4" /> Pedir a conta</Button>
@@ -96,7 +100,7 @@ export default function Cardapio() {
             </section>
           )}
           {t && showPreparation && (
-            <section className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4" data-testid="public-preparation-status">
+            <section id="public-preparation-status" className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4" data-testid="public-preparation-status">
               <p className="font-semibold text-white">Acompanhamento dos pedidos</p>
               {preparation.isError && <p className="mt-2 text-sm text-red-300">Não foi possível atualizar o preparo. Tente novamente.</p>}
               {preparation.isLoading && <p className="mt-2 text-sm text-zinc-400">Consultando cozinha e bar…</p>}
