@@ -84,7 +84,7 @@ export default function Mesas() {
   const [creating, setCreating] = useState(false);
   const all = tables.isError ? [] : tables.data ?? [];
   const list = all.filter((t) => {
-    if (t.kind !== kind) return false;
+    if (t.kind !== kind && !(mobileMode && mobileSection === "fechar")) return false;
     if (mobileMode && mobileSection === "fechar" && t.status !== "ocupada" && t.status !== "conta") return false;
     if (!mobileMode) {
       const term = desktopSearch.trim().toLocaleLowerCase("pt-BR");
@@ -121,11 +121,11 @@ export default function Mesas() {
       <PageHeader title={queueView ? "Fila de Atendimento" : mobileMode ? "Comanda Mobile" : "Mesas & Comandas"} subtitle={mobileMode ? "Atendimento do garçom · selecione a mesa para lançar pedidos e acompanhar o consumo" : "Toque em uma mesa ou comanda para lançar itens no celular ou tablet"} actions={
         <>
           {mobileMode ? <nav aria-label="Atendimento do garçom" className="grid w-full grid-cols-3 gap-1 rounded-xl border border-border p-1" data-testid="waiter-mobile-navigation">
-            {([["mesa", "Mesas"], ["comanda", "Comandas"], ["fechar", "Fechar conta"]] as const).map(([section, label]) => <button key={section} type="button" aria-current={mobileSection === section ? "page" : undefined} className={cn("min-h-12 rounded-lg px-2 text-sm font-semibold", mobileSection === section ? "bg-primary text-white" : "bg-muted text-foreground")} onClick={() => { setMobileSection(section); setKind(section === "comanda" ? "comanda" : "mesa"); setMobileFilter("todas"); }} data-testid={`waiter-tab-${section}`}>{label}</button>)}
+            {([["mesa", "Mesas"], ["comanda", "Comandas"], ["fechar", "Fechar conta"]] as const).map(([section, label]) => <button key={section} type="button" aria-current={mobileSection === section ? "page" : undefined} className={cn("min-h-12 rounded-lg px-2 text-sm font-semibold", mobileSection === section ? "bg-primary text-white" : "bg-muted text-foreground")} onClick={() => { setMobileSection(section); setKind(section === "comanda" ? "comanda" : "mesa"); setMobileFilter("todas"); setMobileSearch(""); }} data-testid={`waiter-tab-${section}`}>{label}</button>)}
           </nav> : <div className="flex gap-1 rounded-xl border border-white/8 p-1">
             {(["mesa", "comanda"] as const).map((k) => <button key={k} type="button" onClick={() => setKind(k)} data-testid={`kind-tab-${k}`} className={cn("rounded-lg px-4 py-1.5 text-sm", kind === k ? "bg-primary text-white" : "text-zinc-400 hover:text-white")}>{k === "mesa" ? "Mesas" : "Comandas"} ({all.filter((t) => t.kind === k).length})</button>)}
           </div>}
-          {canCreate && (
+          {canCreate && (!mobileMode || mobileSection !== "fechar") && (
             <Button onClick={() => setCreating(true)} data-testid="new-table-open-button"><Plus className="size-4" /> Nova {kind === "mesa" ? "mesa" : "comanda"}</Button>
           )}
         </>
@@ -142,7 +142,7 @@ export default function Mesas() {
           <p className="mt-2 text-xs text-zinc-400">Abra a mesa e selecione “Dividir conta por itens” para conferir a solicitação.</p>
         </div>
       )}
-      {mobileMode && mobileSection === "fechar" && <p role="status" className="mb-3 rounded-xl border border-border bg-muted p-3 text-sm" data-testid="waiter-close-guidance">Selecione uma mesa para conferir a pré-conta e solicitar o fechamento. O recebimento e a baixa financeira continuam autorizados somente ao caixa.</p>}
+      {mobileMode && mobileSection === "fechar" && <p role="status" className="mb-3 rounded-xl border border-border bg-muted p-3 text-sm" data-testid="waiter-close-guidance">Selecione uma mesa ou comanda para conferir a pré-conta e solicitar o fechamento. O recebimento e a baixa financeira continuam autorizados somente ao caixa.</p>}
       {mobileMode && showReady && ready.length > 0 && (
         <div role="status" className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4" data-testid="mobile-ready-orders">
           <p className="font-semibold text-emerald-300">Pedidos prontos para entregar ({ready.length}){myReady.length > 0 && ` · ${myReady.length} de suas mesas`}</p>
@@ -229,7 +229,7 @@ export default function Mesas() {
           </div>
         </section>
       ))}
-      {canCreate && !tables.isError && list.length > 0 && (
+      {canCreate && (!mobileMode || mobileSection !== "fechar") && !tables.isError && list.length > 0 && (
         <button type="button" onClick={() => setCreating(true)} data-testid="add-more-tile"
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 py-5 text-sm text-zinc-400 transition-colors duration-150 hover:border-primary/50 hover:text-white">
           <Plus className="size-4" /> Adicionar mais {kind === "mesa" ? "mesas" : "comandas"}
