@@ -44,34 +44,54 @@ export default function Impressao() {
     if (!pr) throw new Error(`Cadastre uma impressora ativa para ${envName(envs.data, station)}`);
     if (isDesktop() && !pr.device_name) throw new Error(`Selecione a impressora Windows para ${envName(envs.data, station)}`);
     await printHtml(ticketHtml(t, station, envName(envs.data, station), pr?.paper), pr?.copies ?? 1, pr);
-    await apiPost<KitchenTicket>(`/kds/tickets/${t.id}/printed`, { station });
+    const confirmed = await apiPost<KitchenTicket>(`/kds/tickets/${t.id}/printed`, { station });
+    queryClient.setQueriesData<KitchenTicket[]>({ queryKey: ["print-queue"] },
+      (tickets) => tickets?.map((ticket) => ticket.id === confirmed.id ? confirmed : ticket));
     setLog((l) => [{ id: `${t.id}-${station}-${Date.now()}`, text: `${envName(envs.data, station)} · ${t.label} (#${t.order_number})${pr ? ` → ${pr.name}` : ""}`, at: new Date().toISOString() }, ...l].slice(0, 30));
   };
 
-  const latest = useRef({ printOne, autoKeys });
-  latest.current = { printOne, autoKeys };
+  const latest = useRef({ printOne, autoKeys, auto: cfg.auto });
+  latest.current = { printOne, autoKeys, auto: cfg.auto };
   useEffect(() => {
     if (!cfg.auto || !queue.data?.length || busy.current) return;
-    const { printOne: print, autoKeys: keys } = latest.current;
     busy.current = true;
     void (async () => {
       try {
         for (const t of queue.data) {
-          const pending = [...new Set(t.items.filter((i) => keys.includes(i.station) && i.print_ticket !== false).map((i) => i.station))].filter((s) => !t.printed.includes(s));
-          for (const s of pending) await print(t, s);
+          const pending = new Set(t.items.filter((item) => item.print_ticket !== false).map((item) => item.station));
+          for (const station of pending) {
+            const current = latest.current;
+            if (!current.auto) return;
+            if (current.autoKeys.includes(station) && !t.printed.includes(station)) {
+              await current.printOne(t, station);
+            }
+          }
         }
-      } catch (err) { console.error("Auto print failed:", err); toast.error(err instanceof Error ? err.message : "Falha ao imprimir um ticket"); }
-      finally { busy.current = false; void queryClient.invalidateQueries({ queryKey: ["print-queue"] }); void queryClient.invalidateQueries({ queryKey: ["print-recent"] }); }
+      } catch (err) {
+        // A print may have reached the printer even if confirming it to the server failed.
+        latest.current.auto = false;
+        setCfg((current) => ({ ...current, auto: false }));
+        toast.error(err instanceof Error ? err.message : "Falha ao imprimir um ticket");
+        toast.message("Impressão automática pausada. Confira o ticket antes de retomar.");
+      } finally {
+        busy.current = false;
+        void queryClient.invalidateQueries({ queryKey: ["print-recent"] });
+      }
     })();
   }, [queue.data, cfg.auto]);
 
+  const toggleAuto = () => {
+    const auto = !latest.current.auto;
+    latest.current.auto = auto;
+    setCfg((current) => ({ ...current, auto }));
+  };
   const toggleStation = (k: string) => setCfg((c) => ({ ...c, stations: c.stations.includes(k) ? c.stations.filter((x) => x !== k) : [...c.stations, k] }));
 
   return (
     <AppShell roles={["caixa", "cozinha", "garcom"]}>
       <PageHeader title="Central de Impressão" subtitle="Deixe esta tela aberta no computador ligado à impressora: cada pedido novo sai impresso no ambiente certo"
         actions={
-          <Button onClick={() => setCfg((c) => ({ ...c, auto: !c.auto }))} disabled={!cfg.auto && !autoKeys.length} variant={cfg.auto ? "outline" : "default"} data-testid="print-auto-toggle">
+          <Button onClick={toggleAuto} disabled={!cfg.auto && !autoKeys.length} variant={cfg.auto ? "outline" : "default"} data-testid="print-auto-toggle">
             {cfg.auto ? <><Pause className="size-4" /> Pausar impressão automática</> : <><Play className="size-4" /> Ligar impressão automática</>}
           </Button>
         } />
