@@ -23,7 +23,9 @@ def secure_hash_pin(pin: str) -> str:
     return bcrypt.hashpw(pin.encode(), bcrypt.gensalt(rounds=12)).decode()
 
 
-def verify_pin(pin: str, stored: str) -> bool:
+def verify_pin(pin: str, stored: str | None) -> bool:
+    if not isinstance(stored, str) or not stored:
+        return False
     if stored.startswith(("$2a$", "$2b$", "$2y$")):
         try:
             return bcrypt.checkpw(pin.encode(), stored.encode())
@@ -105,8 +107,15 @@ async def find_employee_by_pin(pin: str, active_only: bool = True, *, employee_i
     legacy = await db.employees.find_one({**query, "pin_hash": hash_pin(pin)}, {"_id": 0})
     if legacy:
         new_hash = secure_hash_pin(pin)
-        await db.employees.update_one({"id": legacy["id"], "pin_hash": legacy["pin_hash"]}, {"$set": {"pin_hash": new_hash}})
-        return {**legacy, "pin_hash": new_hash}
+        identity = {**query, "id": legacy["id"]}
+        upgraded = await db.employees.update_one(
+            {**identity, "pin_hash": legacy["pin_hash"]}, {"$set": {"pin_hash": new_hash}},
+        )
+        if upgraded.matched_count:
+            return {**legacy, "pin_hash": new_hash}
+        # Another login can upgrade this PIN, or an administrator can replace it.
+        current = await db.employees.find_one(identity, {"_id": 0})
+        return current if current and verify_pin(pin, current.get("pin_hash")) else None
     async for emp in db.employees.find(query, {"_id": 0}):
         if verify_pin(pin, emp.get("pin_hash", "")):
             return emp

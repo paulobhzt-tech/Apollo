@@ -19,6 +19,7 @@ def test_legacy_pin_is_accepted_for_migration():
 
 def test_malformed_hash_rejected():
     assert not verify_pin("749216", "not-a-valid-hash")
+    assert not verify_pin("749216", None)
 
 
 import pytest
@@ -72,3 +73,22 @@ async def test_pin_only_operator_can_authenticate_without_password_reset(monkeyp
     result = await auth_router.login(LoginIn(pin="459142"), response, request)
     assert result == {"id": "operator-test", "name": "Operador de teste"}
     assert "HttpOnly" in response.headers["set-cookie"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("current_pin", ["749216", "649217"])
+async def test_legacy_pin_is_rechecked_after_concurrent_credential_change(monkeypatch, current_pin):
+    from types import SimpleNamespace
+    from lib import auth
+
+    before = {"id": "test", "active": True, "pin_hash": auth.hash_pin("749216")}
+    current = {**before, "pin_hash": auth.secure_hash_pin(current_pin)}
+    employees = SimpleNamespace(
+        find_one=AsyncMock(side_effect=[before, current]),
+        update_one=AsyncMock(return_value=SimpleNamespace(matched_count=0)),
+    )
+    monkeypatch.setattr(auth, "db", SimpleNamespace(employees=employees))
+    assert await auth.find_employee_by_pin("749216", employee_id="test") == (
+        current if current_pin == "749216" else None
+    )
+    assert employees.find_one.await_args.args[0] == {"id": "test", "active": True}
