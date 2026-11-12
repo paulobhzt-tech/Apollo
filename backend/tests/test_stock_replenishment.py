@@ -162,3 +162,13 @@ async def test_fractional_reversal_restores_original_lot_by_reference(monkeypatc
     assert trail.find.call_args.args[0] == {"ingredient_id": "ingredient", "stock_ref": "batch"}
     assert trail.update_one.call_args.args[0]["restored_qty"] == {"$exists": False}
     purchases.update_one.assert_awaited_once_with({"id": "lot"}, {"$inc": {"remaining_qty": 0.125}})
+
+
+def test_maximum_caps_replenishment_and_excess_is_reported():
+    from routers.catalog import stock_alerts
+
+    low = {**ingredient(stock=2, minimum=5), "max_stock": 7}
+    assert catalog.replenishment_plan([low], target_multiplier=2)["items"][0]["suggested"] == 5
+    excess = {**low, "stock": 8}
+    assert stock_alerts([excess])[0]["severity"] == "excesso"
+    assert stock_alerts([excess])[0]["excess"] == 1

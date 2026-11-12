@@ -362,6 +362,14 @@ def stock_alerts(ingredients: list[dict]) -> list[dict]:
                 "severity": "sem_estoque" if stock <= 0 else "baixo",
                 "estimated_minimum_cost": round(max(0, minimum - stock) * float(ing.get("cost_per_unit") or 0), 2),
             })
+        maximum = ing.get("max_stock")
+        if maximum is not None and stock > maximum:
+            alerts.append({
+                "ingredient_id": ing["id"], "name": ing["name"], "unit": ing.get("unit", ""),
+                "stock": round(stock, 4), "min_stock": round(minimum, 4), "max_stock": maximum,
+                "missing_to_min": 0, "excess": round(stock - maximum, 4),
+                "severity": "excesso", "estimated_minimum_cost": 0,
+            })
     return sorted(alerts, key=lambda a: (a["severity"] != "sem_estoque", a["name"].casefold()))
 
 
@@ -371,8 +379,60 @@ async def inventory_alerts(_: dict = Depends(require("caixa", "cozinha"))):
     alerts = stock_alerts(ingredients)
     return {"total": len(alerts), "out_of_stock": sum(a["severity"] == "sem_estoque" for a in alerts),
             "low_stock": sum(a["severity"] == "baixo" for a in alerts),
+            "overstock": sum(a["severity"] == "excesso" for a in alerts),
             "estimated_minimum_cost": round(sum(a["estimated_minimum_cost"] for a in alerts), 2),
             "items": alerts}
+
+
+@router.get("/inventory/reconciliation")
+async def inventory_reconciliation(_: dict = Depends(require())):
+    """Read-only evidence for administrative review; never link or adjust a lot here."""
+    legacy = await db.lot_consumptions.find(
+        {"stock_ref": {"$in": [None, ""]}},
+        {"_id": 0, "purchase_id": 1, "ingredient_id": 1, "lot_number": 1, "qty": 1,
+         "restored_qty": 1, "created_at": 1},
+    ).sort("created_at", -1).to_list(101)
+    pending = await db.orders.find(
+        {"status": "pago", "stock_completion": "pending"},
+        {"_id": 0, "id": 1, "number": 1, "paid_at": 1},
+    ).sort("paid_at", -1).to_list(101)
+    balances = await db.purchases.aggregate([
+        {"$match": {"remaining_qty": {"$gt": 0}}},
+        {"$group": {"_id": "$ingredient_id", "tracked": {"$sum": "$remaining_qty"}}},
+        {"$lookup": {"from": "ingredients", "localField": "_id", "foreignField": "id", "as": "ingredient"}},
+        {"$set": {"stock": {"$ifNull": [{"$arrayElemAt": ["$ingredient.stock", 0]}, 0]},
+                  "name": {"$arrayElemAt": ["$ingredient.name", 0]}}},
+        {"$set": {"difference": {"$round": [{"$subtract": ["$tracked", "$stock"]}, 4]}}},
+        {"$match": {"difference": {"$gt": 0}}},
+        {"$sort": {"difference": -1, "_id": 1}},
+        {"$limit": 101},
+        {"$project": {"_id": 0, "ingredient_id": "$_id", "name": 1, "stock": 1, "tracked": 1, "difference": 1}},
+    ]).to_list(101)
+    return {"legacy_lots": legacy[:100], "pending_sales": pending[:100], "lot_excess": balances[:100],
+            "truncated": any(len(rows) > 100 for rows in (legacy, pending, balances))}
+
+
+@router.get("/inventory/movement-report")
+async def inventory_movement_report(days: int = Query(default=30, ge=1, le=90), _: dict = Depends(require("caixa"))):
+    end = now()
+    date_range = {"$gte": end - timedelta(days=days), "$lte": end}
+    movements = await db.stock_moves.aggregate([
+        {"$match": {"created_at": date_range}},
+        {"$group": {"_id": {"ingredient_id": "$ingredient_id", "type": "$type"},
+                    "name": {"$first": "$ingredient_name"}, "quantity": {"$sum": "$qty"},
+                    "count": {"$sum": 1}, "recorded_cost": {"$sum": "$cost_total"}}},
+        {"$sort": {"name": 1, "_id.type": 1, "_id.ingredient_id": 1}}, {"$limit": 1001},
+        {"$project": {"_id": 0, "ingredient_id": "$_id.ingredient_id", "type": "$_id.type",
+                      "name": 1, "quantity": {"$round": ["$quantity", 4]}, "count": 1,
+                      "recorded_cost": {"$round": ["$recorded_cost", 2]}}},
+    ]).to_list(1001)
+    purchases = await db.purchases.aggregate([
+        {"$match": {"created_at": date_range}},
+        {"$group": {"_id": None, "count": {"$sum": 1}, "cost": {"$sum": "$total_cost"}}},
+        {"$project": {"_id": 0, "count": 1, "cost": {"$round": ["$cost", 2]}}},
+    ]).to_list(1)
+    return {"days": days, "movements": movements[:1000], "truncated": len(movements) > 1000,
+            "purchases": purchases[0] if purchases else {"count": 0, "cost": 0}}
 
 
 def replenishment_plan(ingredients: list[dict], target_multiplier: int = 2) -> dict:
@@ -392,6 +452,9 @@ def replenishment_plan(ingredients: list[dict], target_multiplier: int = 2) -> d
         if stock > 0 and (minimum == 0 or stock >= minimum):
             continue
         target = minimum * target_multiplier if minimum > 0 else None
+        maximum = ing.get("max_stock")
+        if target is not None and maximum is not None and math.isfinite(maximum) and maximum >= minimum:
+            target = min(target, maximum)
         if target is not None and not math.isfinite(target - stock):
             continue
         suggested = max(0, target - stock) if target is not None else None
@@ -420,7 +483,7 @@ def replenishment_plan(ingredients: list[dict], target_multiplier: int = 2) -> d
 async def inventory_replenishment(target_multiplier: int = Query(default=2, ge=1, le=3),
                                   _: dict = Depends(require("caixa", "cozinha"))):
     ingredients = await db.ingredients.find({}, {"_id": 0, "id": 1, "name": 1, "unit": 1,
-                                                "stock": 1, "min_stock": 1, "cost_per_unit": 1}).to_list(5000)
+                                                "stock": 1, "min_stock": 1, "max_stock": 1, "cost_per_unit": 1}).to_list(5000)
     return replenishment_plan(ingredients, target_multiplier)
 
 

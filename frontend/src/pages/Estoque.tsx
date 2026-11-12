@@ -240,12 +240,73 @@ function ConsumptionForecastPanel() {
   </details>;
 }
 
+interface InventoryReview {
+  legacy_lots: { purchase_id: string; ingredient_id: string; lot_number?: string; qty: number; restored_qty?: number; created_at: string }[];
+  pending_sales: { id: string; number: number; paid_at: string }[];
+  lot_excess: { ingredient_id: string; name?: string; tracked: number; stock: number; difference: number }[];
+  truncated: boolean;
+}
+
+function InventoryReports({ isAdmin }: { isAdmin: boolean }) {
+  const [days, setDays] = useState(30);
+  const movement = useQuery({
+    queryKey: ["inventory-movement-report", days],
+    queryFn: () => apiGet<{ movements: { ingredient_id: string; name: string; type: StockMove["type"]; quantity: number; count: number; recorded_cost: number }[];
+      purchases: { count: number; cost: number }; truncated: boolean }>(`/inventory/movement-report?days=${days}`),
+  });
+  const review = useQuery({
+    queryKey: ["inventory-reconciliation"],
+    queryFn: () => apiGet<InventoryReview>("/inventory/reconciliation"), enabled: isAdmin,
+  });
+  return <div className="space-y-4">
+    <div className="space-y-3 rounded-xl border border-white/10 bg-panel p-4">
+      <label className="flex flex-wrap items-center gap-2 text-sm">Período
+        <select value={days} onChange={(event) => setDays(Number(event.target.value))} className="rounded border border-white/15 bg-background p-2">
+          {[7, 30, 90].map((period) => <option key={period} value={period}>{period} dias</option>)}
+        </select>
+      </label>
+      {movement.isPending && <p role="status">Carregando movimentações…</p>}
+      {movement.isError && <p role="alert">Não foi possível carregar o relatório de movimentações.</p>}
+      {movement.data && <>
+        <p className="text-sm">{movement.data.purchases.count} compra(s) · {brl(movement.data.purchases.cost)}</p>
+        {movement.data.truncated && <p className="text-xs text-amber-300">Exibindo até mil combinações de item e tipo. Reduza o período para detalhar.</p>}
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader><TableRow><TableHead>Item</TableHead><TableHead>Tipo</TableHead><TableHead>Quantidade</TableHead><TableHead>Registros</TableHead><TableHead>Custo registrado</TableHead></TableRow></TableHeader>
+            <TableBody>{movement.data.movements.map((row) => <TableRow key={`${row.ingredient_id}:${row.type}`}>
+              <TableCell>{row.name}</TableCell><TableCell>{MOVE_LABEL[row.type]}</TableCell><TableCell>{row.quantity.toLocaleString("pt-BR", { maximumFractionDigits: 4 })}</TableCell>
+              <TableCell>{row.count}</TableCell><TableCell>{row.recorded_cost ? brl(row.recorded_cost) : "—"}</TableCell>
+            </TableRow>)}</TableBody>
+          </Table>
+        </div>
+      </>}
+    </div>
+    {isAdmin && <section className="space-y-3 rounded-xl border border-white/10 bg-panel p-4">
+      <h3 className="font-semibold">Conferência de estoque</h3>
+      {review.isPending && <p role="status">Consultando inconsistências…</p>}
+      {review.isError && <p role="alert">Não foi possível carregar a conferência.</p>}
+      {review.data && <>
+        {review.data.truncated && <p className="text-xs text-amber-300">Amostra limitada a 100 registros por categoria.</p>}
+        <details><summary>Vendas pagas com baixa pendente ({review.data.pending_sales.length})</summary>
+          <ul className="space-y-1 text-sm">{review.data.pending_sales.map((sale) => <li key={sale.id}>Pedido #{sale.number} · {fmtDateTime(sale.paid_at)}</li>)}</ul>
+        </details>
+        <details><summary>Itens com saldo dos lotes acima do estoque ({review.data.lot_excess.length})</summary>
+          <ul className="space-y-1 text-sm">{review.data.lot_excess.map((lot) => <li key={lot.ingredient_id}>{lot.name ?? lot.ingredient_id} · lotes {lot.tracked} · saldo {lot.stock}</li>)}</ul>
+        </details>
+        <details><summary>Baixas históricas sem referência de venda ({review.data.legacy_lots.length})</summary>
+          <ul className="space-y-1 text-sm">{review.data.legacy_lots.map((lot, index) => <li key={index}>{fmtDateTime(lot.created_at)} · lote {lot.lot_number || lot.purchase_id} · baixa {lot.qty} · devolvido {lot.restored_qty ?? 0}</li>)}</ul>
+        </details>
+      </>}
+    </section>}
+  </div>;
+}
+
 export default function Estoque() {
   const { data: me } = useMe();
   const [targetMultiplier, setTargetMultiplier] = useState("2");
   const replenishment = useQuery({ queryKey: ["inventory-replenishment", targetMultiplier], queryFn: () => apiGet<ReplenishmentPlan>(`/inventory/replenishment?target_multiplier=${targetMultiplier}`), refetchInterval: 15000 });
   const ings = useQuery({ queryKey: ["ingredients"], queryFn: () => apiGet<Ingredient[]>("/ingredients"), refetchInterval: 15000 });
-  const alerts = useQuery({ queryKey: ["inventory-alerts"], queryFn: () => apiGet<{ total: number; out_of_stock: number; low_stock: number; estimated_minimum_cost: number }>("/inventory/alerts"), refetchInterval: 15000 });
+  const alerts = useQuery({ queryKey: ["inventory-alerts"], queryFn: () => apiGet<{ total: number; out_of_stock: number; low_stock: number; overstock?: number; estimated_minimum_cost: number }>("/inventory/alerts"), refetchInterval: 15000 });
   const moves = useQuery({ queryKey: ["stock-moves"], queryFn: () => apiGet<StockMove[]>("/stock/moves") });
   const batches = useQuery({ queryKey: ["production-batches"], queryFn: () => apiGet<ProductionBatch[]>("/production/batches") });
   const products = useQuery({ queryKey: ["products"], queryFn: () => apiGet<Product[]>("/products") });
@@ -253,6 +314,7 @@ export default function Estoque() {
   const [moving, setMoving] = useState<Ingredient | null>(null);
   const list = ings.data ?? [];
   const low = list.filter((i) => i.stock <= 0 || (i.min_stock > 0 && i.stock < i.min_stock)).sort((a, b) => a.stock / a.min_stock - b.stock / b.min_stock);
+  const overstock = list.filter((item) => item.max_stock != null && item.stock > item.max_stock);
   const shopping = replenishment.data?.items ?? [];
   const shoppingText = shopping.map((i) => `${i.name}: ${i.suggested === null ? "definir estoque mínimo" : `planejar ${i.suggested.toFixed(4)} ${i.unit}`} (atual ${i.stock}, mínimo ${i.min_stock})${i.review_required ? " · conferir saldo/mínimo" : ""}`).join("\n");
   const losses = (moves.data ?? []).filter((m) => m.type === "perda");
@@ -270,6 +332,10 @@ export default function Estoque() {
         <div className="rounded-2xl border border-red-400/20 bg-red-400/5 p-4"><p className="text-[11px] uppercase tracking-[0.15em] text-red-300">Reposição urgente</p><p className="mt-1 font-mono text-2xl text-red-200" data-testid="stock-low-count">{low.length}</p></div>
       </div>
       {alerts.data && alerts.data.total > 0 && <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/5 p-3 text-sm" data-testid="inventory-alert-summary"><strong className="text-red-200">Alertas de estoque:</strong> {alerts.data.out_of_stock} sem estoque · {alerts.data.low_stock} abaixo do mínimo · Custo estimado para atingir os mínimos: <strong>{brl(alerts.data.estimated_minimum_cost)}</strong></div>}
+      {overstock.length > 0 && <details className="mb-4 rounded-xl border border-amber-400/25 bg-amber-400/5 p-3 text-sm">
+        <summary>{overstock.length} item(ns) acima do estoque máximo</summary>
+        <ul className="mt-2 space-y-1">{overstock.map((item) => <li key={item.id}>{item.name} · saldo {item.stock} {item.unit} · máximo {item.max_stock} {item.unit}</li>)}</ul>
+      </details>}
       {replenishment.isError && <p role="alert" className="mb-4 text-sm text-amber-300">Não foi possível carregar o planejamento de reposição. Confira a conexão e tente novamente.</p>}
       {shopping.length > 0 && <div className="mb-4 rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4" data-testid="stock-shopping-list">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -284,7 +350,7 @@ export default function Estoque() {
       <ConsumptionForecastPanel />
       <div className="mb-4 rounded-2xl border border-white/5 bg-panel p-4"><p className="text-xs text-zinc-400">Prejuízo por perdas (últimas 300 movimentações)</p><p className="font-mono text-xl text-red-300">{brl(lossTotal)}</p><p className="text-xs text-zinc-500">{losses.length} ocorrências</p></div>
       <Tabs defaultValue="insumos">
-        <TabsList className="w-full flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto [&_[data-slot=tabs-trigger]]:h-8"><TabsTrigger value="insumos" data-testid="tab-insumos">Insumos</TabsTrigger><TabsTrigger value="movs" data-testid="tab-movimentacoes">Movimentações</TabsTrigger><TabsTrigger value="producao" data-testid="tab-producao">Produção por lote</TabsTrigger><TabsTrigger value="compras" data-testid="tab-compras">Compras e validade</TabsTrigger><TabsTrigger value="inventario" data-testid="tab-inventario">Inventário</TabsTrigger></TabsList>
+        <TabsList className="w-full flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto [&_[data-slot=tabs-trigger]]:h-8"><TabsTrigger value="insumos" data-testid="tab-insumos">Insumos</TabsTrigger><TabsTrigger value="movs" data-testid="tab-movimentacoes">Movimentações</TabsTrigger><TabsTrigger value="producao" data-testid="tab-producao">Produção por lote</TabsTrigger><TabsTrigger value="compras" data-testid="tab-compras">Compras e validade</TabsTrigger><TabsTrigger value="inventario" data-testid="tab-inventario">Inventário</TabsTrigger>{me?.role !== "cozinha" && <TabsTrigger value="relatorios">Relatórios</TabsTrigger>}</TabsList>
         <TabsContent value="insumos" className="mt-4">
           <div className="rounded-2xl border border-white/5 bg-panel">
             <Table>
@@ -312,6 +378,7 @@ export default function Estoque() {
             </Table>
           </div>
         </TabsContent>
+        {me?.role !== "cozinha" && <TabsContent value="relatorios" className="mt-4"><InventoryReports isAdmin={isAdmin} /></TabsContent>}
         <TabsContent value="inventario" className="mt-4"><InventoryPanel ingredients={list} onSaved={inv} /></TabsContent>
         <TabsContent value="compras" className="mt-4"><PurchasePanel ingredients={list} products={products.data ?? []} onSaved={inv} /></TabsContent>
         <TabsContent value="producao" className="mt-4 space-y-4"><ProductionBatchForm ingredients={list} products={products.data ?? []} onSaved={() => { void batches.refetch(); void ings.refetch(); void products.refetch(); }} /><div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Insumo</TableHead><TableHead>Tipo</TableHead><TableHead>Kg</TableHead><TableHead>Unidades</TableHead><TableHead>Rendimento</TableHead><TableHead>Custo total</TableHead><TableHead>Custo/un.</TableHead></TableRow></TableHeader><TableBody>{(batches.data ?? []).map((b) => <TableRow key={b.id}><TableCell>{fmtDateTime(b.created_at)}</TableCell><TableCell>{b.ingredient_name}</TableCell><TableCell>{b.production_type === "porcao" ? "Porções" : "Espetinhos"}</TableCell><TableCell>{b.kg}</TableCell><TableCell>{b.units}</TableCell><TableCell>{b.units_per_kg.toFixed(2)}</TableCell><TableCell>{brl(b.total_cost)}</TableCell><TableCell>{brl(b.cost_per_unit)}</TableCell></TableRow>)}</TableBody></Table></div></TabsContent>
