@@ -372,6 +372,8 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const [payOpen, setPayOpen] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [transferTo, setTransferTo] = useState("");
+  const transferTargets = tables.filter((target) => target.id !== table.id && target.status === "livre" && !target.order_id);
+  const transferTarget = transferTargets.find((target) => target.id === transferTo);
   const [mergeTo, setMergeTo] = useState("");
   const [preBill, setPreBill] = useState(false);
   const [partialOpen, setPartialOpen] = useState(false);
@@ -416,9 +418,9 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   });
   const clearCall = useMutation({ mutationFn: () => apiPost<Table>(`/tables/${table!.id}/clear-call`), onSuccess: invalidateTables });
   const transfer = useMutation({
-    mutationFn: () => apiPost<Table>(`/tables/${table!.id}/transfer`, { target_table_id: transferTo }),
-    onSuccess: (t) => { toast.success(`Transferida para ${tableLabel(t)}`); setTransferTo(""); invalidateTables(); onClose(); },
-    onError: onErr,
+    mutationFn: (targetId: string) => apiPost<Table>(`/tables/${table.id}/transfer`, { target_table_id: targetId }),
+    onSuccess: (t) => { toast.success(`Atendimento transferido para ${tableLabel(t)}`); setTransferTo(""); invalidateTables(); onClose(); },
+    onError: (error) => { onErr(error); invalidateTables(); },
   });
   const merge = useMutation({
     mutationFn: () => apiPost<Table>(`/tables/${table!.id}/merge`, { target_table_id: mergeTo }),
@@ -613,13 +615,17 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                   </div>
                   {["admin", "caixa"].includes(me?.role ?? "") && <Button className="mt-2 w-full" variant="outline" disabled={!!pending.length || !items.some((i) => !i.cancelled)} onClick={() => setPartialOpen(true)}>Dividir por cliente ou itens</Button>}
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <Select value={transferTo} onValueChange={(v: string) => setTransferTo(v)}>
+                    <Select value={transferTarget?.id ?? ""} onValueChange={(v: string) => setTransferTo(v)} disabled={!transferTargets.length || transfer.isPending}>
                       <SelectTrigger className="min-w-0 flex-1" data-testid="transfer-select"><SelectValue placeholder="Transferir para…">{(v) => v ? (() => { const x = tables.find((t) => t.id === v); return x ? tableLabel(x) : ""; })() : "Transferir para…"}</SelectValue></SelectTrigger>
                       <SelectContent>
-                        {tables.filter((t) => t.status === "livre").map((t) => <SelectItem key={t.id} value={t.id}>{tableLabel(t)}</SelectItem>)}
+                        {transferTargets.map((t) => <SelectItem key={t.id} value={t.id}>{tableLabel(t)}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" disabled={!!pending.length || transfer.isPending || !transferTo} onClick={() => transfer.mutate()} data-testid="transfer-button"><ArrowRightLeft className="size-4" /></Button>
+                    <Button variant="outline" disabled={!!pending.length || transfer.isPending || !transferTarget} onClick={() => {
+                      if (transferTarget && window.confirm(`Transferir o atendimento de ${tableLabel(table)} para ${tableLabel(transferTarget)}?`)) {
+                        transfer.mutate(transferTarget.id);
+                      }
+                    }} data-testid="transfer-button"><ArrowRightLeft className="size-4" /> Transferir</Button>
                   </div>
                   {(me?.role === "admin" || me?.role === "caixa") && <div className="mt-3 space-y-2 rounded-lg border border-white/10 p-3" data-testid="merge-tables-panel">
                     <p className="text-xs text-zinc-300">Juntar contas — escolha a mesa que receberá todos os itens</p>
