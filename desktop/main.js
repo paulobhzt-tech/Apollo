@@ -228,9 +228,16 @@ function createWindow() {
       buttons: ["Continuar no Apollo", notices.length ? "Fechar mesmo assim" : "Fechar Apollo"],
       defaultId: 0,
       cancelId: 0,
-    }).then(({ response }) => {
+    }).then(async ({ response }) => {
       if (response === 1 && !appWindow.isDestroyed()) {
         exitConfirmed = true;
+        try {
+          kvLoad()["apollo-operator-locked"] = "1";
+          kvSave();
+          await clearAuthCookie(appWindow.webContents.session);
+        } catch (error) {
+          console.error("Apollo: falha ao encerrar a sessão local", error.message);
+        }
         appWindow.close();
       }
     }).catch((error) => console.error("Apollo: falha ao confirmar fechamento", error.message))
@@ -307,6 +314,18 @@ function createWindow() {
     });
   }
   void openBest(process.env.PDV_SMOKE?.startsWith("offline"));
+}
+
+// At every installed-app launch, lock the renderer and remove only Apollo's
+// authentication cookie. Other server preferences and remembered usernames stay intact.
+async function clearAuthCookie(targetSession = win?.webContents.session) {
+  if (!cfg?.serverUrl || !targetSession) return;
+  const cookies = await targetSession.cookies.get({ url: cfg.serverUrl, name: "pdv_session" });
+  for (const cookie of cookies) {
+    const cookieUrl = new URL(cfg.serverUrl);
+    cookieUrl.pathname = cookie.path || "/";
+    await targetSession.cookies.remove(cookieUrl.href, cookie.name);
+  }
 }
 
 // ---------- IPC ----------
@@ -421,6 +440,15 @@ app.whenReady().then(async () => {
       return;
     }
     console.log("PDV_SMOKE_HTTPS_PASS");
+  }
+  try {
+    kvLoad()["apollo-operator-locked"] = "1";
+    kvSave();
+    await clearAuthCookie();
+  } catch (error) {
+    console.error("Apollo: não foi possível preparar uma sessão bloqueada", error.message);
+    app.exit(1);
+    return;
   }
   Menu.setApplicationMenu(null);
   app.setLoginItemSettings({ openAtLogin: !!cfg.startWithWindows });
