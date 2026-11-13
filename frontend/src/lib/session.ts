@@ -11,6 +11,26 @@ const LOCK_KEY = "apollo-operator-locked";
 const SESSION_CHANGE_KEY = "apollo-session-change";
 const listeners = new Set<() => void>();
 let locked = false;
+const TAB_SESSION_KEY = "apollo-session-tab";
+
+function lockFreshBrowserTab(): boolean {
+  if (desktop()?.isDesktop) return false;
+  try {
+    if (sessionStorage.getItem(TAB_SESSION_KEY) === "1") return false;
+    sessionStorage.setItem(TAB_SESSION_KEY, "1");
+    return true;
+  } catch {
+    // If browser storage is unavailable, fail closed and require authentication.
+    return true;
+  }
+}
+
+const freshBrowserTab = lockFreshBrowserTab();
+if (freshBrowserTab) {
+  locked = true;
+  setQueueContext(null);
+  queryClient.clear();
+}
 let logout: Promise<unknown> | undefined;
 
 function isLocked(): boolean {
@@ -49,6 +69,12 @@ function subscribe(listener: () => void): () => void {
 
 export function useSessionLock() {
   return useSyncExternalStore(subscribe, isLocked);
+}
+
+if (freshBrowserTab) {
+  // Revoke a browser session restored into a newly opened tab. The tab stays
+  // locked if the server is unavailable; its saved username is unaffected.
+  void apiPost("/auth/logout", undefined, AbortSignal.timeout(5000)).catch(() => undefined);
 }
 
 export function beginSession(): void {
