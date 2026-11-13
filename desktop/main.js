@@ -4,7 +4,7 @@ const { summarizeExitQueue } = require("./exit-queue");
 // Online: opens the published system (always the latest version, same data as browsers and phones).
 // Offline: opens the copy of the screens bundled in the installer (pdv://app) so counter sales keep being
 // recorded; they are stored encrypted on disk and synced automatically when the connection returns.
-const { app, BrowserWindow, ipcMain, net, protocol, safeStorage, shell, Menu, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, net, protocol, safeStorage, shell, Menu, dialog, session } = require("electron");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
@@ -318,7 +318,7 @@ function createWindow() {
 
 // At every installed-app launch, lock the renderer and remove only Apollo's
 // authentication cookie. Other server preferences and remembered usernames stay intact.
-async function clearAuthCookie(targetSession = win?.webContents.session) {
+async function clearAuthCookie(targetSession = session.defaultSession) {
   if (!cfg?.serverUrl || !targetSession) return;
   const cookies = await targetSession.cookies.get({ url: cfg.serverUrl, name: "pdv_session" });
   for (const cookie of cookies) {
