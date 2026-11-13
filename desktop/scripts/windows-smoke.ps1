@@ -21,6 +21,14 @@ if ($installerProcess.ExitCode -ne 0) {
   Get-ChildItem -Path $dir -Force -ErrorAction SilentlyContinue | Select-Object Name,Length | Format-Table
   $crash = Join-Path $env:RUNNER_TEMP 'apollo-installer-diagnostics.txt'
   "NSIS exit code: $($installerProcess.ExitCode)`nSetup: $setup`nTarget: $dir`nWindows: $([Environment]::OSVersion.VersionString)" | Set-Content $crash
+  $events = Get-WinEvent -FilterHashtable @{
+    LogName = 'Application'
+    Id = 1000, 1001
+    StartTime = (Get-Date).AddMinutes(-5)
+  } -ErrorAction SilentlyContinue | Where-Object { $_.Message -match 'Apollo-PDV-Setup' }
+  if ($events) {
+    $events | Format-List TimeCreated, Id, Message | Out-String | Tee-Object -FilePath $crash -Append
+  }
   throw "Instalacao NSIS falhou: $($installerProcess.ExitCode)"
 }
 $app = Join-Path $dir 'Apollo PDV.exe'

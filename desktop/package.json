@@ -16,6 +16,7 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
+    "compression": "store",
     "appId": "br.com.apollo.pdv",
     "productName": "Apollo PDV",
     "copyright": "Apollo PDV",
