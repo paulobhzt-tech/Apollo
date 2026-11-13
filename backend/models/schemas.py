@@ -256,6 +256,7 @@ class StockMoveIn(BaseModel):
 
 
 class StockMove(BaseModel):
+    stock_ref: Optional[str] = None
     id: str = Field(default_factory=_id)
     ingredient_id: str
     ingredient_name: str

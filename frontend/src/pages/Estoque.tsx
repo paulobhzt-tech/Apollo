@@ -282,6 +282,7 @@ type ReviewPreview = {
   observed?: Record<string, number>;
   qty?: number;
   restored_qty?: number;
+  items?: { name: string; qty: number }[];
 };
 
 function ReconciliationForm({ path, historical }: { path: string; historical?: boolean }) {
@@ -317,6 +318,7 @@ function ReconciliationForm({ path, historical }: { path: string; historical?: b
       onClick={() => { setPreview(undefined); setConfirmed(false); review.mutate(); }}>Gerar prévia</Button>
     {preview && <>
       <p>Pedido #{preview.order_number}</p>
+      {preview.items && <ul>{preview.items.map((item, index) => <li key={index}>{item.qty} × {item.name}</li>)}</ul>}
       {historical ? <p>Baixa {preview.qty} · devolvido {preview.restored_qty}. A aprovação registra o vínculo histórico.</p>
         : <>
           <p>{preview.matches ? "As quantidades registradas coincidem com a ficha técnica da venda." : "As quantidades divergem ou a ficha técnica está incompleta."}</p>
@@ -386,6 +388,7 @@ function InventoryReports({ isAdmin }: { isAdmin: boolean }) {
               batch.stage === "ticket_recorded" ? "Ticket registrado. Confira o estoque antes de prosseguir." :
               batch.stage === "items_recorded" ? "Itens registrados. Confira se o ticket chegou ao preparo." :
               "Envio anterior sem etapas registradas. Confira preparo e estoque."}</p>
+            {batch.stage !== "stock_recorded" && <ReconciliationForm path={`/inventory/reconciliation/table-batches/${batch.id}/${batch.batch_id}`} />}
             {!!batch.item_ids?.length && <p className="break-all text-xs text-muted-foreground">Itens · {batch.item_ids.join(", ")}</p>}
           </li>)}</ul>
         </details>

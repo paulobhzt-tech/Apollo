@@ -231,7 +231,7 @@ async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int 
         moves.append(StockMove(
             ingredient_id=ing_id, ingredient_name=ings[ing_id]["name"],
             type="venda" if sign < 0 else "estorno", qty=delta,
-            note=note, by_name=by_name,
+            note=note, by_name=by_name, stock_ref=stock_ref,
         ).model_dump())
     if moves:
         await db.stock_moves.insert_many(moves, **_session_args(session))

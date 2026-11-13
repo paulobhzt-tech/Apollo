@@ -80,3 +80,35 @@ async def test_cancel_unaccepted_delivery_never_restocks(monkeypatch):
     await operations.apply_cancel_order("delivery", CancelIn(reason="Cancelamento de teste"), ADMIN, ADMIN["name"])
     stock.assert_not_awaited()
     assert orders.update_one.await_args.args[0]["delivery_status"] == "pendente"
+
+
+async def test_table_batch_recovery_requires_linked_stock_and_one_approval(monkeypatch):
+    batch_id = "a" * 64
+    batch = {"stage": "ticket_recorded", "complete": False, "item_ids": ["item"]}
+    order = {"id": "order", "number": 8, "status": "aberto", "table_item_batches": {batch_id: batch},
+             "items": [{"id": "item", "name": "Produto", "qty": 2, "stock_ref": "ref",
+                        "stock_recipe": [{"ingredient_id": "ingredient", "qty": 1}]}]}
+    orders = SimpleNamespace(find_one=AsyncMock(return_value=order),
+                             update_one=AsyncMock(side_effect=[SimpleNamespace(modified_count=1),
+                                                               SimpleNamespace(modified_count=0)]))
+    cursor = SimpleNamespace(to_list=AsyncMock(return_value=[]))
+    stock = SimpleNamespace(find=Mock(return_value=SimpleNamespace(sort=Mock(return_value=cursor))))
+    monkeypatch.setattr(catalog, "db", SimpleNamespace(orders=orders, stock_moves=stock))
+    preview = await catalog.preview_table_batch("order", batch_id, ADMIN)
+    assert not preview["matches"]
+    approval = catalog.ReconciliationApproval(token=preview["token"], reason="Conferência de teste", confirmed=True)
+    with pytest.raises(HTTPException, match="Evidência insuficiente"):
+        await catalog.approve_table_batch("order", batch_id, approval, ADMIN)
+    orders.update_one.assert_not_awaited()
+
+    cursor.to_list.return_value = [{"id": "move", "ingredient_id": "ingredient", "qty": -2}]
+    preview = await catalog.preview_table_batch("order", batch_id, ADMIN)
+    assert preview["matches"]
+    assert stock.find.call_args.args[0]["stock_ref"] == {"$in": ["ref"]}
+    approval.token = preview["token"]
+    assert await catalog.approve_table_batch("order", batch_id, approval, ADMIN) == {"ok": True}
+    with pytest.raises(HTTPException, match="alterado"):
+        await catalog.approve_table_batch("order", batch_id, approval, ADMIN)
+    query, update = orders.update_one.await_args.args
+    assert query[f"table_item_batches.{batch_id}"] == batch
+    assert update["$set"] == {f"table_item_batches.{batch_id}.stage": "stock_recorded"}

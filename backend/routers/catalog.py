@@ -503,6 +503,56 @@ class ReconciliationApproval(BaseModel):
     confirmed: bool
 
 
+async def table_batch_preview(order_id: str, batch_id: str):
+    if len(batch_id) != 64 or any(ch not in "0123456789abcdef" for ch in batch_id):
+        raise HTTPException(404, "Envio não encontrado")
+    field = f"table_item_batches.{batch_id}"
+    order = await db.orders.find_one({"id": order_id, "channel": "mesa", f"{field}.complete": False}, {"_id": 0})
+    if not order:
+        raise HTTPException(404, "Envio pendente não encontrado")
+    batch = order["table_item_batches"][batch_id]
+    ids = set(batch.get("item_ids", []))
+    items = [item for item in order["items"] if item["id"] in ids]
+    refs = sorted({item["stock_ref"] for item in items if item.get("stock_ref")})
+    moves = await db.stock_moves.find({"type": "venda", "stock_ref": {"$in": refs}},
+                                      {"_id": 0, "id": 1, "ingredient_id": 1, "qty": 1}).sort("id", 1).to_list(1001)
+    if len(moves) > 1000:
+        raise HTTPException(409, "Movimentações demais para uma conferência individual")
+    evidence = counter_stock_evidence({"items": items}, moves)
+    # Only consider a batch with its complete, unmodified set of items and
+    # uniquely attributed stock movements. Missing records never imply no debit.
+    isolated = bool(refs) and not any(item.get("stock_ref") in refs for item in order["items"] if item["id"] not in ids)
+    evidence["matches"] = (evidence["matches"] and bool(evidence["expected"]) and isolated and len(items) == len(ids)
+                           and all(item.get("stock_ref") and not item.get("cancelled") for item in items)
+                           and order["status"] == "aberto" and batch.get("stage") == "ticket_recorded")
+    snapshot = {"order_id": order_id, "batch_id": batch_id, "batch": batch, "items": items, "moves": moves, **evidence}
+    return order, batch, {"order_number": order["number"], **evidence, "token": recovery_token(snapshot),
+                          "items": [{"name": item["name"], "qty": item["qty"]} for item in items]}
+
+
+@router.get("/inventory/reconciliation/table-batches/{order_id}/{batch_id}")
+async def preview_table_batch(order_id: str, batch_id: str, _: dict = Depends(require())):
+    _, _, preview = await table_batch_preview(order_id, batch_id)
+    return preview
+
+
+@router.post("/inventory/reconciliation/table-batches/{order_id}/{batch_id}/approve")
+async def approve_table_batch(order_id: str, batch_id: str, body: ReconciliationApproval, user: dict = Depends(require())):
+    order, batch, preview = await table_batch_preview(order_id, batch_id)
+    if not body.confirmed or len(body.reason.strip()) < 10 or not preview["matches"] or body.token != preview["token"]:
+        raise HTTPException(409, "Evidência insuficiente ou alterada. Confira a prévia novamente.")
+    field = f"table_item_batches.{batch_id}"
+    result = await db.orders.update_one(
+        {"id": order_id, "status": "aberto", "items": order["items"], field: batch},
+        {"$set": {f"{field}.stage": "stock_recorded"},
+         "$push": {"audit_events": audit_event("table_stock_reconciled", user, reason=body.reason.strip(),
+             correlation=body.token, values={"order_number": order["number"], "from": batch["stage"], "to": "stock_recorded"})}},
+    )
+    if result.modified_count != 1:
+        raise HTTPException(409, "Envio alterado durante a conferência.")
+    return {"ok": True}
+
+
 async def pending_sale_preview(order_id: str):
     order = await db.orders.find_one({"id": order_id, "stock_completion": "pending",
                                       "$or": [{"channel": "balcao", "status": "pago"},
