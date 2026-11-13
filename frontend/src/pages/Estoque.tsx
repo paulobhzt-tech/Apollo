@@ -268,6 +268,7 @@ function ConsumptionForecastPanel() {
 
 interface InventoryReview {
   legacy_lots: { review_id: string; purchase_id: string; ingredient_id: string; lot_number?: string; qty: number; restored_qty?: number; created_at: string }[];
+  table_batches?: { id: string; number: number; table_label?: string; batch_id: string; stage?: string; operator_name?: string; created_at?: string; item_ids?: string[] }[];
   pending_sales: { id: string; number: number; paid_at?: string; channel: string }[];
   lot_excess: { ingredient_id: string; name?: string; tracked: number; stock: number; difference: number }[];
   truncated: boolean;
@@ -378,6 +379,16 @@ function InventoryReports({ isAdmin }: { isAdmin: boolean }) {
       {review.isError && <p role="alert">Não foi possível carregar a conferência.</p>}
       {review.data && <>
         {review.data.truncated && <p className="text-xs text-amber-300">Amostra limitada a 100 registros por categoria.</p>}
+        <details><summary>Envios interrompidos de mesas e comandas ({review.data.table_batches?.length ?? 0})</summary>
+          <ul className="space-y-2 text-sm">{review.data.table_batches?.map((batch) => <li key={batch.batch_id} className="rounded-md border border-border p-2">
+            <p>Pedido #{batch.number}{batch.table_label && ` · ${batch.table_label}`}{batch.operator_name && ` · ${batch.operator_name}`}{batch.created_at && ` · ${fmtDateTime(batch.created_at)}`}</p>
+            <p>{batch.stage === "stock_recorded" ? "Baixa registrada. Repita o envio original para atualizar os totais." :
+              batch.stage === "ticket_recorded" ? "Ticket registrado. Confira o estoque antes de prosseguir." :
+              batch.stage === "items_recorded" ? "Itens registrados. Confira se o ticket chegou ao preparo." :
+              "Envio anterior sem etapas registradas. Confira preparo e estoque."}</p>
+            {!!batch.item_ids?.length && <p className="break-all text-xs text-muted-foreground">Itens · {batch.item_ids.join(", ")}</p>}
+          </li>)}</ul>
+        </details>
         <details><summary>Pedidos com baixa pendente ({review.data.pending_sales.length})</summary>
           <ul className="space-y-1 text-sm">{review.data.pending_sales.map((sale) => <li key={sale.id}>Pedido #{sale.number} · {sale.channel === "delivery" ? "Delivery" : "Balcão"}{sale.paid_at && ` · ${fmtDateTime(sale.paid_at)}`}<ReconciliationForm path={`/inventory/reconciliation/sales/${sale.id}`} /></li>)}</ul>
         </details>

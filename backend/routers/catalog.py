@@ -467,6 +467,18 @@ async def inventory_reconciliation(_: dict = Depends(require())):
          {"channel": "delivery", "status": "aberto", "delivery_status": "aceito"}]},
         {"_id": 0, "id": 1, "number": 1, "paid_at": 1, "channel": 1},
     ).sort("paid_at", -1).to_list(101)
+    table_batches = await db.orders.aggregate([
+        {"$match": {"channel": "mesa", "table_item_batches": {"$type": "object"}}},
+        {"$project": {"_id": 0, "id": 1, "number": 1, "table_label": 1,
+                      "batches": {"$objectToArray": "$table_item_batches"}}},
+        {"$unwind": "$batches"},
+        {"$match": {"batches.v.complete": False}},
+        {"$sort": {"batches.v.created_at": -1, "id": 1, "batches.k": 1}},
+        {"$limit": 101},
+        {"$project": {"id": 1, "number": 1, "table_label": 1, "batch_id": "$batches.k",
+                      "stage": "$batches.v.stage", "operator_name": "$batches.v.operator_name",
+                      "created_at": "$batches.v.created_at", "item_ids": "$batches.v.item_ids"}},
+    ]).to_list(101)
     balances = await db.purchases.aggregate([
         {"$match": {"remaining_qty": {"$gt": 0}}},
         {"$group": {"_id": "$ingredient_id", "tracked": {"$sum": "$remaining_qty"}}},
@@ -481,7 +493,8 @@ async def inventory_reconciliation(_: dict = Depends(require())):
     ]).to_list(101)
     return {"legacy_lots": [{**{key: value for key, value in row.items() if key != "_id"},
                               "review_id": str(row["_id"])} for row in legacy[:100]], "pending_sales": pending[:100], "lot_excess": balances[:100],
-            "truncated": any(len(rows) > 100 for rows in (legacy, pending, balances))}
+            "table_batches": table_batches[:100],
+            "truncated": any(len(rows) > 100 for rows in (legacy, pending, balances, table_batches))}
 
 
 class ReconciliationApproval(BaseModel):
