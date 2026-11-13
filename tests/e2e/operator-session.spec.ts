@@ -505,3 +505,43 @@ test("ações por item editam o rascunho e repetem o envio com a mesma referênc
   expect(requests[0]).toEqual(requests[1]);
   expect(requests[0].order_id).toBe(order.id);
 });
+
+test("conta fiado seleciona extrato e filtra clientes sem saldo", async ({ page }) => {
+  await mockServer(page);
+  await page.route("**/api/customers", (route) => route.fulfill({ json: [
+    { id: "c1", name: "João Teste", phone: "", balance: 60, credit_limit: 100 },
+    { id: "c2", name: "Maria Teste", phone: "", balance: 0, credit_limit: 0 },
+  ] }));
+  await page.route("**/api/customers/*/moves", (route) => route.fulfill({ json: [] }));
+  await page.goto("/login");
+  await signIn(page, "caixa-teste");
+  await page.goto("/fiado");
+  await expect(page.getByRole("heading", { name: "Extrato · João Teste" })).toBeVisible();
+  await page.getByTestId("fiado-history-c2").click();
+  await expect(page.getByRole("heading", { name: "Extrato · Maria Teste" })).toBeVisible();
+  await page.getByRole("checkbox", { name: "Ocultar clientes com saldo zerado" }).check();
+  await expect(page.getByTestId("fiado-customer-c2")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Extrato · João Teste" })).toBeVisible();
+  await page.getByTestId("fiado-search-input").fill("joao");
+  await expect(page.getByTestId("fiado-customer-c1")).toBeVisible();
+});
+
+test("DRE simula custo e meta diária sem lançar movimentação", async ({ page }) => {
+  await mockServer(page);
+  await page.route("**/api/reports/dre?**", (route) => route.fulfill({ json: {
+    gross_revenue: 10000, net_revenue: 8000, cmv: 2500, commissions: 500, expenses: 0,
+    daily: [], by_payment: [], by_source: [], top_products: [], expenses_by_category: [], commission_list: [],
+  } }));
+  await page.route("**/api/reports/{product-profit,sales-intelligence,forecast,cashflow,sales-trends,sales-stock-forecast,intelligent-insights}*", (route) =>
+    route.fulfill({ status: 503, json: { detail: "Fora do cenário" } }));
+  await page.goto("/login");
+  await signIn(page, "admin-teste");
+  await page.goto("/financeiro");
+  const panel = page.getByTestId("break-even-panel");
+  await panel.getByLabel("Custos fixos mensais").fill("3000");
+  await panel.getByLabel("Dias abertos no mês").fill("20");
+  await expect(panel).toContainText("50%");
+  await expect(panel).toContainText("150,00");
+  await expect(panel).toContainText("6.000,00");
+  await expect(panel).toContainText("300,00");
+});
