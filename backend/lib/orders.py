@@ -383,7 +383,8 @@ async def finalize_payment(order: dict, pay: PayIn, actor: dict | None = None, *
         await adjust_balance(cust["id"], fiado, **_session_args(session))
         from models.schemas import CustomerMove
         await db.customer_moves.insert_one(CustomerMove(customer_id=cust["id"], type="compra", amount=fiado,
-                                                        order_number=order["number"], note="Venda no fiado").model_dump(), **_session_args(session))
+                                                        order_number=order["number"], note="Venda no fiado", by_name=(actor or {}).get("name", ""),
+                                                        operator_id=(actor or {}).get("id")).model_dump(), **_session_args(session))
     if order.get("table_id"):
         await free_table(order["table_id"], expected_order_id=order["id"], **_session_args(session))
     order = await db.orders.find_one({"id": order["id"]}, {"_id": 0}, **_session_args(session))

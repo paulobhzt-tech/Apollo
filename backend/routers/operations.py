@@ -368,9 +368,20 @@ async def cash_summary(s: dict) -> dict:
     orders = await db.orders.find({"cash_session_id": s["id"], "status": "pago"},
                                   {"_id": 0, "payments": 1, "change": 1, "total": 1, "refunds": 1}).to_list(10000)
     totals = method_totals(orders, with_brand=True)
-    async for r in db.customer_moves.find({"cash_session_id": s["id"], "type": "pagamento"}, {"_id": 0}):
-        k = pay_key(r)
-        totals[k] = round(totals.get(k, 0) + r["amount"], 2)
+    receipts = {}
+    async for receipt in db.customer_moves.find({"cash_session_id": s["id"], "type": "pagamento"}, {"_id": 0}):
+        receipts[receipt["id"]] = receipt
+    async for receipt in db.fiado_customers.aggregate([
+        {"$match": {"fiado_journal": {"$type": "object"}}},
+        {"$project": {"entries": {"$objectToArray": "$fiado_journal"}}},
+        {"$unwind": "$entries"},
+        {"$match": {"entries.v.move.cash_session_id": s["id"], "entries.v.move.type": "pagamento"}},
+        {"$replaceRoot": {"newRoot": "$entries.v.move"}},
+    ]):
+        receipts[receipt["id"]] = receipt
+    for receipt in receipts.values():
+        key = pay_key(receipt)
+        totals[key] = round(totals.get(key, 0) + receipt["amount"], 2)
     sup = sum(m["amount"] for m in s.get("movements", []) if m["type"] == "suprimento")
     san = sum(m["amount"] for m in s.get("movements", []) if m["type"] == "sangria")
     s["totals_by_method"] = totals

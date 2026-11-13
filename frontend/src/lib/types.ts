@@ -311,7 +311,7 @@ export type SupplierIn = Omit<Supplier, "id" | "created_at">;
 export interface BulkDeleteIn { ids: string[] }
 export interface CustomerMove {
   id: string; customer_id: string; type: "compra" | "pagamento" | "estorno"; amount: number; order_number: number | null;
-  method: string; brand: string | null; note: string; by_name: string; cash_session_id: string | null; at: string;
+  method: string; brand: string | null; note: string; by_name: string; cash_session_id: string | null; at: string; balance_after?: number | null; reverses_id?: string | null;
 }
 export interface CardFees { fees: Record<string, number> }
 export type PrinterPurpose = string; // "caixa" or an environment key

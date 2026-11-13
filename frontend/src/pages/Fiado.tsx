@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-import { apiGet, apiPost } from "@/lib/api";
-import { BRAND_LABEL, brl, errMsg, fmtDateTime, payLabel } from "@/lib/format";
+import { ApiError, apiGet, apiPost } from "@/lib/api";
+import { BRAND_LABEL, brl, errMsg, fmtDateTime, payLabel, uid } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
 import type { CardBrand, CustomerMove, FiadoCustomer, FiadoCustomerIn, GeneralSettings } from "@/lib/types";
+import { useMe } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const inv = () => ["customers", "customer-moves", "cash"].forEach((k) => void queryClient.invalidateQueries({ queryKey: [k] }));
@@ -25,9 +26,11 @@ const MOVE: Record<CustomerMove["type"], { label: string; cls: string; sign: str
 export default function Fiado() {
   const q = useQuery({ queryKey: ["customers"], queryFn: () => apiGet<FiadoCustomer[]>("/customers") });
   const settings = useQuery({ queryKey: ["settings-general"], queryFn: () => apiGet<GeneralSettings>("/settings/general") });
+  const { data: operator } = useMe();
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
   const [receiving, setReceiving] = useState<FiadoCustomer | null>(null);
+  const [adjustment, setAdjustment] = useState<{ customer: FiadoCustomer; reverse?: CustomerMove }>();
   const [selectedId, setSelectedId] = useState<string>();
   const [onlyDebt, setOnlyDebt] = useState(false);
   const normalize = (value: string) => value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("pt-BR");
@@ -69,7 +72,7 @@ export default function Fiado() {
               </div>
             )}
             <div className="mt-3 flex gap-2">
-              <Button size="sm" className="flex-1" disabled={c.balance <= 0.009} onClick={() => setReceiving(c)} data-testid={`fiado-receive-${c.id}`}><HandCoins className="size-3.5" /> Receber</Button>
+              <Button size="sm" className="flex-1" onClick={() => setReceiving(c)} data-testid={`fiado-receive-${c.id}`}><HandCoins className="size-3.5" /> Receber</Button>
               <Button size="sm" variant="outline" aria-pressed={selected?.id === c.id} onClick={() => setSelectedId(c.id)} data-testid={`fiado-history-${c.id}`}><History className="size-3.5" /> Histórico</Button>
               <Button size="sm" variant="outline" className="border-emerald-500/30 text-emerald-300" disabled={c.balance <= 0.009 || !c.phone}
                 onClick={() => window.open(waLink(c, settings.data), "_blank")} data-testid={`fiado-whatsapp-${c.id}`} title={c.phone ? "Cobrar no WhatsApp" : "Cliente sem telefone"}>
@@ -81,14 +84,18 @@ export default function Fiado() {
         {!q.isPending && !q.isError && list.length === 0 && <p className="py-6 text-sm text-muted-foreground">Nenhum cliente encontrado.</p>}
         </section>
         <section aria-label="Extrato de fiado" className="min-w-0 rounded-2xl border border-border bg-elevated p-4">
-          {selected ? <HistoryList c={selected} /> : <p className="text-sm text-muted-foreground">Selecione um cliente para consultar o extrato.</p>}
+          {selected ? <HistoryList c={selected} onDebt={operator?.role === "admin" ? () => setAdjustment({ customer: selected }) : undefined}
+            onReverse={operator?.role === "admin" ? (reverse) => setAdjustment({ customer: selected, reverse }) : undefined} /> : <p className="text-sm text-muted-foreground">Selecione um cliente para consultar o extrato.</p>}
         </section>
       </div>
       <Dialog open={creating} onOpenChange={setCreating}>
         <DialogContent className="border-white/10 bg-elevated sm:max-w-sm" data-testid="fiado-customer-dialog">{creating && <CustomerForm onClose={() => setCreating(false)} />}</DialogContent>
       </Dialog>
       <Dialog open={!!receiving} onOpenChange={(v) => !v && setReceiving(null)}>
-        <DialogContent className="border-white/10 bg-elevated sm:max-w-sm" data-testid="fiado-receive-dialog">{receiving && <ReceiveForm c={receiving} onClose={() => setReceiving(null)} />}</DialogContent>
+        <DialogContent className="border-white/10 bg-elevated sm:max-w-sm" data-testid="fiado-receive-dialog">{receiving && operator && <ReceiveForm c={receiving} operatorId={operator.id} onClose={() => setReceiving(null)} />}</DialogContent>
+      </Dialog>
+      <Dialog open={!!adjustment} onOpenChange={(open) => { if (!open) setAdjustment(undefined); }}>
+        <DialogContent>{adjustment && operator && <DebtForm {...adjustment} operatorId={operator.id} onClose={() => setAdjustment(undefined)} />}</DialogContent>
       </Dialog>
     </AppShell>
   );
@@ -115,43 +122,88 @@ function CustomerForm({ onClose }: { onClose: () => void }) {
   );
 }
 
-function ReceiveForm({ c, onClose }: { c: FiadoCustomer; onClose: () => void }) {
+function useFiadoRequest<T extends object>(key: string, path: string, onSuccess: (customer: FiadoCustomer) => void) {
+  const [saved, setSaved] = useState<(T & { client_ref: string }) | null>(() => {
+    try { return JSON.parse(localStorage.getItem(key) ?? "null"); } catch { return null; }
+  });
+  const clear = () => { localStorage.removeItem(key); setSaved(null); };
+  const mutation = useMutation({
+    mutationFn: (body: T) => {
+      const request = saved ?? { ...body, client_ref: uid() };
+      localStorage.setItem(key, JSON.stringify(request));
+      setSaved(request);
+      return apiPost<FiadoCustomer>(path, request);
+    },
+    onSuccess: (customer) => { clear(); inv(); onSuccess(customer); },
+    onError: (error) => {
+      if (error instanceof ApiError && [400, 401, 403, 404, 422].includes(error.status)) clear();
+      toast.error(errMsg(error));
+    },
+  });
+  return { ...mutation, saved };
+}
+
+function DebtForm({ customer, reverse, operatorId, onClose }: {
+  customer: FiadoCustomer; reverse?: CustomerMove; operatorId: string; onClose: () => void;
+}) {
+  const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
+  const path = `/customers/${customer.id}/debts${reverse ? `/${encodeURIComponent(reverse.id)}/reverse` : ""}`;
+  const request = useFiadoRequest<{ reason: string; amount?: number }>(`apollo-fiado:${operatorId}:${path}`, path,
+    () => { toast.success(reverse ? "Dívida estornada." : "Dívida registrada."); onClose(); });
+  return <>
+    <DialogTitle>{reverse ? "Estornar dívida manual" : "Registrar dívida manual"} · {customer.name}</DialogTitle>
+    {reverse ? <p>{brl(reverse.amount)}</p> : <label>Valor (R$)<Input inputMode="decimal" value={request.saved?.amount ?? amount}
+      disabled={!!request.saved} onChange={(event) => setAmount(event.target.value)} /></label>}
+    <label>Justificativa<Input value={request.saved?.reason ?? reason} disabled={!!request.saved} maxLength={500}
+      onChange={(event) => setReason(event.target.value)} /></label>
+    <Button disabled={request.isPending || (!request.saved && (reason.trim().length < 5 || (!reverse && num(amount) <= 0)))}
+      onClick={() => request.mutate({ reason: reason.trim(), ...(reverse ? {} : { amount: num(amount) }) })}>
+      {request.saved ? "Conferir operação pendente" : reverse ? "Confirmar estorno" : "Confirmar dívida"}
+    </Button>
+  </>;
+}
+
+function ReceiveForm({ c, operatorId, onClose }: { c: FiadoCustomer; operatorId: string; onClose: () => void }) {
   const [amount, setAmount] = useState(c.balance.toFixed(2));
   const [method, setMethod] = useState<"dinheiro" | "pix" | "credito" | "debito">("dinheiro");
   const [brand, setBrand] = useState<CardBrand | null>(null);
   const card = method === "credito" || method === "debito";
-  const m = useMutation({
-    mutationFn: () => apiPost<FiadoCustomer>(`/customers/${c.id}/receive`, { amount: num(amount), method, brand: card ? brand : null, note: "" }),
-    onSuccess: (r) => { toast.success(`Recebido · saldo de ${r.name}: ${brl(r.balance)}`); inv(); onClose(); },
-    onError: (e) => toast.error(errMsg(e)),
-  });
+  const path = `/customers/${c.id}/receive`;
+  const m = useFiadoRequest<{ amount: number; method: typeof method; brand: CardBrand | null; note: string }>(
+    `apollo-fiado:${operatorId}:${path}`, path, (customer) => {
+      toast.success(`Recebimento registrado · saldo de ${customer.name}: ${brl(customer.balance)}`);
+      onClose();
+    });
+  const locked = !!m.saved || m.isPending;
   return (
     <>
       <DialogHeader><DialogTitle className="font-heading text-white">Receber de {c.name}</DialogTitle></DialogHeader>
       <p className="text-sm text-zinc-400">Saldo devedor: <span className="font-mono text-red-300">{brl(c.balance)}</span></p>
-      <Input value={amount} inputMode="decimal" onChange={(e) => setAmount(e.target.value)} className="font-mono" data-testid="fiado-receive-amount" />
+      <Input value={m.saved?.amount ?? amount} disabled={locked} inputMode="decimal" onChange={(e) => setAmount(e.target.value)} className="font-mono" data-testid="fiado-receive-amount" />
       <div className="grid grid-cols-4 gap-2">
         {(["dinheiro", "pix", "credito", "debito"] as const).map((k) => (
-          <Button key={k} size="sm" variant={method === k ? "default" : "outline"} onClick={() => setMethod(k)} data-testid={`fiado-receive-method-${k}`}>{payLabel(k)}</Button>
+          <Button key={k} size="sm" disabled={locked} variant={(m.saved?.method ?? method) === k ? "default" : "outline"} onClick={() => setMethod(k)} data-testid={`fiado-receive-method-${k}`}>{payLabel(k)}</Button>
         ))}
       </div>
-      {card && (
+      {((m.saved?.method ?? method) === "credito" || (m.saved?.method ?? method) === "debito") && (
         <div className="grid grid-cols-3 gap-2">
           {(["visa", "mastercard", "elo"] as const).map((b) => (
-            <Button key={b} size="sm" variant={brand === b ? "default" : "outline"} onClick={() => setBrand(b)} data-testid={`fiado-receive-brand-${b}`}>{BRAND_LABEL[b]}</Button>
+            <Button key={b} size="sm" disabled={locked} variant={(m.saved?.brand ?? brand) === b ? "default" : "outline"} onClick={() => setBrand(b)} data-testid={`fiado-receive-brand-${b}`}>{BRAND_LABEL[b]}</Button>
           ))}
         </div>
       )}
-      <Button disabled={!num(amount) || (card && !brand) || m.isPending} onClick={() => m.mutate()} data-testid="fiado-receive-confirm">Confirmar recebimento</Button>
+      <Button disabled={m.isPending || (!m.saved && (num(amount) <= 0 || (card && !brand)))} onClick={() => m.mutate({ amount: num(amount), method, brand: card ? brand : null, note: "" })} data-testid="fiado-receive-confirm">{m.saved ? "Conferir recebimento pendente" : "Confirmar recebimento"}</Button>
     </>
   );
 }
 
-function HistoryList({ c }: { c: FiadoCustomer }) {
+function HistoryList({ c, onDebt, onReverse }: { c: FiadoCustomer; onDebt?: () => void; onReverse?: (move: CustomerMove) => void }) {
   const q = useQuery({ queryKey: ["customer-moves", c.id], queryFn: () => apiGet<CustomerMove[]>(`/customers/${c.id}/moves`) });
   return (
     <>
       <h2 className="font-heading text-xl text-foreground">Extrato · {c.name}</h2>
+      {onDebt && <Button variant="outline" onClick={onDebt}>Registrar dívida</Button>}
       {q.isPending && <p role="status">Carregando extrato…</p>}
       {q.isError && <p role="alert">Não foi possível consultar o extrato.</p>}
       <p className="text-sm text-zinc-400">Saldo atual <span className="font-mono text-white">{brl(c.balance)}</span></p>
@@ -164,6 +216,9 @@ function HistoryList({ c }: { c: FiadoCustomer }) {
             <time dateTime={m.at} className="break-words text-xs text-muted-foreground">{fmtDateTime(m.at)}</time>
             <div className="min-w-0 break-words">
               <p className="font-medium text-foreground">{MOVE[m.type].label}{m.order_number && ` · #${m.order_number}`}</p>
+              <p className="text-xs text-muted-foreground">Saldo após lançamento · {m.balance_after == null ? "Sem registro" : brl(m.balance_after)}</p>
+              {onReverse && m.method === "divida_manual" && !q.data.some((entry) => entry.reverses_id === m.id) &&
+                <Button size="xs" variant="outline" onClick={() => onReverse(m)}>Estornar dívida</Button>}
               <p className="text-xs text-muted-foreground">{[m.method && payLabel(m.method, m.brand), m.by_name, m.note].filter(Boolean).join(" · ")}</p>
             </div>
             {(["compra", "pagamento", "estorno"] as const).map((type) => <div key={type} className={cn("break-words text-right font-mono text-foreground", m.type !== type && "hidden xl:block")}>

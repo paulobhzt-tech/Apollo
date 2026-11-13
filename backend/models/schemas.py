@@ -824,10 +824,14 @@ class CustomerMove(BaseModel):
     note: str = ""
     by_name: str = ""
     cash_session_id: Optional[str] = None
+    balance_after: Optional[float] = None
+    operator_id: Optional[str] = None
+    reverses_id: Optional[str] = None
     at: datetime = Field(default_factory=_now)
 
 
 class ReceiveIn(BaseModel):
+    client_ref: Optional[str] = Field(default=None, min_length=1, max_length=128)
     amount: float = Field(gt=0)
     method: Literal["dinheiro", "credito", "debito", "pix"]
     brand: Optional[CardBrand] = None
