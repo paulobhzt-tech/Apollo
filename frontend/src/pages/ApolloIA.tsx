@@ -1,4 +1,5 @@
 import OperatingCosts from "@/components/OperatingCosts";
+import OpeningInsights from "@/components/OpeningInsights";
 import { useState } from "react";
 import { Bot, Send } from "lucide-react";
 import AppShell, { PageHeader } from "@/components/AppShell";
@@ -49,5 +50,6 @@ export default function ApolloIA() {
       </div>}
     </section>
     <OperatingCosts />
+    <OpeningInsights />
   </AppShell>;
 }
