@@ -155,16 +155,24 @@ function HistoryList({ c }: { c: FiadoCustomer }) {
       {q.isPending && <p role="status">Carregando extrato…</p>}
       {q.isError && <p role="alert">Não foi possível consultar o extrato.</p>}
       <p className="text-sm text-zinc-400">Saldo atual <span className="font-mono text-white">{brl(c.balance)}</span></p>
-      <ul className="mt-4 space-y-2">
-        {(q.data ?? []).map((m) => (
-          <li key={m.id} className="rounded-xl bg-panel px-3 py-2 text-sm" data-testid={`fiado-move-${m.id}`}>
-            <div className="flex justify-between"><span className="text-white">{MOVE[m.type].label}{m.order_number && ` · #${m.order_number}`}</span>
-              <span className={cn("font-mono", MOVE[m.type].cls)}>{MOVE[m.type].sign} {brl(m.amount)}</span></div>
-            <p className="text-xs text-zinc-500">{fmtDateTime(m.at)}{m.method && ` · ${payLabel(m.method, m.brand)}`}{m.by_name && ` · ${m.by_name}`}{m.note && ` · ${m.note}`}</p>
-          </li>
-        ))}
-        {q.data?.length === 0 && <p className="text-sm text-zinc-500">Sem movimentações.</p>}
-      </ul>
+      {!!q.data?.length && <div className="mt-4">
+        <div aria-hidden="true" className="hidden gap-2 border-b border-border px-3 py-2 text-xs font-semibold text-muted-foreground xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_repeat(3,minmax(0,1fr))]">
+          <span>Data e hora</span><span>Histórico</span><span className="text-right">Fiado</span><span className="text-right">Pago</span><span className="text-right">Estorno</span>
+        </div>
+        <ul className="divide-y divide-border">
+          {q.data.map((m) => <li key={m.id} className="grid min-w-0 gap-2 px-3 py-3 text-sm xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_repeat(3,minmax(0,1fr))]" data-testid={`fiado-move-${m.id}`}>
+            <time dateTime={m.at} className="break-words text-xs text-muted-foreground">{fmtDateTime(m.at)}</time>
+            <div className="min-w-0 break-words">
+              <p className="font-medium text-foreground">{MOVE[m.type].label}{m.order_number && ` · #${m.order_number}`}</p>
+              <p className="text-xs text-muted-foreground">{[m.method && payLabel(m.method, m.brand), m.by_name, m.note].filter(Boolean).join(" · ")}</p>
+            </div>
+            {(["compra", "pagamento", "estorno"] as const).map((type) => <div key={type} className={cn("break-words text-right font-mono text-foreground", m.type !== type && "hidden xl:block")}>
+              {m.type === type ? <><span className="sr-only">{MOVE[type].label} </span>{MOVE[type].sign} {brl(m.amount)}</> : <span aria-hidden="true">—</span>}
+            </div>)}
+          </li>)}
+        </ul>
+      </div>}
+      {q.data?.length === 0 && <p className="mt-4 text-sm text-muted-foreground">Sem movimentações.</p>}
     </>
   );
 }
