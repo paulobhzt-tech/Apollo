@@ -466,3 +466,42 @@ test("personalização do menu persiste por operador e pode ser restaurada", asy
   await expect(ribbon).toHaveAttribute("data-menu-accent", "apollo");
   await expect(page.locator("html")).toHaveClass(/dark/);
 });
+
+test("ações por item editam o rascunho e repetem o envio com a mesma referência", async ({ page }) => {
+  await mockServer(page);
+  const item = { id: "sent-1", product_id: "prod", name: "Produto fictício", qty: 2, unit_price: 5, notes: "Sem sal", ordered_by: "Garçom Teste" };
+  const order = { id: "order-1", number: 17, status: "aberto", subtotal: 10, total: 10, items: [item] };
+  await page.route("**/api/tables", (route) => route.fulfill({ json: [{ ...tables[0], status: "ocupada", order_id: order.id, total: 10, waiter_name: "Garçom Teste", customer_name: "Cliente Teste", opened_at: "2026-11-12T23:10:00Z" }] }));
+  await page.route("**/api/tables/m1/order", (route) => route.fulfill({ json: order }));
+  await page.route("**/api/tables/m1/item-progress", (route) => route.fulfill({ json: { "sent-1": "pronto" } }));
+  const requests: { client_ref: string; order_id: string; items: unknown[] }[] = [];
+  await page.route("**/api/tables/m1/items", (route) => {
+    requests.push(route.request().postDataJSON());
+    return requests.length === 1 ? route.abort("connectionreset") : route.fulfill({ json: order });
+  });
+  await page.goto("/login");
+  await signIn(page, "garcom-teste");
+  await page.getByTestId("table-card-12").click();
+  const workspace = page.getByRole("dialog", { name: "Atendimento — Mesa 12" });
+  await expect(workspace.getByText("Pronto para entrega", { exact: true })).toBeVisible();
+  await workspace.getByRole("button", { name: "Ações de Produto fictício" }).click();
+  await page.getByRole("menuitem", { name: "Duplicar e editar" }).click();
+  const editor = page.getByRole("dialog", { name: "Editar · Produto fictício" });
+  await editor.getByRole("button", { name: "Aumentar quantidade" }).click();
+  await editor.getByLabel("Observação do rascunho").fill("Sem pimenta");
+  await editor.getByRole("button", { name: "Salvar rascunho" }).click();
+  await expect(workspace.getByTestId("pending-line-0")).toBeVisible();
+  await expect(workspace.getByTestId("close-table-button")).toHaveCount(0);
+  await workspace.getByTestId("send-to-kitchen-button").click();
+  const review = page.getByTestId("waiter-review-dialog");
+  await expect(review).toContainText("3 × Produto fictício");
+  await expect(review).toContainText("Sem pimenta");
+  await review.getByTestId("waiter-confirm-send").click();
+  await expect.poll(() => requests.length).toBe(1);
+  await expect(review.getByRole("button", { name: "Editar itens" })).toBeDisabled();
+  await review.getByTestId("waiter-confirm-send").click();
+  await expect(review).toBeHidden();
+  expect(requests).toHaveLength(2);
+  expect(requests[0]).toEqual(requests[1]);
+  expect(requests[0].order_id).toBe(order.id);
+});
