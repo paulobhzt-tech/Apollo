@@ -132,9 +132,9 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="font-heading text-xl text-white">{title}</DialogTitle>
+        <DialogTitle className="font-heading text-xl text-foreground">{title}</DialogTitle>
       </DialogHeader>
-      <div className="grid min-w-0 gap-4 md:grid-cols-[10rem_minmax(0,1fr)] xl:grid-cols-[10rem_minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid min-w-0 gap-4 md:grid-cols-[10rem_minmax(0,1fr)] xl:grid-cols-[10rem_minmax(0,1fr)_minmax(17rem,1fr)]">
           <nav aria-label="Formas de pagamento" className="grid content-start grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-1">
             {METHODS.map(({ m, label, icon: Icon }) => (
               <button
@@ -149,7 +149,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
                   method === m ? "border-primary bg-primary/15 text-primary" : "border-white/8 bg-panel text-zinc-300 hover:border-white/20",
                 )}
               >
-                <Icon className="size-5" />
+                <Icon className="size-5 shrink-0 text-primary" aria-hidden="true" />
                 {label}
               </button>
             ))}
@@ -281,19 +281,6 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
               Taxa de serviço {defaultService}%
             </label>
           )}
-          <dl className="space-y-1.5 text-sm">
-            <Row k="Subtotal" v={brl(subtotal)} />
-            {disc > 0 && <Row k="Desconto" v={`- ${brl(disc)}`} />}
-            {serviceFee > 0 && <Row k="Serviço" v={brl(serviceFee)} />}
-            <div className="my-2 border-t border-white/10" />
-            <Row k="Total" v={brl(total)} big testid="payment-total" />
-            <Row k="Pago" v={brl(paid)} />
-            <Row k="Restante" v={brl(remaining)} testid="payment-remaining" accent={remaining > 0 ? "text-amber-300" : "text-emerald-300"} />
-            {change > 0 && <Row k="Troco" v={brl(change)} big testid="payment-change" accent="text-emerald-300" />}
-          </dl>
-          <div><label htmlFor="payment-progress" className="text-sm">{settled}% quitado</label>
-            <progress id="payment-progress" value={settled} max={100} className="block w-full accent-primary" />
-          </div>
           {!cashChangeOk && <p className="text-xs text-red-400">Troco só pode ser dado em dinheiro.</p>}
           <div className="space-y-2 rounded-xl border border-white/5 p-3">
             {!partialMode && <label className="flex items-center gap-2 text-sm text-zinc-300">
@@ -312,6 +299,23 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
             )}
           </div>
           </section>
+          <section aria-label="Resumo dos totais" className="min-w-0 space-y-4 self-start rounded-xl border border-border bg-panel p-4 md:col-start-2 xl:sticky xl:top-0 xl:col-start-3">
+            <h3 className="font-semibold text-foreground">Resumo dos totais</h3>
+            {fiadoCust && <p className="break-words text-sm text-muted-foreground">{fiadoCust.name} · Saldo da conta fiado {brl(fiadoCust.balance)}</p>}
+          <dl className="space-y-1.5 text-sm">
+            <Row k="Subtotal" v={brl(subtotal)} />
+            {disc > 0 && <Row k="Desconto" v={`- ${brl(disc)}`} />}
+            {serviceFee > 0 && <Row k="Serviço" v={brl(serviceFee)} />}
+            <div className="my-2 border-t border-white/10" />
+            <Row k="Total a pagar" v={brl(total)} big testid="payment-total" />
+            <Row k="Total pago" v={brl(paid)} />
+            <Row k="Falta pagar" v={brl(remaining)} testid="payment-remaining" accent={remaining > 0 ? "text-amber-300" : "text-emerald-300"} />
+            {change > 0 && <Row k="Troco" v={brl(change)} big testid="payment-change" accent="text-emerald-300" />}
+          </dl>
+          <div><label htmlFor="payment-progress" className="text-sm">{settled}% quitado</label>
+            <progress id="payment-progress" value={settled} max={100} className="block w-full accent-primary" />
+          </div>
+          </section>
       </div>
       <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-3">
         <Button variant="outline" disabled={!canConfirm} onClick={() => finish(true)}>Finalizar e imprimir</Button>
@@ -326,8 +330,8 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
 function Row({ k, v, big, testid, accent }: { k: string; v: string; big?: boolean; testid?: string; accent?: string }) {
   return (
     <div className="flex items-center justify-between">
-      <dt className="text-zinc-400">{k}</dt>
-      <dd className={cn("font-mono", big ? "text-xl font-medium text-white" : "text-zinc-200", accent)} data-testid={testid}>{v}</dd>
+      <dt className="text-muted-foreground">{k}</dt>
+      <dd className={cn("font-mono", big ? "text-xl font-medium text-foreground" : "text-foreground", accent)} data-testid={testid}>{v}</dd>
     </div>
   );
 }
