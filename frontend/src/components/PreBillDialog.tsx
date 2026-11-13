@@ -16,7 +16,7 @@ import type { GeneralSettings, Order, Printer, Table } from "@/lib/types";
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-export default function PreBillDialog({ table, order, open, onClose, onPrinted }: { table: Table; order: Order | null; open: boolean; onClose: () => void; onPrinted: () => void }) {
+export default function PreBillDialog({ table, order, open, printEnabled = true, onClose, onPrinted }: { table: Table; order: Order | null; open: boolean; printEnabled?: boolean; onClose: () => void; onPrinted: () => void }) {
   const settings = useQuery({ queryKey: ["settings-general"], queryFn: () => apiGet<GeneralSettings>("/settings/general"), enabled: open });
   const printers = useQuery({ queryKey: ["printers"], queryFn: () => apiGet<Printer[]>("/printers"), enabled: open });
   const [service, setService] = useState(true);
@@ -119,7 +119,7 @@ export default function PreBillDialog({ table, order, open, onClose, onPrinted }
         </div>
         {splitMode !== "people" && shareInput.trim() && !share && <p role="status" className="text-sm text-muted-foreground">Informe uma parte maior que zero e dentro do total.</p>}
         <p className="text-xs text-muted-foreground">Prévia para conferência. O recebimento é registrado no caixa.</p>
-        <Button className="h-11" onClick={() => void print()} disabled={!groups.length} data-testid="prebill-print-button"><PrinterIcon className="size-4" /> Imprimir pré-conta</Button>
+        {printEnabled && <Button className="h-11" onClick={() => void print()} disabled={!groups.length} data-testid="prebill-print-button"><PrinterIcon className="size-4" /> Imprimir pré-conta</Button>}
       </DialogContent>
     </Dialog>
   );

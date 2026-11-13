@@ -2,7 +2,7 @@ import SaleQuantityInput from "@/components/SaleQuantityInput";
 import { type SetStateAction, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowRightLeft, Bell, Clock, Ellipsis, Minus, Pencil, Plus, QrCode, Receipt, RefreshCw, Search, Send, Trash2, Users } from "lucide-react";
+import { ArrowRightLeft, Bell, Clock, Ellipsis, Minus, Pencil, Plus, Printer, QrCode, Receipt, RefreshCw, Search, Send, Trash2, Users } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
@@ -247,7 +247,7 @@ export default function Mesas() {
         </button>
       )}
       {sel && <TableWorkspace key={`${sel.id}:${sel.order_id ?? ""}`} clock={clock} table={sel} onClose={() => setSelId(null)}
-        onQr={setQrTable} qrOpen={!!qrTable} tables={all} canDelete={canCreate} mobileMode={mobileMode}
+        onQr={setQrTable} qrOpen={!!qrTable} tables={all} canDelete={canCreate}
         draft={draftKey ? drafts[draftKey] : undefined} onDraftChange={storeDraft} />}
       <QrDialog table={qrTable} onClose={() => setQrTable(null)} />
       <NewTableDialog open={creating} kind={kind} existing={all.filter((t) => t.kind === kind)} onClose={() => setCreating(false)} />
@@ -351,9 +351,9 @@ function guardWorkspaceUnload(event: BeforeUnloadEvent) {
   event.returnValue = true;
 }
 
-function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete, mobileMode, draft, onDraftChange }: {
+function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete, draft, onDraftChange }: {
   clock: number; table: Table; onClose: () => void; onQr: (t: Table) => void; qrOpen: boolean;
-  tables: Table[]; canDelete: boolean; mobileMode: boolean; draft?: Pending[]; onDraftChange: (items: SetStateAction<Pending[]>) => void;
+  tables: Table[]; canDelete: boolean; draft?: Pending[]; onDraftChange: (items: SetStateAction<Pending[]>) => void;
 }) {
   const { data: me } = useMe();
   const order = useQuery({
@@ -384,7 +384,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const transferTargets = tables.filter((target) => target.id !== table.id && target.status === "livre" && !target.order_id);
   const transferTarget = transferTargets.find((target) => target.id === transferTo);
   const [mergeTo, setMergeTo] = useState("");
-  const [preBill, setPreBill] = useState(false);
+  const [preBill, setPreBill] = useState<"view" | "print" | null>(null);
   const [partialOpen, setPartialOpen] = useState(false);
   const [grouped, setGrouped] = useTablePreference(`apollo-table-grouped:${me?.id}`, true);
   const [showItemTimes, setShowItemTimes] = useTablePreference(`apollo-table-times:${me?.id}`, false);
@@ -677,11 +677,14 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
 
                   {submission && <Button className="mt-2" onClick={() => setReviewOpen(true)}>Conferir envio pendente</Button>}
                   <div className="mt-3 grid gap-2 @min-[35rem]:grid-cols-2">
-                    <Button variant="outline" onClick={() => setPreBill(true)} disabled={!items.some((i) => !i.cancelled)} data-testid="request-bill-button">
-                      <Receipt className="size-4" /> {mobileMode ? "Ver conta" : "Pré-conta"}
+                    <Button variant="outline" onClick={() => setPreBill("view")} disabled={!items.some((i) => !i.cancelled)} data-testid="request-bill-button">
+                      <Receipt className="size-4" /> Ver conta
+                    </Button>
+                    <Button variant="outline" onClick={() => setPreBill("print")} disabled={!items.some((i) => !i.cancelled)}>
+                      <Printer className="size-4" /> Pré-conta e impressão
                     </Button>
                     {me?.role === "garcom" && <Button className="h-auto min-h-12" variant="outline" onClick={() => { if (window.confirm("Solicitar fechamento desta conta ao caixa?")) status.mutate("conta"); }} disabled={status.isPending || !!pending.length || !items.some((i) => !i.cancelled) || table.status === "conta"} data-testid="waiter-request-close"><Receipt className="size-4" /> {table.status === "conta" ? "Conta solicitada" : "Solicitar fechamento"}</Button>}
-                    {(!mobileMode || me?.role !== "garcom") && <Button className="h-auto min-h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={!!pending.length || !items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
+                    {["admin", "caixa"].includes(me?.role ?? "") && <Button className="h-auto min-h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={!!pending.length || !items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
                       <Receipt className="size-4" /> PAGAMENTO
                     </Button>}
                   </div>
@@ -752,8 +755,8 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
       </Dialog>
       <RemoveItemDialog group={removing} needsPin={!canCancel(me)} pending={removeItems.isPending} onClose={() => setRemoving(null)} onConfirm={(r) => removeItems.mutate(r)} />
       {table && preBill && (
-        <PreBillDialog table={table} order={o} open={preBill} onClose={() => setPreBill(false)}
-          onPrinted={() => { if (table.status !== "conta") status.mutate("conta"); setPreBill(false); }} />
+        <PreBillDialog table={table} order={o} open printEnabled={preBill === "print"} onClose={() => setPreBill(null)}
+          onPrinted={() => { if (table.status !== "conta") status.mutate("conta"); setPreBill(null); }} />
       )}
       {table && <PartialBillDialog key={table.id} table={table} items={items} open={partialOpen} onClose={() => setPartialOpen(false)} />}
       <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} items={o?.items.filter((item) => !item.cancelled)} defaultService={10}
