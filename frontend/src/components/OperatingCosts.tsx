@@ -30,6 +30,8 @@ export default function OperatingCosts({ dre }: { dre?: Dre }) {
   const margin = report && report.gross_revenue > 0 ? (report.net_revenue - report.cmv - report.commissions) / report.gross_revenue : 0;
   const fixed = values?.fixed_count ? values.fixed : null;
   const daily = fixed !== null && Number.isInteger(dayCount) && dayCount > 0 && dayCount <= 31 ? fixed / dayCount : null;
+  const monthlyTarget = fixed !== null && margin > 0 ? fixed / margin : null;
+  const remaining = monthlyTarget !== null && report ? Math.max(0, monthlyTarget - report.gross_revenue) : null;
   return <section className="mb-5 space-y-3 rounded-xl border border-border bg-panel p-4" aria-label="Custos e metas do mês">
     <h2 className="font-semibold">Custos e metas do mês</h2>
     {costs.isPending && <p role="status">Consultando Contas a Pagar…</p>}
@@ -45,10 +47,12 @@ export default function OperatingCosts({ dre }: { dre?: Dre }) {
       </label>
       <p>Custo fixo cadastrado · {fixed === null ? "Nenhuma conta classificada" : brl(fixed)}</p>
       <p>Custo fixo por dia · {daily === null ? "Dados insuficientes" : brl(daily)}</p>
-      <p>Ponto de equilíbrio mensal · {fixed !== null && margin > 0 ? brl(fixed / margin) : "Dados insuficientes"}</p>
+      <p>Ponto de equilíbrio mensal · {monthlyTarget !== null ? brl(monthlyTarget) : "Dados insuficientes"}</p>
+      <p>Margem de contribuição do DRE · {margin > 0 ? `${(margin * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "Dados insuficientes"}</p>
+      <p data-testid="operating-costs-remaining">Faturamento que falta para a meta mensal estimada · {remaining !== null ? brl(remaining) : "Dados insuficientes"}</p>
       <p>Resultado operacional registrado no DRE · {report ? brl(report.net_profit) : "Dados insuficientes"}</p>
       <p>Meta diária estimada · {daily !== null && margin > 0 ? brl(daily / margin) : "Dados insuficientes"}</p>
-      <p className="text-xs text-muted-foreground">A meta usa a margem de contribuição do DRE consultado, após CMV e comissões.</p>
+      <p className="text-xs text-muted-foreground">A meta usa a margem de contribuição do DRE consultado, após CMV e comissões. O valor faltante compara a meta estimada com o faturamento bruto já registrado no mês; não é lucro nem previsão de caixa.</p>
     </>}
   </section>;
 }
