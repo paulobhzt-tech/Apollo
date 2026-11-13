@@ -100,3 +100,33 @@ async def test_update_bill_rechecks_open_status_atomically(monkeypatch, bills):
         await finance.update_bill("bill-1", body, {"role": "admin"})
     assert error.value.status_code == 409
     assert update.await_args.args[0] == {"id": "bill-1", "status": "aberto"}
+
+
+async def test_recurring_bill_retries_after_partial_write(monkeypatch):
+    from models.schemas import BillIn
+
+    saved = {}
+    fail_once = True
+
+    async def upsert(query, update, *, upsert):
+        nonlocal fail_once
+        if saved and fail_once:
+            fail_once = False
+            raise ConnectionError("conexão interrompida")
+        saved.setdefault(query["_id"], update["$setOnInsert"])
+
+    async def find(query, projection):
+        return saved.get(query.get("id") or query["_id"])
+
+    monkeypatch.setattr(finance, "db", SimpleNamespace(bills=SimpleNamespace(update_one=upsert, find_one=find)))
+    body = BillIn(kind="pagar", description="Aluguel", amount=500, due_date="2026-01-31",
+                  repeat_months=3, client_ref="monthly-rent", cost_center="Salão")
+    admin = {"id": "admin", "name": "Admin"}
+    with pytest.raises(ConnectionError):
+        await finance.create_bill(body, admin)
+    created = await finance.create_bill(body, admin)
+    assert await finance.create_bill(body, admin) == created
+    assert len(saved) == 3
+    assert [bill["due_date"] for bill in created] == ["2026-01-31", "2026-02-28", "2026-03-31"]
+    with pytest.raises(HTTPException, match="Referência já usada"):
+        await finance.create_bill(body.model_copy(update={"amount": 600}), admin)

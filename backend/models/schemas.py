@@ -964,6 +964,8 @@ class Bill(BaseModel):
     description: str
     category_id: str = ""
     category_name: str = ""
+    establishment: str = Field(default="", max_length=120)
+    cost_center: str = Field(default="", max_length=120)
     party: str = ""  # fornecedor ou cliente
     amount: float
     due_date: str
@@ -980,10 +982,13 @@ class BillIn(BaseModel):
     kind: BillKind
     description: str = Field(min_length=2)
     category_id: str = ""
+    establishment: str = Field(default="", max_length=120)
+    cost_center: str = Field(default="", max_length=120)
     party: str = ""
     amount: float = Field(gt=0)
     due_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
     notes: str = ""
+    client_ref: Optional[str] = Field(default=None, min_length=1, max_length=128)
     repeat_months: int = Field(default=1, ge=1, le=24)  # cria as próximas parcelas mensais
 
 

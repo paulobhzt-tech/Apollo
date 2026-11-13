@@ -1,5 +1,9 @@
 """Financeiro: categorias de contas, contas a pagar / a receber e formas de pagamento."""
 import calendar
+import hashlib
+from uuid import NAMESPACE_URL, uuid5
+
+from pymongo.errors import DuplicateKeyError
 import re
 import unicodedata
 from datetime import date, timedelta, datetime, timezone
@@ -182,12 +186,31 @@ async def _category_name(cid: str, kind: str) -> str:
 @router.post("/bills", response_model=list[Bill])
 async def create_bill(body: BillIn, user: dict = Depends(require())):
     cname = await _category_name(body.category_id, body.kind)
-    data = body.model_dump(exclude={"repeat_months"})
+    data = body.model_dump(exclude={"repeat_months", "client_ref"})
+    fingerprint = hashlib.sha256(body.model_dump_json().encode()).hexdigest()
+    try:
+        dates = [_add_months(body.due_date, i) for i in range(body.repeat_months)]
+    except ValueError as error:
+        raise HTTPException(400, "Data de vencimento inválida.") from error
     out = []
-    for i in range(body.repeat_months):
+    for i, due_date in enumerate(dates):
         desc = body.description if body.repeat_months == 1 else f"{body.description} ({i + 1}/{body.repeat_months})"
-        b = Bill(**{**data, "description": desc, "due_date": _add_months(body.due_date, i)}, category_name=cname, created_by=user["name"]).model_dump()
-        await db.bills.insert_one(dict(b))
+        b = Bill(**{**data, "description": desc, "due_date": due_date}, category_name=cname, created_by=user["name"]).model_dump()
+        if body.client_ref:
+            bill_id = str(uuid5(NAMESPACE_URL, f"apollo:bill:{user['id']}:{body.client_ref}:{i}"))
+            b["id"] = bill_id
+            existing = await db.bills.find_one({"id": bill_id}, {"_id": 0})
+            if existing is None:
+                try:
+                    await db.bills.update_one({"_id": bill_id}, {"$setOnInsert": {**b, "creation_fingerprint": fingerprint}}, upsert=True)
+                except DuplicateKeyError:
+                    pass
+                existing = await db.bills.find_one({"_id": bill_id}, {"_id": 0})
+            b = existing
+            if not b or b.get("creation_fingerprint") != fingerprint:
+                raise HTTPException(409, "Referência já usada com outros dados. Confira as contas registradas.")
+        else:
+            await db.bills.insert_one(dict(b))
         out.append(b)
     return out
 
@@ -199,7 +222,7 @@ async def update_bill(id: str, body: BillIn, _: dict = Depends(require())):
         raise HTTPException(404, "Conta não encontrada")
     if b["status"] != "aberto":
         raise HTTPException(400, "Só contas em aberto podem ser editadas")
-    upd = {**body.model_dump(exclude={"repeat_months"}), "category_name": await _category_name(body.category_id, body.kind)}
+    upd = {**body.model_dump(exclude={"repeat_months", "client_ref"}), "category_name": await _category_name(body.category_id, body.kind)}
     # Recheck status atomically: payment/cancellation may occur after the initial read.
     updated = await db.bills.find_one_and_update(
         {"id": id, "status": "aberto"}, {"$set": upd}, projection={"_id": 0}, return_document=True,
