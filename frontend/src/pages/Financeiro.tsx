@@ -265,6 +265,46 @@ function BreakEvenPanel({ dre }: { dre?: Dre }) {
   </section>;
 }
 
+const WEEKDAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+
+function OpeningWeekdays({ dre }: { dre?: Dre }) {
+  const [cost, setCost] = useState("");
+  const [open, setOpen] = useState(false);
+  const q = useQuery({
+    queryKey: ["opening-weekdays"],
+    queryFn: () => apiGet<{ weekday: number; samples: number; average_revenue: number | null; average_orders: number | null; average_ticket: number | null }[]>("/reports/opening-weekdays"),
+    enabled: open,
+  });
+  const margin = dre && dre.gross_revenue > 0 ? (dre.net_revenue - dre.cmv - dre.commissions) / dre.gross_revenue : null;
+  const extra = Number(cost.replace(",", "."));
+  const hasCost = cost.trim() !== "" && Number.isFinite(extra) && extra >= 0;
+  return <details className="mb-5 rounded-xl border border-border bg-panel p-4" onToggle={(event) => setOpen(event.currentTarget.open)}>
+    <summary className="cursor-pointer font-semibold">Compensa abrir a loja?</summary>
+    <p className="my-3 text-sm text-muted-foreground">Histórico das últimas 12 semanas em dias com vendas. A quantidade de pedidos serve como referência de movimento. A simulação usa a margem do DRE selecionado.</p>
+    <label className="block max-w-xs text-sm">Custo adicional por dia aberto (R$)
+      <Input inputMode="decimal" value={cost} onChange={(event) => setCost(event.target.value)} />
+    </label>
+    <p className="my-2 text-xs text-muted-foreground">Inclua apenas custos evitáveis ao fechar. Aluguel e outros custos fixos ficam no simulador de ponto de equilíbrio.</p>
+    {q.isPending && open && <p role="status">Consultando histórico…</p>}
+    {q.isError && <p role="alert">{errMsg(q.error)}</p>}
+    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {q.data?.map((day) => {
+        const expected = day.average_revenue !== null && margin !== null ? day.average_revenue * margin : null;
+        const result = expected !== null && hasCost && day.samples >= 4 ? expected - extra : null;
+        const tolerance = expected !== null ? Math.max(10, Math.abs(expected) * 0.05) : 10;
+        return <article key={day.weekday} className="rounded-lg border border-border p-3 text-sm">
+          <h3 className="font-semibold">{WEEKDAYS[day.weekday]} · {day.samples} dias com vendas</h3>
+          <p>Faturamento médio {day.average_revenue === null ? "—" : brl(day.average_revenue)}</p>
+          <p>Pedidos por dia {day.average_orders ?? "—"} · Ticket {day.average_ticket === null ? "—" : brl(day.average_ticket)}</p>
+          <p>Contribuição estimada {expected === null ? "—" : brl(expected)}</p>
+          <p className="font-medium">{result === null ? (day.samples < 4 ? "Histórico insuficiente" : "Informe custos e confira o DRE") :
+            `${Math.abs(result) <= tolerance ? "Atenção" : result > 0 ? "Compensa abrir" : "Pode não compensar"} · ${brl(result)}`}</p>
+        </article>;
+      })}
+    </div>
+  </details>;
+}
+
 export default function Financeiro() {
   const now = new Date();
   const [start, setStart] = useState(isoLocal(new Date(now.getFullYear(), now.getMonth(), 1)));
@@ -291,6 +331,7 @@ export default function Financeiro() {
       {validPeriod && dre.isLoading && <p role="status" className="mb-4 text-sm text-muted-foreground">Carregando o DRE do período…</p>}
       {dre.isError && <p role="alert" className="mb-4 text-sm text-red-400">{errMsg(dre.error)}</p>}
       <BreakEvenPanel dre={d} />
+      <OpeningWeekdays dre={d} />
       <section className="mb-5 space-y-3" data-testid="sales-intelligence">
         <h2 className="text-lg font-semibold text-white">Inteligência de vendas</h2>
         {intelligence.isError && <p role="alert" className="text-red-400">{errMsg(intelligence.error)}</p>}

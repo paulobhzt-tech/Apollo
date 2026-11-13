@@ -41,6 +41,33 @@ async def paid_between(start: datetime, end: datetime) -> list[dict]:
     return await db.orders.find({"status": "pago", "paid_at": {"$gte": start, "$lt": end}}, {"_id": 0}).to_list(50000)
 
 
+@router.get("/reports/opening-weekdays")
+async def opening_weekdays(_: dict = Depends(require())):
+    """Use completed days with sales; the ledger alone cannot identify opening days without sales."""
+    end = date.fromisoformat(local_today())
+    start = end - timedelta(weeks=12)
+    lower, _ = day_bounds(start.isoformat())
+    upper, _ = day_bounds(end.isoformat())
+    rows = await db.orders.aggregate([
+        {"$match": {"status": "pago", "paid_at": {"$gte": lower, "$lt": upper}}},
+        {"$group": {"_id": {"$dateToString": {"date": "$paid_at", "format": "%Y-%m-%d", "timezone": "America/Sao_Paulo"}},
+                    "revenue": {"$sum": {"$add": ["$subtotal", {"$ifNull": ["$service_fee", 0]}, {"$ifNull": ["$delivery_fee", 0]}]}}, "orders": {"$sum": 1}}},
+        {"$sort": {"_id": 1}},
+    ]).to_list(84)
+    grouped = [[] for _ in range(7)]
+    for row in rows:
+        grouped[date.fromisoformat(row["_id"]).weekday()].append(row)
+    result = []
+    for weekday, samples in enumerate(grouped):
+        revenue = sum(row["revenue"] for row in samples)
+        orders = sum(row["orders"] for row in samples)
+        result.append({"weekday": weekday, "samples": len(samples),
+                       "average_revenue": round(revenue / len(samples), 2) if samples else None,
+                       "average_orders": round(orders / len(samples), 1) if samples else None,
+                       "average_ticket": round(revenue / orders, 2) if orders else None})
+    return result
+
+
 class DailySalesGoal(BaseModel):
     amount: float = Field(ge=0, le=100000000)
 
