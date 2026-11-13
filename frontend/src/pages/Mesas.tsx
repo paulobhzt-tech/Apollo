@@ -389,6 +389,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const [grouped, setGrouped] = useTablePreference(`apollo-table-grouped:${me?.id}`, true);
   const [showItemTimes, setShowItemTimes] = useTablePreference(`apollo-table-times:${me?.id}`, false);
   const [productSearch, setProductSearch] = useState("");
+  const [showDetails, setShowDetails] = useTablePreference(`apollo-table-details:${me?.id}`, true);
   const [removing, setRemoving] = useState<GroupedItem | null>(null);
   const [editingDraft, setEditingDraft] = useState<Pending | null>(null);
 
@@ -542,7 +543,13 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                 <p className="mt-1 text-sm text-muted-foreground">{STATUS[table.status].label}{o ? ` · Pedido #${o.number}` : ""}</p>
                 {table.order_id && <p className="mt-1 text-sm font-semibold">Consumo · {brl(o?.total ?? table.total)}</p>}
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                {table.order_id && <label className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-2">
+                  <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <Input aria-label="Buscar produto na comanda" placeholder="Produto, categoria ou código" value={productSearch}
+                    disabled={!!submission} onChange={(event) => { setProductSearch(event.target.value); setAdding(true); }}
+                    className="min-w-0 border-0 bg-transparent shadow-none" data-testid="table-product-search" />
+                </label>}
                 <Button variant="outline" onClick={requestClose} disabled={busy || partialOpen} data-testid="table-workspace-close">Voltar</Button>
               </div>
             </header>
@@ -588,6 +595,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                       {grouped ? "Ver item a item (cancelar)" : "Agrupar quantidades"}
                     </button>
                   </div>
+                  <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={showDetails} onChange={(event) => setShowDetails(event.target.checked)} /> Exibição completa</label>
                   <label className="mt-2 flex min-h-10 items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={showItemTimes} onChange={(event) => setShowItemTimes(event.target.checked)} data-testid="toggle-item-times" /> Mostrar horário dos lançamentos</label>
                   {grouped ? (
                     <div className="mt-2 space-y-0 divide-y divide-white/10 rounded-sm border border-white/10" data-testid="table-order-grouped">
@@ -597,8 +605,8 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                           <div className="min-w-0 grow basis-[8rem]">
                             <p className="wrap-anywhere text-foreground">{g.name}</p>
                             <p className="text-xs text-muted-foreground">{[...new Set(g.lines.map((line) => progressLabel(line.id)))].join(" · ")}</p>
-                            {g.options.length > 0 && <p className="truncate text-xs text-primary">{g.options.join(" · ")}</p>}
-                            {g.notes.length > 0 && <p className="truncate text-xs text-amber-300">{g.notes.join(" · ")}</p>}
+                            {showDetails && g.options.length > 0 && <p className="truncate text-xs text-primary">{g.options.join(" · ")}</p>}
+                            {showDetails && g.notes.length > 0 && <p className="truncate text-xs text-amber-300">{g.notes.join(" · ")}</p>}
                             <p className="text-xs text-zinc-400">Cliente: {g.customer_name || "Mesa inteira"}{g.ordered_by ? ` · Lançado por: ${g.ordered_by}` : ""}{showItemTimes && g.lines.some((line) => line.ordered_at) ? ` · Horário: ${g.lines.filter((line) => line.ordered_at).map((line) => fmtTime(line.ordered_at!)).join(", ")}` : ""}</p>
                           </div>
                           <span className="font-mono text-xs text-zinc-500">{brl(g.unit_price)}</span>
@@ -616,8 +624,8 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-foreground">{i.name}</p>
                           <p className="text-xs text-muted-foreground">{i.cancelled ? "Cancelado" : progressLabel(i.id)}</p>
-                          {i.options?.length > 0 && <p className="truncate text-xs text-primary">{i.options.join(" · ")}</p>}
-                          {(i.notes || i.cancel_reason) && <p className="truncate text-xs text-amber-300">{i.cancel_reason || i.notes}</p>}
+                          {showDetails && i.options?.length > 0 && <p className="truncate text-xs text-primary">{i.options.join(" · ")}</p>}
+                          {(i.cancel_reason || (showDetails && i.notes)) && <p className="truncate text-xs text-amber-300">{i.cancel_reason || i.notes}</p>}
                           <p className="text-xs text-zinc-400">Cliente: {i.customer_name || "Mesa inteira"}{i.ordered_by ? ` · Lançado por: ${i.ordered_by}` : ""}{showItemTimes && i.ordered_at ? ` · Horário: ${fmtTime(i.ordered_at)}` : ""}</p>
                         </div>
                         <span className="font-mono text-xs text-muted-foreground">{brl(i.unit_price)} un.</span>
@@ -636,7 +644,6 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                   {submission && <p role="status" className="mt-4 text-sm text-amber-600 dark:text-amber-300">Envio aguardando confirmação. Reabra a revisão e repita o mesmo envio para conferir o resultado.</p>}
                   {adding ? (
                     <fieldset disabled={send.isPending || !!submission} className="mt-4 min-w-0 space-y-3 rounded-2xl border border-primary/20 bg-panel p-3">
-                      <label className="flex items-center gap-2 rounded-md border border-white/15 bg-background px-3"><Search className="size-4 text-zinc-400" /><Input autoFocus aria-label="Buscar produto na comanda" placeholder="Buscar por produto, categoria ou código..." value={productSearch} onChange={(e) => setProductSearch(e.target.value)} className="border-0 bg-transparent shadow-none" data-testid="table-product-search" /></label>
                       <ProductGrid products={visibleProducts} categories={categories.data ?? []} onAdd={addPending} compact />
                       {visibleProducts.length === 0 && <p className="text-xs text-amber-200">Nenhum produto encontrado. Confira o nome ou código.</p>}
                       <p className="text-xs text-zinc-400">Novo pedido: ajuste quantidades, cliente e observações antes de revisar. O operador será registrado automaticamente.</p>
@@ -672,7 +679,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                       </div>
                     </fieldset>
                   ) : (
-                    <Button className="mt-4 h-auto min-h-12" onClick={() => { setProductSearch(""); setAdding(true); }} data-testid="add-items-button"><Plus className="size-4" /> Adicionar produtos</Button>
+                    <Button className="mt-4 h-auto min-h-12" onClick={() => { setProductSearch(""); setAdding(true); document.querySelector<HTMLInputElement>('[data-testid="table-product-search"]')?.focus(); }} data-testid="add-items-button"><Plus className="size-4" /> Adicionar produtos</Button>
                   )}
 
                   {submission && <Button className="mt-2" onClick={() => setReviewOpen(true)}>Conferir envio pendente</Button>}
