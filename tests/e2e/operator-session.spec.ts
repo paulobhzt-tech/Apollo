@@ -545,3 +545,27 @@ test("DRE simula custo e meta diária sem lançar movimentação", async ({ page
   await expect(panel).toContainText("6.000,00");
   await expect(panel).toContainText("300,00");
 });
+
+test("Fiado reutiliza recebimento pendente após recarregar", async ({ page }) => {
+  await mockServer(page);
+  const customer = { id: "fiado-test", name: "Cliente fictício", phone: "", balance: 50, credit_limit: 100 };
+  await page.route("**/api/customers", (route) => route.fulfill({ json: [customer] }));
+  const requests: unknown[] = [];
+  await page.route("**/api/customers/fiado-test/receive", (route) => {
+    requests.push(route.request().postDataJSON());
+    return requests.length === 1 ? route.abort("connectionreset") : route.fulfill({ json: { ...customer, balance: 0 } });
+  });
+  await page.goto("/login");
+  await signIn(page, "caixa-teste");
+  await page.goto("/fiado");
+  await page.getByTestId("fiado-receive-fiado-test").click();
+  await page.getByTestId("fiado-receive-confirm").click();
+  await expect(page.getByTestId("fiado-receive-confirm")).toHaveText("Conferir recebimento pendente");
+  await page.reload();
+  await page.getByTestId("fiado-receive-fiado-test").click();
+  await expect(page.getByTestId("fiado-receive-amount")).toBeDisabled();
+  await page.getByTestId("fiado-receive-confirm").click();
+  await expect(page.getByTestId("fiado-receive-dialog")).toBeHidden();
+  expect(requests).toHaveLength(2);
+  expect(requests[0]).toEqual(requests[1]);
+});
