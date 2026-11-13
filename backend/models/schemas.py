@@ -411,6 +411,7 @@ class CancelIn(BaseModel):
 
 # ---------- kitchen ----------
 class KitchenItem(BaseModel):
+    order_item_id: Optional[str] = None
     name: str
     qty: int | float
     notes: str = ""
@@ -487,6 +488,8 @@ class OpenTableIn(BaseModel):
 
 
 class AddItemsIn(BaseModel):
+    order_id: Optional[str] = None
+    client_ref: Optional[str] = Field(default=None, min_length=1, max_length=128)
     items: list[OrderItemIn] = Field(min_length=1)
 
 

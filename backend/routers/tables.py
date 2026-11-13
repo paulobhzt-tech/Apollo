@@ -183,6 +183,19 @@ async def table_order(id: str, _: dict = Depends(current_user)):
     return await db.orders.find_one({"id": t["order_id"]}, {"_id": 0})
 
 
+@router.get("/tables/{id}/item-progress", response_model=dict[str, str])
+async def table_item_progress(id: str, _: dict = Depends(require(*STAFF))):
+    table = await get_table(id)
+    if not table.get("order_id"):
+        return {}
+    progress = {}
+    async for ticket in db.kitchen_tickets.find({"order_id": table["order_id"]}, {"status": 1, "items.order_item_id": 1}):
+        for item in ticket.get("items", []):
+            if item.get("order_item_id"):
+                progress[item["order_item_id"]] = ticket["status"]
+    return progress
+
+
 @router.post("/tables/{id}/items", response_model=Order)
 async def add_items(id: str, body: AddItemsIn, user: dict = Depends(require(*STAFF))):
     return await with_order_transaction(lambda session: apply_add_items(id, body, user, session=session))
@@ -191,8 +204,27 @@ async def add_items(id: str, body: AddItemsIn, user: dict = Depends(require(*STA
 async def apply_add_items(id: str, body: AddItemsIn, user: dict, *, session=None):
     options = {"session": session} if session is not None else {}
     t = await get_table(id, **options)
+    if body.client_ref and not body.order_id:
+        raise HTTPException(400, "Informe o pedido para identificar o envio.")
+    if body.order_id and t.get("order_id") != body.order_id:
+        raise HTTPException(409, "Atendimento alterado. Atualize antes de enviar.")
+    batch_key = hashlib.sha256(f"{user['id']}:{body.client_ref}".encode()).hexdigest()
+    fingerprint = hashlib.sha256(body.model_dump_json().encode()).hexdigest()
+    if body.order_id:
+        order = await db.orders.find_one({"id": body.order_id, "status": "aberto"}, {"_id": 0}, **options)
+        if not order:
+            raise HTTPException(409, "O pedido já foi encerrado.")
+        if body.client_ref:
+            batch = order.get("table_item_batches", {}).get(batch_key)
+            if batch:
+                if batch["fingerprint"] != fingerprint:
+                    raise HTTPException(409, "Este envio já foi usado com outros itens.")
+                if not batch["complete"]:
+                    raise HTTPException(409, "Envio pendente de conferência. Atualize a comanda e verifique o preparo e o estoque antes de reenviar.")
+                return order
+    else:
+        order = await get_or_open_order(t, user, **options)
     items = await build_items(body.items, channel="comanda")
-    order = await get_or_open_order(t, user, **options)
     customers = t.get("customers") or ([t["customer_name"]] if t.get("customer_name") else [])
     for entry, item in zip(body.items, items):
         guest = entry.customer_name.strip()
@@ -201,16 +233,21 @@ async def apply_add_items(id: str, body: AddItemsIn, user: dict, *, session=None
         item.customer_name = guest
         item.ordered_by = user["name"]
         item.ordered_at = now()
-    result = await db.orders.update_one(
-        {"id": order["id"], "status": "aberto"},
-        {"$push": {"items": {"$each": [i.model_dump() for i in items]}}},
-        **options,
-    )
+    condition = {"id": order["id"], "status": "aberto"}
+    changes = {"$push": {"items": {"$each": [i.model_dump() for i in items]}}}
+    if body.client_ref:
+        batch_field = f"table_item_batches.{batch_key}"
+        condition[batch_field] = {"$exists": False}
+        changes["$set"] = {batch_field: {"fingerprint": fingerprint, "complete": False}}
+    result = await db.orders.update_one(condition, changes, **options)
     if result.modified_count != 1:
         raise HTTPException(409, "Comanda foi fechada ou alterada. Atualize a mesa antes de lançar itens.")
     await create_ticket(order, items, **options)
     await move_stock(items, user["name"], f"{table_label(t)} · Pedido #{order['number']}", **options)
-    return await refresh_totals(order["id"], **options)
+    updated = await refresh_totals(order["id"], **options)
+    if body.client_ref:
+        await db.orders.update_one({"id": order["id"]}, {"$set": {f"{batch_field}.complete": True}}, **options)
+    return updated
 
 
 @router.post("/tables/{id}/items/{item_id}/cancel", response_model=Order)
@@ -246,7 +283,8 @@ async def apply_cancel_item(id: str, item_id: str, body: CancelIn, user: dict, a
     result = await db.orders.update_one(
         {"id": order["id"], "status": "aberto", "items": order["items"]},
         {"$set": {"items": updated_items}, "$push": {"audit_events": audit_event(
-            "item_cancelled", user, reason=body.reason, authorized_by=auth, values={"item_id": item_id, "qty": qty},
+            "item_cancelled", user, reason=body.reason, authorized_by=auth, values={"item_id": item_id, "qty": qty, "before": {"qty": item["qty"], "total": round(item["qty"] * item["unit_price"], 2)},
+                "after": {"qty": round(item["qty"] - qty, 4), "total": round((item["qty"] - qty) * item["unit_price"], 2)}},
         )}},
         **options,
     )

@@ -257,7 +257,7 @@ async def create_ticket(order: dict, items: list[OrderItem], *, session=None) ->
     for item in items:
         station = item.station or "cozinha"
         by_station.setdefault(station, []).append(
-            KitchenItem(name=item.name, qty=item.qty, notes=item.notes,
+            KitchenItem(order_item_id=item.id, name=item.name, qty=item.qty, notes=item.notes,
                         station=station, options=item.options,
                         print_ticket=item.print_ticket,
                         customer_name=item.customer_name)

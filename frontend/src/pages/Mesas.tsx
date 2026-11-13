@@ -246,7 +246,7 @@ export default function Mesas() {
           <Plus className="size-4" /> Adicionar mais {kind === "mesa" ? "mesas" : "comandas"}
         </button>
       )}
-      {sel && <TableWorkspace key={sel.id} clock={clock} table={sel} onClose={() => setSelId(null)}
+      {sel && <TableWorkspace key={`${sel.id}:${sel.order_id ?? ""}`} clock={clock} table={sel} onClose={() => setSelId(null)}
         onQr={setQrTable} qrOpen={!!qrTable} tables={all} canDelete={canCreate} mobileMode={mobileMode}
         draft={draftKey ? drafts[draftKey] : undefined} onDraftChange={storeDraft} />}
       <QrDialog table={qrTable} onClose={() => setQrTable(null)} />
@@ -370,6 +370,14 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const setPending = onDraftChange;
   const [adding, setAdding] = useState(!!draft?.length);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [submission, setSubmission] = useOperatorDraft<{ ref: string; orderId: string; payload: string } | null>(
+    `apollo-table-send:${me?.id}:${table.id}:${table.order_id}`, null);
+  const itemProgress = useQuery({
+    queryKey: ["table-item-progress", table.id, table.order_id],
+    queryFn: () => apiGet<Record<string, string>>(`/tables/${table.id}/item-progress`),
+    enabled: !!table.order_id,
+    refetchInterval: 8000,
+  });
   const [payOpen, setPayOpen] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [transferTo, setTransferTo] = useState("");
@@ -391,9 +399,22 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     onError: (error) => { onErr(error); invalidateTables(); },
   });
   const send = useMutation({
-    mutationFn: () => apiPost<Order>(`/tables/${table!.id}/items`, { items: pending.map((p) => ({ product_id: p.product.id, qty: p.qty, notes: p.notes, options: p.options, customer_name: p.customerName })) }),
-    onSuccess: () => { toast.success("Pedido enviado para preparo"); setReviewOpen(false); setPending([]); setAdding(false); invalidateTables(); },
-    onError: onErr,
+    mutationFn: () => {
+      const payload = JSON.stringify(pending.map((p) => ({ product_id: p.product.id, qty: p.qty, notes: p.notes, options: p.options, customer_name: p.customerName })));
+      if (!table.order_id) throw new Error("Abra o atendimento antes de enviar.");
+      if (submission && (submission.payload !== payload || submission.orderId !== table.order_id)) {
+        throw new Error("Confira o envio anterior antes de editar os itens.");
+      }
+      const request = submission ?? { ref: uid(), orderId: table.order_id, payload };
+      setSubmission(request);
+      return apiPost<Order>(`/tables/${table.id}/items`, { order_id: request.orderId, client_ref: request.ref, items: JSON.parse(request.payload) });
+    },
+    onSuccess: () => { setSubmission(null); void itemProgress.refetch(); toast.success("Pedido enviado para preparo"); setReviewOpen(false); setPending([]); setAdding(false); invalidateTables(); },
+    onError: (error) => {
+      if (error instanceof ApiError && [400, 401, 403, 422].includes(error.status)) setSubmission(null);
+      onErr(error);
+      invalidateTables();
+    },
   });
 
   const removeItems = useMutation({
@@ -491,6 +512,11 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     return () => window.removeEventListener("beforeunload", guard);
   }, [busy, partialOpen]);
 
+  const progressLabel = (id: string) => {
+    const status = itemProgress.data?.[id];
+    return status === "novo" ? "Aguardando preparo" : status === "preparo" ? "Em preparo" :
+      status === "pronto" ? "Pronto para entrega" : status === "entregue" ? "Entregue" : "Preparo sem registro por item";
+  };
   const sentActions = (group: GroupedItem, item?: OrderItem) => {
     if (!item && group.lines.length === 1) item = items.find((entry) => entry.id === group.lines[0].id);
     const original = item;
@@ -570,13 +596,14 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                           <span className="min-w-8 font-mono text-primary" data-testid="grouped-line-qty">{g.qty}x</span>
                           <div className="min-w-0 grow basis-[8rem]">
                             <p className="wrap-anywhere text-foreground">{g.name}</p>
+                            <p className="text-xs text-muted-foreground">{[...new Set(g.lines.map((line) => progressLabel(line.id)))].join(" · ")}</p>
                             {g.options.length > 0 && <p className="truncate text-xs text-primary">{g.options.join(" · ")}</p>}
                             {g.notes.length > 0 && <p className="truncate text-xs text-amber-300">{g.notes.join(" · ")}</p>}
                             <p className="text-xs text-zinc-400">Cliente: {g.customer_name || "Mesa inteira"}{g.ordered_by ? ` · Lançado por: ${g.ordered_by}` : ""}{showItemTimes && g.lines.some((line) => line.ordered_at) ? ` · Horário: ${g.lines.filter((line) => line.ordered_at).map((line) => fmtTime(line.ordered_at!)).join(", ")}` : ""}</p>
                           </div>
                           <span className="font-mono text-xs text-zinc-500">{brl(g.unit_price)}</span>
                           <span className="font-mono text-zinc-200">{brl(g.total)}</span>
-                          {o?.status === "aberto" && sentActions(g)}
+                          {o?.status === "aberto" && !submission && sentActions(g)}
                         </div>
                       ))}
                       {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
@@ -588,13 +615,14 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                         <span className="font-mono text-zinc-400">{i.qty}x</span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-foreground">{i.name}</p>
+                          <p className="text-xs text-muted-foreground">{i.cancelled ? "Cancelado" : progressLabel(i.id)}</p>
                           {i.options?.length > 0 && <p className="truncate text-xs text-primary">{i.options.join(" · ")}</p>}
                           {(i.notes || i.cancel_reason) && <p className="truncate text-xs text-amber-300">{i.cancel_reason || i.notes}</p>}
                           <p className="text-xs text-zinc-400">Cliente: {i.customer_name || "Mesa inteira"}{i.ordered_by ? ` · Lançado por: ${i.ordered_by}` : ""}{showItemTimes && i.ordered_at ? ` · Horário: ${fmtTime(i.ordered_at)}` : ""}</p>
                         </div>
                         <span className="font-mono text-xs text-muted-foreground">{brl(i.unit_price)} un.</span>
                         <span className="font-mono text-zinc-200">{brl(i.qty * i.unit_price)}</span>
-                        {o?.status === "aberto" && !i.cancelled && sentActions(groupItems([i])[0], i)}
+                        {o?.status === "aberto" && !submission && !i.cancelled && sentActions(groupItems([i])[0], i)}
                       </div>
                     ))}
                     {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
@@ -605,8 +633,9 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     <span className="font-mono text-2xl text-foreground" data-testid="table-order-total">{brl(o?.total ?? table.total)}</span>
                   </div>
 
+                  {submission && <p role="status" className="mt-4 text-sm text-amber-600 dark:text-amber-300">Envio aguardando confirmação. Reabra a revisão e repita o mesmo envio para conferir o resultado.</p>}
                   {adding ? (
-                    <fieldset disabled={send.isPending} className="mt-4 min-w-0 space-y-3 rounded-2xl border border-primary/20 bg-panel p-3">
+                    <fieldset disabled={send.isPending || !!submission} className="mt-4 min-w-0 space-y-3 rounded-2xl border border-primary/20 bg-panel p-3">
                       <label className="flex items-center gap-2 rounded-md border border-white/15 bg-background px-3"><Search className="size-4 text-zinc-400" /><Input autoFocus aria-label="Buscar produto na comanda" placeholder="Buscar por produto, categoria ou código..." value={productSearch} onChange={(e) => setProductSearch(e.target.value)} className="border-0 bg-transparent shadow-none" data-testid="table-product-search" /></label>
                       <ProductGrid products={visibleProducts} categories={categories.data ?? []} onAdd={addPending} compact />
                       {visibleProducts.length === 0 && <p className="text-xs text-amber-200">Nenhum produto encontrado. Confira o nome ou código.</p>}
@@ -646,6 +675,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     <Button className="mt-4 h-auto min-h-12" onClick={() => { setProductSearch(""); setAdding(true); }} data-testid="add-items-button"><Plus className="size-4" /> Adicionar produtos</Button>
                   )}
 
+                  {submission && <Button className="mt-2" onClick={() => setReviewOpen(true)}>Conferir envio pendente</Button>}
                   <div className="mt-3 grid gap-2 @min-[35rem]:grid-cols-2">
                     <Button variant="outline" onClick={() => setPreBill(true)} disabled={!items.some((i) => !i.cancelled)} data-testid="request-bill-button">
                       <Receipt className="size-4" /> {mobileMode ? "Ver conta" : "Pré-conta"}
@@ -717,7 +747,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
           <p className="text-sm text-muted-foreground">{tableLabel(table)} · Confira itens, quantidades e observações. Nenhum item foi enviado ainda.</p>
           <div className="space-y-2">{pending.map((p) => <div key={p.key} className="rounded-lg border border-border p-3 text-sm"><div className="flex justify-between gap-3"><strong>{p.qty} × {p.product.name}</strong><span>{brl(p.qty * (p.product.price + p.extra))}</span></div>{p.labels.length > 0 && <p className="text-muted-foreground">{p.labels.join(" · ")}</p>}{p.customerName && <p>Cliente: {p.customerName}</p>}{p.notes.trim() && <p className="font-medium text-amber-500">Obs.: {p.notes}</p>}</div>)}</div>
           <p className="text-right font-semibold">Total dos novos itens: {brl(pending.reduce((sum, p) => sum + p.qty * (p.product.price + p.extra), 0))}</p>
-          <div className="grid grid-cols-2 gap-2"><Button type="button" variant="outline" disabled={send.isPending} onClick={() => setReviewOpen(false)}>Editar itens</Button><Button type="button" disabled={!pending.length || send.isPending} onClick={() => send.mutate()} data-testid="waiter-confirm-send"><Send className="size-4" /> Confirmar envio</Button></div>
+          <div className="grid grid-cols-2 gap-2"><Button type="button" variant="outline" disabled={send.isPending || !!submission} onClick={() => setReviewOpen(false)}>Editar itens</Button><Button type="button" disabled={!pending.length || send.isPending} onClick={() => send.mutate()} data-testid="waiter-confirm-send"><Send className="size-4" /> Confirmar envio</Button></div>
         </DialogContent>
       </Dialog>
       <RemoveItemDialog group={removing} needsPin={!canCancel(me)} pending={removeItems.isPending} onClose={() => setRemoving(null)} onConfirm={(r) => removeItems.mutate(r)} />
