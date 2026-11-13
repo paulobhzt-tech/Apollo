@@ -1,4 +1,5 @@
 import OperatingCosts from "@/components/OperatingCosts";
+import OpeningInsights from "@/components/OpeningInsights";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -66,6 +67,7 @@ export default function AdminMobile() {
       })}
       {!items.length && <p role="status" className="rounded-xl border border-border p-4">Nenhum módulo encontrado.</p>}
       <OperatingCosts dre={dre.data} />
+      <OpeningInsights dre={dre.data} />
     </main>
   </AppShell>;
 }
