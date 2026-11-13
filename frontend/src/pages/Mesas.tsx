@@ -2,7 +2,7 @@ import SaleQuantityInput from "@/components/SaleQuantityInput";
 import { type SetStateAction, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowRightLeft, Bell, Clock, Minus, Pencil, Plus, QrCode, Receipt, RefreshCw, Search, Send, Trash2, Users } from "lucide-react";
+import { ArrowRightLeft, Bell, Clock, Ellipsis, Minus, Pencil, Plus, QrCode, Receipt, RefreshCw, Search, Send, Trash2, Users } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
@@ -11,6 +11,7 @@ import OptionsDialog, { type Picked } from "@/components/OptionsDialog";
 import PaymentDialog from "@/components/PaymentDialog";
 import InvoiceDialog from "@/components/InvoiceDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +21,7 @@ import { useMe } from "@/lib/auth";
 import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, uid } from "@/lib/format";
 import { useOperatorDraft } from "@/lib/operator-draft";
 import { queryClient } from "@/lib/queryClient";
-import type { Category, ChosenOption, Invoice, KitchenTicket, Order, PayIn, Product, SaleResult, Table, TableIn } from "@/lib/types";
+import type { Category, ChosenOption, Invoice, KitchenTicket, Order, OrderItem, PayIn, Product, SaleResult, Table, TableIn } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { groupItems } from "@/lib/group";
 import PreBillDialog from "@/components/PreBillDialog";
@@ -377,10 +378,11 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const [mergeTo, setMergeTo] = useState("");
   const [preBill, setPreBill] = useState(false);
   const [partialOpen, setPartialOpen] = useState(false);
-  const [grouped, setGrouped] = useState(true);
-  const [showItemTimes, setShowItemTimes] = useState(false);
+  const [grouped, setGrouped] = useTablePreference(`apollo-table-grouped:${me?.id}`, true);
+  const [showItemTimes, setShowItemTimes] = useTablePreference(`apollo-table-times:${me?.id}`, false);
   const [productSearch, setProductSearch] = useState("");
   const [removing, setRemoving] = useState<GroupedItem | null>(null);
+  const [editingDraft, setEditingDraft] = useState<Pending | null>(null);
 
   const onErr = (e: unknown) => toast.error(errMsg(e));
   const openT = useMutation({
@@ -446,14 +448,35 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     }
     return [...c, { key: uid(), product: p, qty: 1, notes: "", customerName: "", options: picked?.options ?? [], labels: picked?.labels ?? [], extra: picked?.extra ?? 0 }];
   });
+  const updateDraft = (line: Pending) => setPending((current) => current.map((entry) => entry.key === line.key ? line : entry));
+  const changeQuantity = (line: Pending, amount: number) => {
+    const qty = Math.min(99, Number((line.qty + amount).toFixed(4)));
+    if (qty <= 0) setPending((current) => current.filter((entry) => entry.key !== line.key));
+    else updateDraft({ ...line, qty });
+  };
+  const copySentItem = (item: OrderItem, product: Product, qty: number, edit = false) => {
+    const labels = item.options ?? [];
+    const options = (product.options ?? []).flatMap((group) => group.choices
+      .filter((choice) => labels.includes(`${group.name}: ${choice.name}`))
+      .map((choice) => ({ group: group.name, name: choice.name })));
+    if (options.length !== labels.length || (product.options ?? []).some((group) => group.required && !options.some((option) => option.group === group.name))) {
+      toast.error("Os opcionais mudaram. Selecione o produto no catálogo para revisar as opções atuais.");
+      return;
+    }
+    const extra = options.reduce((sum, option) => sum + (product.options.find((group) => group.name === option.group)?.choices.find((choice) => choice.name === option.name)?.price ?? 0), 0);
+    const line = { key: uid(), product, qty, notes: item.notes, options, labels, extra, customerName: item.customer_name ?? "" };
+    if (edit) setEditingDraft(line);
+    else setPending((current) => [...current, line]);
+    setAdding(true);
+  };
   const addPending = (p: Product) => (p.options?.length ? setOptFor(p) : push(p));
   const o = table?.order_id ? order.data ?? null : null;
   const items = (o?.items ?? []);
-  const visibleProducts = (products.data ?? []).filter((p) => p.active && (p.channels?.includes("comanda") ?? true) && (!productSearch.trim() || [p.name, p.code, p.description].some((v) => v?.toLocaleLowerCase("pt-BR").includes(productSearch.trim().toLocaleLowerCase("pt-BR")))));
+  const visibleProducts = (products.data ?? []).filter((p) => p.active && (p.channels?.includes("comanda") ?? true) && (!productSearch.trim() || [p.name, p.code, p.description, categories.data?.find((category) => category.id === p.category_id)?.name].some((v) => v?.toLocaleLowerCase("pt-BR").includes(productSearch.trim().toLocaleLowerCase("pt-BR")))));
 
   const busy = openT.isPending || send.isPending || removeItems.isPending || status.isPending ||
     release.isPending || cancelTable.isPending || transfer.isPending || merge.isPending || pay.isPending;
-  const nestedOpen = qrOpen || reviewOpen || partialOpen || payOpen || preBill || !!invoice || !!removing || !!optFor;
+  const nestedOpen = qrOpen || reviewOpen || partialOpen || payOpen || preBill || !!invoice || !!removing || !!editingDraft || !!optFor;
   const editingOpening = !table.order_id && (people !== "2" || !!name.trim());
   const [editingCustomers, setEditingCustomers] = useState(false);
   const requestClose = () => {
@@ -468,6 +491,20 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     return () => window.removeEventListener("beforeunload", guard);
   }, [busy, partialOpen]);
 
+  const sentActions = (group: GroupedItem, item?: OrderItem) => {
+    if (!item && group.lines.length === 1) item = items.find((entry) => entry.id === group.lines[0].id);
+    const original = item;
+    const product = item && products.data?.find((entry) => entry.id === item.product_id && entry.active);
+    return <ItemActions name={group.name}>
+      {original && product && <DropdownMenuItem onClick={() => copySentItem(original, product, 1)}>Adicionar +1 para revisão</DropdownMenuItem>}
+      {original && product && <DropdownMenuItem onClick={() => {
+        copySentItem(original, product, original.qty, true);
+      }}>Duplicar e editar</DropdownMenuItem>}
+      <DropdownMenuItem onClick={() => setRemoving(group)}>{item ? "Diminuir / cancelar com justificativa" : "Cancelar itens do grupo"}</DropdownMenuItem>
+      {!item && <DropdownMenuItem onClick={() => setGrouped(false)}>Ver lançamentos individuais</DropdownMenuItem>}
+    </ItemActions>;
+  };
+
   const content = (
           <div className="@container min-w-0 text-foreground">
             <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border p-4 pr-14">
@@ -477,6 +514,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                 </DialogTitle>
                 {table.name && <p className="mt-1 text-sm font-medium">{table.name}</p>}
                 <p className="mt-1 text-sm text-muted-foreground">{STATUS[table.status].label}{o ? ` · Pedido #${o.number}` : ""}</p>
+                {table.order_id && <p className="mt-1 text-sm font-semibold">Consumo · {brl(o?.total ?? table.total)}</p>}
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button variant="outline" onClick={requestClose} disabled={busy || partialOpen} data-testid="table-workspace-close">Voltar</Button>
@@ -538,8 +576,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                           </div>
                           <span className="font-mono text-xs text-zinc-500">{brl(g.unit_price)}</span>
                           <span className="font-mono text-zinc-200">{brl(g.total)}</span>
-                          <button type="button" onClick={() => setRemoving(g)} aria-label={`Apagar ${g.name}`} data-testid={`grouped-remove-${g.lines[0]?.id}`}
-                            className="rounded-lg p-1 text-zinc-500 transition-colors duration-150 hover:bg-red-500/10 hover:text-red-400"><Trash2 className="size-4" /></button>
+                          {o?.status === "aberto" && sentActions(g)}
                         </div>
                       ))}
                       {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
@@ -555,11 +592,9 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                           {(i.notes || i.cancel_reason) && <p className="truncate text-xs text-amber-300">{i.cancel_reason || i.notes}</p>}
                           <p className="text-xs text-zinc-400">Cliente: {i.customer_name || "Mesa inteira"}{i.ordered_by ? ` · Lançado por: ${i.ordered_by}` : ""}{showItemTimes && i.ordered_at ? ` · Horário: ${fmtTime(i.ordered_at)}` : ""}</p>
                         </div>
+                        <span className="font-mono text-xs text-muted-foreground">{brl(i.unit_price)} un.</span>
                         <span className="font-mono text-zinc-200">{brl(i.qty * i.unit_price)}</span>
-                        {!i.cancelled && (
-                          <button type="button" data-testid={`cancel-item-${i.id}`} aria-label={`Apagar ${i.name}`}
-                            onClick={() => setRemoving(groupItems([i])[0] ?? null)}><Trash2 className="size-4 text-zinc-500 hover:text-red-400" /></button>
-                        )}
+                        {o?.status === "aberto" && !i.cancelled && sentActions(groupItems([i])[0], i)}
                       </div>
                     ))}
                     {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
@@ -572,7 +607,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
 
                   {adding ? (
                     <fieldset disabled={send.isPending} className="mt-4 min-w-0 space-y-3 rounded-2xl border border-primary/20 bg-panel p-3">
-                      <label className="flex items-center gap-2 rounded-md border border-white/15 bg-background px-3"><Search className="size-4 text-zinc-400" /><Input autoFocus aria-label="Buscar produto na comanda" placeholder="Buscar produto por nome ou código..." value={productSearch} onChange={(e) => setProductSearch(e.target.value)} className="border-0 bg-transparent shadow-none" data-testid="table-product-search" /></label>
+                      <label className="flex items-center gap-2 rounded-md border border-white/15 bg-background px-3"><Search className="size-4 text-zinc-400" /><Input autoFocus aria-label="Buscar produto na comanda" placeholder="Buscar por produto, categoria ou código..." value={productSearch} onChange={(e) => setProductSearch(e.target.value)} className="border-0 bg-transparent shadow-none" data-testid="table-product-search" /></label>
                       <ProductGrid products={visibleProducts} categories={categories.data ?? []} onAdd={addPending} compact />
                       {visibleProducts.length === 0 && <p className="text-xs text-amber-200">Nenhum produto encontrado. Confira o nome ou código.</p>}
                       <p className="text-xs text-zinc-400">Novo pedido: ajuste quantidades, cliente e observações antes de revisar. O operador será registrado automaticamente.</p>
@@ -582,6 +617,13 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                           <SaleQuantityInput qty={p.qty} unit={p.product.sale_unit}
                             onChange={(qty) => setPending((current) => current.map((line) => line.key === p.key ? { ...line, qty } : line))} />
                           <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.map((x, j) => (j === i ? { ...x, qty: Math.min(99, Number((x.qty + 1).toFixed(4))) } : x)))}><Plus /></Button>
+                          <ItemActions name={p.product.name}>
+                            <DropdownMenuItem onClick={() => changeQuantity(p, 1)}>Adicionar +1</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => changeQuantity(p, -1)}>Diminuir −1</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditingDraft(p)}>Editar</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditingDraft({ ...p, key: uid() })}>Duplicar e editar</DropdownMenuItem>
+                            <DropdownMenuItem variant="destructive" onClick={() => setPending((current) => current.filter((line) => line.key !== p.key))}>Remover do rascunho</DropdownMenuItem>
+                          </ItemActions>
                           <span className="min-w-0 basis-full wrap-anywhere">{p.product.name}{p.labels.length > 0 && <span className="block text-xs text-primary">{p.labels.join(" · ")}</span>}</span>
                           <select aria-label="Cliente responsável pelo item" value={p.customerName} onChange={e => setPending(old => old.map((line, j) => j === i ? { ...line, customerName: e.target.value } : line))}
                             className="w-full min-w-0 rounded-md border border-white/15 bg-panel px-2 py-1 text-xs" data-testid={`pending-customer-${i}`}>
@@ -664,7 +706,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     <>
       <Dialog open onOpenChange={(value) => { if (!value) requestClose(); }} disablePointerDismissal>
         <DialogContent overlayClassName="bg-black/55"
-          className="w-[calc(100%-1rem)] max-h-[90dvh] max-w-[min(calc(100%-1rem),900px)] grid-cols-[minmax(0,1fr)] gap-0 overflow-y-auto overscroll-contain border border-border bg-elevated p-0 sm:max-w-[min(calc(100%-2rem),900px)]"
+          className="w-[calc(100%-1rem)] max-h-[90dvh] max-w-[min(calc(100%-1rem),1080px)] grid-cols-[minmax(0,1fr)] gap-0 overflow-y-auto overscroll-contain border border-border bg-elevated p-0 sm:max-w-[min(calc(100%-2rem),1080px)]"
           data-testid="table-sheet">
           {content}
         </DialogContent>
@@ -687,9 +729,64 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
       <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} items={o?.items.filter((item) => !item.cancelled)} defaultService={10}
         title={`Fechamento · ${table ? tableLabel(table) : ""}`} pending={pay.isPending} onConfirm={(p) => pay.mutate(p)} />
       <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />
+      {editingDraft && <DraftItemDialog line={editingDraft} onClose={() => setEditingDraft(null)} onSave={(line) => {
+        if (pending.some((entry) => entry.key === line.key)) updateDraft(line);
+        else setPending((current) => [...current, line]);
+        setEditingDraft(null);
+      }} />}
       <OptionsDialog product={optFor} onClose={() => setOptFor(null)} onConfirm={push} />
     </>
   );
+}
+
+function useTablePreference(key: string, fallback: boolean) {
+  const [value, setValue] = useState(() => {
+    try {
+      const saved = localStorage.getItem(key);
+      return saved === null ? fallback : saved === "true";
+    } catch {
+      return fallback;
+    }
+  });
+  return [value, (next: boolean | ((value: boolean) => boolean)) => {
+    const updated = typeof next === "function" ? next(value) : next;
+    setValue(updated);
+    try { localStorage.setItem(key, String(updated)); } catch { /* Keep the current choice in memory. */ }
+  }] as const;
+}
+
+function ItemActions({ name, children }: { name: string; children: React.ReactNode }) {
+  return <DropdownMenu modal={false}>
+    <DropdownMenuTrigger aria-label={`Ações de ${name}`} className="grid size-10 shrink-0 place-items-center rounded-md border border-border hover:bg-muted">
+      <Ellipsis className="size-5" />
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end" className="w-max max-w-[min(18rem,calc(100vw-2rem))]">
+      {children}
+      <DropdownMenuItem>Voltar</DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>;
+}
+
+function DraftItemDialog({ line, onClose, onSave }: { line: Pending; onClose: () => void; onSave: (line: Pending) => void }) {
+  const [draft, setDraft] = useState(line);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  return <>
+    <Dialog open onOpenChange={(open) => { if (!open && !optionsOpen) onClose(); }}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
+        <DialogTitle>Editar · {line.product.name}</DialogTitle>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" aria-label="Diminuir quantidade" disabled={draft.qty <= 1} onClick={() => setDraft({ ...draft, qty: Number((draft.qty - 1).toFixed(4)) })}>−</Button>
+          <SaleQuantityInput qty={draft.qty} unit={draft.product.sale_unit} onChange={(qty) => setDraft({ ...draft, qty })} />
+          <Button variant="outline" aria-label="Aumentar quantidade" disabled={draft.qty >= 99} onClick={() => setDraft({ ...draft, qty: Math.min(99, Number((draft.qty + 1).toFixed(4))) })}>+</Button>
+        </div>
+        <Input aria-label="Observação do rascunho" maxLength={500} value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} />
+        {!!line.product.options?.length && <Button variant="outline" onClick={() => setOptionsOpen(true)}>Editar opcionais</Button>}
+        <Button onClick={() => onSave(draft)}>Salvar rascunho</Button>
+      </DialogContent>
+    </Dialog>
+    <OptionsDialog product={optionsOpen ? line.product : null} initialOptions={draft.options}
+      onClose={() => setOptionsOpen(false)} onConfirm={(_, picked) => setDraft({ ...draft, ...picked })} />
+  </>;
 }
 
 interface PartialBillPreview {

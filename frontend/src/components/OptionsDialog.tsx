@@ -7,18 +7,18 @@ import { cn } from "@/lib/utils";
 
 export interface Picked { options: ChosenOption[]; extra: number; labels: string[] }
 
-export default function OptionsDialog({ product, onClose, onConfirm }: { product: Product | null; onClose: () => void; onConfirm: (p: Product, picked: Picked) => void }) {
+export default function OptionsDialog({ product, initialOptions, onClose, onConfirm }: { product: Product | null; initialOptions?: ChosenOption[]; onClose: () => void; onConfirm: (p: Product, picked: Picked) => void }) {
   return (
     <Dialog open={!!product} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-elevated sm:max-w-md" data-testid="options-dialog">
-        {product && <Body key={product.id} product={product} onConfirm={(p) => { onConfirm(product, p); onClose(); }} />}
+        {product && <Body key={product.id} product={product} initialOptions={initialOptions} onConfirm={(p) => { onConfirm(product, p); onClose(); }} />}
       </DialogContent>
     </Dialog>
   );
 }
 
-function Body({ product, onConfirm }: { product: Product; onConfirm: (p: Picked) => void }) {
-  const [sel, setSel] = useState<ChosenOption[]>([]);
+function Body({ product, initialOptions, onConfirm }: { product: Product; initialOptions?: ChosenOption[]; onConfirm: (p: Picked) => void }) {
+  const [sel, setSel] = useState<ChosenOption[]>(initialOptions ?? []);
   const has = (g: string, n: string) => sel.some((s) => s.group === g && s.name === n);
   const toggle = (g: string, n: string, multi: boolean) =>
     setSel((cur) => has(g, n) ? cur.filter((s) => !(s.group === g && s.name === n))
