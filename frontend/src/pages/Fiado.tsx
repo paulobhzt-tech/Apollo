@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+
 import { apiGet, apiPost } from "@/lib/api";
 import { BRAND_LABEL, brl, errMsg, fmtDateTime, payLabel } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
@@ -28,8 +28,13 @@ export default function Fiado() {
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
   const [receiving, setReceiving] = useState<FiadoCustomer | null>(null);
-  const [history, setHistory] = useState<FiadoCustomer | null>(null);
-  const list = (q.data ?? []).filter((c) => !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search));
+  const [selectedId, setSelectedId] = useState<string>();
+  const [onlyDebt, setOnlyDebt] = useState(false);
+  const normalize = (value: string) => value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("pt-BR");
+  const term = normalize(search.trim());
+  const list = (q.data ?? []).filter((c) => (!onlyDebt || c.balance > 0.009) &&
+    (!term || normalize(c.name).includes(term) || c.phone.includes(term)));
+  const selected = list.find((customer) => customer.id === selectedId) ?? list[0];
   const owed = (q.data ?? []).reduce((t, c) => t + c.balance, 0);
 
   return (
@@ -45,13 +50,16 @@ export default function Fiado() {
         <Stat label="Total a receber" value={brl(owed)} testid="fiado-total-owed" accent="text-red-300" />
         <Stat label="Clientes devendo" value={String((q.data ?? []).filter((c) => c.balance > 0.009).length)} hint={`${q.data?.length ?? 0} cadastrados`} testid="fiado-debtors" />
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(17rem,2fr)_minmax(0,3fr)]">
+        <section aria-label="Clientes da conta fiado" className="min-w-0 space-y-2">
+          <label className="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" checked={onlyDebt} onChange={(event) => setOnlyDebt(event.target.checked)} /> Ocultar clientes com saldo zerado</label>
+          {q.isError && <p role="alert">Não foi possível consultar os clientes.</p>}
         {list.map((c) => (
-          <article key={c.id} className="rounded-2xl border border-white/5 bg-panel p-4" data-testid={`fiado-customer-${c.id}`}>
+          <article key={c.id} className={cn("rounded-2xl border bg-panel p-4", selected?.id === c.id ? "border-primary" : "border-border")} data-testid={`fiado-customer-${c.id}`}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="font-medium text-white">{c.name}</p>
-                <p className="text-xs text-zinc-500">{c.phone || "Sem telefone"}{c.credit_limit > 0 && ` · limite ${brl(c.credit_limit)}`}</p>
+                <p className="text-xs text-muted-foreground">{c.credit_limit > 0 ? `Limite ${brl(c.credit_limit)}` : "Sem limite"} · {c.balance > 0.009 ? "Em aberto" : "Quitado"}</p>
               </div>
               <p className={cn("font-mono text-xl", c.balance > 0.009 ? "text-red-300" : "text-emerald-300")} data-testid={`fiado-balance-${c.id}`}>{brl(c.balance)}</p>
             </div>
@@ -62,7 +70,7 @@ export default function Fiado() {
             )}
             <div className="mt-3 flex gap-2">
               <Button size="sm" className="flex-1" disabled={c.balance <= 0.009} onClick={() => setReceiving(c)} data-testid={`fiado-receive-${c.id}`}><HandCoins className="size-3.5" /> Receber</Button>
-              <Button size="sm" variant="outline" onClick={() => setHistory(c)} data-testid={`fiado-history-${c.id}`}><History className="size-3.5" /> Histórico</Button>
+              <Button size="sm" variant="outline" aria-pressed={selected?.id === c.id} onClick={() => setSelectedId(c.id)} data-testid={`fiado-history-${c.id}`}><History className="size-3.5" /> Histórico</Button>
               <Button size="sm" variant="outline" className="border-emerald-500/30 text-emerald-300" disabled={c.balance <= 0.009 || !c.phone}
                 onClick={() => window.open(waLink(c, settings.data), "_blank")} data-testid={`fiado-whatsapp-${c.id}`} title={c.phone ? "Cobrar no WhatsApp" : "Cliente sem telefone"}>
                 <MessageCircle className="size-3.5" />
@@ -70,7 +78,11 @@ export default function Fiado() {
             </div>
           </article>
         ))}
-        {list.length === 0 && <p className="col-span-full py-10 text-center text-sm text-zinc-500">Nenhum cliente encontrado.</p>}
+        {!q.isPending && !q.isError && list.length === 0 && <p className="py-6 text-sm text-muted-foreground">Nenhum cliente encontrado.</p>}
+        </section>
+        <section aria-label="Extrato de fiado" className="min-w-0 rounded-2xl border border-border bg-elevated p-4">
+          {selected ? <HistoryList c={selected} /> : <p className="text-sm text-muted-foreground">Selecione um cliente para consultar o extrato.</p>}
+        </section>
       </div>
       <Dialog open={creating} onOpenChange={setCreating}>
         <DialogContent className="border-white/10 bg-elevated sm:max-w-sm" data-testid="fiado-customer-dialog">{creating && <CustomerForm onClose={() => setCreating(false)} />}</DialogContent>
@@ -78,11 +90,6 @@ export default function Fiado() {
       <Dialog open={!!receiving} onOpenChange={(v) => !v && setReceiving(null)}>
         <DialogContent className="border-white/10 bg-elevated sm:max-w-sm" data-testid="fiado-receive-dialog">{receiving && <ReceiveForm c={receiving} onClose={() => setReceiving(null)} />}</DialogContent>
       </Dialog>
-      <Sheet open={!!history} onOpenChange={(v) => !v && setHistory(null)}>
-        <SheetContent className="w-full overflow-y-auto border-white/5 bg-shell p-5 sm:max-w-md" data-testid="fiado-history-sheet">
-          {history && <HistoryList c={history} />}
-        </SheetContent>
-      </Sheet>
     </AppShell>
   );
 }
@@ -144,7 +151,9 @@ function HistoryList({ c }: { c: FiadoCustomer }) {
   const q = useQuery({ queryKey: ["customer-moves", c.id], queryFn: () => apiGet<CustomerMove[]>(`/customers/${c.id}/moves`) });
   return (
     <>
-      <SheetTitle className="font-heading text-xl text-white">{c.name}</SheetTitle>
+      <h2 className="font-heading text-xl text-foreground">Extrato · {c.name}</h2>
+      {q.isPending && <p role="status">Carregando extrato…</p>}
+      {q.isError && <p role="alert">Não foi possível consultar o extrato.</p>}
       <p className="text-sm text-zinc-400">Saldo atual <span className="font-mono text-white">{brl(c.balance)}</span></p>
       <ul className="mt-4 space-y-2">
         {(q.data ?? []).map((m) => (
