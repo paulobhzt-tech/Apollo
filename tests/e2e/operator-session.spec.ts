@@ -569,3 +569,26 @@ test("Fiado reutiliza recebimento pendente após recarregar", async ({ page }) =
   expect(requests).toHaveLength(2);
   expect(requests[0]).toEqual(requests[1]);
 });
+
+
+test("a aba ativa continua autenticada após recarregar e nova abertura exige login", async ({ page }) => {
+  await mockServer(page);
+  await page.goto("/login");
+
+  const remember = page.getByRole("checkbox", { name: "Memorizar usuário" });
+  await remember.click();
+  await page.getByRole("button", { name: "Sim", exact: true }).click();
+  await signIn(page, "admin-teste");
+
+  await page.reload();
+  await expect(page.getByTestId("apollo-ribbon")).toBeVisible();
+  await expect(page.getByLabel("Senha", { exact: true })).toHaveCount(0);
+
+  await page.evaluate(() => sessionStorage.removeItem("apollo-session-tab"));
+  await page.reload();
+  await expect(page.getByRole("dialog", { name: "Bem-vindo de volta" })).toBeVisible();
+  await expect(page.getByLabel("Usuário", { exact: true })).toHaveValue("admin-teste");
+  await expect(page.getByLabel("Senha", { exact: true })).toHaveValue("");
+  const savedValues = await page.evaluate(() => Object.values(localStorage).join("\\n"));
+  expect(savedValues).not.toContain("senha-ficticia");
+});
