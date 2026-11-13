@@ -219,6 +219,15 @@ async def apply_add_items(id: str, body: AddItemsIn, user: dict, *, session=None
             if batch:
                 if batch["fingerprint"] != fingerprint:
                     raise HTTPException(409, "Este envio já foi usado com outros itens.")
+                if not batch["complete"] and batch.get("stage") == "stock_recorded":
+                    updated = await refresh_totals(order["id"], **options)
+                    await db.orders.update_one(
+                        {"id": order["id"], f"table_item_batches.{batch_key}.stage": "stock_recorded"},
+                        {"$set": {f"table_item_batches.{batch_key}.complete": True,
+                                  f"table_item_batches.{batch_key}.stage": "complete"}},
+                        **options,
+                    )
+                    return updated
                 if not batch["complete"]:
                     raise HTTPException(409, "Envio pendente de conferência. Atualize a comanda e verifique o preparo e o estoque antes de reenviar.")
                 return order
@@ -238,15 +247,21 @@ async def apply_add_items(id: str, body: AddItemsIn, user: dict, *, session=None
     if body.client_ref:
         batch_field = f"table_item_batches.{batch_key}"
         condition[batch_field] = {"$exists": False}
-        changes["$set"] = {batch_field: {"fingerprint": fingerprint, "complete": False}}
+        changes["$set"] = {batch_field: {"fingerprint": fingerprint, "complete": False, "stage": "items_recorded",
+                                          "item_ids": [item.id for item in items],
+                                          "operator_id": user["id"], "operator_name": user["name"], "created_at": now()}}
     result = await db.orders.update_one(condition, changes, **options)
     if result.modified_count != 1:
         raise HTTPException(409, "Comanda foi fechada ou alterada. Atualize a mesa antes de lançar itens.")
     await create_ticket(order, items, **options)
+    if body.client_ref:
+        await db.orders.update_one({"id": order["id"]}, {"$set": {f"{batch_field}.stage": "ticket_recorded"}}, **options)
     await move_stock(items, user["name"], f"{table_label(t)} · Pedido #{order['number']}", **options)
+    if body.client_ref:
+        await db.orders.update_one({"id": order["id"]}, {"$set": {f"{batch_field}.stage": "stock_recorded"}}, **options)
     updated = await refresh_totals(order["id"], **options)
     if body.client_ref:
-        await db.orders.update_one({"id": order["id"]}, {"$set": {f"{batch_field}.complete": True}}, **options)
+        await db.orders.update_one({"id": order["id"]}, {"$set": {f"{batch_field}.complete": True, f"{batch_field}.stage": "complete"}}, **options)
     return updated
 
 
@@ -283,8 +298,8 @@ async def apply_cancel_item(id: str, item_id: str, body: CancelIn, user: dict, a
     result = await db.orders.update_one(
         {"id": order["id"], "status": "aberto", "items": order["items"]},
         {"$set": {"items": updated_items}, "$push": {"audit_events": audit_event(
-            "item_cancelled", user, reason=body.reason, authorized_by=auth, values={"item_id": item_id, "qty": qty, "before": {"qty": item["qty"], "total": round(item["qty"] * item["unit_price"], 2)},
-                "after": {"qty": round(item["qty"] - qty, 4), "total": round((item["qty"] - qty) * item["unit_price"], 2)}},
+            "item_cancelled", user, reason=body.reason, authorized_by=auth, values={"item_id": item_id, "qty": qty, "before_qty": item["qty"], "before_total": round(item["qty"] * item["unit_price"], 2),
+                    "after_qty": round(item["qty"] - qty, 4), "after_total": round((item["qty"] - qty) * item["unit_price"], 2)},
         )}},
         **options,
     )

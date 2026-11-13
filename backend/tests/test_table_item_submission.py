@@ -8,8 +8,8 @@ from models.schemas import AddItemsIn, OrderItem
 from routers import tables
 
 
-@pytest.mark.parametrize("complete", [True, False])
-async def test_repeat_table_submission_does_not_append_or_move_stock(monkeypatch, complete):
+@pytest.mark.parametrize("failure", [None, "stock", "totals"])
+async def test_repeat_table_submission_does_not_append_or_move_stock(monkeypatch, failure):
     order = {"id": "o1", "status": "aberto", "items": []}
 
     async def update_order(condition, changes, **options):
@@ -23,21 +23,27 @@ async def test_repeat_table_submission_does_not_append_or_move_stock(monkeypatch
         return SimpleNamespace(modified_count=1)
 
     orders = SimpleNamespace(find_one=AsyncMock(return_value=order), update_one=AsyncMock(side_effect=update_order))
-    stock = AsyncMock(side_effect=None if complete else RuntimeError("simulated stock failure"))
+    stock = AsyncMock(side_effect=RuntimeError("simulated stock failure") if failure == "stock" else None)
     ticket = AsyncMock()
     monkeypatch.setattr(tables, "db", SimpleNamespace(orders=orders))
     monkeypatch.setattr(tables, "get_table", AsyncMock(return_value={"id": "m1", "number": 1, "order_id": "o1"}))
     monkeypatch.setattr(tables, "build_items", AsyncMock(return_value=[OrderItem(product_id="p", name="Produto", qty=1, unit_price=5)]))
     monkeypatch.setattr(tables, "create_ticket", ticket)
     monkeypatch.setattr(tables, "move_stock", stock)
-    monkeypatch.setattr(tables, "refresh_totals", AsyncMock(return_value=order))
+    totals = AsyncMock(side_effect=[RuntimeError("simulated totals failure"), order] if failure == "totals" else None, return_value=order)
+    monkeypatch.setattr(tables, "refresh_totals", totals)
     order["number"] = 1
     actor = {"id": "g1", "name": "Garçom"}
     body = AddItemsIn(order_id="o1", client_ref="send-1", items=[{"product_id": "p", "qty": 1}])
 
-    if complete:
+    if failure is None:
         await tables.apply_add_items("m1", body, actor)
         assert await tables.apply_add_items("m1", body, actor) is order
+    elif failure == "totals":
+        with pytest.raises(RuntimeError, match="simulated totals failure"):
+            await tables.apply_add_items("m1", body, actor)
+        assert await tables.apply_add_items("m1", body, actor) is order
+        assert totals.await_count == 2
     else:
         with pytest.raises(RuntimeError, match="simulated stock failure"):
             await tables.apply_add_items("m1", body, actor)
