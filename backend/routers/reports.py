@@ -68,6 +68,28 @@ async def opening_weekdays(_: dict = Depends(require())):
     return result
 
 
+@router.get("/reports/operating-costs")
+async def operating_costs(_: dict = Depends(require())):
+    today = date.fromisoformat(local_today())
+    start = today.replace(day=1).isoformat()
+    end = today.replace(day=calendar.monthrange(today.year, today.month)[1]).isoformat()
+    today_iso = today.isoformat()
+    rows = await db.bills.aggregate([
+        {"$match": {"kind": "pagar", "status": {"$in": ["aberto", "pago"]},
+                    "due_date": {"$gte": start, "$lte": end}}},
+        {"$group": {"_id": None,
+                    "planned": {"$sum": "$amount"},
+                    "paid": {"$sum": {"$cond": [{"$eq": ["$status", "pago"]}, "$paid_amount", 0]}},
+                    "overdue": {"$sum": {"$cond": [{"$and": [{"$eq": ["$status", "aberto"]}, {"$lt": ["$due_date", today_iso]}]}, "$amount", 0]}},
+                    "upcoming": {"$sum": {"$cond": [{"$and": [{"$eq": ["$status", "aberto"]}, {"$gte": ["$due_date", today_iso]}]}, "$amount", 0]}},
+                    "fixed": {"$sum": {"$cond": [{"$eq": ["$fixed_cost", True]}, "$amount", 0]}},
+                    "fixed_count": {"$sum": {"$cond": [{"$eq": ["$fixed_cost", True]}, 1, 0]}}}},
+        {"$project": {"_id": 0}},
+    ]).to_list(1)
+    return {"start": start, "end": end, **(rows[0] if rows else dict.fromkeys(
+        ("planned", "paid", "overdue", "upcoming", "fixed", "fixed_count"), 0))}
+
+
 class DailySalesGoal(BaseModel):
     amount: float = Field(ge=0, le=100000000)
 

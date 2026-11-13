@@ -965,6 +965,7 @@ class Bill(BaseModel):
     category_id: str = ""
     category_name: str = ""
     establishment: str = Field(default="", max_length=120)
+    fixed_cost: bool = False
     cost_center: str = Field(default="", max_length=120)
     party: str = ""  # fornecedor ou cliente
     amount: float
@@ -983,6 +984,7 @@ class BillIn(BaseModel):
     description: str = Field(min_length=2)
     category_id: str = ""
     establishment: str = Field(default="", max_length=120)
+    fixed_cost: bool = False
     cost_center: str = Field(default="", max_length=120)
     party: str = ""
     amount: float = Field(gt=0)

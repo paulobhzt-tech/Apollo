@@ -332,8 +332,8 @@ export interface SelfTestResult { at: string; by_name: string; ok: number; warni
 export type BillKind = "pagar" | "receber";
 export interface AccountCategory { id: string; name: string; kind: BillKind }
 export type AccountCategoryIn = Omit<AccountCategory, "id">;
-export interface Bill { establishment?: string; cost_center?: string; id: string; kind: BillKind; description: string; category_id: string; category_name: string; party: string; amount: number; due_date: string; status: "aberto" | "pago" | "cancelado"; paid_date: string | null; paid_amount: number; payment_method: string; notes: string; created_by: string; created_at: string }
-export interface BillIn { client_ref?: string; establishment?: string; cost_center?: string; kind: BillKind; description: string; category_id: string; party: string; amount: number; due_date: string; notes: string; repeat_months: number }
+export interface Bill { fixed_cost?: boolean; establishment?: string; cost_center?: string; id: string; kind: BillKind; description: string; category_id: string; category_name: string; party: string; amount: number; due_date: string; status: "aberto" | "pago" | "cancelado"; paid_date: string | null; paid_amount: number; payment_method: string; notes: string; created_by: string; created_at: string }
+export interface BillIn { fixed_cost?: boolean; client_ref?: string; establishment?: string; cost_center?: string; kind: BillKind; description: string; category_id: string; party: string; amount: number; due_date: string; notes: string; repeat_months: number }
 export interface BillPayIn { paid_date: string; paid_amount: number; payment_method: string }
 export interface BillSummary { pagar_aberto: number; pagar_vencido: number; pagar_hoje: number; receber_aberto: number; receber_vencido: number; fiado_aberto: number }
 export interface PaymentMethodCfg { id: string; key: string; name: string; kind: "dinheiro" | "cartao" | "pix" | "fiado" | "outro"; fee_pct: number; active: boolean; builtin: boolean; sort: number }

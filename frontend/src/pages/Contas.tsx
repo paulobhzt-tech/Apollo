@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 const today = () => new Date().toLocaleDateString("sv-SE");
 const fmtD = (d: string | null) => (d ? d.split("-").reverse().join("/") : "—");
 const num = (s: string) => Number(s.replace(",", ".")) || 0;
-const inv = () => { void queryClient.invalidateQueries({ queryKey: ["bills"] }); void queryClient.invalidateQueries({ queryKey: ["bills-summary"] }); };
+const inv = () => { void queryClient.invalidateQueries({ queryKey: ["bills"] }); void queryClient.invalidateQueries({ queryKey: ["bills-summary"] }); void queryClient.invalidateQueries({ queryKey: ["operating-costs"] }); void queryClient.invalidateQueries({ queryKey: ["dre"] }); };
 type Filter = "aberto" | "vencido" | "pago" | "todas";
 
 export default function Contas() {
@@ -124,10 +124,10 @@ export function BillForm({ kind, bill, partyLabel, onClose, initialParty = "" }:
     queryFn: async (): Promise<{ id: string; name: string }[]> => (kind === "pagar" ? apiGet<Supplier[]>("/suppliers") : apiGet<FiadoCustomer[]>("/customers")),
   });
   const [requestRef] = useState(uid);
-  const [f, setF] = useState({ establishment: bill?.establishment ?? "", cost_center: bill?.cost_center ?? "", description: bill?.description ?? "", category_id: bill?.category_id ?? "", party: bill?.party ?? initialParty, amount: bill ? String(bill.amount) : "", due_date: bill?.due_date ?? today(), notes: bill?.notes ?? "", repeat: "1" });
+  const [f, setF] = useState({ fixed_cost: bill?.fixed_cost ?? false, establishment: bill?.establishment ?? "", cost_center: bill?.cost_center ?? "", description: bill?.description ?? "", category_id: bill?.category_id ?? "", party: bill?.party ?? initialParty, amount: bill ? String(bill.amount) : "", due_date: bill?.due_date ?? today(), notes: bill?.notes ?? "", repeat: "1" });
   const save = useMutation({
     mutationFn: () => {
-      const body: BillIn = { kind, ...(bill ? {} : { client_ref: requestRef }), establishment: f.establishment, cost_center: f.cost_center, description: f.description, category_id: f.category_id, party: f.party, amount: num(f.amount), due_date: f.due_date, notes: f.notes, repeat_months: Math.max(1, Math.min(24, Number(f.repeat) || 1)) };
+      const body: BillIn = { kind, ...(bill ? {} : { client_ref: requestRef }), fixed_cost: kind === "pagar" && f.fixed_cost, establishment: f.establishment, cost_center: f.cost_center, description: f.description, category_id: f.category_id, party: f.party, amount: num(f.amount), due_date: f.due_date, notes: f.notes, repeat_months: Math.max(1, Math.min(24, Number(f.repeat) || 1)) };
       return bill ? apiPut<Bill>(`/bills/${bill.id}`, body).then((b) => [b]) : apiPost<Bill[]>("/bills", body);
     },
     onSuccess: () => { toast.success(bill ? "Conta atualizada" : "Conta lançada"); inv(); onClose(); },
@@ -150,6 +150,7 @@ export function BillForm({ kind, bill, partyLabel, onClose, initialParty = "" }:
           <Input className="mt-1" list="bill-parties" value={f.party} onChange={(e) => setF({ ...f, party: e.target.value })} placeholder="Digite ou escolha" data-testid="bill-party-input" />
           <datalist id="bill-parties">{(parties.data ?? []).map((p) => <option key={p.id} value={p.name} />)}</datalist></div>
         {kind === "pagar" && <>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.fixed_cost} onChange={(event) => setF({ ...f, fixed_cost: event.target.checked })} /> Incluir no custo fixo</label>
           <label className="text-xs text-muted-foreground">Estabelecimento<Input value={f.establishment} maxLength={120} onChange={(event) => setF({ ...f, establishment: event.target.value })} /></label>
           <label className="text-xs text-muted-foreground">Centro de custo<Input value={f.cost_center} maxLength={120} onChange={(event) => setF({ ...f, cost_center: event.target.value })} /></label>
         </>}

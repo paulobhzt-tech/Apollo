@@ -1,3 +1,4 @@
+import OperatingCosts from "@/components/OperatingCosts";
 import { useState } from "react";
 import { Bot, Send } from "lucide-react";
 import AppShell, { PageHeader } from "@/components/AppShell";
@@ -47,5 +48,6 @@ export default function ApolloIA() {
         {reply.supported && <p className="mt-4 text-xs text-zinc-400">Fonte: {reply.source === "despesas_lancadas_mes" ? "despesas lançadas" : "pedidos pagos"} no Apollo. {reply.metrics?.date || ""} {reply.source === "despesas_lancadas_mes" ? "· Mês em andamento." : reply.metrics?.partial_day ? "· Dia em andamento." : "· Período encerrado."}</p>}
       </div>}
     </section>
+    <OperatingCosts />
   </AppShell>;
 }

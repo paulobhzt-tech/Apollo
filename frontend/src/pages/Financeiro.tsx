@@ -1,3 +1,4 @@
+import OperatingCosts from "@/components/OperatingCosts";
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Download, Plus, Trash2 } from "lucide-react";
@@ -330,6 +331,7 @@ export default function Financeiro() {
       {start > end && <p role="alert" className="mb-4 text-sm text-amber-300">A data inicial não pode ser posterior à data final.</p>}
       {validPeriod && dre.isLoading && <p role="status" className="mb-4 text-sm text-muted-foreground">Carregando o DRE do período…</p>}
       {dre.isError && <p role="alert" className="mb-4 text-sm text-red-400">{errMsg(dre.error)}</p>}
+      <OperatingCosts dre={d} />
       <BreakEvenPanel dre={d} />
       <OpeningWeekdays dre={d} />
       <section className="mb-5 space-y-3" data-testid="sales-intelligence">
