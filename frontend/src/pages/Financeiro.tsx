@@ -234,6 +234,37 @@ const EXP_LABEL: Record<ExpenseCat, string> = {
 };
 const isoLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
+function BreakEvenPanel({ dre }: { dre?: Dre }) {
+  const [monthlyCosts, setMonthlyCosts] = useState("");
+  const [daysOpen, setDaysOpen] = useState("");
+  const fixed = Number(monthlyCosts.replace(",", "."));
+  const days = Number(daysOpen);
+  const contribution = dre ? dre.net_revenue - dre.cmv - dre.commissions : 0;
+  const margin = dre && dre.gross_revenue > 0 ? contribution / dre.gross_revenue : null;
+  const validFixed = !!monthlyCosts.trim() && Number.isFinite(fixed) && fixed >= 0;
+  const validDays = Number.isInteger(days) && days >= 1 && days <= 31;
+  const monthlyTarget = validFixed && margin !== null && margin > 0 ? fixed / margin : null;
+  return <section className="mb-5 space-y-3 rounded-xl border border-border bg-panel p-4" data-testid="break-even-panel">
+    <h2 className="text-lg font-semibold">Custo Diário e Ponto de Equilíbrio</h2>
+    <p className="text-sm text-muted-foreground">Simulação com a margem de contribuição do período selecionado no DRE. Informe os custos fixos mensais uma vez. A simulação não gera despesas ou lançamentos no caixa.</p>
+    <div className="grid gap-3 sm:grid-cols-2">
+      <label className="grid gap-1 text-sm">Custos fixos mensais (R$)
+        <Input inputMode="decimal" value={monthlyCosts} onChange={(event) => setMonthlyCosts(event.target.value)} />
+      </label>
+      <label className="grid gap-1 text-sm">Dias abertos no mês
+        <Input type="number" min={1} max={31} step={1} value={daysOpen} onChange={(event) => setDaysOpen(event.target.value)} />
+      </label>
+    </div>
+    <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div><dt>Margem histórica</dt><dd>{margin === null ? "Sem faturamento no período" : margin.toLocaleString("pt-BR", { style: "percent", maximumFractionDigits: 2 })}</dd></div>
+      <div><dt>Custo fixo por dia aberto</dt><dd>{validFixed && validDays ? brl(fixed / days) : "—"}</dd></div>
+      <div><dt>Ponto de equilíbrio mensal estimado</dt><dd>{monthlyTarget === null ? "—" : brl(monthlyTarget)}</dd></div>
+      <div><dt>Meta diária estimada</dt><dd>{monthlyTarget !== null && validDays ? brl(monthlyTarget / days) : "—"}</dd></div>
+    </dl>
+    {margin !== null && margin <= 0 && <p role="status" className="text-sm text-muted-foreground">Com margem histórica igual ou abaixo de zero, não há meta de faturamento calculável.</p>}
+  </section>;
+}
+
 export default function Financeiro() {
   const now = new Date();
   const [start, setStart] = useState(isoLocal(new Date(now.getFullYear(), now.getMonth(), 1)));
@@ -259,6 +290,7 @@ export default function Financeiro() {
       {start > end && <p role="alert" className="mb-4 text-sm text-amber-300">A data inicial não pode ser posterior à data final.</p>}
       {validPeriod && dre.isLoading && <p role="status" className="mb-4 text-sm text-muted-foreground">Carregando o DRE do período…</p>}
       {dre.isError && <p role="alert" className="mb-4 text-sm text-red-400">{errMsg(dre.error)}</p>}
+      <BreakEvenPanel dre={d} />
       <section className="mb-5 space-y-3" data-testid="sales-intelligence">
         <h2 className="text-lg font-semibold text-white">Inteligência de vendas</h2>
         {intelligence.isError && <p role="alert" className="text-red-400">{errMsg(intelligence.error)}</p>}
