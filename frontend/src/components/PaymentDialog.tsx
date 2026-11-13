@@ -119,7 +119,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
     setConfirmedPixAmount(null);
   }
   const cashChangeOk = change <= payments.filter((payment) => payment.method === "dinheiro").reduce((sum, payment) => sum + payment.amount, 0) + 0.001;
-  const canConfirm = validDiscount && payments.length > 0 && remaining === 0 && cashChangeOk && !pending;
+  const canConfirm = validDiscount && (disc === 0 || discountReason.trim().length >= 3) && payments.length > 0 && remaining === 0 && cashChangeOk && !pending;
 
   function finish(print: boolean) {
     if (!canConfirm) return;
@@ -318,6 +318,10 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
           </section>
       </div>
       <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-3">
+        <p role="status" className="mr-auto self-center text-sm text-muted-foreground">
+          {pending ? "Aguardando confirmação do servidor." : canConfirm ? "Valores conferidos. Confirme para registrar o pagamento." :
+            remaining > 0 ? `Falta lançar ${brl(remaining)}.` : "Confira os lançamentos e a justificativa do desconto, quando aplicável."}
+        </p>
         <Button variant="outline" disabled={!canConfirm} onClick={() => finish(true)}>Finalizar e imprimir</Button>
         <Button disabled={!canConfirm} data-testid="payment-confirm-button" onClick={() => finish(false)}>
           {pending ? "Processando…" : "Finalizar pedido"}
