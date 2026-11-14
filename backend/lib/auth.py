@@ -7,6 +7,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, HTTPException, Request
+from pymongo import ReturnDocument
 
 from lib.db import db
 
@@ -74,8 +75,25 @@ async def cancel_authorizer(user: dict, manager_pin: str | None) -> str:
     if user["role"] == "admin" or user.get("can_cancel"):
         return user["name"]
     if manager_pin:
+        # This is another credential entry point, not just a role check. Share
+        # the login attempt store/TTL, but isolate its budget by operator so
+        # changing sessions, endpoints or IP addresses cannot reset it.
+        timestamp = datetime.now(timezone.utc)
+        bucket = int(timestamp.timestamp()) // LOGIN_WINDOW
+        key = f"cancel:{user['id']}:{bucket}"
+        attempt = await db.login_attempts.find_one_and_update(
+            {"_id": key},
+            {"$inc": {"attempts": 1}, "$setOnInsert": {
+                "expires_at": timestamp + timedelta(minutes=30)
+            }}, upsert=True, return_document=ReturnDocument.AFTER,
+        )
+        if attempt["attempts"] > LOGIN_LIMIT:
+            raise HTTPException(429, "Muitas tentativas de autorização. Tente novamente mais tarde.")
         m = await find_employee_by_pin(manager_pin)
         if m and (m["role"] == "admin" or m.get("can_cancel")):
+            # Successful approvals do not consume the failure budget. Decrement
+            # only this reservation, preserving concurrent failed attempts.
+            await db.login_attempts.update_one({"_id": key}, {"$inc": {"attempts": -1}})
             return m["name"]
         raise HTTPException(403, "PIN de gerente inválido ou sem autorização")
     raise HTTPException(403, "Sem autorização para cancelar ou estornar. Informe o PIN do gerente.")
