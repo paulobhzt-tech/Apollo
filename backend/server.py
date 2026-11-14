@@ -1,6 +1,6 @@
 import asyncio
 from contextlib import asynccontextmanager, suppress
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
@@ -71,9 +71,24 @@ _web = os.environ.get("SERVE_FRONTEND_DIR")
 if _web and os.path.isdir(_web):
     from fastapi.responses import FileResponse
 
+    _frontend_root = Path(_web).resolve()
+
+    def _frontend_file(path: str) -> Path:
+        # Resolve symlinks before checking ancestry; string prefixes also match
+        # siblings such as "build-private" and must not be used for containment.
+        try:
+            candidate = (_frontend_root / path).resolve()
+            candidate.relative_to(_frontend_root)
+        except (ValueError, OSError, RuntimeError):
+            raise HTTPException(status_code=404, detail="Not found") from None
+        return candidate
+
     @app.get("/{path:path}", include_in_schema=False)
     async def _spa(path: str):
-        f = os.path.realpath(os.path.join(_web, path))
-        if f.startswith(os.path.realpath(_web)) and os.path.isfile(f):
+        f = _frontend_file(path)
+        if f.is_file():
             return FileResponse(f)
-        return FileResponse(os.path.join(_web, "index.html"))
+        index = _frontend_file("index.html")
+        if not index.is_file():
+            raise HTTPException(status_code=404, detail="Not found")
+        return FileResponse(index)
