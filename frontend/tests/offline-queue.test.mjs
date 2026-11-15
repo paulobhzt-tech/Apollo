@@ -29,7 +29,7 @@ async function setup(post) {
     }, { context });
   });
   await mod.evaluate();
-  return { api: mod.namespace, queue: () => JSON.parse(storage.get('pdv_offline_queue')) };
+  return { storage, ApiError: stubs['./api'].ApiError, api: mod.namespace, queue: () => JSON.parse(storage.get('pdv_offline_queue')) };
 }
 const sale = ref => ({ payload: { client_ref: ref }, total: 10, queued_at: '2026-11-15' });
 
@@ -73,4 +73,32 @@ test('successful replay removes only completed entries and does not send arrival
   await api.syncQueue();
   assert.deepEqual(sent, ['first', 'second', 'third']);
   assert.deepEqual(setupResult.queue(), []);
+});
+
+test('rejected financial records are not silently truncated', async () => {
+  let error;
+  const result = await setup(async () => { throw error; });
+  error = Object.assign(new result.ApiError(), { status: 400, body: { detail: 'Synthetic business error' } });
+  result.storage.set('pdv_offline_rejected', JSON.stringify(Array.from({ length: 205 }, (_, i) => sale('old-' + i))));
+  result.api.enqueue(sale('new-rejected'));
+  await result.api.syncQueue();
+  assert.equal(JSON.parse(result.storage.get('pdv_offline_rejected')).length, 206);
+});
+
+test('corrupt pending queue cannot be silently replaced by enqueue', async () => {
+  const result = await setup(async () => ({}));
+  result.storage.set('pdv_offline_queue', '{corrupt');
+  assert.throws(() => result.api.enqueue(sale('new')), /corromp/i);
+  assert.equal(result.storage.get('pdv_offline_queue'), '{corrupt');
+});
+
+test('failure to archive a rejection preserves the pending operation', async () => {
+  let error;
+  const result = await setup(async () => { throw error; });
+  error = Object.assign(new result.ApiError(), { status: 400, body: null });
+  result.api.enqueue(sale('pending'));
+  const set = result.storage.set.bind(result.storage);
+  result.storage.set = (key, value) => { if (key === 'pdv_offline_rejected') throw new Error('Synthetic quota error'); return set(key, value); };
+  await assert.rejects(result.api.syncQueue(), /quota/);
+  assert.deepEqual(result.queue().map(x => x.payload.client_ref), ['pending']);
 });
