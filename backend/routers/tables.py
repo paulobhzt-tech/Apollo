@@ -3,8 +3,11 @@ from pydantic import BaseModel, Field
 
 from lib.auth import cancel_authorizer, current_user, require
 from lib.db import client, db
+from lib.transactions import run_transaction
+import hashlib
+import json
 from lib.orders import (build_items, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods,
-                        refresh_totals)
+                        refresh_totals, touch_cash)
 from models.schemas import (AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, OrderItem, PayIn, SaleResult, Table, TableIn,
                             TableStatusIn, TableUpdate, TransferIn, table_label)
 
@@ -299,82 +302,83 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, _: dict = Depends(re
         raise HTTPException(400, "Emissão fiscal parcial ainda não habilitada. Use comprovante não fiscal.")
     if body.payment.fiado_customer_id or any(p.method == "fiado" for p in body.payment.payments):
         raise HTTPException(400, "Fiado não está habilitado no pagamento parcial")
-    await validate_methods([p.method for p in body.payment.payments])
     if any(p.method in ("credito", "debito") and not p.brand for p in body.payment.payments):
         raise HTTPException(400, "Informe a bandeira do cartão")
-    cash = await current_cash()
-    if not cash:
-        raise HTTPException(400, "Abra o caixa para receber pagamentos")
-    # Allocate the sequence before the transaction: a skipped number is preferable
-    # to a non-transactional counter update inside a financial transaction.
-    number = await next_seq("order")
-    from pymongo.errors import PyMongoError
-    try:
-        async with await client.start_session() as session:
-            async with session.start_transaction():
-                previous = await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0}, session=session)
-                if previous:
-                    return {"order": previous, "invoice": None}
-                table = await db.tables.find_one({"id": id}, session=session)
-                if not table or not table.get("order_id"):
-                    raise HTTPException(400, "Mesa sem comanda aberta")
-                order = await db.orders.find_one({"id": table["order_id"], "status": "aberto"}, session=session)
-                if not order:
-                    raise HTTPException(409, "Comanda foi alterada ou fechada")
-                chosen = []
-                remaining = []
-                for item in order["items"]:
-                    qty = body.quantities.get(item["id"], 0)
-                    if isinstance(qty, bool) or qty < 0 or qty > (0 if item.get("cancelled") else item["qty"]):
-                        raise HTTPException(400, f"Quantidade inválida: {item['name']}")
-                    if qty:
-                        chosen.append({**item, "qty": qty})
-                    if item["qty"] > qty:
-                        remaining.append({**item, "qty": item["qty"] - qty})
-                if not chosen or any(k not in {i["id"] for i in order["items"]} for k in body.quantities):
-                    raise HTTPException(400, "Selecione itens válidos")
-                guest = body.customer_name.strip()
-                if guest:
-                    known = table.get("customers") or []
-                    if guest not in known:
-                        raise HTTPException(400, "Cliente não cadastrado na mesa")
-                    if any(i.get("customer_name") not in ("", guest, None) for i in chosen):
-                        raise HTTPException(400, "Há itens de outro cliente na seleção")
-                subtotal = round(sum(i["qty"] * i["unit_price"] for i in chosen), 2)
-                if body.payment.discount > subtotal:
-                    raise HTTPException(400, "Desconto maior que o valor dos itens selecionados")
-                service_fee = round(subtotal * body.payment.service_pct / 100, 2)
-                total = round(subtotal - body.payment.discount + service_fee, 2)
-                paid = round(sum(p.amount for p in body.payment.payments), 2)
-                change = round(paid - total, 2)
-                if change < -0.009:
-                    raise HTTPException(400, "Pagamento insuficiente")
-                if change > sum(p.amount for p in body.payment.payments if p.method == "dinheiro") + 0.009:
-                    raise HTTPException(400, "Troco somente em dinheiro")
-                # The separate order has no table_id: it must not release the open table.
-                receipt = Order(number=number, channel="mesa", source="mesa",
-                    table_number=table["number"], table_label=table_label(table),
-                    items=[OrderItem(**i) for i in chosen], status="pago",
-                    customer={"name": guest},
-                    subtotal=subtotal, discount=body.payment.discount, service_fee=service_fee,
-                    total=total, payments=body.payment.payments,
-                    change=max(0, change), paid_at=now(), cash_session_id=cash["id"],
-                    client_ref=body.client_ref, waiter_id=order.get("waiter_id"),
-                    waiter_name=order.get("waiter_name", ""),
-                    cmv=round(sum(i["qty"] * i.get("unit_cost", 0) for i in chosen), 2)).model_dump()
-                receipt["parent_order_id"] = order["id"]
-                await db.orders.insert_one(dict(receipt), session=session)
-                remaining_sub = round(sum(i["qty"] * i["unit_price"] for i in remaining if not i.get("cancelled")), 2)
-                result = await db.orders.update_one({"id": order["id"], "status": "aberto"},
-                    {"$set": {"items": remaining, "subtotal": remaining_sub, "total": remaining_sub}}, session=session)
-                if result.modified_count != 1:
-                    raise HTTPException(409, "Comanda alterada. Refaça a divisão.")
-                await db.tables.update_one({"id": id, "order_id": order["id"]},
-                    {"$set": {"total": remaining_sub}, "$unset": {"split_request": ""}}, session=session)
-                return {"order": receipt, "invoice": None}
-    except PyMongoError as exc:
-        raise HTTPException(503, "Pagamento parcial exige MongoDB com transações habilitadas; nenhuma cobrança foi registrada") from exc
+    request_hash = hashlib.sha256(json.dumps({"table": id, "body": body.model_dump(mode="json")},
+        sort_keys=True).encode()).hexdigest()
+    async def pay_selected(session):
+        previous = await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0}, session=session)
+        if previous:
+            if previous.get("partial_request_hash") != request_hash:
+                raise HTTPException(409, "Referência já usada com outro conteúdo")
+            return {"order": previous, "invoice": None}
+        await validate_methods([p.method for p in body.payment.payments], session=session)
+        cash = await current_cash(session=session)
+        if not cash:
+            raise HTTPException(400, "Abra o caixa para receber pagamentos")
+        await touch_cash(cash["id"], session=session)
+        number = await next_seq("order", session=session)
+        table = await db.tables.find_one({"id": id}, session=session)
+        if not table or not table.get("order_id"):
+            raise HTTPException(400, "Mesa sem comanda aberta")
+        order = await db.orders.find_one({"id": table["order_id"], "status": "aberto"}, session=session)
+        if not order:
+            raise HTTPException(409, "Comanda foi alterada ou fechada")
+        chosen = []
+        remaining = []
+        for item in order["items"]:
+            qty = body.quantities.get(item["id"], 0)
+            if isinstance(qty, bool) or qty < 0 or qty > (0 if item.get("cancelled") else item["qty"]):
+                raise HTTPException(400, f"Quantidade inválida: {item['name']}")
+            if qty:
+                chosen.append({**item, "qty": qty})
+            if item["qty"] > qty:
+                remaining.append({**item, "qty": item["qty"] - qty})
+        if not chosen or any(k not in {i["id"] for i in order["items"]} for k in body.quantities):
+            raise HTTPException(400, "Selecione itens válidos")
+        guest = body.customer_name.strip()
+        if guest:
+            known = table.get("customers") or []
+            if guest not in known:
+                raise HTTPException(400, "Cliente não cadastrado na mesa")
+            if any(i.get("customer_name") not in ("", guest, None) for i in chosen):
+                raise HTTPException(400, "Há itens de outro cliente na seleção")
+        subtotal = round(sum(i["qty"] * i["unit_price"] for i in chosen), 2)
+        if body.payment.discount > subtotal:
+            raise HTTPException(400, "Desconto maior que o valor dos itens selecionados")
+        service_fee = round(subtotal * body.payment.service_pct / 100, 2)
+        total = round(subtotal - body.payment.discount + service_fee, 2)
+        paid = round(sum(p.amount for p in body.payment.payments), 2)
+        change = round(paid - total, 2)
+        if change < -0.009:
+            raise HTTPException(400, "Pagamento insuficiente")
+        if change > sum(p.amount for p in body.payment.payments if p.method == "dinheiro") + 0.009:
+            raise HTTPException(400, "Troco somente em dinheiro")
+        # The separate order has no table_id: it must not release the open table.
+        receipt = Order(number=number, channel="mesa", source="mesa",
+            table_number=table["number"], table_label=table_label(table),
+            items=[OrderItem(**i) for i in chosen], status="pago",
+            customer={"name": guest},
+            subtotal=subtotal, discount=body.payment.discount, service_fee=service_fee,
+            total=total, payments=body.payment.payments,
+            change=max(0, change), paid_at=now(), cash_session_id=cash["id"],
+            client_ref=body.client_ref, waiter_id=order.get("waiter_id"),
+            waiter_name=order.get("waiter_name", ""),
+            cmv=round(sum(i["qty"] * i.get("unit_cost", 0) for i in chosen), 2)).model_dump()
+        receipt["_id"] = "partial:" + hashlib.sha256(body.client_ref.encode()).hexdigest()
+        receipt["partial_request_hash"] = request_hash
+        receipt["parent_order_id"] = order["id"]
+        await db.orders.insert_one(dict(receipt), session=session)
+        remaining_sub = round(sum(i["qty"] * i["unit_price"] for i in remaining if not i.get("cancelled")), 2)
+        result = await db.orders.update_one({"id": order["id"], "status": "aberto"},
+            {"$set": {"items": remaining, "subtotal": remaining_sub, "total": remaining_sub}}, session=session)
+        if result.modified_count != 1:
+            raise HTTPException(409, "Comanda alterada. Refaça a divisão.")
+        await db.tables.update_one({"id": id, "order_id": order["id"]},
+            {"$set": {"total": remaining_sub}, "$unset": {"split_request": ""}}, session=session)
+        return {"order": receipt, "invoice": None}
 
+    return await run_transaction(pay_selected)
 
 @router.post("/tables/{id}/pay", response_model=SaleResult)
 async def pay_table(id: str, body: PayIn, _: dict = Depends(require("caixa"))):

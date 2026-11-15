@@ -3,12 +3,15 @@ and is the correct 44-digit SEFAZ format."""
 import time
 
 import httpx
+from urllib.parse import urlsplit
 
 from .conftest import api_url
 
 
 def _login(pin: str) -> httpx.Client:
-    c = httpx.Client(base_url=api_url(), timeout=30.0)
+    c = httpx.Client(base_url=api_url(), timeout=30.0, trust_env=False)
+    origin = urlsplit(api_url())
+    c.headers["Origin"] = f"{origin.scheme}://{origin.netloc}"
     r = c.post("/auth/login", json={"pin": pin})
     assert r.status_code == 200, r.text
     token = r.cookies.get("pdv_session")

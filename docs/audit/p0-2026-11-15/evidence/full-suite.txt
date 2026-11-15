@@ -1,0 +1,131 @@
+REAL MongoDB 7.0.16 replica set apolloP0 PRIMARY
+/home/agent/.local/lib/python3.12/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+..................................................................... [ 21%]
+.....................................FF................................. [ 44%]
+........................................................................ [ 67%]
+........................................................................ [ 90%]
+.............................                                            [100%]
+=================================== FAILURES ===================================
+_____________ test_partial_payment_replay_and_cash_reconciliation ______________
+
+scenario = ({'id': 'table-2615f67b43584e16819ffff9c45cd6b5', 'number': 777, 'kind': 'mesa', 'name': '', ...}, {'id': 'open-2615f67b43584e16819ffff9c45cd6b5', 'number': 777, 'channel': 'mesa', 'source': 'mesa', ...})
+
+    async def test_partial_payment_replay_and_cash_reconciliation(scenario):
+        table, order = scenario
+        cash_id = "cash-" + uuid.uuid4().hex
+        await db.tables.insert_one(table)
+        await db.orders.insert_one(order)
+>       await db.cash_sessions.insert_one({"id": cash_id, "status": "aberto"})
+
+tests/test_partial_payment_integration.py:34: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/thread.py:59: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/collection.py:875: in insert_one
+    self._insert_one(
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/collection.py:815: in _insert_one
+    self._database.client._retryable_write(
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py:2099: in _retryable_write
+    return self._retry_with_session(retryable, func, s, bulk, operation, operation_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py:1969: in _retry_with_session
+    return self._retry_internal(
+/home/agent/.local/lib/python3.12/site-packages/pymongo/_csot.py:126: in csot_wrapper
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py:2022: in _retry_internal
+    ).run()
+      ^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py:2890: in run
+    res = self._read() if self._is_read else self._write()
+                                             ^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py:3103: in _write
+    return self._func(self._session, conn, self._retryable)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/collection.py:813: in _insert_command
+    _check_write_command_response(result)
+/home/agent/.local/lib/python3.12/site-packages/pymongo/helpers_shared.py:365: in _check_write_command_response
+    _raise_last_write_error(write_errors)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+write_errors = [{'index': 0, 'code': 11000, 'errmsg': 'E11000 duplicate key error collection: apollo_p0_test.cash_sessions index: single_open_cash dup key: { status: "aberto" }', 'keyPattern': {'status': 1}, ...}]
+
+    def _raise_last_write_error(write_errors: list[Any]) -> NoReturn:
+        # If the last batch had multiple errors only report
+        # the last error to emulate continue_on_error.
+        error = write_errors[-1]
+        if error.get("code") == 11000:
+>           raise DuplicateKeyError(error.get("errmsg"), 11000, error)
+E           pymongo.errors.DuplicateKeyError: E11000 duplicate key error collection: apollo_p0_test.cash_sessions index: single_open_cash dup key: { status: "aberto" }, full error: {'index': 0, 'code': 11000, 'errmsg': 'E11000 duplicate key error collection: apollo_p0_test.cash_sessions index: single_open_cash dup key: { status: "aberto" }', 'keyPattern': {'status': 1}, 'keyValue': {'status': 'aberto'}}
+
+/home/agent/.local/lib/python3.12/site-packages/pymongo/helpers_shared.py:335: DuplicateKeyError
+_______________ test_concurrent_partial_payments_cannot_oversell _______________
+
+scenario = ({'id': 'table-df8684147bdb4736bd5b9df8279e57f8', 'number': 777, 'kind': 'mesa', 'name': '', ...}, {'id': 'open-df8684147bdb4736bd5b9df8279e57f8', 'number': 777, 'channel': 'mesa', 'source': 'mesa', ...})
+
+    @pytest.mark.asyncio(loop_scope="session")
+    async def test_concurrent_partial_payments_cannot_oversell(scenario):
+        table, order = scenario
+        cash_id = "cash-" + uuid.uuid4().hex
+>       await db.tables.insert_one(table)
+
+tests/test_partial_payment_integration.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/thread.py:59: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/collection.py:875: in insert_one
+    self._insert_one(
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/collection.py:815: in _insert_one
+    self._database.client._retryable_write(
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py:2099: in _retryable_write
+    return self._retry_with_session(retryable, func, s, bulk, operation, operation_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py:1969: in _retry_with_session
+    return self._retry_internal(
+/home/agent/.local/lib/python3.12/site-packages/pymongo/_csot.py:126: in csot_wrapper
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py:2022: in _retry_internal
+    ).run()
+      ^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py:2890: in run
+    res = self._read() if self._is_read else self._write()
+                                             ^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py:3103: in _write
+    return self._func(self._session, conn, self._retryable)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/collection.py:813: in _insert_command
+    _check_write_command_response(result)
+/home/agent/.local/lib/python3.12/site-packages/pymongo/helpers_shared.py:365: in _check_write_command_response
+    _raise_last_write_error(write_errors)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+write_errors = [{'index': 0, 'code': 11000, 'errmsg': 'E11000 duplicate key error collection: apollo_p0_test.tables index: kind_number dup key: { kind: "mesa", number: 777 }', 'keyPattern': {'kind': 1, 'number': 1}, ...}]
+
+    def _raise_last_write_error(write_errors: list[Any]) -> NoReturn:
+        # If the last batch had multiple errors only report
+        # the last error to emulate continue_on_error.
+        error = write_errors[-1]
+        if error.get("code") == 11000:
+>           raise DuplicateKeyError(error.get("errmsg"), 11000, error)
+E           pymongo.errors.DuplicateKeyError: E11000 duplicate key error collection: apollo_p0_test.tables index: kind_number dup key: { kind: "mesa", number: 777 }, full error: {'index': 0, 'code': 11000, 'errmsg': 'E11000 duplicate key error collection: apollo_p0_test.tables index: kind_number dup key: { kind: "mesa", number: 777 }', 'keyPattern': {'kind': 1, 'number': 1}, 'keyValue': {'kind': 'mesa', 'number': 777}}
+
+/home/agent/.local/lib/python3.12/site-packages/pymongo/helpers_shared.py:335: DuplicateKeyError
+=============================== warnings summary ===============================
+../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
+  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+  The CallSpec2 alias will be removed in pytest 10.
+  Update imports to use CallSpec instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
+    from _pytest.python import CallSpec2
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_partial_payment_integration.py::test_partial_payment_replay_and_cash_reconciliation
+FAILED tests/test_partial_payment_integration.py::test_concurrent_partial_payments_cannot_oversell
+2 failed, 312 passed, 1 warning, 3 subtests passed in 35.36s

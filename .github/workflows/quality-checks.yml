@@ -35,6 +35,7 @@ jobs:
     env:
       MONGO_URL: mongodb://127.0.0.1:27017/?replicaSet=rs0
       DB_NAME: apollo_partial_ci
+      APOLLO_P0_INTEGRATION: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -44,7 +45,7 @@ jobs:
         run: python -m pip install -r requirements.txt --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
       - name: Criar MongoDB de testes com transacoes
         run: |
-          docker run -d --name apollo-test-mongo -p 127.0.0.1:27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+          docker run -d --name apollo-test-mongo -p 127.0.0.1:27017:27017 mongo:7 --replSet rs0 --bind_ip_all --setParameter enableTestCommands=1 --setParameter transactionLifetimeLimitSeconds=5
           for i in $(seq 1 40); do
             if docker exec apollo-test-mongo mongosh --quiet --eval 'db.adminCommand({ping:1})' >/dev/null 2>&1; then break; fi
             sleep 2
@@ -56,7 +57,7 @@ jobs:
           done
           exit 1
       - name: Testar pagamentos parciais e concorrencia
-        run: python -m pytest -q -n 0 tests/test_partial_payment_integration.py
+        run: python -m pytest -q -n 0 tests/test_partial_payment_integration.py tests/test_p0_atomicity_integration.py
 
   frontend:
     runs-on: ubuntu-latest

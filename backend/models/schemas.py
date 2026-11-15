@@ -242,6 +242,7 @@ class OrderItem(BaseModel):
     station: Station = "cozinha"
     options: list[str] = []
     option_products: list[str] = []
+    stock_recipe: Optional[list[RecipeItem]] = None  # server-side recipe snapshot at order time
     print_ticket: bool = True
     cancelled: bool = False
     cancel_reason: str = ""
