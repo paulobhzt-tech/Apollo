@@ -68,6 +68,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Regressao da fila offline
+        run: node --experimental-vm-modules --test tests/offline-queue.test.mjs
       - name: Instalar dependencias com Yarn (gerenciador do projeto)
         run: yarn install --non-interactive
       - name: Verificar tipos TypeScript
