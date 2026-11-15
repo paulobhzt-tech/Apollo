@@ -43,6 +43,14 @@ async def root():
     return {"message": "Apollo PDV API"}
 
 
+@api_router.get("/health/ready")
+async def readiness():
+    from fastapi.responses import JSONResponse
+    from lib.health import inspect_ready
+    ready = await inspect_ready(db, client)
+    return JSONResponse({"ready": ready}, status_code=200 if ready else 503)
+
+
 for r in (auth, catalog, tables, operations, reports, public, fiado, config, production, drive, system, finance, serverbackup):
     api_router.include_router(r.router)
 

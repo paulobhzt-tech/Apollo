@@ -213,3 +213,48 @@ async def test_customer_removal_preserves_balanced_financial_history(p1):
     await fiado.delete_customer('customer',USER)
     assert await db.customer_moves.count_documents({'customer_id':'customer'})==2
     assert (await db.fiado_customers.find_one({'id':'customer'}))['active'] is False
+
+async def test_readiness_requires_replica_set_and_critical_indexes(p1):
+    from lib.health import inspect_ready
+    db,client=p1
+    assert await inspect_ready(db,client)
+    await db.orders.drop_index('client_ref')
+    assert not await inspect_ready(db,client)
+
+async def test_distinct_receipts_cannot_overdraw_balance(p1):
+    db,_=p1
+    await db.fiado_customers.update_one({'id':'customer'},{'$set':{'balance':10}})
+    results=await asyncio.gather(*(fiado.receive('customer',ReceiveIn(amount=10,method='pix',client_ref=f'distinct-{i}'),USER) for i in range(10)),return_exceptions=True)
+    assert sum(not isinstance(r,Exception) for r in results)==1
+    assert (await db.fiado_customers.find_one({'id':'customer'}))['balance']==0
+    assert await db.customer_moves.count_documents({'type':'pagamento'})==1
+
+async def test_simultaneous_table_adds_keep_one_order_and_all_stock(p1):
+    db,_=p1
+    await asyncio.gather(*(tables.add_items('table',AddItemsIn(items=[{'product_id':'product','qty':1}],client_ref=f'table-add-{i}'),USER) for i in range(10)))
+    assert await db.orders.count_documents({})==1
+    assert (await db.ingredients.find_one({'id':'ing'}))['stock']==90
+    assert await db.kitchen_tickets.count_documents({})==10
+
+async def test_transfer_racing_payment_leaves_no_occupied_paid_table(p1):
+    from models.schemas import Table,TransferIn,PayIn
+    db,_=p1
+    await db.tables.insert_one(Table(id='destination',number=2).model_dump())
+    await tables.add_items('table',AddItemsIn(items=[{'product_id':'product','qty':1}]),USER)
+    results=await asyncio.gather(tables.transfer('table',TransferIn(target_table_id='destination'),USER),tables.pay_table('table',PayIn(payments=[{'method':'pix','amount':10}]),USER),return_exceptions=True)
+    order=await db.orders.find_one({})
+    if order['status']=='aberto':
+        await tables.pay_table(order['table_id'],PayIn(payments=[{'method':'pix','amount':10}]),USER)
+    order=await db.orders.find_one({})
+    assert order['status']=='pago'
+    assert await db.tables.count_documents({'order_id':order['id']})==0
+    assert (await db.ingredients.find_one({'id':'ing'}))['stock']==99
+
+async def test_delivery_accept_concurrency_moves_inventory_once(p1):
+    from models.schemas import OrderItemIn
+    db,_=p1
+    items=await orders.build_items([OrderItemIn(product_id='product',qty=1)])
+    order=await operations.create_delivery_order('site',items,{'name':'Synthetic'},'pix')
+    await asyncio.gather(*(operations.delivery_status(order['id'],DeliveryStatusIn(status='aceito'),USER) for _ in range(10)))
+    assert await db.kitchen_tickets.count_documents({})==1
+    assert (await db.ingredients.find_one({'id':'ing'}))['stock']==99
