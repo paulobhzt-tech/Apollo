@@ -54,7 +54,7 @@ A exportação passa a omitir hashes; consumidores que indevidamente esperavam e
 - TypeScript `npm run typecheck`, `npm run build`, `npm run lint`: executados com sucesso. Build e lint têm avisos descritos acima.
 - `node --check` em main/preload/build-web do desktop e `python -m compileall -q backend`: executados com sucesso.
 - `git diff --check`: executado após alterações.
-- **Seis integrações não executadas**, somente coletadas: duas em `test_partial_payment_integration.py` e quatro nos três `test_tscheck_*`. Não foram contornadas nem removidas do CI.
+- **Seis integrações bloqueadas localmente**, somente coletadas nesse ambiente. Posteriormente, os dois testes de `test_partial_payment_integration.py` passaram no CI com MongoDB replica set real (run 43731995689, job 132866269374; 2 passed em 0,56 s). Os quatro testes dos três `test_tscheck_*` continuam não executados. Não foram removidos do CI.
 - Suíte backend isolada final: **275 testes e 3 subtestes passaram** (`evidence/final-backend.txt`). CI anterior não substitui CI desta branch.
 
 Ambiente local: Python 3.12.14, Node 24.22.1; CI usa Python 3.11 e Node 22. Dependências de execução e teste necessárias foram instaladas no ambiente, sem alterar manifests. PyMongo 4.18.2 e pacotes Google foram ajustados às versões fixadas; faixas abertas podem diferir do CI. Não foi gerado lock novo nem alegada instalação integral de `requirements.txt`. Vulnerabilidades de dependências não foram certificadas.
@@ -80,7 +80,7 @@ MongoDB/Docker não estavam instalados. Tentativa de MongoDB 8.0.16 abortou em t
 
 | Fase e atividades | Cobertura efetiva | O que falta |
 |---|---|---|
-| 1: 1–25 | Inventário, tecnologias, 160 rotas, modelos/guards, build e revisão estática direcionada | Revisão exaustiva, ciclos, código morto e cobertura quantitativa |
+| 1: 1–25 | Inventário, tecnologias, 160 rotas, modelos/guards, build e revisão estática direcionada | Revisão exaustiva, código morto e cobertura quantitativa |
 | 2: 26–55 | Regressões #13/#14, guards, sessões, CSRF, hashes e backup | Pentest completo, CVEs, força bruta distribuída, upload/XSS/Electron dinâmico |
 | 3: 56–80 | Duas reproduções de P0, helpers financeiros e testes isolados existentes | Atomicidade, rollback, recuperação e conciliação com banco real |
 | 4: 81–95 | Leitura de estoque/FEFO, testes isolados e reprodução de devolução duplicada | Jornadas e concorrência real, restauração de lotes |
@@ -89,12 +89,12 @@ MongoDB/Docker não estavam instalados. Tentativa de MongoDB 8.0.16 abortou em t
 | 7: 136–150 | HTTP persistente no harness; bloqueio do event loop corrigido | Falha histórica, leaks, reconexão e encerramento de transações |
 | 8: 151–165 | Fila e replay lidos; perda durante sync corrigida e testada | Offline real, múltiplas janelas, fechamento inesperado e banco |
 | 9: 166–185 | Estrutura, API/state, tipos, build e lint | Validação visual, acessibilidade, mobile/Windows e cliques reais |
-| 10: 186–205 | Regressões novas, suites isoladas e harnesses | Seis integrações, carga financeira/estoque e rollback |
+| 10: 186–205 | Regressões novas, suites isoladas e harnesses | Quatro integrações HTTP, carga financeira/estoque e rollback |
 | 11: 206–225 | Compose, scripts, envs, CI e backup inspecionados | Readiness real, restauração, monitoramento e reinicialização |
 | 12: 226–245 | Relatório, mapa de rotas, inventário, guias e pendências | Guias operacionais só poderão ser homologados em infra própria |
-| 13: 246–260 | Revisão das alterações, tipos/lint e riscos | Cobertura quantitativa e auditoria completa de acoplamento |
+| 13: 246–260 | Revisão das alterações, tipos/lint e riscos | Cobertura quantitativa e auditoria completa de acoplamento (análise AST anexada) |
 | 14: 261–280 | Simulações isoladas de erro/replay/concorrência | Jornada real, sobrecarga/recuperação e transações |
-| 15: 281–295 | Branches/PRs/CI/commits inspecionados; branch e commits isolados | Checks desta branch após publicação; sem merge |
+| 15: 281–295 | Branches/PRs/CI/commits inspecionados; branch e commits isolados | Três workflows passaram em d363826; sem merge |
 | 16: 296–310 | Matriz abaixo | Critérios essenciais ainda não demonstrados |
 | 17: 311–330 | Entrega documental e evidências disponíveis | Não equivale à execução de todas as 330 atividades |
 
@@ -113,7 +113,7 @@ MongoDB/Docker não estavam instalados. Tentativa de MongoDB 8.0.16 abortou em t
 | 302 | Backup/restauração | BLOQUEADO | Omissões de coleções e ausência de round-trip real |
 | 303 | Observabilidade | NÃO TESTADO | Sem validação de alertas/métricas reais |
 | 304 | Compatibilidade | NÃO TESTADO | Tipos/build passam; Windows/mobile pendentes |
-| 305 | Cobertura de testes críticos | BLOQUEADO | Seis integrações e cenários P0 pendentes |
+| 305 | Cobertura de testes críticos | BLOQUEADO | Quatro integrações HTTP e cenários P0 pendentes |
 | 306 | Configuração de produção | NÃO TESTADO | Compose sem replica set incompatível com parcial |
 | 307 | Gestão de segredos | NÃO TESTADO | Correção de backup é limitada; exposição histórica não avaliada |
 | 308 | Procedimentos operacionais | NÃO TESTADO | Runbook documentado, sem exercício real |
@@ -129,3 +129,13 @@ MongoDB/Docker não estavam instalados. Tentativa de MongoDB 8.0.16 abortou em t
 5. Homologar backup que cubra todas as coleções e restauração atômica em destino novo. Corrigir compose de homologação para transações, sem tocar produção.
 6. Medir carga real com 1–50 sessões, recursos e queries; executar 30–60 minutos, falhas/reconexão e Windows/offline com múltiplas janelas. Medir antes de criar índices ou alterar pooling/timeouts.
 7. Revisar CVEs e backup versionado, monitoramento, alertas, segredos e plano operacional. Liberar produção somente após resolver P0 e demonstrar requisitos essenciais.
+
+## Análise estática complementar
+
+AST em 29 módulos Python de backend, incluindo os harnesses, encontrou 295 funções; não encontrou ciclos entre imports locais resolvidos (incluindo imports lazy), nem corpos exatamente duplicados de funções com pelo menos seis linhas. Isso não descarta dependências dinâmicas ou duplicações semânticas. O maior núcleo operacional avaliado por extensão é `pay_partial_bill` (84 linhas); `finalize_payment` tem 53 linhas e múltiplas decisões. A métrica `branch_proxy` no JSON é aproximação, não complexidade ciclomática certificada. Não houve refatoração apenas para reduzir contagem.
+
+Varredura textual de frontend não encontrou `dangerouslySetInnerHTML`, `innerHTML` ou `eval(`; AST de backend identificou apenas o subprocesso do harness. Isso não demonstra ausência de XSS, injeção indireta, sinks de impressão ou problemas no desktop/management. Ver `evidence/static-analysis.json`.
+
+## Atualização de entrega e CI
+
+PR #15 em rascunho: https://github.com/paulobhzt-tech/Apollo/pull/15. Runs 43731995689, 43731949575 e 43731949558 concluídos com sucesso no HEAD d363826. Backend direcionado remoto: 230 testes e 3 subtestes; MongoDB transacional real: dois testes existentes de pagamento parcial passaram. Esses testes não cobrem os P0 de balcão/cancelamento. Ver PUBLICATION.md para hashes locais/remotos e trechos dos logs. Infraestrutura de CI foi usada para as integrações existentes, mas não fornece acesso interativo ao banco local para investigar os demais cenários.
