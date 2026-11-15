@@ -68,3 +68,11 @@ O relatório de desempenho e a publicação registram o resultado final do ensai
 ## Resultado final do ensaio prolongado
 
 30 min 11 s de HTTP real, 3966 pedidos sintéticos, estoque final 1000, zero vendas pagas remanescentes e zero referências duplicadas. Os asserts de integridade passaram. Entretanto, na etapa longa de 50 sessões houve 21,28% de tentativas com HTTP 503, p95 de 30,19 s e 4,37 requests/s. Não é aprovação de capacidade ou disponibilidade. Ver [PERFORMANCE.md](PERFORMANCE.md), incluindo CPU, memória, conexões e ausência de comparação de desempenho antes/depois.
+
+## Regressão de infraestrutura encontrada no CI final
+
+O job recovery-failover 132920515722 do run 43749642719 falhou em `No initial primary`; outros jobs e outro run do mesmo HEAD passaram. A investigação demonstrou que o harness aguardava a eleição especificamente do seed direto 27101, embora qualquer membro elegível pudesse ser eleito. Isso tornava o bootstrap aleatório, antes de qualquer transação de negócio.
+
+A correção descobre o primário pela topologia do driver e mantém autenticação e asserts financeiros. A regressão real configura o seed com prioridade zero, impedindo que ele seja eleito, e exige `bootstrap_seed_secondary=true`. Ver evidence/ci-bootstrap-before.txt, failover-secondary-seed.json e failover-secondary-seed.txt. Não foi contornado ou removido o teste; a tentativa falha continua documentada. CI do novo HEAD deve ser consultado no PR.
+
+Regressão corrigida executada localmente: bootstrap_seed_secondary=true, acesso anônimo negado, eleição em 10,551 s, duas tentativas transacionais, saldo 90 e um único movimento; crash/reinício preservou o dado. A primeira preparação com prioridade zero no próprio nó de rs.initiate foi rejeitada corretamente pelo MongoDB (InvalidReplicaSetConfig), registrada em failover-secondary-init-before.txt. A inicialização passou a ocorrer em membro elegível, mantendo o único seed do driver como secundário.

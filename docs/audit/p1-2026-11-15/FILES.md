@@ -83,3 +83,7 @@ a1c4bd9 fix(frontend): retain recovery manifest and credit receipt identity
 ```
 
 O commit final documental reúne esta lista, matriz, relatórios e evidências. Mapeamento para SHAs remotos em PUBLICATION.md.
+
+## Correção adicional de CI
+
+`backend/tools/test_replica_failover.py`: descobrir primário sem supor que seja o seed. Novas evidências `evidence/ci-bootstrap-before.txt`, `evidence/failover-secondary-seed.json` e `evidence/failover-secondary-seed.txt` e a preparação rejeitada `evidence/failover-secondary-init-before.txt`. REPORT.md e PUBLICATION.md registram a falha anterior e a correção. Commit adicional: fix(ci): discover elected primary from a secondary bootstrap seed.

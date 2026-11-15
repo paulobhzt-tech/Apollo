@@ -1,0 +1,8 @@
+2026-11-15T18:57:31.7507300Z ##[group]Run python tools/test_replica_failover.py /tmp/apollo-failover.json
+2026-11-15T18:57:31.7507905Z [36;1mpython tools/test_replica_failover.py /tmp/apollo-failover.json[0m
+2026-11-15T18:57:32.5869251Z three authenticated mongod processes started
+2026-11-15T18:58:03.4239266Z   File "/home/runner/work/Apollo/Apollo/backend/tools/test_replica_failover.py", line 113, in <module>
+2026-11-15T18:58:03.4240873Z   File "/home/runner/work/Apollo/Apollo/backend/tools/test_replica_failover.py", line 49, in main
+2026-11-15T18:58:03.4241284Z     else:raise RuntimeError('No initial primary')
+2026-11-15T18:58:03.4241760Z RuntimeError: No initial primary
+2026-11-15T18:58:03.7913028Z ##[error]Process completed with exit code 1.

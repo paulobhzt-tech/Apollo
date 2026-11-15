@@ -39,3 +39,9 @@ Os workflows também são disparados para o HEAD final. O estado final é confer
 
 A matriz descreve 200 atividades com escopo e limites. APROVADO não certifica a área inteira ou produção. Pendências essenciais: legado, recuperação operacional externa, Windows/múltiplas janelas, carga e dependências residuais.
 
+
+## Atualização após o primeiro HEAD documental
+
+O HEAD 5b653fa publicou os relatórios. Seus runs 43749649086 e 43749642728 passaram; 43749642719 falhou apenas no bootstrap do teste multinó (job 132920515722). O teste assumia que o seed seria primário. A correção subsequente mantém os asserts e força seed secundário para tornar a regressão determinística. Esse HEAD não é apresentado como CI integralmente aprovado. A descrição do PR registra os checks do HEAD posterior após conclusão.
+
+Commit documental anterior: 5b653faecb5920131a44442e4075c04714cea8e3. O commit subsequente corrige o harness e acrescenta sua evidência real. A branch local checkpoints/p1-local-20261115 preserva os SHAs anteriores à publicação por API; a branch de trabalho acompanha a branch remota com árvore idêntica. Nenhuma branch principal foi alterada.

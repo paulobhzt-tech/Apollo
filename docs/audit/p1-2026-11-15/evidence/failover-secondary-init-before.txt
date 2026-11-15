@@ -1,0 +1,48 @@
+three authenticated mongod processes started
+Traceback (most recent call last):
+  File "/workspace/scratch/4731fac7ec33/Apollo/backend/tools/test_replica_failover.py", line 124, in <module>
+    if __name__=='__main__':main(sys.argv[1])
+                            ^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/4731fac7ec33/Apollo/backend/tools/test_replica_failover.py", line 44, in main
+    init.admin.command('replSetInitiate',{'_id':'apolloP1','members':[
+  File "/home/agent/.local/lib/python3.12/site-packages/pymongo/_csot.py", line 126, in csot_wrapper
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/database.py", line 946, in command
+    return self._client._retryable_read(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py", line 2061, in _retryable_read
+    return self._retry_internal(
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/agent/.local/lib/python3.12/site-packages/pymongo/_csot.py", line 126, in csot_wrapper
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py", line 2022, in _retry_internal
+    ).run()
+      ^^^^^
+  File "/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py", line 2890, in run
+    res = self._read() if self._is_read else self._write()
+          ^^^^^^^^^^^^
+  File "/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py", line 3130, in _read
+    return self._func(self._session, self._server, conn, read_pref)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/database.py", line 934, in inner
+    return self._command(
+           ^^^^^^^^^^^^^^
+  File "/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/database.py", line 773, in _command
+    return conn.command(
+           ^^^^^^^^^^^^^
+  File "/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/helpers.py", line 51, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/pool.py", line 396, in command
+    return run_command(
+           ^^^^^^^^^^^^
+  File "/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/command_runner.py", line 440, in run_command
+    docs, _, _ = _run_command(
+                 ^^^^^^^^^^^^^
+  File "/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/command_runner.py", line 214, in _run_command
+    helpers_shared._check_command_response(
+  File "/home/agent/.local/lib/python3.12/site-packages/pymongo/helpers_shared.py", line 327, in _check_command_response
+    raise OperationFailure(errmsg, code, response, max_wire_version)
+pymongo.errors.OperationFailure: This node, 127.0.0.1:27101, with _id MemberId(0) is not electable under the new configuration with {version: 1, term: 0} for replica set apolloP1, full error: {'ok': 0.0, 'errmsg': 'This node, 127.0.0.1:27101, with _id MemberId(0) is not electable under the new configuration with {version: 1, term: 0} for replica set apolloP1', 'code': 93, 'codeName': 'InvalidReplicaSetConfig'}

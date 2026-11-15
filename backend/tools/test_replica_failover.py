@@ -34,7 +34,7 @@ def main(output):
                 stdout=log,stderr=subprocess.STDOUT)
         try:
             for port in (27101,27102,27103):start(port)
-            init=MongoClient('mongodb://127.0.0.1:27101',directConnection=True,serverSelectionTimeoutMS=500)
+            init=MongoClient('mongodb://127.0.0.1:27102',directConnection=True,serverSelectionTimeoutMS=500)
             for _ in range(100):
                 try:init.admin.command('ping');break
                 except PyMongoError:time.sleep(.1)
@@ -42,11 +42,22 @@ def main(output):
                 raise RuntimeError('Temporary mongod did not start with keyFile')
             print('three authenticated mongod processes started',flush=True)
             init.admin.command('replSetInitiate',{'_id':'apolloP1','members':[
-                {'_id':i,'host':f'127.0.0.1:{p}'} for i,p in enumerate((27101,27102,27103))]})
-            for _ in range(150):
-                if init.admin.command('hello').get('isWritablePrimary'):break
+                {'_id':i,'host':f'127.0.0.1:{p}','priority':0 if i==0 else 1} for i,p in enumerate((27101,27102,27103))]})
+            # The bootstrap seed is deliberately ineligible for election. Discover
+            # the elected primary instead of waiting for the seed to become one.
+            init.close()
+            hosts=['127.0.0.1:27101','127.0.0.1:27102','127.0.0.1:27103']
+            init=MongoClient('mongodb://127.0.0.1:27101',replicaSet='apolloP1',serverSelectionTimeoutMS=500)
+            deadline=time.monotonic()+30
+            while time.monotonic()<deadline:
+                try:
+                    hello=init.admin.command('hello')
+                    if hello.get('isWritablePrimary'):break
+                except PyMongoError:pass
                 time.sleep(.1)
-            else:raise RuntimeError('No initial primary')
+            else:raise RuntimeError('No elected primary discovered')
+            result['bootstrap_seed_secondary']=hello['primary']!='127.0.0.1:27101'
+            assert result['bootstrap_seed_secondary']
             init.admin.command('createUser','p1admin',pwd=password,roles=['root'])
             init.close()
             kwargs={'replicaSet':'apolloP1','username':'p1admin','password':password,'authSource':'admin',
