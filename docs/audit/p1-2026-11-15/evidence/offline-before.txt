@@ -1,0 +1,71 @@
+(node:26) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ sale enqueued during an awaited replay survives synchronization (60.874479ms)
+✔ network failure preserves both the attempted sale and new arrivals (2.545788ms)
+✔ successful replay removes only completed entries and does not send arrivals early (3.473589ms)
+✖ rejected financial records are not silently truncated (3.748458ms)
+✖ corrupt pending queue cannot be silently replaced by enqueue (2.406241ms)
+✖ failure to archive a rejection preserves the pending operation (3.000595ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 3
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 190.151605
+
+✖ failing tests:
+
+test at frontend/tests/offline-queue.test.mjs:78:1
+✖ rejected financial records are not silently truncated (3.748458ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  200 !== 206
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/4731fac7ec33/Apollo/frontend/tests/offline-queue.test.mjs:85:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 206,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at frontend/tests/offline-queue.test.mjs:88:1
+✖ corrupt pending queue cannot be silently replaced by enqueue (2.406241ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///workspace/scratch/4731fac7ec33/Apollo/frontend/tests/offline-queue.test.mjs:91:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /corromp/i,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at frontend/tests/offline-queue.test.mjs:95:1
+✖ failure to archive a rejection preserves the pending operation (3.000595ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + []
+  - [
+  -   'pending'
+  - ]
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/4731fac7ec33/Apollo/frontend/tests/offline-queue.test.mjs:103:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ 'pending' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

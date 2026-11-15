@@ -1,0 +1,48 @@
+REAL MongoDB 7.0.16 replica set apolloP0 PRIMARY
+/home/agent/.local/lib/python3.12/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+____________ test_pending_delivery_cancel_does_not_invent_inventory ____________
+
+p1 = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+
+    async def test_pending_delivery_cancel_does_not_invent_inventory(p1):
+        from models.schemas import OrderItemIn,CancelIn
+        db,_=p1
+        items=await orders.build_items([OrderItemIn(product_id='product',qty=1)])
+        order=await operations.create_delivery_order('site',items,{'name':'Synthetic'},'pix')
+        await operations.cancel_order(order['id'],CancelIn(reason='Not yet accepted'),USER)
+>       assert (await db.ingredients.find_one({'id':'ing'}))['stock']==100
+E       assert 101.0 == 100
+
+tests/test_p1_integrity_integration.py:205: AssertionError
+__________ test_customer_removal_preserves_balanced_financial_history __________
+
+p1 = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+
+    async def test_customer_removal_preserves_balanced_financial_history(p1):
+        db,_=p1
+        await db.customer_moves.insert_many([
+            {'id':'purchase-history','customer_id':'customer','type':'compra','amount':10},
+            {'id':'receipt-history','customer_id':'customer','type':'pagamento','amount':10}])
+        await fiado.delete_customer('customer',USER)
+>       assert await db.customer_moves.count_documents({'customer_id':'customer'})==2
+E       assert 0 == 2
+
+tests/test_p1_integrity_integration.py:214: AssertionError
+=============================== warnings summary ===============================
+../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
+  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+  The CallSpec2 alias will be removed in pytest 10.
+  Update imports to use CallSpec instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
+    from _pytest.python import CallSpec2
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_p1_integrity_integration.py::test_pending_delivery_cancel_does_not_invent_inventory
+FAILED tests/test_p1_integrity_integration.py::test_customer_removal_preserves_balanced_financial_history
+2 failed, 16 deselected, 1 warning in 0.89s

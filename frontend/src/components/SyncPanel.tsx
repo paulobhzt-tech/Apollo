@@ -9,12 +9,14 @@ import { dismissRejected, lastSync, retryRejected, syncQueue, useOffline } from 
 
 /** Sincronização: pending offline sales, rejected ones (kept for review) and the desktop app status. */
 export default function SyncPanel() {
-  const { offline, queue, rejected } = useOffline();
+  const { offline, queue, rejected, storageError } = useOffline();
   const d = desktop();
   const cfg = useQuery({ queryKey: ["desktop-config"], queryFn: () => d!.config(), enabled: !!d });
   const last = lastSync();
   const run = async () => {
-    const r = await syncQueue();
+    if (storageError) { toast.error(storageError); return; }
+    let r;
+    try { r = await syncQueue(); } catch { toast.error("Não foi possível salvar a sincronização; fila preservada"); return; }
     if (r.synced || r.failed) toast.success(`${r.synced} venda(s) sincronizada(s)${r.failed ? ` · ${r.failed} recusada(s)` : ""}`);
     else toast.message(offline ? "Sem conexão: as vendas continuam guardadas" : "Nada pendente");
   };
@@ -28,6 +30,7 @@ export default function SyncPanel() {
           <span className="text-sm text-zinc-300" data-testid="sync-pending-count">{queue.length} pendente(s)</span>
           <Button size="sm" onClick={() => void run()} disabled={!queue.length} data-testid="sync-now-button"><RefreshCw className="size-3.5" /> Sincronizar agora</Button>
         </div>
+        {storageError && <p role="alert" className="mt-3 text-red-300">{storageError}</p>}
         {last && <p className="mt-2 text-xs text-zinc-500" data-testid="sync-last">Última sincronização: {fmtDateTime(last.at)} · {last.synced} enviada(s) · {last.failed} recusada(s)</p>}
         <ul className="mt-3 space-y-1.5">
           {queue.map((s) => (

@@ -67,7 +67,7 @@ function Brand() {
 }
 
 export function OfflineBadge() {
-  const { offline, forced, queue } = useOffline();
+  const { offline, forced, queue, storageError } = useOffline();
   const toggle = async () => {
     setForcedOffline(!forced);
     if (forced) {
@@ -75,6 +75,7 @@ export function OfflineBadge() {
       if (r.synced) toast.success(`${r.synced} venda(s) offline sincronizada(s)`);
     } else toast.message("Modo contingência ativado: vendas do PDV ficam salvas neste dispositivo");
   };
+  if (storageError) return <span role="alert" className="text-sm text-red-300">{storageError}</span>;
   return (
     <button
       type="button"

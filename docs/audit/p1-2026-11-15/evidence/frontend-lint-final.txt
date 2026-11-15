@@ -1,0 +1,14 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> frontend@0.0.0 lint
+> oxlint
+
+src/components/ui/tabs.tsx:80:52: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/lib/auth.ts:12:12: warning eslint(no-useless-catch): Unnecessary try/catch wrapper help: Remove the try/catch wrapper, since it does not provide any additional error handling or functionality.
+src/pages/Dashboard.tsx:12:14: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/pages/Dashboard.tsx:13:14: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/pages/Cardapio.tsx:20:27: warning eslint(no-unused-vars): Variable 'setShowPreparation' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.
+src/components/ui/badge.tsx:52:17: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/components/ui/button.tsx:67:18: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/components/BillAlerts.tsx:14:17: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+src/pages/Vendas.tsx:39:101: warning react-hooks(exhaustive-deps): React hook useMemo depends on `orders`, which changes every render help: Try memoizing this variable with `useRef` or `useCallback`.

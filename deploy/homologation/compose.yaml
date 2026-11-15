@@ -1,0 +1,52 @@
+# HOMOLOGATION ONLY. No production deployment and no public MongoDB ports.
+services:
+  mongo1: &mongo
+    image: mongo:7.0
+    entrypoint: ["bash", "/scripts/start-mongo.sh"]
+    command: ["mongod", "--replSet", "apolloHomolog", "--bind_ip_all", "--auth", "--keyFile", "/data/configdb/replica.key"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:?Set generated homologation user}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?Set generated homologation password}
+    volumes:
+      - mongo1_data:/data/db
+      - ./start-mongo.sh:/scripts/start-mongo.sh:ro
+      - ./secrets/replica.key:/run/secrets/replica.key:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --username \"$$MONGO_INITDB_ROOT_USERNAME\" --password \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval 'db.adminCommand({ping:1}).ok' >/dev/null"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+  mongo2:
+    <<: *mongo
+    volumes:
+      - mongo2_data:/data/db
+      - ./start-mongo.sh:/scripts/start-mongo.sh:ro
+      - ./secrets/replica.key:/run/secrets/replica.key:ro
+  mongo3:
+    <<: *mongo
+    volumes:
+      - mongo3_data:/data/db
+      - ./start-mongo.sh:/scripts/start-mongo.sh:ro
+      - ./secrets/replica.key:/run/secrets/replica.key:ro
+  backend:
+    build:
+      context: ../..
+    environment:
+      MONGO_URL: ${MONGO_URL:?Set URL encoded replica set application credentials}
+      DB_NAME: apollo_homologation
+      COOKIE_SECURE: "true"
+      APP_URL: ${APP_URL:?Set trusted HTTPS homologation origin}
+    ports: ["127.0.0.1:18081:10000"]
+    depends_on:
+      mongo1: {condition: service_healthy}
+      mongo2: {condition: service_healthy}
+      mongo3: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:10000/api/health/ready', timeout=3)"]
+      interval: 10s
+      timeout: 4s
+      retries: 20
+volumes:
+  mongo1_data:
+  mongo2_data:
+  mongo3_data:

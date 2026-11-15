@@ -113,8 +113,9 @@ function ReceiveForm({ c, onClose }: { c: FiadoCustomer; onClose: () => void }) 
   const [method, setMethod] = useState<"dinheiro" | "pix" | "credito" | "debito">("dinheiro");
   const [brand, setBrand] = useState<CardBrand | null>(null);
   const card = method === "credito" || method === "debito";
+  const [requestId] = useState(() => crypto.randomUUID());
   const m = useMutation({
-    mutationFn: () => apiPost<FiadoCustomer>(`/customers/${c.id}/receive`, { amount: num(amount), method, brand: card ? brand : null, note: "" }),
+    mutationFn: () => apiPost<FiadoCustomer>(`/customers/${c.id}/receive`, { amount: num(amount), method, brand: card ? brand : null, note: "", client_ref: requestId }),
     onSuccess: (r) => { toast.success(`Recebido · saldo de ${r.name}: ${brl(r.balance)}`); inv(); onClose(); },
     onError: (e) => toast.error(errMsg(e)),
   });

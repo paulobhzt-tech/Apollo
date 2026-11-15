@@ -52,7 +52,7 @@ def main():
                 raise RuntimeError('Replica set did not elect primary')
             print('REAL MongoDB', client.server_info()['version'], 'replica set apolloP0 PRIMARY', flush=True)
             env = {**os.environ, 'MONGO_URL':'mongodb://127.0.0.1:27027/?replicaSet=apolloP0',
-                   'DB_NAME':'apollo_p0_test', 'APOLLO_P0_INTEGRATION':'1', 'NO_PROXY':'127.0.0.1,localhost'}
+                   'APOLLO_MONGOD_PID':str(process.pid), 'DB_NAME':'apollo_p0_test', 'APOLLO_P0_INTEGRATION':'1', 'NO_PROXY':'127.0.0.1,localhost'}
             if http:
                 import bcrypt
                 import httpx
@@ -70,7 +70,8 @@ def main():
                     opened_by_name='Synthetic HTTP admin').model_dump())
                 env['BACKEND_URL'] = 'http://127.0.0.1:8001'
                 backend = subprocess.Popen([sys.executable,'-m','uvicorn','server:app','--host',
-                    '127.0.0.1','--port','8001'], env={**env, 'DB_NAME':'apollo_p0_http_test'}, stdout=log, stderr=subprocess.STDOUT)
+                    '127.0.0.1','--port','8001'], env={**env, 'DB_NAME':'apollo_p0_http_test'}, cwd=Path(__file__).resolve().parents[1], stdout=log, stderr=subprocess.STDOUT)
+                env['APOLLO_BACKEND_PID']=str(backend.pid)
                 with httpx.Client(trust_env=False, timeout=.5) as httpclient:
                     for _ in range(100):
                         if backend.poll() is not None:
@@ -83,7 +84,7 @@ def main():
                         time.sleep(.1)
                     else:
                         raise RuntimeError('Isolated HTTP backend did not start')
-            code = subprocess.call([sys.executable,'-m','pytest','-n','0',*arguments],env=env)
+            code = subprocess.call([sys.executable,'-m','pytest','-n','0',*arguments],env=env,cwd=Path(__file__).resolve().parents[1])
             client.close()
             return code
         finally:

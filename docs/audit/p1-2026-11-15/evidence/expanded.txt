@@ -1,0 +1,182 @@
+REAL MongoDB 7.0.16 replica set apolloP0 PRIMARY
+/home/agent/.local/lib/python3.12/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+.....F....F............................................................. [ 34%]
+........................................................................ [ 68%]
+...................................................................      [100%]
+=================================== FAILURES ===================================
+____________ test_backup_roundtrip_restores_markers_lots_and_replay ____________
+
+data = {'employees': [{'_id': {'$oid': '6af9f86f3f9b3a590aeb3f7e'}, 'id': 'synthetic-admin', 'name': 'Synthetic', 'role': 'ad...: {'$oid': '6af9f86f3f9b3a590aeb3f7b'}, 'id': 'product', 'name': 'Synthetic product', 'category_id': 'cat', ...}], ...}
+manifest = {'collections': ['employees', 'suppliers', 'categories', 'products', 'ingredients', 'stock_moves', ...], 'counts': {'e... 'transient security counters', 'server_backups': 'recursive archives', 'status_checks': 'transient diagnostics'}, ...}
+version = 2
+
+    def decode_backup(data,manifest,version):
+        if version!=2 or not isinstance(manifest,dict):
+            raise HTTPException(422,'Backup antigo ou parcial: use exportação integral versão 2')
+        if set(data)!=set(BACKUP_COLLS) or set(manifest.get('collections',[]))!=set(BACKUP_COLLS):
+            raise HTTPException(422,'Conjunto de coleções incompleto ou desconhecido')
+        if manifest.get('sha256')!=digest(data) or manifest.get('counts')!={k:len(v) for k,v in data.items()}:
+            raise HTTPException(422,'Manifesto, contagens ou checksum inválidos')
+        if manifest.get('codec')!='bson-extended-json':
+            raise HTTPException(422,'Codec de backup desconhecido')
+        try:
+>           decoded=json_util.loads(json.dumps(data),tz_aware=True)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+lib/backups.py:74: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/agent/.local/lib/python3.12/site-packages/bson/json_util.py:487: in loads
+    return json.loads(s, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+s = '{"employees": [{"_id": {"$oid": "6af9f86f3f9b3a590aeb3f7e"}, "id": "synthetic-admin", "name": "Synthetic", "role": "a..."payment_methods": [], "inventory_counts": [], "production_batches": [], "employee_time_entries": [], "cron_runs": []}'
+cls = <class 'json.decoder.JSONDecoder'>
+object_hook = <function loads.<locals>.<lambda> at 0x7ffb24f977e0>
+parse_float = None, parse_int = None, parse_constant = None
+object_pairs_hook = None
+kw = {'tz_aware': True, 'object_hook': <function loads.<locals>.<lambda> at 0x7ffb24f977e0>}
+
+    def loads(s, *, cls=None, object_hook=None, parse_float=None,
+            parse_int=None, parse_constant=None, object_pairs_hook=None, **kw):
+        """Deserialize ``s`` (a ``str``, ``bytes`` or ``bytearray`` instance
+        containing a JSON document) to a Python object.
+    
+        ``object_hook`` is an optional function that will be called with the
+        result of any object literal decode (a ``dict``). The return value of
+        ``object_hook`` will be used instead of the ``dict``. This feature
+        can be used to implement custom decoders (e.g. JSON-RPC class hinting).
+    
+        ``object_pairs_hook`` is an optional function that will be called with the
+        result of any object literal decoded with an ordered list of pairs.  The
+        return value of ``object_pairs_hook`` will be used instead of the ``dict``.
+        This feature can be used to implement custom decoders.  If ``object_hook``
+        is also defined, the ``object_pairs_hook`` takes priority.
+    
+        ``parse_float``, if specified, will be called with the string
+        of every JSON float to be decoded. By default this is equivalent to
+        float(num_str). This can be used to use another datatype or parser
+        for JSON floats (e.g. decimal.Decimal).
+    
+        ``parse_int``, if specified, will be called with the string
+        of every JSON int to be decoded. By default this is equivalent to
+        int(num_str). This can be used to use another datatype or parser
+        for JSON integers (e.g. float).
+    
+        ``parse_constant``, if specified, will be called with one of the
+        following strings: -Infinity, Infinity, NaN.
+        This can be used to raise an exception if invalid JSON numbers
+        are encountered.
+    
+        To use a custom ``JSONDecoder`` subclass, specify it with the ``cls``
+        kwarg; otherwise ``JSONDecoder`` is used.
+        """
+        if isinstance(s, str):
+            if s.startswith('\ufeff'):
+                raise JSONDecodeError("Unexpected UTF-8 BOM (decode using utf-8-sig)",
+                                      s, 0)
+        else:
+            if not isinstance(s, (bytes, bytearray)):
+                raise TypeError(f'the JSON object must be str, bytes or bytearray, '
+                                f'not {s.__class__.__name__}')
+            s = s.decode(detect_encoding(s), 'surrogatepass')
+    
+        if (cls is None and object_hook is None and
+                parse_int is None and parse_float is None and
+                parse_constant is None and object_pairs_hook is None and not kw):
+            return _default_decoder.decode(s)
+        if cls is None:
+            cls = JSONDecoder
+        if object_hook is not None:
+            kw['object_hook'] = object_hook
+        if object_pairs_hook is not None:
+            kw['object_pairs_hook'] = object_pairs_hook
+        if parse_float is not None:
+            kw['parse_float'] = parse_float
+        if parse_int is not None:
+            kw['parse_int'] = parse_int
+        if parse_constant is not None:
+            kw['parse_constant'] = parse_constant
+>       return cls(**kw).decode(s)
+               ^^^^^^^^^
+E       TypeError: JSONDecoder.__init__() got an unexpected keyword argument 'tz_aware'
+
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/json/__init__.py:359: TypeError
+
+The above exception was the direct cause of the following exception:
+
+p1 = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ffb24f82e40>
+
+    async def test_backup_roundtrip_restores_markers_lots_and_replay(p1,monkeypatch):
+        from lib.backups import restore_empty
+        from lib.db import INDEXES
+        import uuid
+        db,client=p1;body=sale();result=await operations.quick_sale(body,USER)
+        _,backup=await config.build_backup()
+        target=client['apollo_p1_restore_'+uuid.uuid4().hex]
+        try:
+            for name,indexes in INDEXES.items():
+                await target[name].create_indexes(indexes)
+>           counts=await restore_empty(target,backup['data'],backup['manifest'],backup['format_version'])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_p1_integrity_integration.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+lib/backups.py:102: in restore_empty
+    decoded=decode_backup(data,manifest,version)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+data = {'employees': [{'_id': {'$oid': '6af9f86f3f9b3a590aeb3f7e'}, 'id': 'synthetic-admin', 'name': 'Synthetic', 'role': 'ad...: {'$oid': '6af9f86f3f9b3a590aeb3f7b'}, 'id': 'product', 'name': 'Synthetic product', 'category_id': 'cat', ...}], ...}
+manifest = {'collections': ['employees', 'suppliers', 'categories', 'products', 'ingredients', 'stock_moves', ...], 'counts': {'e... 'transient security counters', 'server_backups': 'recursive archives', 'status_checks': 'transient diagnostics'}, ...}
+version = 2
+
+    def decode_backup(data,manifest,version):
+        if version!=2 or not isinstance(manifest,dict):
+            raise HTTPException(422,'Backup antigo ou parcial: use exportação integral versão 2')
+        if set(data)!=set(BACKUP_COLLS) or set(manifest.get('collections',[]))!=set(BACKUP_COLLS):
+            raise HTTPException(422,'Conjunto de coleções incompleto ou desconhecido')
+        if manifest.get('sha256')!=digest(data) or manifest.get('counts')!={k:len(v) for k,v in data.items()}:
+            raise HTTPException(422,'Manifesto, contagens ou checksum inválidos')
+        if manifest.get('codec')!='bson-extended-json':
+            raise HTTPException(422,'Codec de backup desconhecido')
+        try:
+            decoded=json_util.loads(json.dumps(data),tz_aware=True)
+        except (ValueError,TypeError) as exc:
+>           raise HTTPException(422,'BSON inválido') from exc
+E           fastapi.exceptions.HTTPException: 422: BSON inválido
+
+lib/backups.py:76: HTTPException
+______________ test_restore_does_not_overwrite_existing_database _______________
+
+p1 = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+
+    async def test_restore_does_not_overwrite_existing_database(p1):
+        from lib.backups import restore_empty
+        db,_=p1;await operations.quick_sale(sale(),USER);_,backup=await config.build_backup()
+        original=await db.orders.find_one({})
+        with pytest.raises(HTTPException) as error:
+            await restore_empty(db,backup['data'],backup['manifest'],2)
+>       assert error.value.status_code==409
+E       AssertionError: assert 422 == 409
+E        +  where 422 = HTTPException(status_code=422, detail='BSON inválido').status_code
+E        +    where HTTPException(status_code=422, detail='BSON inválido') = <ExceptionInfo HTTPException(status_code=422, detail='BSON inválido') tblen=3>.value
+
+tests/test_p1_integrity_integration.py:135: AssertionError
+=============================== warnings summary ===============================
+../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
+  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+  The CallSpec2 alias will be removed in pytest 10.
+  Update imports to use CallSpec instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
+    from _pytest.python import CallSpec2
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_p1_integrity_integration.py::test_backup_roundtrip_restores_markers_lots_and_replay
+FAILED tests/test_p1_integrity_integration.py::test_restore_does_not_overwrite_existing_database
+2 failed, 209 passed, 1 warning in 10.78s

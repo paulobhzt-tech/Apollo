@@ -76,8 +76,7 @@ async def download_backup(id: str, _: dict = Depends(require())):
 async def restore_backup(id: str, me: dict = Depends(require())):
     from routers.config import restore
     _d, payload = await _load(id)
-    await make_server_backup("antes da restauração", me["name"])  # safety copy of the current data
-    return await restore(RestoreIn(data=payload["data"]), me)
+    return await restore(RestoreIn(**{k:payload[k] for k in ("data","manifest","format_version") if k in payload}), me)
 
 
 @router.delete("/backups/server/{id}", response_model=OkOut)

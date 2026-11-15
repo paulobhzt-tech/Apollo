@@ -93,3 +93,8 @@ credentials.json
 *.key
 .credentials
 desktop/node_modules/electron/dist/electron
+
+# Operational backups and homologation credentials must never enter Git.
+backend/backups/*.json
+deploy/homologation/secrets/
+deploy/homologation/.env

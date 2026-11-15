@@ -1,0 +1,102 @@
+"""Opt-in HTTP/MongoDB soak; explicitly selected, never in ordinary CI collection."""
+import asyncio
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import time
+import uuid
+
+import httpx
+from pymongo import MongoClient
+import pytest
+
+
+def quantile(values,p):
+    values=sorted(values)
+    return round(values[max(0,math.ceil(len(values)*p)-1)],2) if values else None
+
+
+def process_resources(pid):
+    try:
+        fields=Path(f'/proc/{pid}/stat').read_text().split()
+        rss=next(line for line in Path(f'/proc/{pid}/status').read_text().splitlines() if line.startswith('VmRSS:'))
+        return {'cpu_seconds':(int(fields[13])+int(fields[14]))/os.sysconf('SC_CLK_TCK'),
+                'rss_kib':int(rss.split()[1])}
+    except (OSError,StopIteration):return None
+
+
+@pytest.mark.asyncio
+async def test_real_http_soak():
+    assert os.environ.get('APOLLO_P0_INTEGRATION')=='1'
+    duration=int(os.environ.get('APOLLO_SOAK_SECONDS','1800'))
+    output=Path(os.environ['APOLLO_SOAK_OUTPUT'])
+    mongo=MongoClient(os.environ['MONGO_URL']);db=mongo['apollo_p0_http_test']
+    results=[];resources=[];stop=False
+    async def monitor():
+        while not stop:
+            status=await asyncio.to_thread(mongo.admin.command,'serverStatus')
+            resources.append({'at':time.time(),'backend':process_resources(os.environ['APOLLO_BACKEND_PID']),
+                'mongo':process_resources(os.environ['APOLLO_MONGOD_PID']),
+                'connections':status['connections'],'mongo_memory':status['mem'],
+                'write_conflicts':status.get('metrics',{}).get('operation',{}).get('writeConflicts')})
+            await asyncio.sleep(5)
+    monitoring=asyncio.create_task(monitor())
+    started=time.monotonic()
+    async def stage(count,seconds):
+        latencies=[];errors={};pairs=0;deadline=time.monotonic()+seconds
+        async def worker():
+            nonlocal pairs
+            async with httpx.AsyncClient(base_url=os.environ['BACKEND_URL'],trust_env=False,timeout=65,
+                    headers={'Origin':os.environ['BACKEND_URL']},limits=httpx.Limits(max_connections=1,max_keepalive_connections=1)) as client:
+                login=await client.post('/api/auth/login',json={'pin':'1234'})
+                login.raise_for_status()
+                client.headers['Cookie']='pdv_session='+login.cookies['pdv_session']
+                async def call(path,payload):
+                    for attempt in range(4):
+                        before=time.perf_counter()
+                        try:
+                            response=await client.post(path,json=payload)
+                            latencies.append((time.perf_counter()-before)*1000)
+                            if response.status_code==200:return response.json()
+                            key=f'{path}:{response.status_code}'
+                        except httpx.TransportError as exc:
+                            latencies.append((time.perf_counter()-before)*1000);key=type(exc).__name__
+                        errors[key]=errors.get(key,0)+1
+                        await asyncio.sleep(.05*(attempt+1))
+                    return None
+                while time.monotonic()<deadline:
+                    ref='soak-'+uuid.uuid4().hex
+                    payload={'client_ref':ref,'items':[{'product_id':'http-product','qty':1}],
+                        'payments':[{'method':'pix','amount':10}],'emit_invoice':False,'send_to_kitchen':True}
+                    paid=await call('/api/pdv/sale',payload)
+                    if paid:
+                        cancelled=await call('/api/orders/'+paid['order']['id']+'/cancel',{'reason':'Synthetic soak cancellation'})
+                        if cancelled:pairs+=1
+        begin=time.monotonic()
+        await asyncio.gather(*(worker() for _ in range(count)))
+        elapsed=time.monotonic()-begin
+        row={'sessions':count,'duration_s':round(elapsed,3),'completed_pairs':pairs,'requests':len(latencies),
+            'p50_ms':quantile(latencies,.5),'p95_ms':quantile(latencies,.95),'p99_ms':quantile(latencies,.99),
+            'request_throughput_s':round(len(latencies)/elapsed,2),'error_rate':sum(errors.values())/max(1,len(latencies)),
+            'errors':errors}
+        results.append(row)
+        output.write_text(json.dumps({'partial':True,'rows':results,'resources':resources},indent=2)+'\n')
+    try:
+        for count in (1,5,10,20,30,50,100):await stage(count,8)
+        remaining=max(0,duration-(time.monotonic()-started))
+        if remaining:await stage(50,remaining)
+        duplicates=list(db.orders.aggregate([{'$group':{'_id':'$client_ref','n':{'$sum':1}}},{'$match':{'n':{'$gt':1}}}]))
+        final={'stock':db.ingredients.find_one({'id':'http-ing'})['stock'],
+               'paid_orders':db.orders.count_documents({'status':'pago'}),'duplicate_refs':len(duplicates),
+               'orders':db.orders.count_documents({})}
+        output.write_text(json.dumps({'partial':False,'duration_s':time.monotonic()-started,'rows':results,
+            'resources':resources,'integrity':final,'scope':'real HTTP keep-alive + single-node MongoDB; synthetic PDV sale/cancel; no optimization'},indent=2)+'\n')
+        assert final['stock']==1000 and final['paid_orders']==0 and not duplicates,final
+    finally:
+        stop=True
+        monitoring.cancel()
+        try:await monitoring
+        except asyncio.CancelledError:pass
+        mongo.close()

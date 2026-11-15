@@ -1,0 +1,2 @@
+three authenticated mongod processes started
+{"bootstrap_seed_secondary": true, "unauthenticated_denied": true, "initial_primary": "127.0.0.1:27102", "elected_primary": "127.0.0.1:27103", "recovery_seconds": 10.551, "transaction_attempts": 2, "balance": 90, "movements": 1, "members": 3, "authentication": true, "restarted_member": 27102, "restart_preserved_data": true, "restart_kind": "SIGKILL former primary with retained dbpath", "production_touched": false, "scope": "single-host real replica set, generated temporary credentials"}

@@ -12,7 +12,7 @@ from pymongo.errors import DuplicateKeyError
 from lib.auth import cancel_authorizer, current_user, require
 from lib.db import db
 from lib.orders import (MARKET_FEES, build_items, create_ticket, current_cash, emit_invoice, finalize_payment,
-                        fiado_reverse, free_table, method_totals, move_stock, new_order, now, pay_key, refresh_totals, touch_cash, session_kwargs)
+                        fiado_reverse, free_table, method_totals, move_stock, new_order, now, pay_key, refresh_totals, touch_cash, session_kwargs, validate_methods)
 from models.schemas import (CancelIn, CashCloseIn, CashMovement, CashMoveIn, CashOpenIn, CashSession,
                             DeliveryStatusIn, EmitInvoiceIn, Invoice, KitchenTicket, Order, OrderItem,
                             OrderItemIn, QuickSaleIn, SaleResult, SimulateIn, TicketStatusIn)
@@ -123,7 +123,8 @@ async def cancel_order(id: str, body: CancelIn, user: dict = Depends(current_use
             fiado = sum(p["amount"] for p in order.get("payments", []) if p["method"] == "fiado") - \
                 sum(r["amount"] for r in order.get("refunds", []) if r["method"] == "fiado")
             await fiado_reverse(order, fiado, who, f"Estorno do pedido #{order['number']}", session=session)
-        await move_stock([OrderItem(**i) for i in order["items"] if not i.get("cancelled")],
+        if not (order.get("channel")=="delivery" and (order.get("stock_applied") is False or order.get("delivery_status") in ("pendente","recusado"))):
+            await move_stock([OrderItem(**i) for i in order["items"] if not i.get("cancelled")],
             user["name"], f"Cancelamento #{order['number']}", sign=1, session=session,
             stock_reference=order.get("stock_note") or
                 (f"PDV · Pedido #{order['number']}" if order["source"] == "pdv" else None))
@@ -294,13 +295,14 @@ async def simulate(body: SimulateIn, _: dict = Depends(require("caixa"))):
         "address": rng.choice(STREETS)}, pay_on_delivery=None if body.source != "site" else "pix")
 
 
-async def create_delivery_order(source: str, items: list[OrderItem], customer: dict, pay_on_delivery: str | None) -> dict:
+async def create_delivery_order(source: str, items: list[OrderItem], customer: dict, pay_on_delivery: str | None, *, session=None) -> dict:
     sub = round(sum(i.qty * i.unit_price for i in items), 2)
     fee = 7.99 if source != "site" else 5.0
     total = round(sub + fee, 2)
     return await new_order(channel="delivery", source=source, items=[i.model_dump() for i in items], customer=customer,
                            delivery_status="pendente", subtotal=sub, delivery_fee=fee, total=total,
-                           marketplace_fee=round(sub * MARKET_FEES.get(source, 0), 2), pay_on_delivery=pay_on_delivery)
+                           marketplace_fee=round(sub * MARKET_FEES.get(source, 0), 2), pay_on_delivery=pay_on_delivery,
+                           stock_applied=False, **session_kwargs(session))
 
 
 FLOW = {"pendente": ["aceito", "recusado"], "aceito": ["preparo", "saiu"], "preparo": ["saiu"], "saiu": ["entregue"]}
@@ -308,26 +310,41 @@ FLOW = {"pendente": ["aceito", "recusado"], "aceito": ["preparo", "saiu"], "prep
 
 @router.patch("/delivery/orders/{id}/status", response_model=Order)
 async def delivery_status(id: str, body: DeliveryStatusIn, user: dict = Depends(require("caixa"))):
-    o = await db.orders.find_one({"id": id, "channel": "delivery"}, {"_id": 0})
-    if not o:
-        raise HTTPException(404, "Pedido não encontrado")
-    if body.status not in FLOW.get(o.get("delivery_status") or "", []):
-        raise HTTPException(400, f"Transição inválida: {o.get('delivery_status')} → {body.status}")
-    upd: dict = {"delivery_status": body.status}
-    items = [OrderItem(**i) for i in o["items"]]
-    if body.status == "aceito":
-        await create_ticket(o, items)
-        await move_stock(items, user["name"], f"Delivery #{o['number']}")
-    elif body.status == "recusado":
-        upd["status"] = "cancelado"
-    elif body.status == "entregue":
-        cash = await current_cash()
-        method = o.get("pay_on_delivery") or "online"
-        upd.update(status="pago", paid_at=now(), payments=[{"method": method, "amount": o["total"]}],
-                   cmv=round(sum(i.qty * i.unit_cost for i in items), 2),
-                   cash_session_id=cash["id"] if cash else None)
-    await db.orders.update_one({"id": id}, {"$set": upd})
-    return await db.orders.find_one({"id": id}, {"_id": 0})
+    async def unit(session):
+        o = await db.orders.find_one({"id": id, "channel": "delivery"}, {"_id": 0}, session=session)
+        if not o:
+            raise HTTPException(404, "Pedido não encontrado")
+        if o.get("status")=="cancelado":
+            raise HTTPException(409,"Pedido cancelado")
+        if body.status==o.get("delivery_status"):
+            return o
+        if body.status not in FLOW.get(o.get("delivery_status") or "", []):
+            raise HTTPException(400, f"Transição inválida: {o.get('delivery_status')} → {body.status}")
+        upd: dict = {"delivery_status": body.status}
+        items = [OrderItem(**i) for i in o["items"]]
+        if body.status == "aceito":
+            await create_ticket(o, items, session=session)
+            note=f"Delivery #{o['number']}"
+            await move_stock(items,user["name"],note, session=session)
+            upd.update(stock_applied=True,stock_note=note)
+        elif body.status == "recusado":
+            upd["status"] = "cancelado"
+        elif body.status == "entregue":
+            cash = await current_cash(session=session)
+            if not cash:
+                raise HTTPException(400,"Abra o caixa antes de receber delivery")
+            await touch_cash(cash["id"],session=session)
+            method = o.get("pay_on_delivery") or "online"
+            await validate_methods([method],session=session)
+            if method in ("credito","debito","cartao"):
+                raise HTTPException(409,"Confirme a bandeira do cartão no caixa antes de concluir")
+            upd.update(status="pago", paid_at=now(), payments=[{"method": method, "amount": o["total"]}],
+                       cmv=round(sum(i.qty * i.unit_cost for i in items), 2),
+                       cash_session_id=cash["id"] if cash else None)
+        await db.orders.update_one({"id": id}, {"$set": upd}, session=session)
+        return await db.orders.find_one({"id": id}, {"_id": 0}, session=session)
+
+    return await run_transaction(unit)
 
 
 # ---------- Cash register ----------

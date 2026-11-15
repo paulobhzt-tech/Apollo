@@ -327,8 +327,8 @@ async def finalize_payment(order: dict, pay: PayIn, *, session=None) -> tuple[di
     cust = None
     if fiado:
         cust = await db.fiado_customers.find_one({"id": pay.fiado_customer_id}, {"_id": 0}, **session_kwargs(session)) if pay.fiado_customer_id else None
-        if not cust:
-            raise HTTPException(400, "Selecione o cliente da conta fiado")
+        if not cust or cust.get("active") is False:
+            raise HTTPException(400, "Selecione um cliente ativo da conta fiado")
         if cust["credit_limit"] > 0 and cust["balance"] + fiado > cust["credit_limit"] + 0.009:
             raise HTTPException(400, f"Limite de crédito de {cust['name']} excedido (saldo {cust['balance']:.2f} / limite {cust['credit_limit']:.2f})")
     cash_paid = sum(p.amount for p in pay.payments if p.method == "dinheiro")

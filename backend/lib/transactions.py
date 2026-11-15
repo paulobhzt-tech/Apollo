@@ -17,7 +17,7 @@ class RetrySnapshot(Exception):
     """A concurrently initialized namespace requires a fresh transaction."""
 
 
-async def run_transaction(callback):
+async def run_transaction(callback, *, client=None):
     """Retry labelled transaction conflicts, but only COMMIT on unknown result.
 
     Do not use Motor 3.7.1's with_transaction here: its implicit context-manager
@@ -28,7 +28,7 @@ async def run_transaction(callback):
     deadline = time.monotonic() + RETRY_SECONDS
     snapshot_retries = 0
     try:
-        async with await database.client.start_session() as session:
+        async with await (client if client is not None else database.client).start_session() as session:
             while True:
                 # Intentionally no async-with: commit must be inside our loop.
                 session.start_transaction(read_concern=ReadConcern('snapshot'),
