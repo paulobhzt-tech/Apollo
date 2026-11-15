@@ -2,7 +2,7 @@ import secrets
 import hashlib
 import json
 
-from lib.transactions import run_transaction
+from lib.transactions import run_transaction, RetrySnapshot
 from datetime import timedelta
 from typing import Optional
 
@@ -46,13 +46,18 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
         previous = await replay(session)
         if previous:
             return previous
-        if await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0}, session=session):
+        existing = await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0}, session=session)
+        if existing:
             # A find on a not-yet-created marker namespace may precede the
             # snapshot established by the orders read. Recheck the committed
             # marker before classifying a concurrently completed sale as legacy.
             confirmed = await replay(session)
             if confirmed:
                 return confirmed
+            if existing.get("atomic_version") == 1:
+                # Re-reading the same missing namespace can retain its catalog
+                # snapshot. Abort and restart; do not trust status/version alone.
+                raise RetrySnapshot()
             raise HTTPException(409, "Venda anterior sem confirmação atômica; exige conciliação")
         await db.financial_operations.insert_one({"_id": operation_id,
             "request_hash": request_hash, "kind": "pdv_sale", "created_at": now()}, session=session)

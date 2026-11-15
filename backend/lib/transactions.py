@@ -13,6 +13,10 @@ from lib import db as database
 RETRY_SECONDS = 30
 
 
+class RetrySnapshot(Exception):
+    """A concurrently initialized namespace requires a fresh transaction."""
+
+
 async def run_transaction(callback):
     """Retry labelled transaction conflicts, but only COMMIT on unknown result.
 
@@ -22,6 +26,7 @@ async def run_transaction(callback):
     same operation identity on client replay. A 503 does not mean no commit.
     """
     deadline = time.monotonic() + RETRY_SECONDS
+    snapshot_retries = 0
     try:
         async with await database.client.start_session() as session:
             while True:
@@ -35,6 +40,11 @@ async def run_transaction(callback):
                     if session.in_transaction:
                         with suppress(PyMongoError):
                             await session.abort_transaction()
+                    if isinstance(exc, RetrySnapshot):
+                        snapshot_retries += 1
+                        if snapshot_retries <= 3 and time.monotonic() < deadline:
+                            continue
+                        raise HTTPException(409, "Operação sem marcador consistente; exige conciliação") from exc
                     if (isinstance(exc, PyMongoError) and exc.has_error_label('TransientTransactionError')
                             and time.monotonic() < deadline):
                         await asyncio.sleep(.01)

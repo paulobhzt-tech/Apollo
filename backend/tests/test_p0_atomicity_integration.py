@@ -446,3 +446,14 @@ async def test_permanent_sale_write_error_is_not_treated_as_transient(scenario):
         await client.admin.command({'configureFailPoint':'failCommand','mode':'off'})
     await operations.quick_sale(body,USER)
     assert (await db.ingredients.find_one({'id':'ing'}))['stock']==99
+
+async def test_atomic_flag_without_committed_marker_never_certifies_replay(scenario):
+    db,_=scenario
+    body=sale()
+    await db.orders.insert_one({'id':'corrupt','client_ref':body.client_ref,'status':'pago','atomic_version':1})
+    with pytest.raises(HTTPException) as error:
+        await operations.quick_sale(body,USER)
+    assert error.value.status_code==409
+    assert await db.financial_operations.count_documents({})==0
+    assert await db.stock_moves.count_documents({})==0
+    assert (await db.ingredients.find_one({'id':'ing'}))['stock']==100
