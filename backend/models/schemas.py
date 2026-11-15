@@ -278,6 +278,7 @@ class Refund(BaseModel):
 
 
 class Order(BaseModel):
+    stock_applied: Optional[bool] = None
     id: str = Field(default_factory=_id)
     number: int
     channel: Literal["balcao", "mesa", "delivery"]
@@ -337,6 +338,7 @@ class SaleResult(BaseModel):
 
 
 class CancelIn(BaseModel):
+    client_ref: Optional[str] = Field(default=None, min_length=6, max_length=120)
     reason: str = Field(min_length=3)
     manager_pin: Optional[str] = None
     qty: Optional[float] = Field(default=None, gt=0)  # table items: remove only part of the quantity
@@ -419,6 +421,7 @@ class OpenTableIn(BaseModel):
 
 
 class AddItemsIn(BaseModel):
+    client_ref: Optional[str] = Field(default=None, min_length=6, max_length=120)
     items: list[OrderItemIn] = Field(min_length=1)
 
 
@@ -592,10 +595,12 @@ class SimulateIn(BaseModel):
 
 
 class PublicOrderIn(BaseModel):
+    client_ref: Optional[str] = Field(default=None, min_length=6, max_length=120)
     items: list[OrderItemIn] = Field(min_length=1, max_length=50)
 
 
 class PublicDeliveryIn(BaseModel):
+    client_ref: Optional[str] = Field(default=None, min_length=6, max_length=120)
     items: list[OrderItemIn] = Field(min_length=1)
     customer: Customer
     payment_method: Literal["dinheiro", "credito", "debito", "pix"]
@@ -743,6 +748,7 @@ class CustomerMove(BaseModel):
 
 
 class ReceiveIn(BaseModel):
+    client_ref: Optional[str] = Field(default=None, min_length=6, max_length=120)
     amount: float = Field(gt=0)
     method: Literal["dinheiro", "credito", "debito", "pix"]
     brand: Optional[CardBrand] = None
@@ -798,6 +804,8 @@ class OptionRank(BaseModel):
 
 class RestoreIn(BaseModel):
     data: dict[str, list[dict]]
+    manifest: Optional[dict] = None
+    format_version: int = 0
 
 
 class RestoreOut(BaseModel):

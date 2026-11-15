@@ -11,9 +11,7 @@ from lib.db import db
 from models.schemas import GeneralSettings, OkOut, Printer, PrinterIn, RestoreIn, RestoreOut
 
 router = APIRouter()
-BACKUP_COLLS = ["employees", "suppliers", "categories", "products", "ingredients", "stock_moves", "tables", "orders", "kitchen_tickets",
-                "invoices", "cash_sessions", "expenses", "fiado_customers", "customer_moves", "printers", "settings", "environments", "counters"]
-KEEP_ID = {"settings", "counters"}  # these use their own _id
+from lib.backups import BACKUP_COLLS, export_backup, restore_empty
 ISO = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 
 
@@ -67,17 +65,7 @@ async def put_general(body: GeneralSettings, _: dict = Depends(require())):
 
 
 async def build_backup() -> tuple[str, dict]:
-    """Full JSON export (products incl. images, orders, finance…). Credential hashes, sessions and Drive tokens are excluded."""
-    data = {}
-    for c in BACKUP_COLLS:
-        if c == "employees":
-            proj = {"_id": 0, "pin_hash": 0, "password_hash": 0}
-        else:
-            proj = None if c in KEEP_ID else {"_id": 0}
-        q = {"_id": {"$nin": ["drive", "selftest_last"]}} if c == "settings" else {}
-        data[c] = await db[c].find(q, proj).to_list(100000)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M")
-    return stamp, jsonable_encoder({"app": "Apollo PDV", "created_at": stamp, "data": data})
+    return await export_backup(db)
 
 
 @router.get("/backup")
@@ -102,42 +90,5 @@ def revive(v):
 
 @router.post("/backup/restore", response_model=RestoreOut)
 async def restore(body: RestoreIn, me: dict = Depends(require())):
-    """Replaces each collection present in the backup. Employees keep their current credential hashes (backups never carry credentials);
-    employees that do not exist here are restored inactive until the admin sets a PIN. The logged-in admin is always kept."""
-    data = {k: v for k, v in body.data.items() if k in BACKUP_COLLS}
-    if "settings" in data:  # never overwrite the Google Drive connection of this install
-        data["settings"] = [d for d in data["settings"] if isinstance(d, dict) and d.get("_id") != "drive"]
-    if not data.get("products") and not data.get("orders"):
-        raise HTTPException(400, "Arquivo de backup inválido ou vazio")
-    counts: dict[str, int] = {}
-    for c, docs in data.items():
-        docs = [revive(d) for d in docs if isinstance(d, dict)]
-        if c == "employees":
-            credentials = {e["id"]: e for e in await db.employees.find(
-                {}, {"_id": 0, "id": 1, "pin_hash": 1, "password_hash": 1}).to_list(1000)}
-            keep = [d for d in docs if d.get("id")]
-            for d in keep:
-                # Imported files must never overwrite local credential hashes.
-                local = credentials.get(d["id"], {})
-                for field in ("pin_hash", "password_hash"):
-                    d.pop(field, None)
-                    if local.get(field):
-                        d[field] = local[field]
-                if not local.get("pin_hash") and not local.get("password_hash"):
-                    d["active"] = False
-            await db.employees.delete_many({"id": {"$nin": [d["id"] for d in keep] + [me["id"]]}})
-            for d in keep:
-                await db.employees.replace_one({"id": d["id"]}, d, upsert=True)
-            counts[c] = len(keep)
-            continue
-        await db[c].delete_many({"_id": {"$ne": "drive"}} if c == "settings" else {})
-        if docs:
-            await db[c].insert_many(docs)
-        counts[c] = len(docs)
-    last = await db.orders.find_one({}, {"_id": 0, "number": 1}, sort=[("number", -1)])
-    if last:  # never reuse order numbers even if the backup had no counters
-        await db.counters.update_one({"_id": "order"}, {"$max": {"seq": int(last["number"])}}, upsert=True)
-    from routers.production import ensure_environments
-    await ensure_environments()
-    total = sum(counts.values())
-    return RestoreOut(counts=counts, message=f"Backup restaurado: {total} registros em {len(counts)} tabelas")
+    counts = await restore_empty(db, body.data, body.manifest, body.format_version, me)
+    return RestoreOut(counts=counts, message="Restauração integral em destino vazio concluída; valide a conciliação antes de operar")
