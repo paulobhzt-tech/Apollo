@@ -1,0 +1,125 @@
+REAL MongoDB 7.0.16 replica set apolloP0 PRIMARY
+/home/agent/.local/lib/python3.12/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+________ test_backup_covers_transactional_collections_and_preserves_ids ________
+
+p1 = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+
+    async def test_backup_covers_transactional_collections_and_preserves_ids(p1):
+        db,_=p1
+        result=await operations.quick_sale(sale(),USER)
+        _,backup=await config.build_backup()
+        for name in ('financial_operations','purchases','lot_consumptions','bills','payment_methods','account_categories','inventory_counts','production_batches','employee_time_entries'):
+>           assert name in backup['data'],name
+E           AssertionError: financial_operations
+E           assert 'financial_operations' in {'employees': [{'id': 'synthetic-admin', 'name': 'Synthetic', 'role': 'admin', 'active': True}], 'suppliers': [], 'cat...zinha'}], 'products': [{'id': 'product', 'name': 'Synthetic product', 'category_id': 'cat', 'active': True, ...}], ...}
+
+backend/tests/test_p1_integrity_integration.py:30: AssertionError
+______ test_fiado_write_failure_never_decrements_balance_without_history _______
+
+p1 = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fe9a776ce00>
+
+    async def test_fiado_write_failure_never_decrements_balance_without_history(p1,monkeypatch):
+        db,_=p1
+        await db.fiado_customers.update_one({'id':'customer'},{'$set':{'balance':10}})
+        # Fault injection into the real server, after the balance update.
+        await db.client.admin.command({'configureFailPoint':'failCommand','mode':{'times':1},
+            'data':{'failCommands':['insert'],'errorCode':121}})
+        try:
+            with pytest.raises(Exception):
+                await fiado.receive('customer',ReceiveIn(amount=10,method='pix'),USER)
+        finally:
+            await db.client.admin.command({'configureFailPoint':'failCommand','mode':'off'})
+>       assert (await db.fiado_customers.find_one({'id':'customer'}))['balance']==10
+E       assert 0.0 == 10
+
+backend/tests/test_p1_integrity_integration.py:49: AssertionError
+______ test_table_stock_failure_rolls_back_order_table_and_ticket[staff] _______
+
+p1 = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fe9a7805dc0>
+via = 'staff'
+
+    @pytest.mark.parametrize('via',['staff','qr'])
+    async def test_table_stock_failure_rolls_back_order_table_and_ticket(p1,monkeypatch,via):
+        db,_=p1
+        module=tables if via=='staff' else public
+        real=module.move_stock
+        async def fail(*a,**kw):
+            await real(*a,**kw)
+            raise HTTPException(409,'Synthetic failure after stock writes')
+        monkeypatch.setattr(module,'move_stock',fail)
+        with pytest.raises(HTTPException):
+            if via=='staff':
+                await tables.add_items('table',AddItemsIn(items=[{'product_id':'product','qty':1}]),USER)
+            else:
+                await public.public_table_order('table',PublicOrderIn(items=[{'product_id':'product','qty':1}]))
+>       assert await db.orders.count_documents({})==0
+E       assert 1 == 0
+
+backend/tests/test_p1_integrity_integration.py:66: AssertionError
+________ test_table_stock_failure_rolls_back_order_table_and_ticket[qr] ________
+
+p1 = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fe9a776ec60>
+via = 'qr'
+
+    @pytest.mark.parametrize('via',['staff','qr'])
+    async def test_table_stock_failure_rolls_back_order_table_and_ticket(p1,monkeypatch,via):
+        db,_=p1
+        module=tables if via=='staff' else public
+        real=module.move_stock
+        async def fail(*a,**kw):
+            await real(*a,**kw)
+            raise HTTPException(409,'Synthetic failure after stock writes')
+        monkeypatch.setattr(module,'move_stock',fail)
+        with pytest.raises(HTTPException):
+            if via=='staff':
+                await tables.add_items('table',AddItemsIn(items=[{'product_id':'product','qty':1}]),USER)
+            else:
+                await public.public_table_order('table',PublicOrderIn(items=[{'product_id':'product','qty':1}]))
+>       assert await db.orders.count_documents({})==0
+E       assert 1 == 0
+
+backend/tests/test_p1_integrity_integration.py:66: AssertionError
+___________ test_delivery_accept_failure_rolls_back_ticket_and_stock ___________
+
+p1 = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fe9a7805bb0>
+
+    async def test_delivery_accept_failure_rolls_back_ticket_and_stock(p1,monkeypatch):
+        db,_=p1
+        items=await orders.build_items([__import__('models.schemas',fromlist=['OrderItemIn']).OrderItemIn(product_id='product',qty=1)])
+        order=await operations.create_delivery_order('site',items,{'name':'Synthetic'},'pix')
+        real=operations.move_stock
+        async def fail(*a,**kw):
+            await real(*a,**kw)
+            raise HTTPException(409,'Synthetic stock failure')
+        monkeypatch.setattr(operations,'move_stock',fail)
+        with pytest.raises(HTTPException):
+            await operations.delivery_status(order['id'],DeliveryStatusIn(status='aceito'),USER)
+>       assert await db.kitchen_tickets.count_documents({})==0
+E       assert 1 == 0
+
+backend/tests/test_p1_integrity_integration.py:82: AssertionError
+=============================== warnings summary ===============================
+../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
+  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+  The CallSpec2 alias will be removed in pytest 10.
+  Update imports to use CallSpec instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
+    from _pytest.python import CallSpec2
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED backend/tests/test_p1_integrity_integration.py::test_backup_covers_transactional_collections_and_preserves_ids
+FAILED backend/tests/test_p1_integrity_integration.py::test_fiado_write_failure_never_decrements_balance_without_history
+FAILED backend/tests/test_p1_integrity_integration.py::test_table_stock_failure_rolls_back_order_table_and_ticket[staff]
+FAILED backend/tests/test_p1_integrity_integration.py::test_table_stock_failure_rolls_back_order_table_and_ticket[qr]
+FAILED backend/tests/test_p1_integrity_integration.py::test_delivery_accept_failure_rolls_back_ticket_and_stock
+5 failed, 1 warning in 1.21s
