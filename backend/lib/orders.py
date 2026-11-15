@@ -9,6 +9,10 @@ from pymongo import ReturnDocument
 from lib.db import db
 from models.schemas import Invoice, InvoiceItem, KitchenItem, KitchenTicket, OrderItem, OrderItemIn, PayIn, StockMove
 
+def session_kwargs(session):
+    return {"session": session} if session is not None else {}
+
+
 TZ = ZoneInfo("America/Sao_Paulo")
 MARKET_FEES = {"ifood": 0.23, "99food": 0.15, "keeta": 0.12, "site": 0.0}
 TAX_RATE = 0.06  # Simples Nacional (simulado)
@@ -29,10 +33,10 @@ def local_today() -> str:
     return datetime.now(TZ).strftime("%Y-%m-%d")
 
 
-async def next_seq(name: str) -> int:
+async def next_seq(name: str, *, session=None) -> int:
     doc = await db.counters.find_one_and_update(
         {"_id": name}, {"$inc": {"seq": 1}}, upsert=True, return_document=ReturnDocument.AFTER
-    )
+    , **session_kwargs(session))
     return int(doc["seq"])
 
 
@@ -46,17 +50,17 @@ def product_cost(p: dict, ings: dict[str, dict]) -> float:
     return round(manual, 2) if manual > 0 else recipe_cost(p.get("recipe", []), ings)
 
 
-async def ingredient_map() -> dict[str, dict]:
-    return {i["id"]: i for i in await db.ingredients.find({}, {"_id": 0}).to_list(5000)}
+async def ingredient_map(*, session=None) -> dict[str, dict]:
+    return {i["id"]: i for i in await db.ingredients.find({}, {"_id": 0}, **session_kwargs(session)).to_list(5000)}
 
 
-async def build_items(items_in: list[OrderItemIn]) -> list[OrderItem]:
+async def build_items(items_in: list[OrderItemIn], *, session=None) -> list[OrderItem]:
     ids = list({i.product_id for i in items_in})
-    prods = {p["id"]: p for p in await db.products.find({"id": {"$in": ids}, "active": True}, {"_id": 0}).to_list(500)}
-    cats = {c["id"]: c for c in await db.categories.find({}, {"_id": 0}).to_list(500)}
-    ings = await ingredient_map()
+    prods = {p["id"]: p for p in await db.products.find({"id": {"$in": ids}, "active": True}, {"_id": 0}, **session_kwargs(session)).to_list(500)}
+    cats = {c["id"]: c for c in await db.categories.find({}, {"_id": 0}, **session_kwargs(session)).to_list(500)}
+    ings = await ingredient_map(**session_kwargs(session))
     link_ids = list({c["product_id"] for p in prods.values() for g in p.get("options", []) for c in g["choices"] if c.get("product_id")})
-    linked_map = {p["id"]: p for p in await db.products.find({"id": {"$in": link_ids}}, {"_id": 0}).to_list(500)} if link_ids else {}
+    linked_map = {p["id"]: p for p in await db.products.find({"id": {"$in": link_ids}}, {"_id": 0}, **session_kwargs(session)).to_list(500)} if link_ids else {}
     out: list[OrderItem] = []
     for it in items_in:
         p = prods.get(it.product_id)
@@ -80,6 +84,8 @@ async def build_items(items_in: list[OrderItemIn]) -> list[OrderItem]:
             if not g.get("multi") and n > 1:
                 raise HTTPException(400, f"Escolha apenas uma opção em {g['name']}")
         out.append(OrderItem(
+            stock_recipe=[r for pid in [p["id"], *linked] for r in
+                          (prods.get(pid) or linked_map.get(pid) or {}).get("recipe", [])],
             product_id=p["id"], name=p["name"], qty=it.qty, unit_price=round(p["price"] + extra, 2), options=labels, option_products=linked,
             unit_cost=round(product_cost(p, ings) + sum(product_cost(linked_map[x], ings) for x in linked if x in linked_map), 2), notes=it.notes,
             station=p.get("station") or cats.get(p["category_id"], {}).get("station", "cozinha"), print_ticket=p.get("print_ticket", True),
@@ -95,7 +101,7 @@ def fefo_usable_lots(lots: list[dict], today: str) -> list[dict]:
     )
 
 
-async def allocate_lots_fefo(ingredient_id: str, qty: float, note: str, by_name: str) -> None:
+async def allocate_lots_fefo(ingredient_id: str, qty: float, note: str, by_name: str, *, session=None) -> None:
     """Consume dated purchase lots in earliest-expiry-first order.
 
     Legacy inventory without lots is left unallocated. Expired lots are never
@@ -107,13 +113,13 @@ async def allocate_lots_fefo(ingredient_id: str, qty: float, note: str, by_name:
 
     lots = await db.purchases.find(
         {"ingredient_id": ingredient_id, "remaining_qty": {"$gt": 0}},
-        {"_id": 0}).to_list(5000)
+        {"_id": 0}, **session_kwargs(session)).to_list(5000)
     if not lots:
         return
     today = date.today().isoformat()
     usable = fefo_usable_lots(lots, today)
     # Legacy stock may have existed before lot tracking was introduced.
-    ing = await db.ingredients.find_one({"id": ingredient_id}, {"_id": 0, "stock": 1})
+    ing = await db.ingredients.find_one({"id": ingredient_id}, {"_id": 0, "stock": 1}, **session_kwargs(session))
     legacy_qty = max(0, round(float(ing.get("stock", 0)) - sum(float(p["remaining_qty"]) for p in lots), 4))
     if sum(float(p["remaining_qty"]) for p in usable) + legacy_qty + 0.00001 < qty:
         raise HTTPException(409, "Estoque disponível insuficiente: lote vencido ou quantidade indisponível")
@@ -124,17 +130,17 @@ async def allocate_lots_fefo(ingredient_id: str, qty: float, note: str, by_name:
         take = min(remaining, float(p["remaining_qty"]))
         result = await db.purchases.update_one(
             {"id": p["id"], "remaining_qty": {"$gte": take}},
-            {"$inc": {"remaining_qty": -take}})
+            {"$inc": {"remaining_qty": -take}}, **session_kwargs(session))
         if not result.modified_count:
             raise HTTPException(409, "Lote alterado por outra operação. Tente novamente")
         await db.lot_consumptions.insert_one({
             "ingredient_id": ingredient_id, "purchase_id": p["id"],
             "lot_number": p.get("lot_number", ""), "qty": take,
-            "note": note, "by_name": by_name, "created_at": now()})
+            "note": note, "by_name": by_name, "created_at": now()}, **session_kwargs(session))
         remaining = round(remaining - take, 4)
 
 
-async def restore_lots(ingredient_id: str, qty: float, note: str, by_name: str) -> None:
+async def restore_lots(ingredient_id: str, qty: float, note: str, by_name: str, *, session=None) -> None:
     """Restore quantities to the original lots, using the sale's audit trail.
 
     A cancellation must supply the original sale's note as the reference.
@@ -142,7 +148,7 @@ async def restore_lots(ingredient_id: str, qty: float, note: str, by_name: str) 
     """
     records = await db.lot_consumptions.find(
         {"ingredient_id": ingredient_id, "note": note},
-        {}).sort("created_at", -1).to_list(5000)
+        {}, **session_kwargs(session)).sort("created_at", -1).to_list(5000)
     remaining = qty
     for record in records:
         if remaining <= 0.00001:
@@ -152,16 +158,17 @@ async def restore_lots(ingredient_id: str, qty: float, note: str, by_name: str) 
         if take <= 0:
             continue
         result = await db.lot_consumptions.update_one(
-            {"_id": record["_id"], "restored_qty": record.get("restored_qty", 0)},
-            {"$inc": {"restored_qty": take}, "$set": {"restored_at": now(), "restored_by": by_name}})
+            {"_id": record["_id"], **({"$or": [{"restored_qty": 0}, {"restored_qty": {"$exists": False}}]}
+                                      if not record.get("restored_qty") else {"restored_qty": record["restored_qty"]})},
+            {"$inc": {"restored_qty": take}, "$set": {"restored_at": now(), "restored_by": by_name}}, **session_kwargs(session))
         if result.modified_count:
             await db.purchases.update_one(
                 {"id": record["purchase_id"]},
-                {"$inc": {"remaining_qty": take}})
+                {"$inc": {"remaining_qty": take}}, **session_kwargs(session))
             remaining = round(remaining - take, 4)
 
 
-async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int = -1) -> None:
+async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int = -1, *, session=None, stock_reference=None) -> None:
     """Consume or return recipe ingredients for sold/cancelled items.
 
     Aggregate all quantities before writing, and use Decimal to avoid floating
@@ -170,34 +177,36 @@ async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int 
     from decimal import Decimal, ROUND_HALF_UP
 
     ids = list({i.product_id for i in items} | {x for i in items for x in i.option_products})
-    prods = {p["id"]: p for p in await db.products.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "recipe": 1}).to_list(500)}
+    prods = {p["id"]: p for p in await db.products.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "recipe": 1}, **session_kwargs(session)).to_list(500)}
     agg: dict[str, Decimal] = {}
     for it in items:
         if it.cancelled:
             continue
-        for pid in [it.product_id, *it.option_products]:
-            for recipe in prods.get(pid, {}).get("recipe", []):
-                ingredient_id = recipe["ingredient_id"]
-                consumed = Decimal(str(recipe["qty"])) * it.qty
-                agg[ingredient_id] = agg.get(ingredient_id, Decimal(0)) + consumed
+        recipe = ([r.model_dump() for r in it.stock_recipe] if it.stock_recipe is not None else
+                  [r for pid in [it.product_id, *it.option_products]
+                   for r in prods.get(pid, {}).get("recipe", [])])
+        for component in recipe:
+            ingredient_id = component["ingredient_id"]
+            consumed = Decimal(str(component["qty"])) * it.qty
+            agg[ingredient_id] = agg.get(ingredient_id, Decimal(0)) + consumed
     if not agg:
         return
-    ings = await ingredient_map()
+    ings = await ingredient_map(**session_kwargs(session))
     moves = []
     for ing_id, amount in agg.items():
         if ing_id not in ings:
-            continue
+            raise HTTPException(409, "Ingrediente da ficha técnica não encontrado")
         delta = float((Decimal(sign) * amount).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP))
         if not delta:
             continue
         if sign < 0:
-            await allocate_lots_fefo(ing_id, abs(delta), note, by_name)
+            await allocate_lots_fefo(ing_id, abs(delta), note, by_name, **session_kwargs(session))
         else:
-            await restore_lots(ing_id, abs(delta), note, by_name)
+            await restore_lots(ing_id, abs(delta), stock_reference or note, by_name, **session_kwargs(session))
         result = await db.ingredients.update_one(
             {"id": ing_id, **({"stock": {"$gte": abs(delta)}} if sign < 0 else {})},
             {"$inc": {"stock": delta}, "$set": {"updated_at": now()}},
-        )
+         **session_kwargs(session))
         if sign < 0 and not result.modified_count:
             from fastapi import HTTPException
             raise HTTPException(409, "Estoque insuficiente para a venda")
@@ -207,7 +216,7 @@ async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int 
             note=note, by_name=by_name,
         ).model_dump())
     if moves:
-        await db.stock_moves.insert_many(moves)
+        await db.stock_moves.insert_many(moves, **session_kwargs(session))
 
 
 def ticket_label(order: dict) -> str:
@@ -220,7 +229,7 @@ def ticket_label(order: dict) -> str:
     return f"{SOURCE_LABEL.get(order['source'], order['source'])} #{order['number']}"
 
 
-async def create_ticket(order: dict, items: list[OrderItem]) -> None:
+async def create_ticket(order: dict, items: list[OrderItem], *, session=None) -> None:
     """Create an independent production ticket per station.
 
     Each environment can advance its own ticket without accidentally marking
@@ -245,31 +254,31 @@ async def create_ticket(order: dict, items: list[OrderItem]) -> None:
         ).model_dump()
         for station_items in by_station.values()
     ]
-    await db.kitchen_tickets.insert_many(tickets)
+    await db.kitchen_tickets.insert_many(tickets, **session_kwargs(session))
 
 
 def compute_subtotal(order: dict) -> float:
     return round(sum(i["qty"] * i["unit_price"] for i in order["items"] if not i.get("cancelled")), 2)
 
 
-async def refresh_totals(order_id: str) -> dict:
-    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+async def refresh_totals(order_id: str, *, session=None) -> dict:
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0}, **session_kwargs(session))
     sub = compute_subtotal(order)
     total = round(sub - order.get("discount", 0) + order.get("service_fee", 0) + order.get("delivery_fee", 0), 2)
-    await db.orders.update_one({"id": order_id}, {"$set": {"subtotal": sub, "total": total}})
+    await db.orders.update_one({"id": order_id}, {"$set": {"subtotal": sub, "total": total}}, **session_kwargs(session))
     if order.get("table_id"):
-        await db.tables.update_one({"id": order["table_id"]}, {"$set": {"total": total}})
+        await db.tables.update_one({"id": order["table_id"]}, {"$set": {"total": total}}, **session_kwargs(session))
     order.update(subtotal=sub, total=total)
     return order
 
 
-async def current_cash() -> dict | None:
-    return await db.cash_sessions.find_one({"status": "aberto"}, {"_id": 0})
+async def current_cash(*, session=None) -> dict | None:
+    return await db.cash_sessions.find_one({"status": "aberto"}, {"_id": 0}, **session_kwargs(session))
 
 
-async def emit_invoice(order: dict, doc_type: str = "nfce", cpf: str = "") -> dict:
+async def emit_invoice(order: dict, doc_type: str = "nfce", cpf: str = "", *, session=None) -> dict:
     """MOCK: generates a fake SEFAZ-authorised NFC-e/NF-e. No real fiscal transmission."""
-    number = await next_seq(f"invoice_{doc_type}")
+    number = await next_seq(f"invoice_{doc_type}", **session_kwargs(session))
     model = "65" if doc_type == "nfce" else "55"
     dt = now()
     key = f"35{dt:%y%m}12345678000190{model}001{number:09d}1{secrets.randbelow(9 * 10**7) + 10**7}"
@@ -280,17 +289,26 @@ async def emit_invoice(order: dict, doc_type: str = "nfce", cpf: str = "") -> di
         items=[InvoiceItem(name=i["name"], qty=i["qty"], unit_price=i["unit_price"]) for i in order["items"] if not i.get("cancelled")],
         payments=order.get("payments", []), customer_cpf=cpf,
     ).model_dump()
-    await db.invoices.insert_one(dict(inv))
-    await db.orders.update_one({"id": order["id"]}, {"$set": {"invoice_id": inv["id"]}})
+    await db.invoices.insert_one(dict(inv), **session_kwargs(session))
+    await db.orders.update_one({"id": order["id"]}, {"$set": {"invoice_id": inv["id"]}}, **session_kwargs(session))
     return inv
 
 
-async def finalize_payment(order: dict, pay: PayIn) -> tuple[dict, dict | None]:
+async def finalize_payment(order: dict, pay: PayIn, *, session=None) -> tuple[dict, dict | None]:
+    if session is None:
+        from lib.transactions import run_transaction
+        async def pay_in_transaction(active):
+            fresh = await db.orders.find_one({"id": order["id"]}, {"_id": 0}, session=active)
+            if not fresh:
+                raise HTTPException(404, "Pedido não encontrado")
+            return await finalize_payment(fresh, pay, session=active)
+        return await run_transaction(pay_in_transaction)
     if order["status"] != "aberto":
         raise HTTPException(400, "Este pedido já foi fechado")
-    cash = await current_cash()
+    cash = await current_cash(**session_kwargs(session))
     if not cash:
         raise HTTPException(400, "Caixa fechado. Abra o caixa para receber pagamentos.")
+    await touch_cash(cash["id"], session=session)
     sub = compute_subtotal(order)
     if sub <= 0:
         raise HTTPException(400, "Pedido sem itens")
@@ -302,13 +320,13 @@ async def finalize_payment(order: dict, pay: PayIn) -> tuple[dict, dict | None]:
     if paid + 0.009 < total:
         raise HTTPException(400, f"Valor pago insuficiente (faltam R$ {total - paid:.2f})")
     change = round(paid - total, 2)
-    await validate_methods([p.method for p in pay.payments])
+    await validate_methods([p.method for p in pay.payments], **session_kwargs(session))
     if any(p.method in ("credito", "debito") and not p.brand for p in pay.payments):
         raise HTTPException(400, "Informe a bandeira do cartão (Visa, Mastercard ou Elo)")
     fiado = round(sum(p.amount for p in pay.payments if p.method == "fiado"), 2)
     cust = None
     if fiado:
-        cust = await db.fiado_customers.find_one({"id": pay.fiado_customer_id}, {"_id": 0}) if pay.fiado_customer_id else None
+        cust = await db.fiado_customers.find_one({"id": pay.fiado_customer_id}, {"_id": 0}, **session_kwargs(session)) if pay.fiado_customer_id else None
         if not cust:
             raise HTTPException(400, "Selecione o cliente da conta fiado")
         if cust["credit_limit"] > 0 and cust["balance"] + fiado > cust["credit_limit"] + 0.009:
@@ -326,31 +344,33 @@ async def finalize_payment(order: dict, pay: PayIn) -> tuple[dict, dict | None]:
         upd["customer.cpf"] = pay.customer_cpf
     if cust:
         upd["fiado_customer_id"] = cust["id"]
-        await adjust_balance(cust["id"], fiado)
+        await adjust_balance(cust["id"], fiado, **session_kwargs(session))
         from models.schemas import CustomerMove
         await db.customer_moves.insert_one(CustomerMove(customer_id=cust["id"], type="compra", amount=fiado,
-                                                        order_number=order["number"], note="Venda no fiado").model_dump())
-    await db.orders.update_one({"id": order["id"]}, {"$set": upd})
+                                                        order_number=order["number"], note="Venda no fiado").model_dump(), **session_kwargs(session))
+    changed = await db.orders.update_one({"id": order["id"], "status": "aberto"}, {"$set": upd}, **session_kwargs(session))
+    if changed.modified_count != 1:
+        raise HTTPException(409, "Pedido já foi alterado")
     if order.get("table_id"):
-        await free_table(order["table_id"])
-    order = await db.orders.find_one({"id": order["id"]}, {"_id": 0})
-    inv = await emit_invoice(order, pay.doc_type, pay.customer_cpf) if pay.emit_invoice else None
+        await free_table(order["table_id"], **session_kwargs(session))
+    order = await db.orders.find_one({"id": order["id"]}, {"_id": 0}, **session_kwargs(session))
+    inv = await emit_invoice(order, pay.doc_type, pay.customer_cpf, **session_kwargs(session)) if pay.emit_invoice else None
     if inv:
         order["invoice_id"] = inv["id"]
     return order, inv
 
 
-async def free_table(table_id: str) -> None:
+async def free_table(table_id: str, *, session=None) -> None:
     await db.tables.update_one({"id": table_id}, {"$set": {
         "status": "livre", "customer_name": "", "people": 0, "waiter_id": None, "waiter_name": "",
         "order_id": None, "opened_at": None, "call": "", "total": 0, "customers": [],
-    }, "$unset": {"split_request": ""}})
+    }, "$unset": {"split_request": ""}}, **session_kwargs(session))
 
 
-async def new_order(**fields) -> dict:
+async def new_order(*, session=None, **fields) -> dict:
     from models.schemas import Order
-    order = Order(number=await next_seq("order"), **fields).model_dump()
-    await db.orders.insert_one(dict(order))
+    order = Order(number=await next_seq("order", **session_kwargs(session)), **fields).model_dump()
+    await db.orders.insert_one(dict(order), **session_kwargs(session))
     return order
 
 
@@ -373,14 +393,14 @@ def method_totals(orders: list[dict], with_brand: bool = False) -> dict[str, flo
     return {k: round(v, 2) for k, v in out.items()}
 
 
-async def fiado_reverse(order: dict, amount: float, by_name: str, note: str) -> None:
+async def fiado_reverse(order: dict, amount: float, by_name: str, note: str, *, session=None) -> None:
     """Give back store credit when a fiado sale (or part of it) is refunded."""
     if not order.get("fiado_customer_id") or amount <= 0:
         return
     from models.schemas import CustomerMove
-    await adjust_balance(order["fiado_customer_id"], -amount)
+    await adjust_balance(order["fiado_customer_id"], -amount, **session_kwargs(session))
     await db.customer_moves.insert_one(CustomerMove(customer_id=order["fiado_customer_id"], type="estorno", amount=round(amount, 2),
-                                                    order_number=order["number"], note=note, by_name=by_name).model_dump())
+                                                    order_number=order["number"], note=note, by_name=by_name).model_dump(), **session_kwargs(session))
 
 
 async def card_fee_table() -> dict[str, float]:
@@ -391,9 +411,9 @@ async def card_fee_table() -> dict[str, float]:
     return fees
 
 
-async def validate_methods(methods: list[str]) -> None:
+async def validate_methods(methods: list[str], *, session=None) -> None:
     """Rejects disabled or unknown payment methods (configured in Financeiro → Formas de pagamento)."""
-    cfg = {m["key"]: m for m in await db.payment_methods.find({}, {"_id": 0, "key": 1, "active": 1, "name": 1}).to_list(200)}
+    cfg = {m["key"]: m for m in await db.payment_methods.find({}, {"_id": 0, "key": 1, "active": 1, "name": 1}, **session_kwargs(session)).to_list(200)}
     for k in set(methods):
         if k in ("voucher", "online") and k not in cfg:
             continue
@@ -406,8 +426,18 @@ async def validate_methods(methods: list[str]) -> None:
             raise HTTPException(400, f"Forma de pagamento desativada: {m['name']}")
 
 
-async def adjust_balance(customer_id: str, delta: float) -> None:
-    """Atomic $inc, then normalise to cents so float noise never reaches the UI."""
-    c = await db.fiado_customers.find_one_and_update({"id": customer_id}, {"$inc": {"balance": round(delta, 2)}}, return_document=True)
-    if c:
-        await db.fiado_customers.update_one({"id": customer_id}, {"$set": {"balance": round(c["balance"], 2)}})
+async def adjust_balance(customer_id: str, delta: float, *, session=None) -> None:
+    """One atomic update, including cent rounding; never overwrite a stale balance."""
+    result = await db.fiado_customers.update_one({"id": customer_id}, [
+        {"$set": {"balance": {"$round": [{"$add": ["$balance", round(delta, 2)]}, 2]}}}
+    ], **session_kwargs(session))
+    if not result.matched_count:
+        raise HTTPException(409, "Cliente do fiado não encontrado")
+
+
+async def touch_cash(cash_id: str, *, session) -> None:
+    """Serialize financial writes with closing the same cash document."""
+    result = await db.cash_sessions.update_one({"id": cash_id, "status": "aberto"},
+        {"$inc": {"financial_version": 1}}, session=session)
+    if result.matched_count != 1:
+        raise HTTPException(409, "O caixa foi fechado durante a operação")
