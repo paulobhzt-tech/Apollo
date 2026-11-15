@@ -1,0 +1,184 @@
+REAL MongoDB 7.0.16 replica set apolloP0 PRIMARY
+/home/agent/.local/lib/python3.12/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+......................F.                                                 [100%]
+=================================== FAILURES ===================================
+_ test_real_server_transaction_and_commit_retry[commitTransaction-91-labels1] __
+
+callback = <function quick_sale.<locals>.create at 0x7fba6c181f80>
+
+    async def run_transaction(callback):
+        """Driver retries labelled transient transactions / unknown commit results.
+    
+        Never retry a business exception. Majority+journal writes, snapshot reads,
+        primary routing. Unknown outcomes must be retried with the SAME operation
+        identity; do not promise that a failed HTTP response means no commit.
+        """
+        try:
+            async with await database.client.start_session() as session:
+>               return await session.with_transaction(
+                    callback, read_concern=ReadConcern('snapshot'),
+                    write_concern=WriteConcern('majority', j=True),
+                    read_preference=ReadPreference.PRIMARY, max_commit_time_ms=5000)
+
+lib/transactions.py:18: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/agent/.local/lib/python3.12/site-packages/motor/core.py:469: in with_transaction
+    async with self.start_transaction(
+/home/agent/.local/lib/python3.12/site-packages/motor/core.py:331: in __aexit__
+    await self._session.commit_transaction()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/thread.py:59: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/client_session.py:666: in commit_transaction
+    _reraise_with_unknown_commit(exc)
+/home/agent/.local/lib/python3.12/site-packages/pymongo/client_session_shared.py:241: in _reraise_with_unknown_commit
+    raise exc
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/client_session.py:660: in commit_transaction
+    self._finish_transaction_with_retry("commitTransaction")
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/client_session.py:721: in _finish_transaction_with_retry
+    return self._client._retry_internal(
+/home/agent/.local/lib/python3.12/site-packages/pymongo/_csot.py:126: in csot_wrapper
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py:2022: in _retry_internal
+    ).run()
+      ^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py:2890: in run
+    res = self._read() if self._is_read else self._write()
+                                             ^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/mongo_client.py:3103: in _write
+    return self._func(self._session, conn, self._retryable)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/client_session.py:719: in func
+    return self._finish_transaction(conn, command_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/client_session.py:748: in _finish_transaction
+    return self._client.admin._command(
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/database.py:773: in _command
+    return conn.command(
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/helpers.py:51: in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/pool.py:396: in command
+    return run_command(
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/command_runner.py:440: in run_command
+    docs, _, _ = _run_command(
+/home/agent/.local/lib/python3.12/site-packages/pymongo/synchronous/command_runner.py:214: in _run_command
+    helpers_shared._check_command_response(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+response = {'errorLabels': ['UnknownTransactionCommitResult'], 'ok': 0.0, 'errmsg': "Failing command via 'failCommand' failpoint", 'code': 91, ...}
+max_wire_version = 21, allowable_errors = None, parse_write_concern_error = True
+pool_opts = None
+
+    def _check_command_response(
+        response: _DocumentOut,
+        max_wire_version: Optional[int],
+        allowable_errors: Optional[Container[Union[int, str]]] = None,
+        parse_write_concern_error: bool = False,
+        pool_opts: Optional[PoolOptions] = None,
+    ) -> None:
+        """Check the response to a command for errors."""
+        if "ok" not in response:
+            # Server didn't recognize our message as a command.
+            raise OperationFailure(
+                response.get("$err"),  # type: ignore[arg-type]
+                response.get("code"),
+                response,
+                max_wire_version,
+            )
+    
+        if parse_write_concern_error and "writeConcernError" in response:
+            _error = response["writeConcernError"]
+            _labels = response.get("errorLabels")
+            if _labels:
+                _error.update({"errorLabels": _labels})
+            _raise_write_concern_error(_error)
+    
+        if response["ok"]:
+            return
+    
+        details = response
+        errmsg = details["errmsg"]
+        code = details.get("code")
+    
+        # For allowable errors, only check for error messages when the code is not
+        # included.
+        if allowable_errors:
+            if code is not None:
+                if code in allowable_errors:
+                    return
+            elif errmsg in allowable_errors:
+                return
+    
+        # Server is "not primary" or "recovering"
+        if code is not None:
+            if code in _NOT_PRIMARY_CODES:
+>               raise NotPrimaryError(errmsg, response)
+E               pymongo.errors.NotPrimaryError: Failing command via 'failCommand' failpoint, full error: {'errorLabels': ['UnknownTransactionCommitResult'], 'ok': 0.0, 'errmsg': "Failing command via 'failCommand' failpoint", 'code': 91, 'codeName': 'ShutdownInProgress', '$clusterTime': {'clusterTime': Timestamp(1794759176, 21), 'signature': {'hash': b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', 'keyId': 0}}, 'operationTime': Timestamp(1794759176, 21)}
+
+/home/agent/.local/lib/python3.12/site-packages/pymongo/helpers_shared.py:310: NotPrimaryError
+
+The above exception was the direct cause of the following exception:
+
+scenario = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+command = 'commitTransaction', error = 91
+labels = ['UnknownTransactionCommitResult']
+
+    @pytest.mark.parametrize('command,error,labels',[
+        ('insert',112,['TransientTransactionError']),
+        ('commitTransaction',91,['UnknownTransactionCommitResult']),
+    ])
+    async def test_real_server_transaction_and_commit_retry(scenario,command,error,labels):
+        db,client=scenario
+        await client.admin.command({'configureFailPoint':'failCommand','mode':{'times':1},
+            'data':{'failCommands':[command],'errorCode':error,'errorLabels':labels}})
+        try:
+>           result=await operations.quick_sale(sale(),USER)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_p0_atomicity_integration.py:217: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+routers/operations.py:78: in quick_sale
+    raise exc
+routers/operations.py:69: in quick_sale
+    return await run_transaction(create)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+callback = <function quick_sale.<locals>.create at 0x7fba6c181f80>
+
+    async def run_transaction(callback):
+        """Driver retries labelled transient transactions / unknown commit results.
+    
+        Never retry a business exception. Majority+journal writes, snapshot reads,
+        primary routing. Unknown outcomes must be retried with the SAME operation
+        identity; do not promise that a failed HTTP response means no commit.
+        """
+        try:
+            async with await database.client.start_session() as session:
+                return await session.with_transaction(
+                    callback, read_concern=ReadConcern('snapshot'),
+                    write_concern=WriteConcern('majority', j=True),
+                    read_preference=ReadPreference.PRIMARY, max_commit_time_ms=5000)
+        except PyMongoError as exc:
+>           raise HTTPException(503, 'Operação não confirmada. Consulte ou repita com a mesma referência; '
+                                'não crie outra operação. MongoDB replica set é obrigatório.') from exc
+E           fastapi.exceptions.HTTPException: 503: Operação não confirmada. Consulte ou repita com a mesma referência; não crie outra operação. MongoDB replica set é obrigatório.
+
+lib/transactions.py:23: HTTPException
+=============================== warnings summary ===============================
+../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
+  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+  The CallSpec2 alias will be removed in pytest 10.
+  Update imports to use CallSpec instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
+    from _pytest.python import CallSpec2
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_p0_atomicity_integration.py::test_real_server_transaction_and_commit_retry[commitTransaction-91-labels1]
+1 failed, 23 passed, 1 warning in 91.20s (0:01:31)

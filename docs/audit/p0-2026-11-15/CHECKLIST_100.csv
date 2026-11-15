@@ -1,0 +1,101 @@
+atividade,estado,evidencia_e_limite
+1,APROVADO NO ESCOPO DOCUMENTADO,Base 15a075f/PR15 verificada; branch isolada; sem merge/deploy
+2,APROVADO NO ESCOPO DOCUMENTADO,Base 15a075f/PR15 verificada; branch isolada; sem merge/deploy
+3,APROVADO NO ESCOPO DOCUMENTADO,Base 15a075f/PR15 verificada; branch isolada; sem merge/deploy
+4,APROVADO NO ESCOPO DOCUMENTADO,Base 15a075f/PR15 verificada; branch isolada; sem merge/deploy
+5,APROVADO NO ESCOPO DOCUMENTADO,Base 15a075f/PR15 verificada; branch isolada; sem merge/deploy
+6,APROVADO NO ESCOPO DOCUMENTADO,Base 15a075f/PR15 verificada; branch isolada; sem merge/deploy
+7,APROVADO NO ESCOPO DOCUMENTADO,Base 15a075f/PR15 verificada; branch isolada; sem merge/deploy
+8,APROVADO NO ESCOPO DOCUMENTADO,Base 15a075f/PR15 verificada; branch isolada; sem merge/deploy
+9,APROVADO NO ESCOPO DOCUMENTADO,Base 15a075f/PR15 verificada; branch isolada; sem merge/deploy
+10,APROVADO NO ESCOPO DOCUMENTADO,Base 15a075f/PR15 verificada; branch isolada; sem merge/deploy
+11,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+12,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+13,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+14,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+15,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+16,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+17,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+18,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+19,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+20,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+21,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+22,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+23,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+24,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+25,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+26,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+27,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+28,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+29,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+30,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
+31,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+32,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+33,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+34,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+35,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+36,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+37,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+38,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+39,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+40,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+41,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+42,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+43,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+44,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+45,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+46,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+47,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+48,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+49,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+50,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+51,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+52,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+53,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+54,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+55,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+56,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+57,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+58,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+59,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+60,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
+61,APROVADO NO ESCOPO DOCUMENTADO,"Cancelamentos 2/10/50, rollback, novo processo e replay; sem reboot do host"
+62,APROVADO NO ESCOPO DOCUMENTADO,"Cancelamentos 2/10/50, rollback, novo processo e replay; sem reboot do host"
+63,APROVADO NO ESCOPO DOCUMENTADO,"Cancelamentos 2/10/50, rollback, novo processo e replay; sem reboot do host"
+64,APROVADO NO ESCOPO DOCUMENTADO,"Cancelamentos 2/10/50, rollback, novo processo e replay; sem reboot do host"
+65,APROVADO NO ESCOPO DOCUMENTADO,"Cancelamentos 2/10/50, rollback, novo processo e replay; sem reboot do host"
+66,APROVADO NO ESCOPO DOCUMENTADO,"Cancelamentos 2/10/50, rollback, novo processo e replay; sem reboot do host"
+67,APROVADO NO ESCOPO DOCUMENTADO,"Cancelamentos 2/10/50, rollback, novo processo e replay; sem reboot do host"
+68,APROVADO NO ESCOPO DOCUMENTADO,"Cancelamentos 2/10/50, rollback, novo processo e replay; sem reboot do host"
+69,APROVADO NO ESCOPO DOCUMENTADO,"Cancelamentos 2/10/50, rollback, novo processo e replay; sem reboot do host"
+70,APROVADO NO ESCOPO DOCUMENTADO,"Cancelamentos 2/10/50, rollback, novo processo e replay; sem reboot do host"
+71,APROVADO NO ESCOPO DOCUMENTADO,"Replica set real; failpoints; opções de pooling inspecionadas, sem carga prolongada"
+72,APROVADO NO ESCOPO DOCUMENTADO,"Replica set real; failpoints; opções de pooling inspecionadas, sem carga prolongada"
+73,APROVADO NO ESCOPO DOCUMENTADO,"Replica set real; failpoints; opções de pooling inspecionadas, sem carga prolongada"
+74,APROVADO NO ESCOPO DOCUMENTADO,"Replica set real; failpoints; opções de pooling inspecionadas, sem carga prolongada"
+75,APROVADO NO ESCOPO DOCUMENTADO,"Replica set real; failpoints; opções de pooling inspecionadas, sem carga prolongada"
+76,APROVADO NO ESCOPO DOCUMENTADO,"Replica set real; failpoints; opções de pooling inspecionadas, sem carga prolongada"
+77,APROVADO NO ESCOPO DOCUMENTADO,"Replica set real; failpoints; opções de pooling inspecionadas, sem carga prolongada"
+78,APROVADO NO ESCOPO DOCUMENTADO,"Replica set real; failpoints; opções de pooling inspecionadas, sem carga prolongada"
+79,APROVADO NO ESCOPO DOCUMENTADO,"Replica set real; failpoints; opções de pooling inspecionadas, sem carga prolongada"
+80,APROVADO NO ESCOPO DOCUMENTADO,"Replica set real; failpoints; opções de pooling inspecionadas, sem carga prolongada"
+81,APROVADO NO ESCOPO DOCUMENTADO,Parcial/misto/caixa/fiado/FEFO testados; não certifica demais rotas legadas
+82,APROVADO NO ESCOPO DOCUMENTADO,Parcial/misto/caixa/fiado/FEFO testados; não certifica demais rotas legadas
+83,APROVADO NO ESCOPO DOCUMENTADO,Parcial/misto/caixa/fiado/FEFO testados; não certifica demais rotas legadas
+84,APROVADO NO ESCOPO DOCUMENTADO,Parcial/misto/caixa/fiado/FEFO testados; não certifica demais rotas legadas
+85,APROVADO NO ESCOPO DOCUMENTADO,Parcial/misto/caixa/fiado/FEFO testados; não certifica demais rotas legadas
+86,APROVADO NO ESCOPO DOCUMENTADO,Parcial/misto/caixa/fiado/FEFO testados; não certifica demais rotas legadas
+87,APROVADO NO ESCOPO DOCUMENTADO,Parcial/misto/caixa/fiado/FEFO testados; não certifica demais rotas legadas
+88,APROVADO NO ESCOPO DOCUMENTADO,Parcial/misto/caixa/fiado/FEFO testados; não certifica demais rotas legadas
+89,APROVADO NO ESCOPO DOCUMENTADO,Parcial/misto/caixa/fiado/FEFO testados; não certifica demais rotas legadas
+90,APROVADO NO ESCOPO DOCUMENTADO,Parcial/misto/caixa/fiado/FEFO testados; não certifica demais rotas legadas
+91,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+92,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+93,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+94,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+95,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+96,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+97,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+98,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+99,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+100,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
