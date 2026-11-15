@@ -1,0 +1,96 @@
+REAL MongoDB 7.0.16 replica set apolloP0 PRIMARY
+/home/agent/.local/lib/python3.12/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+__________________ test_sale_stock_failure_rolls_back_payment __________________
+
+scenario = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fe183c734d0>
+
+    async def test_sale_stock_failure_rolls_back_payment(scenario, monkeypatch):
+        db,_=scenario
+        real=operations.move_stock
+        async def fail(*a,**kw):
+            await real(*a,**kw)
+            raise HTTPException(409,'Synthetic failure after stock writes')
+        monkeypatch.setattr(operations,'move_stock',fail)
+        body=sale()
+        with pytest.raises(HTTPException):
+            await operations.quick_sale(body,USER)
+>       assert await db.orders.count_documents({}) == 0
+E       assert 1 == 0
+
+tests/test_p0_atomicity_integration.py:62: AssertionError
+______________________ test_cancel_returns_stock_once[2] _______________________
+
+scenario = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+concurrency = 2
+
+    @pytest.mark.parametrize('concurrency',[2,10,50])
+    async def test_cancel_returns_stock_once(scenario,concurrency):
+        db,_=scenario
+        result=await operations.quick_sale(sale(),USER)
+        id=result['order']['id']
+        results=await asyncio.gather(*(operations.cancel_order(id,CancelIn(reason='Synthetic cancel'),USER)
+                                       for _ in range(concurrency)),return_exceptions=True)
+        assert any(isinstance(r,dict) for r in results),results
+        assert all(isinstance(r,dict) or isinstance(r,HTTPException) for r in results),results
+        assert (await db.ingredients.find_one({'id':'ing'}))['stock'] == 100
+>       assert (await db.purchases.find_one({'id':'lot'}))['remaining_qty'] == 100
+E       assert 99.0 == 100
+
+tests/test_p0_atomicity_integration.py:87: AssertionError
+______________________ test_cancel_returns_stock_once[10] ______________________
+
+scenario = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+concurrency = 10
+
+    @pytest.mark.parametrize('concurrency',[2,10,50])
+    async def test_cancel_returns_stock_once(scenario,concurrency):
+        db,_=scenario
+        result=await operations.quick_sale(sale(),USER)
+        id=result['order']['id']
+        results=await asyncio.gather(*(operations.cancel_order(id,CancelIn(reason='Synthetic cancel'),USER)
+                                       for _ in range(concurrency)),return_exceptions=True)
+        assert any(isinstance(r,dict) for r in results),results
+        assert all(isinstance(r,dict) or isinstance(r,HTTPException) for r in results),results
+>       assert (await db.ingredients.find_one({'id':'ing'}))['stock'] == 100
+E       assert 107.0 == 100
+
+tests/test_p0_atomicity_integration.py:86: AssertionError
+______________________ test_cancel_returns_stock_once[50] ______________________
+
+scenario = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+concurrency = 50
+
+    @pytest.mark.parametrize('concurrency',[2,10,50])
+    async def test_cancel_returns_stock_once(scenario,concurrency):
+        db,_=scenario
+        result=await operations.quick_sale(sale(),USER)
+        id=result['order']['id']
+        results=await asyncio.gather(*(operations.cancel_order(id,CancelIn(reason='Synthetic cancel'),USER)
+                                       for _ in range(concurrency)),return_exceptions=True)
+        assert any(isinstance(r,dict) for r in results),results
+        assert all(isinstance(r,dict) or isinstance(r,HTTPException) for r in results),results
+>       assert (await db.ingredients.find_one({'id':'ing'}))['stock'] == 100
+E       assert 142.0 == 100
+
+tests/test_p0_atomicity_integration.py:86: AssertionError
+=============================== warnings summary ===============================
+../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
+  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+  The CallSpec2 alias will be removed in pytest 10.
+  Update imports to use CallSpec instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
+    from _pytest.python import CallSpec2
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_p0_atomicity_integration.py::test_sale_stock_failure_rolls_back_payment
+FAILED tests/test_p0_atomicity_integration.py::test_cancel_returns_stock_once[2]
+FAILED tests/test_p0_atomicity_integration.py::test_cancel_returns_stock_once[10]
+FAILED tests/test_p0_atomicity_integration.py::test_cancel_returns_stock_once[50]
+4 failed, 1 warning in 1.20s
