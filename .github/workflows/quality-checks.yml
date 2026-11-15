@@ -25,7 +25,7 @@ jobs:
       - name: Instalar dependencias (incluindo indice Emergent)
         run: python -m pip install -r requirements.txt --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
       - name: Testes isolados de autenticacao, CSRF e protecao de dados
-        run: python -m pytest -q -n 0 tests/test_auth_security.py tests/test_csrf_origin.py tests/test_demo_guard.py tests/test_role_permissions.py tests/test_frontend_paths.py tests/test_auth_nonblocking.py tests/test_backup_credentials.py
+        run: python -m pytest -q -n 0 tests/test_auth_security.py tests/test_csrf_origin.py tests/test_demo_guard.py tests/test_role_permissions.py tests/test_frontend_paths.py tests/test_auth_nonblocking.py tests/test_backup_credentials.py tests/test_transaction_metrics.py
 
   pagamentos:
     runs-on: ubuntu-latest
@@ -57,7 +57,7 @@ jobs:
           done
           exit 1
       - name: Testar pagamentos parciais e concorrencia
-        run: python -m pytest -q -n 0 tests/test_partial_payment_integration.py tests/test_p0_atomicity_integration.py tests/test_p1_integrity_integration.py tests/test_reconciliation.py
+        run: python -m pytest -q -n 0 tests/test_partial_payment_integration.py tests/test_p0_atomicity_integration.py tests/test_p1_integrity_integration.py tests/test_reconciliation.py tests/test_contention_integration.py
 
   frontend:
     runs-on: ubuntu-latest

@@ -101,7 +101,7 @@ async def test_contention_http():
                'stock_moves':db.stock_moves.count_documents({}),
                'cash_version':db.cash_sessions.find_one({'id':'http-cash'}).get('financial_version',0)}
         output.write_text(json.dumps({'partial':False,'duration_s':time.monotonic()-started,'rows':results,
-            'resources':resources,'integrity':final,'scope':'real HTTP keep-alive + single-node MongoDB; synthetic PDV sale/cancel; no optimization'},indent=2)+'\n')
+            'resources':resources,'integrity':final,'scope':'real HTTP keep-alive + single-node MongoDB; synthetic PDV sale/cancel; transaction policy under test'},indent=2)+'\n')
         assert final['markers']==final['orders'] and final['stock_moves']==2*final['orders'] and final['cash_version']==2*final['orders'],final
         assert final['stock']==1000 and final['paid_orders']==0 and not duplicates,final
     finally:
