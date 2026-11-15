@@ -49,6 +49,9 @@ async def test_contention_http():
                 'connections':status['connections'],'mongo_memory':status['mem'],
                 'write_conflicts':status.get('metrics',{}).get('operation',{}).get('writeConflicts'),
                 'transactions':status.get('transactions',{}),'queues':status.get('queues',{})})
+            progress=os.environ.get('APOLLO_PROGRESS_FILE')
+            if progress:
+                Path(progress).write_text(json.dumps({'partial':True,'resource_samples':len(resources),'latest_resource':resources[-1]},indent=2)+'\n')
             await asyncio.sleep(5)
     monitoring=asyncio.create_task(monitor())
     started=time.monotonic()

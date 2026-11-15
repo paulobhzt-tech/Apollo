@@ -11,6 +11,10 @@ async def test_kds_cancellation_query_plan(scenario):
     db,_=scenario
     await db.kitchen_tickets.insert_many([{'id':f'synthetic-ticket-{i}',
         'order_id':f'synthetic-order-{i}','status':'recebido'} for i in range(20000)])
+    # This UUID fixture is disposable; remove only its experimental index
+    # so the benchmark can reproduce the pre-index plan on the final code too.
+    if 'order_id' in await db.kitchen_tickets.index_information():
+        await db.kitchen_tickets.drop_index('order_id')
     command={'update':'kitchen_tickets','updates':[{'q':{'order_id':'synthetic-order-19999'},
         'u':{'$set':{'status':'entregue'}},'multi':True}]}
     before=await db.command('explain',command,verbosity='executionStats')

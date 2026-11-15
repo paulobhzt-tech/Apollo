@@ -18,7 +18,7 @@ def summarize(path):
             e=row['last_error'];group['last_errors'][str(e['code'])+':'+','.join(e['labels'])]+=1
     return {'groups':groups,'driver_cumulative_last_sample':driver,
             'limitations':['Last driver sample can precede final request by up to one second.',
-                           'wait_s is requested retry delay; callback/commit use elapsed clocks.',
+                           'Unified PR18 probe uses elapsed monotonic timings, including retry_wait; concurrent sums are not wall time.',
                            'abortTransaction code 251 after aborted conflict is secondary, not the initiating cause.']}
 
 if __name__=='__main__':
