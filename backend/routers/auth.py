@@ -1,5 +1,6 @@
 import os
 import bcrypt
+from starlette.concurrency import run_in_threadpool
 import secrets
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
@@ -37,7 +38,7 @@ async def first_access(body: FirstAccessIn, response: Response, request: Request
     emp = Employee(name="Administrador", role="admin", can_cancel=True).model_dump()
     try:
         await db.employees.insert_one({**emp, "username": "admin",
-            "password_hash": secure_hash_pin("admin"), "pin_hash": secure_hash_pin(pin),
+            "password_hash": await run_in_threadpool(secure_hash_pin, "admin"), "pin_hash": await run_in_threadpool(secure_hash_pin, pin),
             "must_change_password": True})
     except Exception:
         raise HTTPException(409, "Não foi possível criar o administrador inicial")
@@ -59,7 +60,7 @@ async def first_password(body: FirstPasswordChangeIn, user: dict = Depends(curre
     if body.password.lower() in ("admin", "admin123", "123456789012"):
         raise HTTPException(400, "Escolha uma senha diferente da inicial")
     await db.employees.update_one({"id": user["id"], "must_change_password": True},
-        {"$set": {"password_hash": secure_hash_pin(body.password),
+        {"$set": {"password_hash": await run_in_threadpool(secure_hash_pin, body.password),
                   "must_change_password": False}})
     return OkOut(message="Senha inicial alterada")
 
@@ -72,7 +73,7 @@ async def login(body: LoginIn, response: Response, request: Request):
         candidate = await db.employees.find_one({"username": body.username.strip().lower(), "active": True}, {"_id": 0})
         if candidate and candidate.get("password_hash"):
             try:
-                if bcrypt.checkpw(body.password.encode(), candidate["password_hash"].encode()):
+                if await run_in_threadpool(bcrypt.checkpw, body.password.encode(), candidate["password_hash"].encode()):
                     emp = candidate
             except ValueError:
                 pass
@@ -130,7 +131,7 @@ async def create_employee(body: EmployeeIn, _: dict = Depends(require())):
     elif password:
         raise HTTPException(400, "Informe o nome de usuário")
     emp = Employee(**data).model_dump()
-    await db.employees.insert_one({**emp, "pin_hash": secure_hash_pin(pin), **({"username": username, "password_hash": secure_hash_pin(password)} if username and password else {})})
+    await db.employees.insert_one({**emp, "pin_hash": await run_in_threadpool(secure_hash_pin, pin), **({"username": username, "password_hash": await run_in_threadpool(secure_hash_pin, password)} if username and password else {})})
     return emp
 
 
@@ -152,11 +153,11 @@ async def update_employee(id: str, body: EmployeeUpdate, user: dict = Depends(re
             raise HTTPException(404, "Funcionário não encontrado")
         if not (username or existing.get("username")):
             raise HTTPException(400, "Informe o nome de usuário antes de definir senha")
-        data["password_hash"] = secure_hash_pin(password)
+        data["password_hash"] = await run_in_threadpool(secure_hash_pin, password)
     if "pin" in data:
         pin = data.pop("pin")
         await _pin_free(pin, id)
-        data["pin_hash"] = secure_hash_pin(pin)
+        data["pin_hash"] = await run_in_threadpool(secure_hash_pin, pin)
     if id == user["id"] and (data.get("active") is False or data.get("role", "admin") != "admin"):
         raise HTTPException(400, "Você não pode desativar ou rebaixar seu próprio usuário")
     res = await db.employees.find_one_and_update({"id": id}, {"$set": data}, projection={"_id": 0, "pin_hash": 0, "password_hash": 0}, return_document=True)
