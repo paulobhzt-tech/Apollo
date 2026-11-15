@@ -82,6 +82,7 @@ def collection():
     cursor.sort.return_value = cursor
     cursor.to_list = AsyncMock(return_value=[])
     result.find.return_value = cursor
+    result.update_one.return_value = SimpleNamespace(modified_count=1, matched_count=1)
     return result
 
 
@@ -138,6 +139,9 @@ def harness(monkeypatch):
     db.bills.delete_one.return_value = SimpleNamespace(deleted_count=1)
     for module in (security, domain, auth, config, finance, operations, reports, tables):
         monkeypatch.setattr(module, "db", db)
+    async def unit_transaction(callback):
+        return await callback(object())
+    monkeypatch.setattr(operations, "run_transaction", unit_transaction)
     monkeypatch.setattr(operations, "move_stock", AsyncMock())
     monkeypatch.setattr(operations, "free_table", AsyncMock())
     monkeypatch.setattr(tables, "move_stock", AsyncMock())

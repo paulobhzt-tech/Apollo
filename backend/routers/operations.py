@@ -1,4 +1,8 @@
 import secrets
+import hashlib
+import json
+
+from lib.transactions import run_transaction
 from datetime import timedelta
 from typing import Optional
 
@@ -8,7 +12,7 @@ from pymongo.errors import DuplicateKeyError
 from lib.auth import cancel_authorizer, current_user, require
 from lib.db import db
 from lib.orders import (MARKET_FEES, build_items, create_ticket, current_cash, emit_invoice, finalize_payment,
-                        fiado_reverse, free_table, method_totals, move_stock, new_order, now, pay_key, refresh_totals)
+                        fiado_reverse, free_table, method_totals, move_stock, new_order, now, pay_key, refresh_totals, touch_cash, session_kwargs)
 from models.schemas import (CancelIn, CashCloseIn, CashMovement, CashMoveIn, CashOpenIn, CashSession,
                             DeliveryStatusIn, EmitInvoiceIn, Invoice, KitchenTicket, Order, OrderItem,
                             OrderItemIn, QuickSaleIn, SaleResult, SimulateIn, TicketStatusIn)
@@ -19,27 +23,59 @@ router = APIRouter()
 # ---------- PDV ----------
 @router.post("/pdv/sale", response_model=SaleResult)
 async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
-    """Atomic create+pay for counter sales. Idempotent on client_ref (offline queue replays)."""
-    existing = await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0})
-    if existing:
-        inv = await db.invoices.find_one({"id": existing.get("invoice_id")}, {"_id": 0}) if existing.get("invoice_id") else None
-        return {"order": existing, "invoice": inv}
-    if not await current_cash():
-        raise HTTPException(400, "Caixa fechado. Abra o caixa para receber pagamentos.")
-    items = await build_items(body.items)
-    order = await new_order(channel="balcao", source="pdv", items=[i.model_dump() for i in items],
-                            client_ref=body.client_ref, customer={"name": body.customer_name, "cpf": body.customer_cpf},
-                            waiter_id=user["id"], waiter_name=user["name"])
-    inv = None
+    """Commit order, money, stock, lots, mock invoice and KDS ticket together."""
+    operation_id = "pdv:" + hashlib.sha256(body.client_ref.encode()).hexdigest()
+    request_hash = hashlib.sha256(json.dumps(body.model_dump(mode="json"),
+        sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+    async def replay(session):
+        marker = await db.financial_operations.find_one({"_id": operation_id}, session=session)
+        if not marker:
+            return None
+        if marker["request_hash"] != request_hash:
+            raise HTTPException(409, "Referência já usada com outro conteúdo")
+        order = await db.orders.find_one({"id": marker["order_id"], "atomic_version": 1},
+                                         {"_id": 0}, session=session)
+        if not order:
+            raise HTTPException(409, "Operação inconsistente; exige conciliação")
+        invoice = (await db.invoices.find_one({"id": order["invoice_id"]}, {"_id": 0}, session=session)
+                   if order.get("invoice_id") else None)
+        return {"order": order, "invoice": invoice}
+
+    async def create(session):
+        previous = await replay(session)
+        if previous:
+            return previous
+        if await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0}, session=session):
+            raise HTTPException(409, "Venda anterior sem confirmação atômica; exige conciliação")
+        await db.financial_operations.insert_one({"_id": operation_id,
+            "request_hash": request_hash, "kind": "pdv_sale", "created_at": now()}, session=session)
+        items = await build_items(body.items, session=session)
+        order = await new_order(channel="balcao", source="pdv", items=[i.model_dump() for i in items],
+            client_ref=body.client_ref, customer={"name": body.customer_name, "cpf": body.customer_cpf},
+            waiter_id=user["id"], waiter_name=user["name"], session=session)
+        stock_note = f"PDV · Pedido #{order['number']}"
+        await db.orders.update_one({"id": order["id"]},
+            {"$set": {"atomic_version": 1, "stock_note": stock_note}}, session=session)
+        order, invoice = await finalize_payment(order, body, session=session)
+        if body.send_to_kitchen:
+            await create_ticket(order, items, session=session)
+        await move_stock(items, user["name"], stock_note, session=session)
+        await db.financial_operations.update_one({"_id": operation_id},
+            {"$set": {"order_id": order["id"], "committed_at": now()}}, session=session)
+        return {"order": order, "invoice": invoice}
+
     try:
-        order, inv = await finalize_payment(order, body)
-    except HTTPException:
-        await db.orders.delete_one({"id": order["id"]})
-        raise
-    if body.send_to_kitchen:
-        await create_ticket(order, items)
-    await move_stock(items, user["name"], f"PDV · Pedido #{order['number']}")
-    return {"order": order, "invoice": inv}
+        return await run_transaction(create)
+    except HTTPException as exc:
+        if exc.status_code != 503:
+            raise
+        # A concurrent identical request or an uncertain commit may have won.
+        # Only a committed marker can certify a completed replay.
+        result = await run_transaction(replay)
+        if result:
+            return result
+        raise exc
 
 
 @router.get("/orders", response_model=list[Order])
@@ -55,68 +91,89 @@ async def list_orders(status: Optional[str] = None, channel: Optional[str] = Non
 
 @router.post("/orders/{id}/cancel", response_model=Order)
 async def cancel_order(id: str, body: CancelIn, user: dict = Depends(current_user)):
-    o = await db.orders.find_one({"id": id}, {"_id": 0})
-    if not o:
-        raise HTTPException(404, "Pedido não encontrado")
-    if o["status"] == "cancelado":
-        raise HTTPException(400, "Pedido já cancelado")
+    # Authorize once, outside transaction retries and without weakening PIN limits.
     auth = await cancel_authorizer(user, body.manager_pin)
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
-    await db.orders.update_one({"id": id}, {"$set": {"status": "cancelado", "cancel_reason": body.reason,
-                                                     "cancelled_by": who, "cancelled_at": now()}})
-    if o["status"] == "pago":
-        fiado = sum(p["amount"] for p in o.get("payments", []) if p["method"] == "fiado") - \
-            sum(r["amount"] for r in o.get("refunds", []) if r["method"] == "fiado")
-        await fiado_reverse(o, fiado, who, f"Estorno do pedido #{o['number']}")
-    await move_stock([OrderItem(**i) for i in o["items"] if not i.get("cancelled")], user["name"], f"Cancelamento #{o['number']}", sign=1)
-    if o.get("invoice_id"):
-        await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}})
-    if o.get("table_id") and o["status"] == "aberto":
-        await free_table(o["table_id"])
-    await db.kitchen_tickets.update_many({"order_id": id}, {"$set": {"status": "entregue"}})
-    return await db.orders.find_one({"id": id}, {"_id": 0})
+
+    async def cancel(session):
+        order = await db.orders.find_one({"id": id}, {"_id": 0}, session=session)
+        if not order:
+            raise HTTPException(404, "Pedido não encontrado")
+        if order["status"] == "cancelado":
+            return order
+        if order["status"] == "pago" and order.get("cash_session_id"):
+            await touch_cash(order["cash_session_id"], session=session)
+        changed = await db.orders.update_one({"id": id, "status": order["status"]},
+            {"$set": {"status": "cancelado", "cancel_reason": body.reason,
+                      "cancelled_by": who, "cancelled_at": now()}}, session=session)
+        if changed.modified_count != 1:
+            raise HTTPException(409, "Pedido alterado durante o cancelamento")
+        if order["status"] == "pago":
+            fiado = sum(p["amount"] for p in order.get("payments", []) if p["method"] == "fiado") - \
+                sum(r["amount"] for r in order.get("refunds", []) if r["method"] == "fiado")
+            await fiado_reverse(order, fiado, who, f"Estorno do pedido #{order['number']}", session=session)
+        await move_stock([OrderItem(**i) for i in order["items"] if not i.get("cancelled")],
+            user["name"], f"Cancelamento #{order['number']}", sign=1, session=session,
+            stock_reference=order.get("stock_note") or
+                (f"PDV · Pedido #{order['number']}" if order["source"] == "pdv" else None))
+        if order.get("invoice_id"):
+            await db.invoices.update_one({"id": order["invoice_id"]},
+                                          {"$set": {"status": "cancelada"}}, session=session)
+        if order.get("table_id") and order["status"] == "aberto":
+            await free_table(order["table_id"], session=session)
+        await db.kitchen_tickets.update_many({"order_id": id}, {"$set": {"status": "entregue"}}, session=session)
+        return await db.orders.find_one({"id": id}, {"_id": 0}, session=session)
+
+    return await run_transaction(cancel)
 
 
 @router.post("/orders/{id}/items/{item_id}/refund", response_model=Order)
 async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depends(current_user)):
     """Cancel one item. Open orders: just removed. Paid orders: partial refund (estorno) recorded on the order."""
-    o = await db.orders.find_one({"id": id}, {"_id": 0})
-    if not o:
-        raise HTTPException(404, "Pedido não encontrado")
-    if o["status"] == "cancelado":
-        raise HTTPException(400, "Pedido já cancelado")
-    item = next((i for i in o["items"] if i["id"] == item_id and not i.get("cancelled")), None)
-    if not item:
-        raise HTTPException(404, "Item não encontrado ou já cancelado")
     auth = await cancel_authorizer(user, body.manager_pin)
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
-    await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1)
-    set_item = {"items.$.cancelled": True, "items.$.cancel_reason": body.reason}
-    if o["status"] == "aberto":
-        await db.orders.update_one({"id": id, "items.id": item_id}, {"$set": set_item})
-        return await refresh_totals(id)
-    live = [i for i in o["items"] if not i.get("cancelled") and i["id"] != item_id]
-    old_sub = o["subtotal"] or 1
-    new_sub = round(sum(i["qty"] * i["unit_price"] for i in live), 2)
-    service = round(o.get("service_fee", 0) * new_sub / old_sub, 2)
-    discount = min(o.get("discount", 0), new_sub)
-    total = round(new_sub - discount + service + (o.get("delivery_fee", 0) if live else 0), 2)
-    amount = round(o["total"] - total, 2)
-    pays = sorted(o.get("payments", []), key=lambda p: -p["amount"])
-    main = pays[0] if pays else {"method": "dinheiro"}
-    refund = {"item_name": f"{item['qty']}x {item['name']}", "amount": amount, "method": main["method"],
-              "brand": main.get("brand"), "reason": body.reason, "by_name": who, "at": now()}
-    upd = {**set_item, "subtotal": new_sub, "service_fee": service, "discount": discount, "total": total,
-           "cmv": round(sum(i["qty"] * i.get("unit_cost", 0) for i in live), 2)}
-    if not live:
-        upd.update(status="cancelado", cancel_reason=body.reason, cancelled_by=who, cancelled_at=now())
-        if o.get("invoice_id"):
-            await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}})
-    await db.orders.update_one({"id": id, "items.id": item_id},
-                               {"$set": upd, "$push": {"refunds": refund}, "$inc": {"refunded_total": amount}})
-    if main["method"] == "fiado":
-        await fiado_reverse(o, amount, who, f"Estorno de {refund['item_name']} (#{o['number']})")
-    return await db.orders.find_one({"id": id}, {"_id": 0})
+    async def refund(session):
+        o = await db.orders.find_one({"id": id}, {"_id": 0}, session=session)
+        if not o:
+            raise HTTPException(404, "Pedido não encontrado")
+        item = next((i for i in o["items"] if i["id"] == item_id), None)
+        if not item:
+            raise HTTPException(404, "Item não encontrado ou já cancelado")
+        if item.get("cancelled"):
+            return o
+        if o["status"] == "cancelado":
+            raise HTTPException(409, "Pedido já cancelado")
+        if o["status"] == "pago" and o.get("cash_session_id"):
+            await touch_cash(o["cash_session_id"], session=session)
+        await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1, stock_reference=o.get("stock_note"), session=session)
+        set_item = {"items.$.cancelled": True, "items.$.cancel_reason": body.reason}
+        if o["status"] == "aberto":
+            await db.orders.update_one({"id": id, "items.id": item_id}, {"$set": set_item}, session=session)
+            return await refresh_totals(id, session=session)
+        live = [i for i in o["items"] if not i.get("cancelled") and i["id"] != item_id]
+        old_sub = o["subtotal"] or 1
+        new_sub = round(sum(i["qty"] * i["unit_price"] for i in live), 2)
+        service = round(o.get("service_fee", 0) * new_sub / old_sub, 2)
+        discount = min(o.get("discount", 0), new_sub)
+        total = round(new_sub - discount + service + (o.get("delivery_fee", 0) if live else 0), 2)
+        amount = round(o["total"] - total, 2)
+        pays = sorted(o.get("payments", []), key=lambda p: -p["amount"])
+        main = pays[0] if pays else {"method": "dinheiro"}
+        refund = {"item_name": f"{item['qty']}x {item['name']}", "amount": amount, "method": main["method"],
+                  "brand": main.get("brand"), "reason": body.reason, "by_name": who, "at": now()}
+        upd = {**set_item, "subtotal": new_sub, "service_fee": service, "discount": discount, "total": total,
+               "cmv": round(sum(i["qty"] * i.get("unit_cost", 0) for i in live), 2)}
+        if not live:
+            upd.update(status="cancelado", cancel_reason=body.reason, cancelled_by=who, cancelled_at=now())
+            if o.get("invoice_id"):
+                await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}}, session=session)
+        await db.orders.update_one({"id": id, "items.id": item_id},
+                                   {"$set": upd, "$push": {"refunds": refund}, "$inc": {"refunded_total": amount}}, session=session)
+        if main["method"] == "fiado":
+            await fiado_reverse(o, amount, who, f"Estorno de {refund['item_name']} (#{o['number']})", session=session)
+        return await db.orders.find_one({"id": id}, {"_id": 0}, session=session)
+
+    return await run_transaction(refund)
 
 
 # ---------- invoices (MOCK fiscal) ----------
@@ -247,11 +304,11 @@ async def delivery_status(id: str, body: DeliveryStatusIn, user: dict = Depends(
 
 
 # ---------- Cash register ----------
-async def cash_summary(s: dict) -> dict:
+async def cash_summary(s: dict, *, session=None) -> dict:
     orders = await db.orders.find({"cash_session_id": s["id"], "status": "pago"},
-                                  {"_id": 0, "payments": 1, "change": 1, "total": 1, "refunds": 1}).to_list(10000)
+                                  {"_id": 0, "payments": 1, "change": 1, "total": 1, "refunds": 1}, **session_kwargs(session)).to_list(10000)
     totals = method_totals(orders, with_brand=True)
-    async for r in db.customer_moves.find({"cash_session_id": s["id"], "type": "pagamento"}, {"_id": 0}):
+    async for r in db.customer_moves.find({"cash_session_id": s["id"], "type": "pagamento"}, {"_id": 0}, **session_kwargs(session)):
         k = pay_key(r)
         totals[k] = round(totals.get(k, 0) + r["amount"], 2)
     sup = sum(m["amount"] for m in s.get("movements", []) if m["type"] == "suprimento")
@@ -306,14 +363,17 @@ async def cash_move(body: CashMoveIn, user: dict = Depends(require("caixa"))):
 
 @router.post("/cash/close", response_model=CashSession)
 async def cash_close(body: CashCloseIn, user: dict = Depends(require("caixa"))):
-    s = await current_cash()
-    if not s:
-        raise HTTPException(400, "Nenhum caixa aberto")
-    s["counted_amount"] = body.counted_amount
-    s = await cash_summary(s)
-    upd = {k: s[k] for k in ("totals_by_method", "sales_count", "sales_total", "expected_cash", "difference", "counted_amount")}
-    upd.update(status="fechado", closed_at=now(), closed_by_name=user["name"])
-    result = await db.cash_sessions.update_one({"id": s["id"], "status": "aberto"}, {"$set": upd})
-    if not result.modified_count:
-        raise HTTPException(409, "O caixa já foi fechado por outro operador")
-    return await db.cash_sessions.find_one({"id": s["id"]}, {"_id": 0})
+    async def close(session):
+        s = await current_cash(session=session)
+        if not s:
+            raise HTTPException(400, "Nenhum caixa aberto")
+        s["counted_amount"] = body.counted_amount
+        s = await cash_summary(s, session=session)
+        upd = {k: s[k] for k in ("totals_by_method", "sales_count", "sales_total", "expected_cash", "difference", "counted_amount")}
+        upd.update(status="fechado", closed_at=now(), closed_by_name=user["name"])
+        result = await db.cash_sessions.update_one({"id": s["id"], "status": "aberto"}, {"$set": upd}, session=session)
+        if not result.modified_count:
+            raise HTTPException(409, "O caixa já foi fechado por outro operador")
+        return await db.cash_sessions.find_one({"id": s["id"]}, {"_id": 0}, session=session)
+
+    return await run_transaction(close)
