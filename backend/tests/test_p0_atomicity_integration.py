@@ -392,3 +392,57 @@ async def test_mixed_fiado_item_refund_does_not_refund_more_credit_than_paid(sce
     assert (await db.fiado_customers.find_one({'id':'customer'}))['balance'] == 0
     assert sum(r['amount'] for r in refunded['refunds'] if r['method']=='fiado') == 6
     assert sum(r['amount'] for r in refunded['refunds'] if r['method']=='pix') == 4
+
+async def test_cancel_permanent_error_before_transition_is_replayable(scenario):
+    db,client=scenario
+    order=(await operations.quick_sale(sale(),USER))['order']
+    await client.admin.command({'configureFailPoint':'failCommand','mode':{'times':1},
+        'data':{'failCommands':['update'],'errorCode':121}})
+    try:
+        with pytest.raises(HTTPException) as error:
+            await operations.cancel_order(order['id'],CancelIn(reason='Permanent write error'),USER)
+        assert error.value.status_code == 503
+        assert (await db.orders.find_one({'id':order['id']}))['status']=='pago'
+        assert (await db.ingredients.find_one({'id':'ing'}))['stock']==99
+    finally:
+        await client.admin.command({'configureFailPoint':'failCommand','mode':'off'})
+    await operations.cancel_order(order['id'],CancelIn(reason='Same cancellation retry'),USER)
+    assert (await db.ingredients.find_one({'id':'ing'}))['stock']==100
+    assert await db.stock_moves.count_documents({'type':'estorno'})==1
+
+
+async def test_cancel_lost_response_after_commit_does_not_repeat_financial_effects(scenario,monkeypatch):
+    db,_=scenario
+    order=(await operations.quick_sale(sale(payments=[{'method':'fiado','amount':10}],fiado_customer_id='customer'),USER))['order']
+    real=operations.run_transaction
+    async def response_lost(callback):
+        await real(callback)
+        raise HTTPException(503,'Synthetic timeout after committed cancellation')
+    monkeypatch.setattr(operations,'run_transaction',response_lost)
+    with pytest.raises(HTTPException) as error:
+        await operations.cancel_order(order['id'],CancelIn(reason='Cancel then lose response'),USER)
+    assert error.value.status_code==503
+    monkeypatch.setattr(operations,'run_transaction',real)
+    result=await operations.cancel_order(order['id'],CancelIn(reason='Retry after timeout'),USER)
+    assert result['status']=='cancelado'
+    assert (await db.fiado_customers.find_one({'id':'customer'}))['balance']==0
+    assert await db.customer_moves.count_documents({'type':'estorno'})==1
+    assert await db.stock_moves.count_documents({'type':'estorno'})==1
+    assert (await db.ingredients.find_one({'id':'ing'}))['stock']==100
+
+
+async def test_permanent_sale_write_error_is_not_treated_as_transient(scenario):
+    db,client=scenario
+    body=sale()
+    await client.admin.command({'configureFailPoint':'failCommand','mode':'alwaysOn',
+        'data':{'failCommands':['insert'],'errorCode':121}})
+    try:
+        with pytest.raises(HTTPException) as error:
+            await asyncio.wait_for(operations.quick_sale(body,USER),timeout=5)
+        assert error.value.status_code==503
+        assert await db.orders.count_documents({})==0
+        assert await db.financial_operations.count_documents({})==0
+    finally:
+        await client.admin.command({'configureFailPoint':'failCommand','mode':'off'})
+    await operations.quick_sale(body,USER)
+    assert (await db.ingredients.find_one({'id':'ing'}))['stock']==99

@@ -47,6 +47,12 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
         if previous:
             return previous
         if await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0}, session=session):
+            # A find on a not-yet-created marker namespace may precede the
+            # snapshot established by the orders read. Recheck the committed
+            # marker before classifying a concurrently completed sale as legacy.
+            confirmed = await replay(session)
+            if confirmed:
+                return confirmed
             raise HTTPException(409, "Venda anterior sem confirmação atômica; exige conciliação")
         await db.financial_operations.insert_one({"_id": operation_id,
             "request_hash": request_hash, "kind": "pdv_sale", "created_at": now()}, session=session)
