@@ -1,0 +1,51 @@
+/home/agent/.local/lib/python3.12/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_______________ test_backup_excludes_employee_credential_hashes ________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6df873d160>
+
+    @pytest.mark.asyncio
+    async def test_backup_excludes_employee_credential_hashes(monkeypatch):
+        employee = {"id":"synthetic","name":"Synthetic","pin_hash":"synthetic-pin-hash",
+                    "password_hash":"synthetic-password-hash","role":"admin"}
+        class Cursor:
+            def __init__(self, rows):
+                self.rows = rows
+            async def to_list(self, limit):
+                return self.rows
+        class Store:
+            def __getitem__(self, name):
+                def find(query, projection):
+                    rows = [copy.deepcopy(employee)] if name == 'employees' else []
+                    for row in rows:
+                        for field, include in (projection or {}).items():
+                            if not include:
+                                row.pop(field, None)
+                    return Cursor(rows)
+                return SimpleNamespace(find=find)
+        monkeypatch.setattr(config, 'db', Store())
+        _, payload = await config.build_backup()
+        exported = payload['data']['employees'][0]
+        assert exported['id'] == 'synthetic'
+        assert exported['name'] == 'Synthetic'
+        assert 'pin_hash' not in exported
+>       assert 'password_hash' not in exported
+E       AssertionError: assert 'password_hash' not in {'id': 'synthetic', 'name': 'Synthetic', 'password_hash': 'synthetic-password-hash', 'role': 'admin'}
+
+tests/test_backup_credentials.py:32: AssertionError
+=============================== warnings summary ===============================
+../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
+  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+  The CallSpec2 alias will be removed in pytest 10.
+  Update imports to use CallSpec instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
+    from _pytest.python import CallSpec2
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_backup_credentials.py::test_backup_excludes_employee_credential_hashes
+1 failed, 1 warning in 0.30s

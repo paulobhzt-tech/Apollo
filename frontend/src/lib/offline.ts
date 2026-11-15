@@ -78,23 +78,28 @@ export async function syncQueue(): Promise<{ synced: number; failed: number }> {
   syncing = true;
   let synced = 0;
   let failed = 0;
-  const remaining: QueuedSale[] = [];
+  const completed = new Set<string>();
   const rejected: RejectedSale[] = [];
   try {
     for (const s of read()) {
       try {
         await apiPost("/pdv/sale", s.payload);
         synced++;
+        completed.add(s.payload.client_ref);
       } catch (e) {
         // business errors (4xx, e.g. caixa fechado) leave the queue but are KEPT in the rejected list for review;
         // network errors, 5xx and expired login (401) stay queued and are retried
         if (e instanceof ApiError && e.status < 500 && e.status !== 401) {
           failed++;
+          completed.add(s.payload.client_ref);
           const body = e.body as { detail?: unknown } | null;
           rejected.push({ ...s, error: typeof body?.detail === "string" ? body.detail : `Erro ${e.status}`, rejected_at: new Date().toISOString() });
-        } else remaining.push(s);
+        }
       }
     }
+    // Re-read after the awaits: enqueue() may have added sales during replay.
+    // Remove only entries handled by this pass, preserving new and retryable sales.
+    const remaining = read().filter(s => !completed.has(s.payload.client_ref));
     kv.set(KEY, JSON.stringify(remaining));
     if (rejected.length) kv.set(REJ_KEY, JSON.stringify([...rejected, ...readRejected()].slice(0, 200)));
     kv.set(LOG_KEY, JSON.stringify({ at: new Date().toISOString(), synced, failed, pending: remaining.length }));

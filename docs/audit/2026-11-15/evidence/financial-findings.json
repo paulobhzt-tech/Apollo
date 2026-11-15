@@ -1,0 +1,14 @@
+[
+  {
+    "finding": "P0: paid counter sale survives stock failure; replay bypasses stock",
+    "first_status": 409,
+    "replay_status": "returned paid order",
+    "stock_attempts": 1,
+    "persistence": "synthetic; no MongoDB transaction exercised"
+  },
+  {
+    "finding": "P0: simultaneous cancellation restores stock twice",
+    "stock_restorations": 2,
+    "persistence": "synthetic; deterministic interleaving"
+  }
+]

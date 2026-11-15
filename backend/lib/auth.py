@@ -7,6 +7,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, HTTPException, Request
+from starlette.concurrency import run_in_threadpool
 from pymongo import ReturnDocument
 
 from lib.db import db
@@ -110,11 +111,11 @@ async def find_employee_by_pin(pin: str, active_only: bool = True) -> dict | Non
     query = {"active": True} if active_only else {}
     legacy = await db.employees.find_one({**query, "pin_hash": hash_pin(pin)}, {"_id": 0})
     if legacy:
-        new_hash = secure_hash_pin(pin)
+        new_hash = await run_in_threadpool(secure_hash_pin, pin)
         await db.employees.update_one({"id": legacy["id"], "pin_hash": legacy["pin_hash"]}, {"$set": {"pin_hash": new_hash}})
         return {**legacy, "pin_hash": new_hash}
     async for emp in db.employees.find(query, {"_id": 0}):
-        if verify_pin(pin, emp.get("pin_hash", "")):
+        if await run_in_threadpool(verify_pin, pin, emp.get("pin_hash", "")):
             return emp
     return None
 
@@ -124,7 +125,7 @@ async def pin_in_use(pin: str, exclude_id: str | None = None) -> bool:
     if legacy and legacy.get("id") != exclude_id:
         return True
     async for emp in db.employees.find({}, {"id": 1, "pin_hash": 1}):
-        if emp.get("id") != exclude_id and verify_pin(pin, emp.get("pin_hash", "")):
+        if emp.get("id") != exclude_id and await run_in_threadpool(verify_pin, pin, emp.get("pin_hash", "")):
             return True
     return False
 

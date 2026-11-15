@@ -25,7 +25,7 @@ jobs:
       - name: Instalar dependencias (incluindo indice Emergent)
         run: python -m pip install -r requirements.txt --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
       - name: Testes isolados de autenticacao, CSRF e protecao de dados
-        run: python -m pytest -q -n 0 tests/test_auth_security.py tests/test_csrf_origin.py tests/test_demo_guard.py tests/test_role_permissions.py
+        run: python -m pytest -q -n 0 tests/test_auth_security.py tests/test_csrf_origin.py tests/test_demo_guard.py tests/test_role_permissions.py tests/test_frontend_paths.py tests/test_auth_nonblocking.py tests/test_backup_credentials.py
 
   pagamentos:
     runs-on: ubuntu-latest
@@ -68,6 +68,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Regressao da fila offline
+        run: node --experimental-vm-modules --test tests/offline-queue.test.mjs
       - name: Instalar dependencias com Yarn (gerenciador do projeto)
         run: yarn install --non-interactive
       - name: Verificar tipos TypeScript

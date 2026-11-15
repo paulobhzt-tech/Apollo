@@ -1,0 +1,331 @@
+atividade,fase,status,escopo_evidencia
+1,Auditoria,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+2,Auditoria,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+3,Auditoria,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+4,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+5,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+6,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+7,Auditoria,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+8,Auditoria,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+9,Auditoria,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+10,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+11,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+12,Auditoria,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+13,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+14,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+15,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+16,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+17,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+18,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+19,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+20,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+21,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+22,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+23,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+24,Auditoria,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+25,Auditoria,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+26,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+27,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+28,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+29,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+30,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+31,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+32,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+33,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+34,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+35,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+36,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+37,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+38,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+39,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+40,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+41,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+42,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+43,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+44,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+45,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+46,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+47,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+48,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+49,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+50,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+51,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+52,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+53,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+54,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+55,Segurança,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+56,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+57,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+58,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+59,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+60,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+61,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+62,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+63,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+64,Financeiro,REPROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+65,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+66,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+67,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+68,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+69,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+70,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+71,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+72,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+73,Financeiro,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+74,Financeiro,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+75,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+76,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+77,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+78,Financeiro,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+79,Financeiro,REPROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+80,Financeiro,REPROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+81,Estoque,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+82,Estoque,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+83,Estoque,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+84,Estoque,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+85,Estoque,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+86,Estoque,REPROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+87,Estoque,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+88,Estoque,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+89,Estoque,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+90,Estoque,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+91,Estoque,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+92,Estoque,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+93,Estoque,REPROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+94,Estoque,REPROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+95,Estoque,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+96,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+97,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+98,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+99,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+100,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+101,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+102,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+103,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+104,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+105,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+106,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+107,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+108,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+109,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+110,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+111,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+112,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+113,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+114,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+115,MongoDB,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+116,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+117,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+118,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+119,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+120,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+121,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+122,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+123,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+124,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+125,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+126,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+127,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+128,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+129,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+130,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+131,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+132,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+133,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+134,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+135,Desempenho,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+136,Keep-alive,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+137,Keep-alive,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+138,Keep-alive,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+139,Keep-alive,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+140,Keep-alive,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+141,Keep-alive,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+142,Keep-alive,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+143,Keep-alive,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+144,Keep-alive,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+145,Keep-alive,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+146,Keep-alive,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+147,Keep-alive,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+148,Keep-alive,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+149,Keep-alive,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+150,Keep-alive,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+151,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+152,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+153,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+154,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+155,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+156,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+157,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+158,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+159,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+160,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+161,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+162,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+163,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+164,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+165,Offline,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+166,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+167,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+168,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+169,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+170,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+171,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+172,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+173,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+174,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+175,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+176,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+177,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+178,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+179,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+180,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+181,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+182,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+183,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+184,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+185,Frontend,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+186,Testes,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+187,Testes,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+188,Testes,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+189,Testes,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+190,Testes,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+191,Testes,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+192,Testes,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+193,Testes,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+194,Testes,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+195,Testes,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+196,Testes,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+197,Testes,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+198,Testes,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+199,Testes,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+200,Testes,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+201,Testes,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+202,Testes,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+203,Testes,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+204,Testes,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+205,Testes,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+206,Infraestrutura,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+207,Infraestrutura,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+208,Infraestrutura,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+209,Infraestrutura,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+210,Infraestrutura,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+211,Infraestrutura,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+212,Infraestrutura,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+213,Infraestrutura,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+214,Infraestrutura,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+215,Infraestrutura,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+216,Infraestrutura,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+217,Infraestrutura,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+218,Infraestrutura,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+219,Infraestrutura,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+220,Infraestrutura,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+221,Infraestrutura,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+222,Infraestrutura,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+223,Infraestrutura,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+224,Infraestrutura,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+225,Infraestrutura,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+226,Documentação,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+227,Documentação,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+228,Documentação,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+229,Documentação,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+230,Documentação,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+231,Documentação,APROVADO,RUNBOOK.md: guia documental; operação real não homologada
+232,Documentação,APROVADO,RUNBOOK.md: guia documental; operação real não homologada
+233,Documentação,APROVADO,RUNBOOK.md: guia documental; operação real não homologada
+234,Documentação,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+235,Documentação,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+236,Documentação,APROVADO,RUNBOOK.md: guia documental; operação real não homologada
+237,Documentação,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+238,Documentação,APROVADO,RUNBOOK.md: guia documental; operação real não homologada
+239,Documentação,APROVADO,RUNBOOK.md: guia documental; operação real não homologada
+240,Documentação,APROVADO,RUNBOOK.md: guia documental; operação real não homologada
+241,Documentação,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+242,Documentação,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+243,Documentação,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+244,Documentação,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+245,Documentação,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+246,Manutenibilidade,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+247,Manutenibilidade,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+248,Manutenibilidade,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+249,Manutenibilidade,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+250,Manutenibilidade,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+251,Manutenibilidade,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+252,Manutenibilidade,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+253,Manutenibilidade,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+254,Manutenibilidade,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+255,Manutenibilidade,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+256,Manutenibilidade,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+257,Manutenibilidade,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+258,Manutenibilidade,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+259,Manutenibilidade,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+260,Manutenibilidade,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+261,Homologação,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+262,Homologação,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+263,Homologação,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+264,Homologação,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+265,Homologação,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+266,Homologação,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+267,Homologação,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+268,Homologação,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+269,Homologação,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+270,Homologação,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+271,Homologação,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+272,Homologação,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+273,Homologação,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+274,Homologação,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+275,Homologação,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+276,Homologação,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+277,Homologação,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+278,Homologação,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+279,Homologação,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+280,Homologação,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+281,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+282,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+283,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+284,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+285,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+286,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+287,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+288,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+289,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+290,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+291,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+292,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+293,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+294,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+295,GitHub,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+296,Produção,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+297,Produção,REPROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+298,Produção,REPROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+299,Produção,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+300,Produção,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+301,Produção,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+302,Produção,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+303,Produção,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+304,Produção,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+305,Produção,BLOQUEADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+306,Produção,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+307,Produção,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+308,Produção,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+309,Produção,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+310,Produção,NÃO TESTADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+311,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+312,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+313,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+314,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+315,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+316,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+317,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+318,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+319,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+320,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+321,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+322,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+323,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+324,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+325,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+326,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+327,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+328,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+329,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira
+330,Relatório,APROVADO,Ler REPORT.md: aprovação limitada ao escopo documentado; não certifica a fase inteira

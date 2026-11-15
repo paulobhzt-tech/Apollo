@@ -1,0 +1,199 @@
+{
+  "scope": "Static AST approximation; nested/lazy imports count as edges. Not runtime proof or coverage.",
+  "python_modules": 29,
+  "functions": 295,
+  "largest_functions": [
+    {
+      "name": "seed.main",
+      "line": 26,
+      "lines": 189,
+      "branch_proxy": 41
+    },
+    {
+      "name": "routers.tables.pay_partial_bill",
+      "line": 293,
+      "lines": 84,
+      "branch_proxy": 34
+    },
+    {
+      "name": "routers.reports.dre",
+      "line": 123,
+      "lines": 67,
+      "branch_proxy": 22
+    },
+    {
+      "name": "lib.orders.finalize_payment",
+      "line": 288,
+      "lines": 53,
+      "branch_proxy": 24
+    },
+    {
+      "name": "routers.reports.financial_forecast",
+      "line": 488,
+      "lines": 52,
+      "branch_proxy": 7
+    },
+    {
+      "name": "tools.audit_auth_load.measure",
+      "line": 55,
+      "lines": 51,
+      "branch_proxy": 11
+    },
+    {
+      "name": "routers.reports.compare_sales_trends",
+      "line": 411,
+      "lines": 51,
+      "branch_proxy": 14
+    },
+    {
+      "name": "lib.orders.move_stock",
+      "line": 164,
+      "lines": 47,
+      "branch_proxy": 18
+    },
+    {
+      "name": "routers.reports.predict_sales_and_stock",
+      "line": 349,
+      "lines": 46,
+      "branch_proxy": 15
+    },
+    {
+      "name": "routers.reports.build_business_insights",
+      "line": 284,
+      "lines": 45,
+      "branch_proxy": 16
+    },
+    {
+      "name": "routers.config.restore",
+      "line": 104,
+      "lines": 40,
+      "branch_proxy": 19
+    },
+    {
+      "name": "routers.operations.refund_item",
+      "line": 81,
+      "lines": 39,
+      "branch_proxy": 15
+    },
+    {
+      "name": "routers.reports.product_profit",
+      "line": 576,
+      "lines": 38,
+      "branch_proxy": 12
+    },
+    {
+      "name": "lib.orders.allocate_lots_fefo",
+      "line": 98,
+      "lines": 37,
+      "branch_proxy": 8
+    },
+    {
+      "name": "tools.audit_financial_reproduction.stock_failure_replay",
+      "line": 21,
+      "lines": 35,
+      "branch_proxy": 4
+    }
+  ],
+  "highest_branch_proxies": [
+    {
+      "name": "seed.main",
+      "line": 26,
+      "lines": 189,
+      "branch_proxy": 41
+    },
+    {
+      "name": "routers.tables.pay_partial_bill",
+      "line": 293,
+      "lines": 84,
+      "branch_proxy": 34
+    },
+    {
+      "name": "lib.orders.finalize_payment",
+      "line": 288,
+      "lines": 53,
+      "branch_proxy": 24
+    },
+    {
+      "name": "routers.reports.dre",
+      "line": 123,
+      "lines": 67,
+      "branch_proxy": 22
+    },
+    {
+      "name": "lib.orders.build_items",
+      "line": 53,
+      "lines": 35,
+      "branch_proxy": 22
+    },
+    {
+      "name": "routers.config.restore",
+      "line": 104,
+      "lines": 40,
+      "branch_proxy": 19
+    },
+    {
+      "name": "lib.orders.move_stock",
+      "line": 164,
+      "lines": 47,
+      "branch_proxy": 18
+    },
+    {
+      "name": "routers.reports.build_business_insights",
+      "line": 284,
+      "lines": 45,
+      "branch_proxy": 16
+    },
+    {
+      "name": "routers.reports.summarize_cashflow",
+      "line": 192,
+      "lines": 32,
+      "branch_proxy": 15
+    },
+    {
+      "name": "routers.reports.predict_sales_and_stock",
+      "line": 349,
+      "lines": 46,
+      "branch_proxy": 15
+    },
+    {
+      "name": "routers.operations.refund_item",
+      "line": 81,
+      "lines": 39,
+      "branch_proxy": 15
+    },
+    {
+      "name": "routers.reports.compare_sales_trends",
+      "line": 411,
+      "lines": 51,
+      "branch_proxy": 14
+    },
+    {
+      "name": "routers.reports.executive_snapshot",
+      "line": 81,
+      "lines": 20,
+      "branch_proxy": 12
+    },
+    {
+      "name": "routers.reports.product_profit",
+      "line": 576,
+      "lines": 38,
+      "branch_proxy": 12
+    },
+    {
+      "name": "routers.catalog.create_move",
+      "line": 326,
+      "lines": 34,
+      "branch_proxy": 12
+    }
+  ],
+  "import_cycles_including_lazy_imports": [],
+  "exact_duplicate_function_bodies": [],
+  "python_execution_sinks": [
+    {
+      "file": "backend/tools/audit_auth_load.py",
+      "line": 116,
+      "call": "subprocess.Popen"
+    }
+  ],
+  "frontend_html_execution_sink_locations": []
+}
