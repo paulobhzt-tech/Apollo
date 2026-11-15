@@ -10,7 +10,7 @@ import os
 import time
 import uuid
 
-LOGGER = logging.getLogger("apollo.transactions")
+LOGGER = logging.getLogger("uvicorn.error")
 LABELS = ("TransientTransactionError", "UnknownTransactionCommitResult")
 
 
