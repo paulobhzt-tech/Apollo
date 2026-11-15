@@ -1,0 +1,57 @@
+/home/agent/.local/lib/python3.12/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+_____ test_restore_preserves_local_credentials_and_ignores_imported_hashes _____
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fad54771700>
+
+    @pytest.mark.asyncio
+    async def test_restore_preserves_local_credentials_and_ignores_imported_hashes(monkeypatch):
+        from unittest.mock import AsyncMock
+        from models.schemas import RestoreIn
+        from routers import production
+        existing = {'id':'existing','pin_hash':'local-pin','password_hash':'local-password'}
+        class Cursor:
+            async def to_list(self, limit):
+                return [copy.deepcopy(existing)]
+        employees = SimpleNamespace(find=lambda *a,**k: Cursor(), delete_many=AsyncMock(), replace_one=AsyncMock())
+        products = SimpleNamespace(delete_many=AsyncMock(), insert_many=AsyncMock())
+        orders = SimpleNamespace(find_one=AsyncMock(return_value=None))
+        class Store:
+            def __init__(self):
+                self.employees = employees
+                self.orders = orders
+            def __getitem__(self, name):
+                return {'employees':employees,'products':products}[name]
+        monkeypatch.setattr(config,'db',Store())
+        monkeypatch.setattr(production,'ensure_environments',AsyncMock())
+        await config.restore(RestoreIn(data={
+            'products':[{'id':'synthetic-product'}],
+            'employees':[
+                {'id':'existing','active':True,'pin_hash':'imported-pin','password_hash':'imported-password'},
+                {'id':'new','active':True,'pin_hash':'imported-pin','password_hash':'imported-password'},
+            ]}), {'id':'existing'})
+        restored = {call.args[1]['id']:call.args[1] for call in employees.replace_one.await_args_list}
+        assert restored['existing']['pin_hash'] == 'local-pin'
+>       assert restored['existing']['password_hash'] == 'local-password'
+E       AssertionError: assert 'imported-password' == 'local-password'
+E         
+E         - local-password
+E         + imported-password
+
+backend/tests/test_backup_credentials.py:63: AssertionError
+=============================== warnings summary ===============================
+../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
+  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+  The CallSpec2 alias will be removed in pytest 10.
+  Update imports to use CallSpec instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
+    from _pytest.python import CallSpec2
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED backend/tests/test_backup_credentials.py::test_restore_preserves_local_credentials_and_ignores_imported_hashes
+1 failed, 1 passed, 1 warning in 0.32s

@@ -1,0 +1,262 @@
+/home/agent/.local/lib/python3.12/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_________________ test_bcrypt_runs_outside_event_loop[lookup] __________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b9c802d20>
+operation = 'lookup'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["lookup", "unique", "legacy", "password", "create"])
+    async def test_bcrypt_runs_outside_event_loop(monkeypatch, operation):
+        loop_thread = threading.get_ident()
+        calls = []
+        def checked(*args, **kwargs):
+            calls.append(threading.get_ident())
+            return True
+        def hashed(*args, **kwargs):
+            calls.append(threading.get_ident())
+            return "$2b$synthetic"
+        employees = SimpleNamespace(find_one=AsyncMock(return_value=None), find=lambda *a, **k: Cursor(),
+                                    update_one=AsyncMock(), insert_one=AsyncMock())
+        monkeypatch.setattr(auth, "db", SimpleNamespace(employees=employees))
+        monkeypatch.setattr(routes, "db", SimpleNamespace(employees=employees))
+        monkeypatch.setattr(auth, "verify_pin", checked)
+        monkeypatch.setattr(auth, "secure_hash_pin", hashed)
+        monkeypatch.setattr(routes, "secure_hash_pin", hashed)
+        monkeypatch.setattr(routes.bcrypt, "checkpw", checked)
+        if operation == "lookup":
+            await auth.find_employee_by_pin("123456")
+        elif operation == "unique":
+            await auth.pin_in_use("123456")
+        elif operation == "legacy":
+            employees.find_one.return_value = {"id": "synthetic", "pin_hash": "legacy"}
+            await auth.find_employee_by_pin("123456")
+        elif operation == "password":
+            employees.find_one.return_value = {"id": "synthetic", "password_hash": "synthetic"}
+            monkeypatch.setattr(routes, "check_login_limit", AsyncMock())
+            monkeypatch.setattr(routes, "successful_login", AsyncMock())
+            monkeypatch.setattr(routes, "create_session", AsyncMock(return_value="synthetic-token"))
+            await routes.login(LoginIn(username="test", password="synthetic-password"), Response(),
+                               Request({"type": "http", "headers": []}))
+        else:
+            monkeypatch.setattr(routes, "_pin_free", AsyncMock())
+            await routes.create_employee(EmployeeIn(name="Synthetic", role="caixa", pin="123456"), {})
+        assert calls
+>       assert all(thread != loop_thread for thread in calls), "bcrypt blocked the request event loop"
+E       AssertionError: bcrypt blocked the request event loop
+E       assert False
+E        +  where False = all(<generator object test_bcrypt_runs_outside_event_loop.<locals>.<genexpr> at 0x7f7b9cdae8e0>)
+
+tests/test_auth_nonblocking.py:56: AssertionError
+_________________ test_bcrypt_runs_outside_event_loop[unique] __________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b9c81fda0>
+operation = 'unique'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["lookup", "unique", "legacy", "password", "create"])
+    async def test_bcrypt_runs_outside_event_loop(monkeypatch, operation):
+        loop_thread = threading.get_ident()
+        calls = []
+        def checked(*args, **kwargs):
+            calls.append(threading.get_ident())
+            return True
+        def hashed(*args, **kwargs):
+            calls.append(threading.get_ident())
+            return "$2b$synthetic"
+        employees = SimpleNamespace(find_one=AsyncMock(return_value=None), find=lambda *a, **k: Cursor(),
+                                    update_one=AsyncMock(), insert_one=AsyncMock())
+        monkeypatch.setattr(auth, "db", SimpleNamespace(employees=employees))
+        monkeypatch.setattr(routes, "db", SimpleNamespace(employees=employees))
+        monkeypatch.setattr(auth, "verify_pin", checked)
+        monkeypatch.setattr(auth, "secure_hash_pin", hashed)
+        monkeypatch.setattr(routes, "secure_hash_pin", hashed)
+        monkeypatch.setattr(routes.bcrypt, "checkpw", checked)
+        if operation == "lookup":
+            await auth.find_employee_by_pin("123456")
+        elif operation == "unique":
+            await auth.pin_in_use("123456")
+        elif operation == "legacy":
+            employees.find_one.return_value = {"id": "synthetic", "pin_hash": "legacy"}
+            await auth.find_employee_by_pin("123456")
+        elif operation == "password":
+            employees.find_one.return_value = {"id": "synthetic", "password_hash": "synthetic"}
+            monkeypatch.setattr(routes, "check_login_limit", AsyncMock())
+            monkeypatch.setattr(routes, "successful_login", AsyncMock())
+            monkeypatch.setattr(routes, "create_session", AsyncMock(return_value="synthetic-token"))
+            await routes.login(LoginIn(username="test", password="synthetic-password"), Response(),
+                               Request({"type": "http", "headers": []}))
+        else:
+            monkeypatch.setattr(routes, "_pin_free", AsyncMock())
+            await routes.create_employee(EmployeeIn(name="Synthetic", role="caixa", pin="123456"), {})
+        assert calls
+>       assert all(thread != loop_thread for thread in calls), "bcrypt blocked the request event loop"
+E       AssertionError: bcrypt blocked the request event loop
+E       assert False
+E        +  where False = all(<generator object test_bcrypt_runs_outside_event_loop.<locals>.<genexpr> at 0x7f7b9c7f6260>)
+
+tests/test_auth_nonblocking.py:56: AssertionError
+_________________ test_bcrypt_runs_outside_event_loop[legacy] __________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b9c85fa70>
+operation = 'legacy'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["lookup", "unique", "legacy", "password", "create"])
+    async def test_bcrypt_runs_outside_event_loop(monkeypatch, operation):
+        loop_thread = threading.get_ident()
+        calls = []
+        def checked(*args, **kwargs):
+            calls.append(threading.get_ident())
+            return True
+        def hashed(*args, **kwargs):
+            calls.append(threading.get_ident())
+            return "$2b$synthetic"
+        employees = SimpleNamespace(find_one=AsyncMock(return_value=None), find=lambda *a, **k: Cursor(),
+                                    update_one=AsyncMock(), insert_one=AsyncMock())
+        monkeypatch.setattr(auth, "db", SimpleNamespace(employees=employees))
+        monkeypatch.setattr(routes, "db", SimpleNamespace(employees=employees))
+        monkeypatch.setattr(auth, "verify_pin", checked)
+        monkeypatch.setattr(auth, "secure_hash_pin", hashed)
+        monkeypatch.setattr(routes, "secure_hash_pin", hashed)
+        monkeypatch.setattr(routes.bcrypt, "checkpw", checked)
+        if operation == "lookup":
+            await auth.find_employee_by_pin("123456")
+        elif operation == "unique":
+            await auth.pin_in_use("123456")
+        elif operation == "legacy":
+            employees.find_one.return_value = {"id": "synthetic", "pin_hash": "legacy"}
+            await auth.find_employee_by_pin("123456")
+        elif operation == "password":
+            employees.find_one.return_value = {"id": "synthetic", "password_hash": "synthetic"}
+            monkeypatch.setattr(routes, "check_login_limit", AsyncMock())
+            monkeypatch.setattr(routes, "successful_login", AsyncMock())
+            monkeypatch.setattr(routes, "create_session", AsyncMock(return_value="synthetic-token"))
+            await routes.login(LoginIn(username="test", password="synthetic-password"), Response(),
+                               Request({"type": "http", "headers": []}))
+        else:
+            monkeypatch.setattr(routes, "_pin_free", AsyncMock())
+            await routes.create_employee(EmployeeIn(name="Synthetic", role="caixa", pin="123456"), {})
+        assert calls
+>       assert all(thread != loop_thread for thread in calls), "bcrypt blocked the request event loop"
+E       AssertionError: bcrypt blocked the request event loop
+E       assert False
+E        +  where False = all(<generator object test_bcrypt_runs_outside_event_loop.<locals>.<genexpr> at 0x7f7b9c7f6dc0>)
+
+tests/test_auth_nonblocking.py:56: AssertionError
+________________ test_bcrypt_runs_outside_event_loop[password] _________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b9c855670>
+operation = 'password'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["lookup", "unique", "legacy", "password", "create"])
+    async def test_bcrypt_runs_outside_event_loop(monkeypatch, operation):
+        loop_thread = threading.get_ident()
+        calls = []
+        def checked(*args, **kwargs):
+            calls.append(threading.get_ident())
+            return True
+        def hashed(*args, **kwargs):
+            calls.append(threading.get_ident())
+            return "$2b$synthetic"
+        employees = SimpleNamespace(find_one=AsyncMock(return_value=None), find=lambda *a, **k: Cursor(),
+                                    update_one=AsyncMock(), insert_one=AsyncMock())
+        monkeypatch.setattr(auth, "db", SimpleNamespace(employees=employees))
+        monkeypatch.setattr(routes, "db", SimpleNamespace(employees=employees))
+        monkeypatch.setattr(auth, "verify_pin", checked)
+        monkeypatch.setattr(auth, "secure_hash_pin", hashed)
+        monkeypatch.setattr(routes, "secure_hash_pin", hashed)
+        monkeypatch.setattr(routes.bcrypt, "checkpw", checked)
+        if operation == "lookup":
+            await auth.find_employee_by_pin("123456")
+        elif operation == "unique":
+            await auth.pin_in_use("123456")
+        elif operation == "legacy":
+            employees.find_one.return_value = {"id": "synthetic", "pin_hash": "legacy"}
+            await auth.find_employee_by_pin("123456")
+        elif operation == "password":
+            employees.find_one.return_value = {"id": "synthetic", "password_hash": "synthetic"}
+            monkeypatch.setattr(routes, "check_login_limit", AsyncMock())
+            monkeypatch.setattr(routes, "successful_login", AsyncMock())
+            monkeypatch.setattr(routes, "create_session", AsyncMock(return_value="synthetic-token"))
+            await routes.login(LoginIn(username="test", password="synthetic-password"), Response(),
+                               Request({"type": "http", "headers": []}))
+        else:
+            monkeypatch.setattr(routes, "_pin_free", AsyncMock())
+            await routes.create_employee(EmployeeIn(name="Synthetic", role="caixa", pin="123456"), {})
+        assert calls
+>       assert all(thread != loop_thread for thread in calls), "bcrypt blocked the request event loop"
+E       AssertionError: bcrypt blocked the request event loop
+E       assert False
+E        +  where False = all(<generator object test_bcrypt_runs_outside_event_loop.<locals>.<genexpr> at 0x7f7b9c7f7c60>)
+
+tests/test_auth_nonblocking.py:56: AssertionError
+_________________ test_bcrypt_runs_outside_event_loop[create] __________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f7b9c8975f0>
+operation = 'create'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("operation", ["lookup", "unique", "legacy", "password", "create"])
+    async def test_bcrypt_runs_outside_event_loop(monkeypatch, operation):
+        loop_thread = threading.get_ident()
+        calls = []
+        def checked(*args, **kwargs):
+            calls.append(threading.get_ident())
+            return True
+        def hashed(*args, **kwargs):
+            calls.append(threading.get_ident())
+            return "$2b$synthetic"
+        employees = SimpleNamespace(find_one=AsyncMock(return_value=None), find=lambda *a, **k: Cursor(),
+                                    update_one=AsyncMock(), insert_one=AsyncMock())
+        monkeypatch.setattr(auth, "db", SimpleNamespace(employees=employees))
+        monkeypatch.setattr(routes, "db", SimpleNamespace(employees=employees))
+        monkeypatch.setattr(auth, "verify_pin", checked)
+        monkeypatch.setattr(auth, "secure_hash_pin", hashed)
+        monkeypatch.setattr(routes, "secure_hash_pin", hashed)
+        monkeypatch.setattr(routes.bcrypt, "checkpw", checked)
+        if operation == "lookup":
+            await auth.find_employee_by_pin("123456")
+        elif operation == "unique":
+            await auth.pin_in_use("123456")
+        elif operation == "legacy":
+            employees.find_one.return_value = {"id": "synthetic", "pin_hash": "legacy"}
+            await auth.find_employee_by_pin("123456")
+        elif operation == "password":
+            employees.find_one.return_value = {"id": "synthetic", "password_hash": "synthetic"}
+            monkeypatch.setattr(routes, "check_login_limit", AsyncMock())
+            monkeypatch.setattr(routes, "successful_login", AsyncMock())
+            monkeypatch.setattr(routes, "create_session", AsyncMock(return_value="synthetic-token"))
+            await routes.login(LoginIn(username="test", password="synthetic-password"), Response(),
+                               Request({"type": "http", "headers": []}))
+        else:
+            monkeypatch.setattr(routes, "_pin_free", AsyncMock())
+            await routes.create_employee(EmployeeIn(name="Synthetic", role="caixa", pin="123456"), {})
+        assert calls
+>       assert all(thread != loop_thread for thread in calls), "bcrypt blocked the request event loop"
+E       AssertionError: bcrypt blocked the request event loop
+E       assert False
+E        +  where False = all(<generator object test_bcrypt_runs_outside_event_loop.<locals>.<genexpr> at 0x7f7b9c8a9150>)
+
+tests/test_auth_nonblocking.py:56: AssertionError
+=============================== warnings summary ===============================
+../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
+  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+  The CallSpec2 alias will be removed in pytest 10.
+  Update imports to use CallSpec instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
+    from _pytest.python import CallSpec2
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_auth_nonblocking.py::test_bcrypt_runs_outside_event_loop[lookup]
+FAILED tests/test_auth_nonblocking.py::test_bcrypt_runs_outside_event_loop[unique]
+FAILED tests/test_auth_nonblocking.py::test_bcrypt_runs_outside_event_loop[legacy]
+FAILED tests/test_auth_nonblocking.py::test_bcrypt_runs_outside_event_loop[password]
+FAILED tests/test_auth_nonblocking.py::test_bcrypt_runs_outside_event_loop[create]
+5 failed, 1 warning in 0.33s
