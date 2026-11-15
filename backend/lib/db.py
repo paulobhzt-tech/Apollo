@@ -11,7 +11,8 @@ from pymongo import ASCENDING, DESCENDING, IndexModel
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 mongo_url = os.environ["MONGO_URL"]
-client = AsyncIOMotorClient(mongo_url, tz_aware=True)
+from lib.transaction_metrics import listeners
+client = AsyncIOMotorClient(mongo_url, tz_aware=True, event_listeners=listeners())
 db = client[os.environ["DB_NAME"]]
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,8 @@ INDEXES: dict[str, list[IndexModel]] = {
                IndexModel([("cash_session_id", ASCENDING)], name="cash_session"),
                IndexModel([("client_ref", ASCENDING)], name="client_ref", unique=True,
                           partialFilterExpression={"client_ref": {"$type": "string"}})],
-    "kitchen_tickets": [_id_idx(), IndexModel([("status", ASCENDING), ("created_at", ASCENDING)], name="status_created")],
+    "kitchen_tickets": [_id_idx(), IndexModel([("status", ASCENDING), ("created_at", ASCENDING)], name="status_created"),
+                        IndexModel([("order_id", ASCENDING)], name="order_id")],
     "invoices": [_id_idx(), IndexModel([("emitted_at", DESCENDING)], name="emitted_desc")],
     "cash_sessions": [_id_idx(), IndexModel([("status", ASCENDING)], name="status"),
                       IndexModel([("status", ASCENDING)], name="single_open_cash", unique=True,

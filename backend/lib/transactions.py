@@ -2,6 +2,7 @@
 import asyncio
 from contextlib import suppress
 import time
+import random
 
 from fastapi import HTTPException
 from pymongo import ReadPreference
@@ -12,6 +13,12 @@ from lib import db as database
 from lib.transaction_observability import TransactionProbe
 
 RETRY_SECONDS = 30
+
+
+def transient_delay(attempt, remaining):
+    """Dephase conflicts without extending the transaction retry budget."""
+    cap=min(.5, .01 * 2 ** min(max(attempt-1,0),6), max(0.,remaining))
+    return random.uniform(0.,cap)
 
 
 class RetrySnapshot(Exception):
@@ -28,6 +35,8 @@ async def run_transaction(callback, *, client=None):
     """
     probe = TransactionProbe()
     deadline = time.monotonic() + RETRY_SECONDS
+    probe.operation=getattr(callback,"__name__","callable")
+    probe.budget_deadline=deadline
     snapshot_retries = 0
     try:
         async with await (client if client is not None else database.client).start_session() as session:
@@ -61,7 +70,7 @@ async def run_transaction(callback, *, client=None):
                             and time.monotonic() < deadline):
                         probe.retry('transient_callback')
                         wait_started = time.monotonic()
-                        await asyncio.sleep(.01)
+                        await asyncio.sleep(transient_delay(probe.attempts,deadline-time.monotonic()))
                         probe.duration('retry_wait', wait_started)
                         continue
                     raise
@@ -89,7 +98,7 @@ async def run_transaction(callback, *, client=None):
                         if exc.has_error_label('TransientTransactionError'):
                             probe.retry('transient_commit')
                             wait_started = time.monotonic()
-                            await asyncio.sleep(.01)
+                            await asyncio.sleep(transient_delay(probe.attempts,deadline-time.monotonic()))
                             probe.duration('retry_wait', wait_started)
                             break  # new transaction, fresh snapshot
                         raise
