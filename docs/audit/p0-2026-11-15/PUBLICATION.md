@@ -1,8 +1,8 @@
 # Publicação da missão P0
 
-PR #16, em rascunho: https://github.com/paulobhzt-tech/Apollo/pull/16
+PR #16 em rascunho: https://github.com/paulobhzt-tech/Apollo/pull/16
 
-Base preservada: PR #15 / 15a075f75c9d141e7e7243f9ec14b424fefc49d8. Branch fix/p0-financial-stock-atomicity. Sem merge/deploy. Árvores locais e remotas de cada commit verificadas e idênticas; SHAs diferem por metadados da publicação via API.
+Base preservada: PR #15 / 15a075f75c9d141e7e7243f9ec14b424fefc49d8. Branch fix/p0-financial-stock-atomicity. Sem merge/deploy. Árvores locais/remotas comparadas e idênticas em cada commit; SHAs diferem por metadados da publicação via API.
 
 | Local | GitHub | Alteração |
 |---|---|---|
@@ -12,24 +12,30 @@ Base preservada: PR #15 / 15a075f75c9d141e7e7243f9ec14b424fefc49d8. Branch fix/p
 | df4df294afce254ab93b609c60b2edc501adfea3 | e92973865c7f9f17ecb4d9fcaa885a78a7112e21 | fix(refunds): allocate mixed reversals to actual remaining tenders |
 | 04fbcc8ef2d0b0f0c12a527a74020e07aff89bbe | 58b2d69ef10d4195687c4f8e045511cd3c00abe2 | test(p0): cover rollback, commit uncertainty, process crashes and HTTP regressions |
 | f770d86 | 58b02953638306edf570407392ab9a786c203861 | fix(idempotency): recheck committed marker before rejecting concurrent replay |
+| dee8828 | e936d0cb79f5656d58d875a6f1e032960ffeb541 | docs(p0): record real MongoDB evidence, recovery guarantees and rollout limits |
+| 32da156 | eb5467ecf442d3694e2db0dadce0e413de571480 | fix(transactions): restart stale namespace snapshots without trusting paid status |
 
-HEAD funcional validado: 58b02953638306edf570407392ab9a786c203861.
+HEAD funcional validado: **eb5467ecf442d3694e2db0dadce0e413de571480**.
 
-CI observado:
+Os três workflows desse HEAD concluíram com sucesso:
 
-- Run 43736208835: jobs backend, frontend, desktop e pagamentos concluídos com sucesso.
-- Run 43736208932: jobs segurança, 39 integrações reais, frontend, PowerShell/certificado Windows, configuração Linux e gestão comercial concluídos com sucesso. Não é homologação do aplicativo Windows.
-- Run 43736213019 (PR): consultar estado final no GitHub; seus jobs de build/backend já haviam passado durante a coleta.
-- O run intermediário 43735532262 falhou em uma corrida de replay e foi corrigido; não foi desabilitado nem omitido.
+- https://github.com/paulobhzt-tech/Apollo/actions/runs/43736754280: success
+- https://github.com/paulobhzt-tech/Apollo/actions/runs/43736746723: success
+- https://github.com/paulobhzt-tech/Apollo/actions/runs/43736746675: success
 
-Trechos dos dois jobs transacionais aprovados:
+Cada um dos três jobs transacionais independentes aprovou 40 integrações reais (38 novas + 2 existentes):
+
+- Run 43736754280, job 132880945837: success
+- Run 43736746723, job 132880925107: success
+- Run 43736746675, job 132880925058: success
+
+Trecho de log:
 
 ```text
-2026-11-15T16:35:08.4331692Z ##[group]Run python -m pytest -q -n 0 tests/test_partial_payment_integration.py tests/test_p0_atomicity_integration.py
-2026-11-15T16:35:38.7538166Z 39 passed in 29.80s
-2026-11-15T16:34:17.8130309Z ##[group]Run python -m pip install pytest pytest-xdist pytest-asyncio httpx fastapi motor pymongo python-dotenv pydantic bcrypt
-2026-11-15T16:34:41.8982217Z ##[group]Run pytest -q -n 0 tests/test_partial_payment_integration.py tests/test_p0_atomicity_integration.py
-2026-11-15T16:35:20.9842670Z 39 passed in 38.64s
+2026-11-15T16:41:18.1630744Z ##[group]Run python -m pytest -q -n 0 tests/test_partial_payment_integration.py tests/test_p0_atomicity_integration.py
+2026-11-15T16:41:57.3332876Z 40 passed in 38.59s
 ```
 
-Execução local completa: 318 testes e 3 subtestes passaram, incluindo quatro HTTP reais. Composição: 275 isolados, 37 integrações novas, 2 parciais existentes e 4 HTTP. Gestão: 21 testes e 8 subtestes; offline: 3 testes. Typecheck/build/lint passaram, com avisos existentes. As alterações documentais posteriores não modificam código executável.
+Local: **319 testes + 3 subtestes** na suíte completa sem exclusões/skips, incluindo os quatro HTTP antes pendentes. Composição: 275 isolados, 38 integrações novas, 2 parciais existentes, 4 HTTP. Gestão: 21 testes + 8 subtestes; offline: 3 testes. Typecheck/build/lint passaram com avisos existentes.
+
+Dois resultados intermediários de CI tiveram uma falha de replay; foram investigados e corrigidos, sem desabilitar testes (ci-race-before.txt e ci-snapshot-before.txt). Sucessos parciais não foram tratados como encerramento. O commit documental final posterior ao HEAD funcional não altera código executável.

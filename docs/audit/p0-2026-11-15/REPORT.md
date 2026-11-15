@@ -59,10 +59,10 @@ Não há chamada de adquirente, banco ou SEFAZ real na unidade implementada. Pag
 
 ## Testes e ambiente
 
-**Execução completa local: 318 testes e 3 subtestes aprovados, nenhum excluído, nenhum skip** (`evidence/full-suite-final.txt`). Composição:
+**Execução completa local: 319 testes e 3 subtestes aprovados, nenhum excluído, nenhum skip** (`evidence/full-suite-final.txt`). Composição:
 
 - 275 regressões isoladas, incluindo #13/#14/#15;
-- 37 novos testes de integração com persistência MongoDB real;
+- 38 novos testes de integração com persistência MongoDB real;
 - 2 testes existentes de pagamento parcial com replica set;
 - 4 testes HTTP antes pendentes, agora executados com Uvicorn real e dados sintéticos.
 
@@ -107,6 +107,14 @@ Na raiz: `node --experimental-vm-modules --test frontend/tests/offline-queue.tes
 
 Revisar PR #16 sem merge automático, validar CI e planejar homologação em infraestrutura representativa. Antes de produção: conciliar dados legados, completar backup/restauração, ampliar atomicidade aos fluxos restantes, testar failover/carga e Windows/offline. O checklist das 100 atividades registra o escopo efetivamente atendido; não transforma inspeções ou testes limitados em certificação total.
 
-## Ajuste encontrado no CI
+## Resultados intermediários do CI e correção final
 
-No HEAD intermediário 58b2d69, um dos workflows retornou 409 no replay simultâneo com duas requisições (35 integrações aprovadas e uma falha); os demais workflows passaram. A leitura inicial de uma coleção de marcadores ainda não criada pode preceder o snapshot da leitura de pedidos — hipótese consistente com a primeira utilização, sem captura de wire trace. A correção revalida o marcador confirmado e seu hash antes de classificar o pedido como legado. Sem marcador, a rejeição continua. Ver evidence/ci-race-before.txt. O código corrigido é 58b0295 no GitHub; a suíte local completa atualizada passou com 318 testes e 3 subtestes. O CI desse HEAD deve ser consultado no PR/PUBLICATION.md.
+| HEAD | Resultado relevante | Ação |
+|---|---|---|
+| 58b2d69 | Um job: 35 integrações passaram, uma falhou por 409 no replay simultâneo. Outros jobs passaram. | Revalidar marcador antes de classificar registro como legado. |
+| 58b0295 | Dois jobs com 39 integrações passaram; job do PR: 38 passaram, uma falhou no mesmo caminho. | O recheck na mesma transação foi insuficiente; reiniciar o snapshot. |
+| eb5467e | Três workflows concluídos com sucesso; três jobs independentes aprovaram 40 integrações reais cada. | Código funcional validado; documentação final posterior sem alteração executável. |
+
+A leitura de namespace recém-criado pode preceder o snapshot usado para pedidos — hipótese consistente com a primeira utilização, sem wire trace conclusivo. A versão final detecta pedido atomic_version=1 visível sem marcador, aborta e abre transação nova, com no máximo três reinícios específicos. Não confere sucesso pelo estado pago nem pela flag isolada. Se continuar sem marcador confirmado, retorna 409 para conciliação. Um teste com flag atômica mas marcador ausente comprova ausência de novas gravações. RetrySnapshot é condição interna de reinício de leitura; não se faz passar por label emitido pelo MongoDB.
+
+Logs: ci-race-before.txt, ci-snapshot-before.txt e PUBLICATION.md. Código final publicado: eb5467ecf442d3694e2db0dadce0e413de571480. Suíte local: 319 testes e 3 subtestes; CI transacional: 40 testes reais aprovados em cada um de três jobs. Nenhum dos resultados intermediários foi ocultado ou contornado.

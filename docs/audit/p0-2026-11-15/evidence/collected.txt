@@ -39,6 +39,7 @@ tests/test_p0_atomicity_integration.py::test_mixed_fiado_item_refund_does_not_re
 tests/test_p0_atomicity_integration.py::test_cancel_permanent_error_before_transition_is_replayable
 tests/test_p0_atomicity_integration.py::test_cancel_lost_response_after_commit_does_not_repeat_financial_effects
 tests/test_p0_atomicity_integration.py::test_permanent_sale_write_error_is_not_treated_as_transient
+tests/test_p0_atomicity_integration.py::test_atomic_flag_without_committed_marker_never_certifies_replay
 
 =============================== warnings summary ===============================
 ../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
@@ -49,4 +50,4 @@ tests/test_p0_atomicity_integration.py::test_permanent_sale_write_error_is_not_t
     from _pytest.python import CallSpec2
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-37 tests collected in 0.29s
+38 tests collected in 0.30s

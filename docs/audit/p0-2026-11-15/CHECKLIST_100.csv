@@ -29,16 +29,16 @@ atividade,estado,evidencia_e_limite
 28,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
 29,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
 30,APROVADO NO ESCOPO DOCUMENTADO,REPORT.md: unidade transacional e mapa de escritas; limites para dados legados
-31,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
-32,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
-33,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
-34,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
-35,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
-36,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
-37,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
-38,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
-39,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
-40,APROVADO NO ESCOPO DOCUMENTADO,"37 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+31,APROVADO NO ESCOPO DOCUMENTADO,"38 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+32,APROVADO NO ESCOPO DOCUMENTADO,"38 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+33,APROVADO NO ESCOPO DOCUMENTADO,"38 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+34,APROVADO NO ESCOPO DOCUMENTADO,"38 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+35,APROVADO NO ESCOPO DOCUMENTADO,"38 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+36,APROVADO NO ESCOPO DOCUMENTADO,"38 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+37,APROVADO NO ESCOPO DOCUMENTADO,"38 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+38,APROVADO NO ESCOPO DOCUMENTADO,"38 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+39,APROVADO NO ESCOPO DOCUMENTADO,"38 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
+40,APROVADO NO ESCOPO DOCUMENTADO,"38 integrações novas: fault injection real, replay/concorrência; sem queda de energia"
 41,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
 42,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
 43,APROVADO NO ESCOPO DOCUMENTADO,"REPORT.md: autorização fora do retry, CAS e transação; commit desconhecido coberto"
@@ -89,13 +89,13 @@ atividade,estado,evidencia_e_limite
 88,APROVADO NO ESCOPO DOCUMENTADO,Parcial/misto/caixa/fiado/FEFO testados; não certifica demais rotas legadas
 89,APROVADO NO ESCOPO DOCUMENTADO,Parcial/misto/caixa/fiado/FEFO testados; não certifica demais rotas legadas
 90,APROVADO NO ESCOPO DOCUMENTADO,Parcial/misto/caixa/fiado/FEFO testados; não certifica demais rotas legadas
-91,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
-92,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
-93,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
-94,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
-95,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
-96,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
-97,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
-98,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
-99,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
-100,APROVADO NO ESCOPO DOCUMENTADO,318 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+91,APROVADO NO ESCOPO DOCUMENTADO,319 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+92,APROVADO NO ESCOPO DOCUMENTADO,319 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+93,APROVADO NO ESCOPO DOCUMENTADO,319 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+94,APROVADO NO ESCOPO DOCUMENTADO,319 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+95,APROVADO NO ESCOPO DOCUMENTADO,319 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+96,APROVADO NO ESCOPO DOCUMENTADO,319 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+97,APROVADO NO ESCOPO DOCUMENTADO,319 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+98,APROVADO NO ESCOPO DOCUMENTADO,319 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+99,APROVADO NO ESCOPO DOCUMENTADO,319 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md
+100,APROVADO NO ESCOPO DOCUMENTADO,319 testes completos +3 subtestes; testes offline/build/lint; CI e PR16; ver REPORT.md

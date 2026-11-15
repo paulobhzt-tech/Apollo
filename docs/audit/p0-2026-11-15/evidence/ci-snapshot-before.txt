@@ -1,0 +1,4 @@
+Run 43736213019 / job 132879269751, HEAD 58b0295:
+2026-11-15T16:36:10.8471941Z E           fastapi.exceptions.HTTPException: 409: Venda anterior sem confirmação atômica; exige conciliação
+2026-11-15T16:36:10.8474602Z FAILED tests/test_p0_atomicity_integration.py::test_simultaneous_sale_replay_commits_one_set_of_effects[2] - fastapi.exceptions.HTTPException: 409: Venda anterior sem confirmação atômica; exige conciliação
+2026-11-15T16:36:10.8475721Z 1 failed, 38 passed in 38.73s

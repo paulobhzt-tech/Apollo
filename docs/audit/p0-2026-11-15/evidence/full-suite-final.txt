@@ -7,7 +7,7 @@ The event loop scope for asynchronous fixtures will default to the fixture scope
 ........................................................................ [ 44%]
 ........................................................................ [ 66%]
 ........................................................................ [ 89%]
-.................................                                        [100%]
+..................................                                       [100%]
 =============================== warnings summary ===============================
 ../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
   /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
@@ -17,4 +17,4 @@ The event loop scope for asynchronous fixtures will default to the fixture scope
     from _pytest.python import CallSpec2
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-318 passed, 1 warning, 3 subtests passed in 36.31s
+319 passed, 1 warning, 3 subtests passed in 36.24s
