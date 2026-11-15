@@ -157,10 +157,25 @@ async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
         discount = min(o.get("discount", 0), new_sub)
         total = round(new_sub - discount + service + (o.get("delivery_fee", 0) if live else 0), 2)
         amount = round(o["total"] - total, 2)
-        pays = sorted(o.get("payments", []), key=lambda p: -p["amount"])
-        main = pays[0] if pays else {"method": "dinheiro"}
-        refund = {"item_name": f"{item['qty']}x {item['name']}", "amount": amount, "method": main["method"],
-                  "brand": main.get("brand"), "reason": body.reason, "by_name": who, "at": now()}
+        # Refund actual remaining tenders, rather than attributing an entire
+        # mixed refund to the largest payment (which can over-credit fiado).
+        if amount < 0:
+            raise HTTPException(409, "Valores inconsistentes; exige conciliação")
+        payments = {pay_key(p): p for p in o.get("payments", [])}
+        available = method_totals([o], with_brand=True)
+        refunds = []
+        remaining = amount
+        item_name = f"{item['qty']}x {item['name']}"
+        for key in sorted(available, key=lambda key: -available[key]):
+            take = round(min(remaining, max(0, available[key])), 2)
+            if take <= 0:
+                continue
+            payment = payments[key]
+            refunds.append({"item_name": item_name, "amount": take, "method": payment["method"],
+                "brand": payment.get("brand"), "reason": body.reason, "by_name": who, "at": now()})
+            remaining = round(remaining - take, 2)
+        if remaining > 0.009:
+            raise HTTPException(409, "Pagamentos inconsistentes; exige conciliação")
         upd = {**set_item, "subtotal": new_sub, "service_fee": service, "discount": discount, "total": total,
                "cmv": round(sum(i["qty"] * i.get("unit_cost", 0) for i in live), 2)}
         if not live:
@@ -168,9 +183,10 @@ async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depend
             if o.get("invoice_id"):
                 await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}}, session=session)
         await db.orders.update_one({"id": id, "items.id": item_id},
-                                   {"$set": upd, "$push": {"refunds": refund}, "$inc": {"refunded_total": amount}}, session=session)
-        if main["method"] == "fiado":
-            await fiado_reverse(o, amount, who, f"Estorno de {refund['item_name']} (#{o['number']})", session=session)
+                                   {"$set": upd, "$push": {"refunds": {"$each": refunds}}, "$inc": {"refunded_total": amount}}, session=session)
+        fiado = round(sum(r["amount"] for r in refunds if r["method"] == "fiado"), 2)
+        if fiado:
+            await fiado_reverse(o, fiado, who, f"Estorno de {item_name} (#{o['number']})", session=session)
         return await db.orders.find_one({"id": id}, {"_id": 0}, session=session)
 
     return await run_transaction(refund)

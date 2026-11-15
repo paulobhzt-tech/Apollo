@@ -1,0 +1,33 @@
+REAL MongoDB 7.0.16 replica set apolloP0 PRIMARY
+/home/agent/.local/lib/python3.12/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_mixed_fiado_item_refund_does_not_refund_more_credit_than_paid ______
+
+scenario = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+
+    async def test_mixed_fiado_item_refund_does_not_refund_more_credit_than_paid(scenario):
+        db,_=scenario
+        result=await operations.quick_sale(sale(payments=[{'method':'fiado','amount':6},{'method':'pix','amount':4}],
+            fiado_customer_id='customer'),USER)
+        order=result['order']
+        refunded=await operations.refund_item(order['id'],order['items'][0]['id'],CancelIn(reason='Mixed refund'),USER)
+>       assert (await db.fiado_customers.find_one({'id':'customer'}))['balance'] == 0
+E       assert -4.0 == 0
+
+tests/test_p0_atomicity_integration.py:392: AssertionError
+=============================== warnings summary ===============================
+../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
+  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+  The CallSpec2 alias will be removed in pytest 10.
+  Update imports to use CallSpec instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
+    from _pytest.python import CallSpec2
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_p0_atomicity_integration.py::test_mixed_fiado_item_refund_does_not_refund_more_credit_than_paid
+1 failed, 33 deselected, 1 warning in 0.55s
