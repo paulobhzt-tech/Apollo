@@ -35,8 +35,8 @@ def local_today() -> str:
 
 async def next_seq(name: str, *, session=None) -> int:
     doc = await db.counters.find_one_and_update(
-        {"_id": name}, {"$inc": {"seq": 1}}, upsert=True, return_document=ReturnDocument.AFTER
-    , **session_kwargs(session))
+        {"_id": name}, {"$inc": {"seq": 1}}, upsert=True, return_document=ReturnDocument.AFTER, **session_kwargs(session)
+    )
     return int(doc["seq"])
 
 
