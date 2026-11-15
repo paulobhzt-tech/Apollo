@@ -33,6 +33,13 @@ async def test_contention_http():
     duration=int(os.environ.get('APOLLO_SOAK_SECONDS','0'))
     output=Path(os.environ['APOLLO_SOAK_OUTPUT'])
     mongo=MongoClient(os.environ['MONGO_URL']);db=mongo['apollo_p0_http_test']
+    kds_index=None
+    if os.environ.get('APOLLO_EXPECT_KDS_INDEX')=='1':
+        for _ in range(100):
+            kds_index=db.kitchen_tickets.index_information().get('order_id')
+            if kds_index:break
+            await asyncio.sleep(.1)
+        assert kds_index and kds_index['key']==[('order_id',1)] and not kds_index.get('unique',False)
     results=[];resources=[];stop=False
     async def monitor():
         while not stop:
@@ -101,7 +108,7 @@ async def test_contention_http():
                'stock_moves':db.stock_moves.count_documents({}),
                'cash_version':db.cash_sessions.find_one({'id':'http-cash'}).get('financial_version',0)}
         output.write_text(json.dumps({'partial':False,'duration_s':time.monotonic()-started,'rows':results,
-            'resources':resources,'integrity':final,'scope':'real HTTP keep-alive + single-node MongoDB; synthetic PDV sale/cancel; transaction policy under test'},indent=2)+'\n')
+            'resources':resources,'integrity':final,'kds_index':kds_index,'scope':'real HTTP keep-alive + single-node MongoDB; synthetic PDV sale/cancel; transaction policy under test'},indent=2)+'\n')
         assert final['markers']==final['orders'] and final['stock_moves']==2*final['orders'] and final['cash_version']==2*final['orders'],final
         assert final['stock']==1000 and final['paid_orders']==0 and not duplicates,final
     finally:

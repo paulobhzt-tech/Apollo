@@ -57,7 +57,7 @@ jobs:
           done
           exit 1
       - name: Testar pagamentos parciais e concorrencia
-        run: python -m pytest -q -n 0 tests/test_partial_payment_integration.py tests/test_p0_atomicity_integration.py tests/test_p1_integrity_integration.py tests/test_reconciliation.py tests/test_contention_integration.py
+        run: python -m pytest -q -n 0 tests/test_partial_payment_integration.py tests/test_p0_atomicity_integration.py tests/test_p1_integrity_integration.py tests/test_reconciliation.py tests/test_contention_integration.py tests/test_kds_index_integration.py
 
   frontend:
     runs-on: ubuntu-latest
