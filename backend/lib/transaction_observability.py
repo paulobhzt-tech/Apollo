@@ -9,6 +9,8 @@ import logging
 import os
 import time
 import uuid
+from collections import Counter
+from lib.transaction_metrics import emit as emit_file, PATH
 
 LOGGER = logging.getLogger("uvicorn.error")
 LABELS = ("TransientTransactionError", "UnknownTransactionCommitResult")
@@ -16,7 +18,11 @@ LABELS = ("TransientTransactionError", "UnknownTransactionCommitResult")
 
 class TransactionProbe:
     def __init__(self):
-        self.enabled = os.environ.get("APOLLO_TX_METRICS") == "1"
+        self.log_enabled = os.environ.get("APOLLO_TX_METRICS") == "1"
+        self.enabled = self.log_enabled or bool(PATH)
+        self.error_counts = Counter()
+        self.operation = "transaction"
+        self.budget_deadline = float("inf")
         self.started = time.monotonic()
         self.status = "failed"
         self.attempts = 0
@@ -40,6 +46,7 @@ class TransactionProbe:
     def error(self, stage, exc):
         if not self.enabled:
             return
+        self.error_counts[stage+":"+str(getattr(exc,"code",None))]+=1
         if len(self.errors) == 16:
             self.errors_omitted += 1
             return
@@ -69,4 +76,13 @@ class TransactionProbe:
             "errors": self.errors,
             "errors_omitted": self.errors_omitted,
         }
-        LOGGER.info(json.dumps(data, separators=(",", ":"), sort_keys=True))
+        if self.log_enabled:
+            LOGGER.info(json.dumps(data, separators=(",", ":"), sort_keys=True))
+        if PATH:
+            emit_file({'kind':'transaction','operation':self.operation,'outcome':'committed' if self.status=='committed' else 'error',
+                'phase':self.errors[-1]['stage'] if self.errors else 'commit','attempts':self.attempts,'commits':self.commit_calls,
+                'elapsed_s':(time.monotonic()-self.started),'callback_s':self.timings['callback'],
+                'commit_s':self.timings['commit'],'abort_s':self.timings['abort'],'wait_s':self.timings['retry_wait'],
+                'budget_exhausted':time.monotonic()>=self.budget_deadline,'errors':dict(self.error_counts),
+                'last_error':({'code':self.errors[-1]['mongo_code'],'labels':self.errors[-1]['mongo_labels'],
+                    'category':self.errors[-1]['exception_type']} if self.errors else None)})

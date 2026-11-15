@@ -28,6 +28,8 @@ async def run_transaction(callback, *, client=None):
     """
     probe = TransactionProbe()
     deadline = time.monotonic() + RETRY_SECONDS
+    probe.operation=getattr(callback,"__name__","callable")
+    probe.budget_deadline=deadline
     snapshot_retries = 0
     try:
         async with await (client if client is not None else database.client).start_session() as session:
