@@ -67,11 +67,11 @@ async def put_general(body: GeneralSettings, _: dict = Depends(require())):
 
 
 async def build_backup() -> tuple[str, dict]:
-    """Full JSON export (products incl. images, orders, finance…). PIN hashes, sessions and Drive tokens are excluded."""
+    """Full JSON export (products incl. images, orders, finance…). Credential hashes, sessions and Drive tokens are excluded."""
     data = {}
     for c in BACKUP_COLLS:
         if c == "employees":
-            proj = {"_id": 0, "pin_hash": 0}
+            proj = {"_id": 0, "pin_hash": 0, "password_hash": 0}
         else:
             proj = None if c in KEEP_ID else {"_id": 0}
         q = {"_id": {"$nin": ["drive", "selftest_last"]}} if c == "settings" else {}
@@ -102,7 +102,7 @@ def revive(v):
 
 @router.post("/backup/restore", response_model=RestoreOut)
 async def restore(body: RestoreIn, me: dict = Depends(require())):
-    """Replaces each collection present in the backup. Employees keep their current PINs (backups never carry PINs);
+    """Replaces each collection present in the backup. Employees keep their current credential hashes (backups never carry credentials);
     employees that do not exist here are restored inactive until the admin sets a PIN. The logged-in admin is always kept."""
     data = {k: v for k, v in body.data.items() if k in BACKUP_COLLS}
     if "settings" in data:  # never overwrite the Google Drive connection of this install
@@ -113,13 +113,17 @@ async def restore(body: RestoreIn, me: dict = Depends(require())):
     for c, docs in data.items():
         docs = [revive(d) for d in docs if isinstance(d, dict)]
         if c == "employees":
-            pins = {e["id"]: e.get("pin_hash") for e in await db.employees.find({}, {"_id": 0, "id": 1, "pin_hash": 1}).to_list(1000)}
+            credentials = {e["id"]: e for e in await db.employees.find(
+                {}, {"_id": 0, "id": 1, "pin_hash": 1, "password_hash": 1}).to_list(1000)}
             keep = [d for d in docs if d.get("id")]
             for d in keep:
-                d.pop("pin_hash", None)
-                if pins.get(d["id"]):
-                    d["pin_hash"] = pins[d["id"]]
-                else:
+                # Imported files must never overwrite local credential hashes.
+                local = credentials.get(d["id"], {})
+                for field in ("pin_hash", "password_hash"):
+                    d.pop(field, None)
+                    if local.get(field):
+                        d[field] = local[field]
+                if not local.get("pin_hash") and not local.get("password_hash"):
                     d["active"] = False
             await db.employees.delete_many({"id": {"$nin": [d["id"] for d in keep] + [me["id"]]}})
             for d in keep:
