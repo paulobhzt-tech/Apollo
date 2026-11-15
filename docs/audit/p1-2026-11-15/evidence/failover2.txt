@@ -1,0 +1,14 @@
+three authenticated mongod processes started
+Traceback (most recent call last):
+  File "/workspace/scratch/4731fac7ec33/Apollo/backend/tools/test_replica_failover.py", line 112, in <module>
+    if __name__=='__main__':main(sys.argv[1])
+                            ^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/4731fac7ec33/Apollo/backend/tools/test_replica_failover.py", line 91, in main
+    processes[old].terminate();processes[old].wait(timeout=10);start(old)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1264, in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 2045, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['/tmp/apollo-p1/mongodb-linux-x86_64-ubuntu2204-7.0.16/bin/mongod', '--dbpath', '/tmp/apollo-p1-three-node-sc7a41z7/27101', '--port', '27101', '--bind_ip', '127.0.0.1', '--nounixsocket', '--replSet', 'apolloP1', '--auth', '--keyFile', '/tmp/apollo-p1-three-node-sc7a41z7/cluster.key', '--wiredTigerCacheSizeGB', '0.25', '--setParameter', 'diagnosticDataCollectionEnabled=false']' timed out after 10 seconds
