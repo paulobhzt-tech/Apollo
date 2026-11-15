@@ -8,6 +8,7 @@ from uuid import uuid4
 from pymongo.errors import DuplicateKeyError
 
 from lib.db import db
+from lib.operation_keys import execute
 from lib.orders import build_items, create_ticket, move_stock, refresh_totals
 from routers.catalog import products_with_cost
 from routers.operations import create_delivery_order
@@ -93,18 +94,23 @@ async def request_table_split(id: str, body: SplitRequestIn):
 
 @router.post("/tables/{id}/order", response_model=PublicTable)
 async def public_table_order(id: str, body: PublicOrderIn):
-    t = await get_table(id)
-    if t["status"] == "reservada":
-        raise HTTPException(400, "Mesa reservada. Chame um garçom.")
-    items = await build_items(body.items)
-    order = await get_or_open_order(t, None, source="cardapio")
-    updated = await db.orders.update_one({"id": order["id"], "status": "aberto"}, {"$push": {"items": {"$each": [i.model_dump() for i in items]}}})
-    if updated.modified_count != 1:
-        raise HTTPException(409, "A comanda foi fechada. Atualize a mesa e tente novamente.")
-    await create_ticket(order, items)
-    await move_stock(items, "Cardápio QR", f"{table_label(t)} · QR")
-    o = await refresh_totals(order["id"])
-    return {"id": t["id"], "number": t["number"], "label": table_label(t), "status": "ocupada", "total": o["total"]}
+    async def unit(session):
+        t = await get_table(id, session=session)
+        if t["status"] == "reservada":
+            raise HTTPException(400, "Mesa reservada. Chame um garçom.")
+        items = await build_items(body.items, session=session)
+        order = await get_or_open_order(t, None, source="cardapio", session=session)
+        updated = await db.orders.update_one({"id": order["id"], "status": "aberto"}, {"$push": {"items": {"$each": [i.model_dump() for i in items]}}}, session=session)
+        if updated.modified_count != 1:
+            raise HTTPException(409, "A comanda foi fechada. Atualize a mesa e tente novamente.")
+        await create_ticket(order, items, session=session)
+        note = order.get("stock_note") or f"{table_label(t)} · Pedido #{order['number']}"
+        await db.orders.update_one({"id":order["id"]},{"$set":{"stock_note":note}}, session=session)
+        await move_stock(items, "Cardápio QR", note, session=session)
+        o = await refresh_totals(order["id"], session=session)
+        return {"id": t["id"], "number": t["number"], "label": table_label(t), "status": "ocupada", "total": o["total"]}
+
+    return await execute(db,"qr_order",body.client_ref,{"table":id,"body":body.model_dump()},unit)
 
 
 @router.post("/tables/{id}/call", response_model=OkOut)
@@ -119,8 +125,10 @@ async def public_delivery(body: PublicDeliveryIn):
     c = body.customer
     if len(c.name.strip()) < 2 or len(c.phone.strip()) < 8 or len(c.address.strip()) < 5:
         raise HTTPException(400, "Informe nome, telefone e endereço completos")
-    items = await build_items(body.items)
-    o = await create_delivery_order("site", items, c.model_dump(), pay_on_delivery=body.payment_method)
+    async def create(session):
+        items = await build_items(body.items,session=session)
+        return await create_delivery_order("site", items, c.model_dump(), pay_on_delivery=body.payment_method,session=session)
+    o = await execute(db,"delivery_create",body.client_ref,body.model_dump(),create)
     # Never let a CRM failure make a successfully created order look unsuccessful.
     try:
         from models.schemas import FiadoCustomer

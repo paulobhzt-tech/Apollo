@@ -142,6 +142,10 @@ def harness(monkeypatch):
     async def unit_transaction(callback):
         return await callback(object())
     monkeypatch.setattr(operations, "run_transaction", unit_transaction)
+    monkeypatch.setattr(tables, "run_transaction", unit_transaction)
+    async def unit_execute(db,kind,reference,payload,callback):
+        return await callback(object())
+    monkeypatch.setattr(tables,"execute",unit_execute)
     monkeypatch.setattr(operations, "move_stock", AsyncMock())
     monkeypatch.setattr(operations, "free_table", AsyncMock())
     monkeypatch.setattr(tables, "move_stock", AsyncMock())
