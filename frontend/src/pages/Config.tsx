@@ -216,16 +216,17 @@ function Restore() {
   });
   const pick = async (f: File) => {
     try {
-      const json = JSON.parse(await f.text()) as { app?: string; created_at?: string; data?: Record<string, unknown[]> };
+      const json = JSON.parse(await f.text()) as { app?: string; created_at?: string; data?: Record<string, unknown[]>; manifest?: Record<string, unknown>; format_version?: number };
       if (!json.data || typeof json.data !== "object") throw new Error("Arquivo não é um backup do sistema");
+      if (json.format_version !== 2 || !json.manifest) throw new Error("Backup antigo ou parcial: gere uma exportação integral versão 2");
       const n = (k: string) => (Array.isArray(json.data?.[k]) ? json.data[k].length : 0);
-      setFile({ name: f.name, body: { data: json.data }, summary: `${n("products")} produtos · ${n("orders")} vendas · ${n("employees")} funcionários · ${n("fiado_customers")} clientes fiado${json.created_at ? ` · gerado em ${json.created_at}` : ""}` });
+      setFile({ name: f.name, body: { data: json.data, manifest: json.manifest, format_version: json.format_version }, summary: `${n("products")} produtos · ${n("orders")} vendas · ${n("employees")} funcionários · ${n("fiado_customers")} clientes fiado${json.created_at ? ` · gerado em ${json.created_at}` : ""}` });
       setResult("");
     } catch (e) { toast.error(e instanceof Error ? e.message : "Arquivo inválido"); }
   };
   return (
     <Panel title="Restaurar backup (novo computador)">
-      <p className="text-sm text-zinc-400">Baixe o arquivo do Google Drive e envie aqui. <b className="text-amber-300">Os dados atuais serão substituídos</b> pelos do backup. Funcionários mantêm os PINs deste sistema; quem não existir aqui volta inativo até você cadastrar um PIN.</p>
+      <p className="text-sm text-zinc-400">Baixe o arquivo do Google Drive e envie aqui. <b className="text-amber-300">O destino deve estar vazio e isolado</b> para receber o backup. A restauração não sobrescreve dados existentes. Credenciais locais são preservadas; funcionários importados ficam inativos até revisão.</p>
       <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 px-4 py-5 text-sm text-zinc-300 transition-colors duration-150 hover:border-primary/50">
         <Upload className="size-4" /> {file ? file.name : "Escolher arquivo de backup (.json)"}
         <input type="file" accept="application/json,.json" className="hidden" data-testid="restore-file-input" onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); e.target.value = ""; }} />
@@ -233,7 +234,7 @@ function Restore() {
       {file && (
         <div className="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3" data-testid="restore-preview">
           <p className="text-sm text-amber-200">{file.summary}</p>
-          <Button className="mt-3" variant="destructive" disabled={run.isPending} onClick={() => window.confirm("Substituir os dados atuais pelos do backup?") && run.mutate(file.body)} data-testid="restore-confirm-button">
+          <Button className="mt-3" variant="destructive" disabled={run.isPending} onClick={() => window.confirm("Restaurar em destino vazio? Dados existentes não serão sobrescritos.") && run.mutate(file.body)} data-testid="restore-confirm-button">
             {run.isPending ? "Restaurando…" : "Restaurar agora"}
           </Button>
         </div>
