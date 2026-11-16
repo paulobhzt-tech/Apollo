@@ -57,3 +57,14 @@ Nova tentativa de execução nesta retomada: comando mínimo pwd via exec_comman
 Aplicada a instrução de contingência do solicitante: preservar trabalho e registrar impedimento se o ambiente continuar indisponível. Nenhum novo PR, ambiente Mongo, alteração de aplicação, benchmark, perfil ou regressão foi criado/executado nesta retomada. Etapas experimentais 3–9 continuam pendentes; atualização documental do mesmo PR atende ao registro do impedimento, não conclui homologação.
 
 Veredito mantido: P9 INCONCLUSIVA, P8 REPROVADA, PRODUÇÃO BLOQUEADA. Sem merge ou deploy. Retomar as etapas de Continuidade obrigatória quando houver executor disponível.
+
+## Retomada via GitHub Actions
+O impedimento anterior era do executor local; há agora um ambiente remoto disponível.
+HEAD recuperado: d5115f3ce245ed90a93da3bbf729901b55d043f3.
+Runner check confirmado: https://github.com/paulobhzt-tech/Apollo/actions/runs/43979973812, job 133693616722, sucesso. Logs mostram ping ok e server_info.version 7.0.16. Esse check usa standalone e não comprova transações; o novo diagnóstico reutiliza run_p8_load.py, que inicializa replica set p6load de um membro, loopback, cache 0,25 GiB, um worker e fixtures fictícias.
+
+Novo workflow p9-financial-diagnostic.yml publicado e iniciado automaticamente no PR:
+https://github.com/paulobhzt-tech/Apollo/actions/runs/43980582669
+HEAD de execução: 94040beb5a27c1bdb02b776e924e7c710013ab53.
+Reutiliza benchmark e auditoria P8 sem mudança financeira, cinco cargas de 30 s, controle seguido de perfil cProfile/event-loop (com overhead explícito). Não é ABBA nem aceitação prolongada. Artefatos incluem logs, JSONs de carga, eventos de transação/comando/pool, índices, perfil e runtime. Perfil Python cobre a thread instrumentada e não atribui sozinho todo o custo dos workers Motor ou do Mongo.
+Preflight compara os critérios P9/P8 e rejeita diferenças em backend/lib, backend/routers, frontend e desktop contra a P8. Ainda não há otimização de aplicação nem resultados novos consolidados. Não confundir um run verde com homologação.
