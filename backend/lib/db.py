@@ -40,7 +40,11 @@ INDEXES: dict[str, list[IndexModel]] = {
                IndexModel([("channel", ASCENDING), ("created_at", DESCENDING)], name="channel_created"),
                IndexModel([("cash_session_id", ASCENDING)], name="cash_session"),
                IndexModel([("client_ref", ASCENDING)], name="client_ref", unique=True,
-                          partialFilterExpression={"client_ref": {"$type": "string"}})],
+                          partialFilterExpression={"client_ref": {"$type": "string"}}),
+               # MongoDB 7 does not select the partial $type index for the
+               # unchanged equality probe. Keep uniqueness separate from the
+               # full lookup index so legacy BSON matching semantics survive.
+               IndexModel([("client_ref", ASCENDING)], name="client_ref_lookup")],
     "kitchen_tickets": [_id_idx(), IndexModel([("status", ASCENDING), ("created_at", ASCENDING)], name="status_created"),
                         IndexModel([("order_id", ASCENDING)], name="order_id")],
     "invoices": [_id_idx(), IndexModel([("emitted_at", DESCENDING)], name="emitted_desc")],
