@@ -1,0 +1,276 @@
+{
+  "stats": {
+    "startTime": "2026-11-16T15:58:30.875Z",
+    "duration": 722679.16,
+    "expected": 44,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "real cash opening, quantities, admin discount, sale, stock and closing",
+      "project": "desktop",
+      "status": "passed",
+      "duration_ms": 19715
+    },
+    {
+      "title": "cashier fiado writes actual customer balance and movement atomically",
+      "project": "desktop",
+      "status": "passed",
+      "duration_ms": 15802
+    },
+    {
+      "title": "lost response after real commit survives reload and tab close without replay",
+      "project": "desktop",
+      "status": "passed",
+      "duration_ms": 21765
+    },
+    {
+      "title": "double submission and concurrent identical HTTP replay debit once",
+      "project": "desktop",
+      "status": "passed",
+      "duration_ms": 15395
+    },
+    {
+      "title": "permanent precommit DB failure leaves no money/stock and no automatic replay",
+      "project": "desktop",
+      "status": "passed",
+      "duration_ms": 17521
+    },
+    {
+      "title": "unknown commit result on real replica set commits one financial unit",
+      "project": "desktop",
+      "status": "passed",
+      "duration_ms": 16264
+    },
+    {
+      "title": "real cookies, CSRF, backend roles, expiry and cross-tab session change",
+      "project": "desktop",
+      "status": "passed",
+      "duration_ms": 13919
+    },
+    {
+      "title": "waiter cannot submit financial requests or inspect reconciliation",
+      "project": "desktop",
+      "status": "passed",
+      "duration_ms": 6776
+    },
+    {
+      "title": "offline does not create a sale or queue; reconnect never submits it",
+      "project": "desktop",
+      "status": "passed",
+      "duration_ms": 15002
+    },
+    {
+      "title": "a pending operation in another tab blocks new requests at the browser boundary",
+      "project": "desktop",
+      "status": "passed",
+      "duration_ms": 19189
+    },
+    {
+      "title": "browser print acknowledgement cancelled keeps the actual kitchen ticket pending",
+      "project": "desktop",
+      "status": "passed",
+      "duration_ms": 18534
+    },
+    {
+      "title": "real cash opening, quantities, admin discount, sale, stock and closing",
+      "project": "notebook",
+      "status": "passed",
+      "duration_ms": 18561
+    },
+    {
+      "title": "cashier fiado writes actual customer balance and movement atomically",
+      "project": "notebook",
+      "status": "passed",
+      "duration_ms": 15863
+    },
+    {
+      "title": "lost response after real commit survives reload and tab close without replay",
+      "project": "notebook",
+      "status": "passed",
+      "duration_ms": 21764
+    },
+    {
+      "title": "double submission and concurrent identical HTTP replay debit once",
+      "project": "notebook",
+      "status": "passed",
+      "duration_ms": 14702
+    },
+    {
+      "title": "permanent precommit DB failure leaves no money/stock and no automatic replay",
+      "project": "notebook",
+      "status": "passed",
+      "duration_ms": 18059
+    },
+    {
+      "title": "unknown commit result on real replica set commits one financial unit",
+      "project": "notebook",
+      "status": "passed",
+      "duration_ms": 16317
+    },
+    {
+      "title": "real cookies, CSRF, backend roles, expiry and cross-tab session change",
+      "project": "notebook",
+      "status": "passed",
+      "duration_ms": 15638
+    },
+    {
+      "title": "waiter cannot submit financial requests or inspect reconciliation",
+      "project": "notebook",
+      "status": "passed",
+      "duration_ms": 7755
+    },
+    {
+      "title": "offline does not create a sale or queue; reconnect never submits it",
+      "project": "notebook",
+      "status": "passed",
+      "duration_ms": 17135
+    },
+    {
+      "title": "a pending operation in another tab blocks new requests at the browser boundary",
+      "project": "notebook",
+      "status": "passed",
+      "duration_ms": 21593
+    },
+    {
+      "title": "browser print acknowledgement cancelled keeps the actual kitchen ticket pending",
+      "project": "notebook",
+      "status": "passed",
+      "duration_ms": 20520
+    },
+    {
+      "title": "real cash opening, quantities, admin discount, sale, stock and closing",
+      "project": "tablet",
+      "status": "passed",
+      "duration_ms": 21655
+    },
+    {
+      "title": "cashier fiado writes actual customer balance and movement atomically",
+      "project": "tablet",
+      "status": "passed",
+      "duration_ms": 16120
+    },
+    {
+      "title": "lost response after real commit survives reload and tab close without replay",
+      "project": "tablet",
+      "status": "passed",
+      "duration_ms": 21980
+    },
+    {
+      "title": "double submission and concurrent identical HTTP replay debit once",
+      "project": "tablet",
+      "status": "passed",
+      "duration_ms": 16039
+    },
+    {
+      "title": "permanent precommit DB failure leaves no money/stock and no automatic replay",
+      "project": "tablet",
+      "status": "passed",
+      "duration_ms": 17659
+    },
+    {
+      "title": "unknown commit result on real replica set commits one financial unit",
+      "project": "tablet",
+      "status": "passed",
+      "duration_ms": 15968
+    },
+    {
+      "title": "real cookies, CSRF, backend roles, expiry and cross-tab session change",
+      "project": "tablet",
+      "status": "passed",
+      "duration_ms": 13857
+    },
+    {
+      "title": "waiter cannot submit financial requests or inspect reconciliation",
+      "project": "tablet",
+      "status": "passed",
+      "duration_ms": 6898
+    },
+    {
+      "title": "offline does not create a sale or queue; reconnect never submits it",
+      "project": "tablet",
+      "status": "passed",
+      "duration_ms": 14261
+    },
+    {
+      "title": "a pending operation in another tab blocks new requests at the browser boundary",
+      "project": "tablet",
+      "status": "passed",
+      "duration_ms": 18053
+    },
+    {
+      "title": "browser print acknowledgement cancelled keeps the actual kitchen ticket pending",
+      "project": "tablet",
+      "status": "passed",
+      "duration_ms": 18289
+    },
+    {
+      "title": "real cash opening, quantities, admin discount, sale, stock and closing",
+      "project": "mobile",
+      "status": "passed",
+      "duration_ms": 18081
+    },
+    {
+      "title": "cashier fiado writes actual customer balance and movement atomically",
+      "project": "mobile",
+      "status": "passed",
+      "duration_ms": 15265
+    },
+    {
+      "title": "lost response after real commit survives reload and tab close without replay",
+      "project": "mobile",
+      "status": "passed",
+      "duration_ms": 21917
+    },
+    {
+      "title": "double submission and concurrent identical HTTP replay debit once",
+      "project": "mobile",
+      "status": "passed",
+      "duration_ms": 13768
+    },
+    {
+      "title": "permanent precommit DB failure leaves no money/stock and no automatic replay",
+      "project": "mobile",
+      "status": "passed",
+      "duration_ms": 16430
+    },
+    {
+      "title": "unknown commit result on real replica set commits one financial unit",
+      "project": "mobile",
+      "status": "passed",
+      "duration_ms": 16060
+    },
+    {
+      "title": "real cookies, CSRF, backend roles, expiry and cross-tab session change",
+      "project": "mobile",
+      "status": "passed",
+      "duration_ms": 13299
+    },
+    {
+      "title": "waiter cannot submit financial requests or inspect reconciliation",
+      "project": "mobile",
+      "status": "passed",
+      "duration_ms": 6748
+    },
+    {
+      "title": "offline does not create a sale or queue; reconnect never submits it",
+      "project": "mobile",
+      "status": "passed",
+      "duration_ms": 14422
+    },
+    {
+      "title": "a pending operation in another tab blocks new requests at the browser boundary",
+      "project": "mobile",
+      "status": "passed",
+      "duration_ms": 17093
+    },
+    {
+      "title": "browser print acknowledgement cancelled keeps the actual kitchen ticket pending",
+      "project": "mobile",
+      "status": "passed",
+      "duration_ms": 17933
+    }
+  ]
+}

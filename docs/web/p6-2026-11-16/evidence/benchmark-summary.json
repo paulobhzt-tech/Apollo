@@ -1,0 +1,240 @@
+{
+  "before": {
+    "duration_s": 301.808894411,
+    "rows": [
+      {
+        "sessions": 5,
+        "duration_s": 15.407,
+        "completed_pairs": 659,
+        "requests": 1318,
+        "p50_ms": 10.76,
+        "p95_ms": 41.8,
+        "p99_ms": 1685.85,
+        "request_throughput_s": 85.55,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 659,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 85.55
+      },
+      {
+        "sessions": 10,
+        "duration_s": 15.769,
+        "completed_pairs": 615,
+        "requests": 1230,
+        "p50_ms": 11.79,
+        "p95_ms": 442.59,
+        "p99_ms": 3300.65,
+        "request_throughput_s": 78.0,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 615,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 78.0
+      },
+      {
+        "sessions": 20,
+        "duration_s": 15.848,
+        "completed_pairs": 552,
+        "requests": 1104,
+        "p50_ms": 12.75,
+        "p95_ms": 1923.96,
+        "p99_ms": 4628.82,
+        "request_throughput_s": 69.66,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 552,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 69.66
+      },
+      {
+        "sessions": 30,
+        "duration_s": 16.158,
+        "completed_pairs": 443,
+        "requests": 886,
+        "p50_ms": 15.0,
+        "p95_ms": 3348.14,
+        "p99_ms": 7482.78,
+        "request_throughput_s": 54.83,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 443,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 54.83
+      },
+      {
+        "sessions": 50,
+        "duration_s": 16.961,
+        "completed_pairs": 316,
+        "requests": 632,
+        "p50_ms": 23.44,
+        "p95_ms": 6089.36,
+        "p99_ms": 12870.81,
+        "request_throughput_s": 37.26,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 316,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 37.26
+      },
+      {
+        "sessions": 50,
+        "duration_s": 221.638,
+        "completed_pairs": 4777,
+        "requests": 9555,
+        "p50_ms": 22.56,
+        "p95_ms": 7233.52,
+        "p99_ms": 13913.12,
+        "request_throughput_s": 43.11,
+        "error_rate": 0.00010465724751439037,
+        "errors": {
+          "/api/pdv/sale:503": 1
+        },
+        "unique_attempted": 4777,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 43.11
+      }
+    ],
+    "integrity": {
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 7362,
+      "markers": 7362,
+      "stock_moves": 14724,
+      "cash_version": 14724
+    },
+    "scope": "real HTTP keep-alive + single-node MongoDB; synthetic PDV sale/cancel; transaction policy under test",
+    "telemetry": {
+      "mongo_codes": {
+        "112": 41838
+      },
+      "transaction_outcomes": {
+        "committed": 14725,
+        "failed": 1
+      },
+      "backend_max_rss_kib": 83428,
+      "mongo_max_rss_kib": 297124,
+      "resource_samples": 61
+    }
+  },
+  "after": {
+    "duration_s": 302.3483299049999,
+    "rows": [
+      {
+        "sessions": 5,
+        "duration_s": 15.284,
+        "completed_pairs": 740,
+        "requests": 1480,
+        "p50_ms": 9.85,
+        "p95_ms": 41.87,
+        "p99_ms": 994.72,
+        "request_throughput_s": 96.83,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 740,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 96.83
+      },
+      {
+        "sessions": 10,
+        "duration_s": 15.506,
+        "completed_pairs": 704,
+        "requests": 1408,
+        "p50_ms": 10.34,
+        "p95_ms": 287.41,
+        "p99_ms": 3148.05,
+        "request_throughput_s": 90.8,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 704,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 90.8
+      },
+      {
+        "sessions": 20,
+        "duration_s": 16.114,
+        "completed_pairs": 601,
+        "requests": 1202,
+        "p50_ms": 11.63,
+        "p95_ms": 1867.29,
+        "p99_ms": 4268.73,
+        "request_throughput_s": 74.6,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 601,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 74.6
+      },
+      {
+        "sessions": 30,
+        "duration_s": 16.239,
+        "completed_pairs": 484,
+        "requests": 968,
+        "p50_ms": 14.44,
+        "p95_ms": 3189.84,
+        "p99_ms": 6926.43,
+        "request_throughput_s": 59.61,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 484,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 59.61
+      },
+      {
+        "sessions": 50,
+        "duration_s": 16.964,
+        "completed_pairs": 374,
+        "requests": 748,
+        "p50_ms": 18.67,
+        "p95_ms": 5603.53,
+        "p99_ms": 10061.28,
+        "request_throughput_s": 44.09,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 374,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 44.09
+      },
+      {
+        "sessions": 50,
+        "duration_s": 222.212,
+        "completed_pairs": 4653,
+        "requests": 9307,
+        "p50_ms": 23.63,
+        "p95_ms": 7191.06,
+        "p99_ms": 14358.57,
+        "request_throughput_s": 41.88,
+        "error_rate": 0.00010744600838078866,
+        "errors": {
+          "/api/pdv/sale:503": 1
+        },
+        "unique_attempted": 4653,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 41.88
+      }
+    ],
+    "integrity": {
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 7556,
+      "markers": 7556,
+      "stock_moves": 15112,
+      "cash_version": 15112
+    },
+    "scope": "real HTTP keep-alive + single-node MongoDB; synthetic PDV sale/cancel; transaction policy under test",
+    "telemetry": {
+      "mongo_codes": {
+        "112": 41669
+      },
+      "transaction_outcomes": {
+        "committed": 15113,
+        "failed": 1
+      },
+      "backend_max_rss_kib": 83280,
+      "mongo_max_rss_kib": 295820,
+      "resource_samples": 61
+    }
+  }
+}

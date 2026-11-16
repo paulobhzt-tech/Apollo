@@ -1,0 +1,29 @@
+(node:14) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:14) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✖ browser print API failure rejects instead of acknowledging a ticket (51.025017ms)
+✔ opening a browser print dialog resolves without claiming physical delivery (2.298283ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 158.984564
+
+✖ failing tests:
+
+test at ../../../../tmp/p6-print-before.test.mjs:14:1
+✖ browser print API failure rejects instead of acknowledging a ticket (51.025017ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///tmp/p6-print-before.test.mjs:14:124)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /permanece pendente/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

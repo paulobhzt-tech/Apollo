@@ -1,0 +1,45 @@
+Running 40 tests using 1 worker
+2026-11-16T15:47:38.5350946Z
+2026-11-16T15:48:40.9959779Z   ✘   1 [desktop] › p6/financial.spec.ts:39:5 › real cash opening, quantities, admin discount, sale, stock and closing (1.0m)
+2026-11-16T15:48:40.9964511Z Testing stopped early after 1 maximum allowed failures.
+2026-11-16T15:48:40.9977210Z
+2026-11-16T15:48:40.9982094Z
+2026-11-16T15:48:40.9988212Z   1) [desktop] › p6/financial.spec.ts:39:5 › real cash opening, quantities, admin discount, sale, stock and closing
+2026-11-16T15:48:40.9991059Z
+2026-11-16T15:48:40.9991640Z     Test timeout of 60000ms exceeded.
+2026-11-16T15:48:40.9991883Z
+2026-11-16T15:48:40.9992075Z     Error: locator.click: Test timeout of 60000ms exceeded.
+2026-11-16T15:48:40.9992392Z     Call log:
+2026-11-16T15:48:40.9992689Z       - waiting for getByTestId('payment-method-dinheiro')
+2026-11-16T15:48:40.9992918Z
+2026-11-16T15:48:40.9992926Z
+2026-11-16T15:48:40.9993112Z       20 |  await page.getByTestId('pdv-checkout-button').click();
+2026-11-16T15:48:40.9993638Z       21 |  await page.getByTestId('payment-discount-input').fill(discount);
+2026-11-16T15:48:40.9994106Z     > 22 |  await page.getByTestId('payment-method-'+method).click();
+2026-11-16T15:48:40.9994483Z          |                                                   ^
+2026-11-16T15:48:40.9994785Z       23 |  if(method==='fiado') {
+2026-11-16T15:48:40.9995128Z       24 |    await page.getByTestId('fiado-customer-select').click();
+2026-11-16T15:48:40.9995771Z       25 |    await page.getByRole('option').filter({hasText:'Cliente fictício P6'}).click();
+2026-11-16T15:48:40.9996329Z         at prepare (/home/runner/work/Apollo/Apollo/tests/p6/financial.spec.ts:22:51)
+2026-11-16T15:48:40.9996826Z         at /home/runner/work/Apollo/Apollo/tests/p6/financial.spec.ts:40:49
+2026-11-16T15:48:40.9997085Z
+2026-11-16T15:48:40.9997458Z     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+2026-11-16T15:48:40.9998159Z     test-results/p6/financial-real-cash-openin-651c6-ount-sale-stock-and-closing-desktop/test-failed-1.png
+2026-11-16T15:48:40.9998886Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-11-16T15:48:40.9999246Z
+2026-11-16T15:48:40.9999661Z     Error Context: test-results/p6/financial-real-cash-openin-651c6-ount-sale-stock-and-closing-desktop/error-context.md
+2026-11-16T15:48:41.0000086Z
+2026-11-16T15:48:41.0000436Z     attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+2026-11-16T15:48:41.0001146Z     test-results/p6/financial-real-cash-openin-651c6-ount-sale-stock-and-closing-desktop/trace.zip
+2026-11-16T15:48:41.0001581Z     Usage:
+2026-11-16T15:48:41.0001678Z
+2026-11-16T15:48:41.0002118Z         npx playwright show-trace test-results/p6/financial-real-cash-openin-651c6-ount-sale-stock-and-closing-desktop/trace.zip
+2026-11-16T15:48:41.0002572Z
+2026-11-16T15:48:41.0002893Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-11-16T15:48:41.0003673Z
+2026-11-16T15:48:41.0003757Z   1 failed
+2026-11-16T15:48:41.0004281Z     [desktop] › p6/financial.spec.ts:39:5 › real cash opening, quantities, admin discount, sale, stock and closing
+2026-11-16T15:48:41.0004765Z   39 did not run
+2026-11-16T15:48:41.0005038Z   1 error was not a part of any test, see above for details
+2026-11-16T15:48:42.2941455Z ##[error]Process completed with exit code 1.
+2026-11-16T15:48:42.2981425Z ##[group]

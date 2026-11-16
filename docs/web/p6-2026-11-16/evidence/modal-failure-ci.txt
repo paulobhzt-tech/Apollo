@@ -1,0 +1,72 @@
+Running 44 tests using 1 worker
+2026-11-16T15:53:02.0785413Z
+2026-11-16T15:53:21.1837714Z   ✓   1 [desktop] › p6/financial.spec.ts:46:5 › real cash opening, quantities, admin discount, sale, stock and closing (18.7s)
+2026-11-16T15:53:37.0609421Z   ✓   2 [desktop] › p6/financial.spec.ts:57:5 › cashier fiado writes actual customer balance and movement atomically (15.9s)
+2026-11-16T15:53:59.7598951Z   ✓   3 [desktop] › p6/financial.spec.ts:62:5 › lost response after real commit survives reload and tab close without replay (22.7s)
+2026-11-16T15:54:15.5025592Z   ✓   4 [desktop] › p6/financial.spec.ts:74:5 › double submission and concurrent identical HTTP replay debit once (15.7s)
+2026-11-16T15:55:17.7261106Z   ✘   5 [desktop] › p6/financial.spec.ts:83:5 › permanent precommit DB failure leaves no money/stock and no automatic replay (1.0m)
+2026-11-16T15:55:17.7267287Z Testing stopped early after 1 maximum allowed failures.
+2026-11-16T15:55:17.7287699Z
+2026-11-16T15:55:17.7288026Z
+2026-11-16T15:55:17.7299252Z   1) [desktop] › p6/financial.spec.ts:83:5 › permanent precommit DB failure leaves no money/stock and no automatic replay
+2026-11-16T15:55:17.7300379Z
+2026-11-16T15:55:17.7300816Z     Test timeout of 60000ms exceeded.
+2026-11-16T15:55:17.7301327Z
+2026-11-16T15:55:17.7301799Z     Error: locator.click: Test timeout of 60000ms exceeded.
+2026-11-16T15:55:17.7302319Z     Call log:
+2026-11-16T15:55:17.7302686Z       - waiting for getByTestId('web-sale-reconcile')
+2026-11-16T15:55:17.7303654Z         - locator resolved to <button type="button" class="mt-2 rounded border p-3" data-testid="web-sale-reconcile">Consultar resultado no servidor</button>
+2026-11-16T15:55:17.7304473Z       - attempting click action
+2026-11-16T15:55:17.7305078Z         2 × waiting for element to be visible, enabled and stable
+2026-11-16T15:55:17.7305585Z           - element is visible, enabled and stable
+2026-11-16T15:55:17.7306002Z           - scrolling into view if needed
+2026-11-16T15:55:17.7306367Z           - done scrolling
+2026-11-16T15:55:17.7309121Z           - <div data-open="" aria-hidden="true" role="presentation" data-base-ui-inert="" data-slot="dialog-overlay" class="fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"></div> from <div id="_r_a_" data-base-ui-portal="" data-slot="dialog-portal">…</div> subtree intercepts pointer events
+2026-11-16T15:55:17.7310743Z         - retrying click action
+2026-11-16T15:55:17.7310955Z         - waiting 20ms
+2026-11-16T15:55:17.7311268Z         2 × waiting for element to be visible, enabled and stable
+2026-11-16T15:55:17.7311583Z           - element is visible, enabled and stable
+2026-11-16T15:55:17.7311842Z           - scrolling into view if needed
+2026-11-16T15:55:17.7312067Z           - done scrolling
+2026-11-16T15:55:17.7314022Z           - <div data-open="" aria-hidden="true" role="presentation" data-base-ui-inert="" data-slot="dialog-overlay" class="fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"></div> from <div id="_r_a_" data-base-ui-portal="" data-slot="dialog-portal">…</div> subtree intercepts pointer events
+2026-11-16T15:55:17.7315204Z         - retrying click action
+2026-11-16T15:55:17.7315415Z           - waiting 100ms
+2026-11-16T15:55:17.7315736Z         86 × waiting for element to be visible, enabled and stable
+2026-11-16T15:55:17.7316049Z            - element is visible, enabled and stable
+2026-11-16T15:55:17.7316317Z            - scrolling into view if needed
+2026-11-16T15:55:17.7316537Z            - done scrolling
+2026-11-16T15:55:17.7318518Z            - <div data-open="" aria-hidden="true" role="presentation" data-base-ui-inert="" data-slot="dialog-overlay" class="fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"></div> from <div id="_r_a_" data-base-ui-portal="" data-slot="dialog-portal">…</div> subtree intercepts pointer events
+2026-11-16T15:55:17.7320636Z          - retrying click action
+2026-11-16T15:55:17.7320930Z            - waiting 500ms
+2026-11-16T15:55:17.7321112Z
+2026-11-16T15:55:17.7321118Z
+2026-11-16T15:55:17.7321409Z       87 |  await expect(page.getByTestId('web-sale-recovery')).toBeVisible();
+2026-11-16T15:55:17.7322223Z       88 |  expect(db().orders).toHaveLength(0);expect(db().stock).toBe(1000);expect(db().markers).toBe(0);
+2026-11-16T15:55:17.7323061Z     > 89 |  await page.getByTestId('web-sale-reconcile').click();await expect(page.getByTestId('web-sale-recovery')).toContainText('ainda não confirmado');
+2026-11-16T15:55:17.7323697Z          |                                               ^
+2026-11-16T15:55:17.7323959Z       90 | });
+2026-11-16T15:55:17.7324132Z       91 |
+2026-11-16T15:55:17.7324487Z       92 | test('unknown commit result on real replica set commits one financial unit',async({page})=>{
+2026-11-16T15:55:17.7324964Z         at /home/runner/work/Apollo/Apollo/tests/p6/financial.spec.ts:89:47
+2026-11-16T15:55:17.7325192Z
+2026-11-16T15:55:17.7325516Z     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+2026-11-16T15:55:17.7326108Z     test-results/p6/financial-permanent-precom-fd328-ock-and-no-automatic-replay-desktop/test-failed-1.png
+2026-11-16T15:55:17.7326727Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-11-16T15:55:17.7327322Z
+2026-11-16T15:55:17.7327729Z     Error Context: test-results/p6/financial-permanent-precom-fd328-ock-and-no-automatic-replay-desktop/error-context.md
+2026-11-16T15:55:17.7328119Z
+2026-11-16T15:55:17.7328438Z     attachment #6: trace (application/zip) ─────────────────────────────────────────────────────────
+2026-11-16T15:55:17.7329142Z     test-results/p6/financial-permanent-precom-fd328-ock-and-no-automatic-replay-desktop/trace.zip
+2026-11-16T15:55:17.7329564Z     Usage:
+2026-11-16T15:55:17.7329652Z
+2026-11-16T15:55:17.7330039Z         npx playwright show-trace test-results/p6/financial-permanent-precom-fd328-ock-and-no-automatic-replay-desktop/trace.zip
+2026-11-16T15:55:17.7330434Z
+2026-11-16T15:55:17.7330716Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-11-16T15:55:17.7330937Z
+2026-11-16T15:55:17.7331009Z   1 failed
+2026-11-16T15:55:17.7331477Z     [desktop] › p6/financial.spec.ts:83:5 › permanent precommit DB failure leaves no money/stock and no automatic replay
+2026-11-16T15:55:17.7331881Z   39 did not run
+2026-11-16T15:55:17.7332055Z   4 passed (2.3m)
+2026-11-16T15:55:17.7332314Z   1 error was not a part of any test, see above for details
+2026-11-16T15:55:19.1335338Z ##[error]Process completed with exit code 1.
+2026-11-16T15:55:19.1381482Z ##[group]

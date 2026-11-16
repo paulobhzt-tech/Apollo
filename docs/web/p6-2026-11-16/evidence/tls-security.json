@@ -1,0 +1,10 @@
+{
+  "tls_certificate_verified": true,
+  "secure_cookie": true,
+  "httpOnly": true,
+  "sameSite": "lax",
+  "authenticated_https": true,
+  "cross_scheme_csrf_status": 403,
+  "hostile_cors_not_allowed": true,
+  "scope": "localhost synthetic certificate; no production infrastructure certified"
+}

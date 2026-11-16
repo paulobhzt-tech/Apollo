@@ -1,3 +1,4 @@
+import { WEB_SESSION_BOUNDARY } from "../lib/webSessionBoundary";
 import './web.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -19,3 +20,7 @@ createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </StrictMode>,
 )
+
+window.addEventListener("storage", event => {
+  if (event.key === WEB_SESSION_BOUNDARY) { queryClient.clear(); window.location.assign("/login"); }
+});

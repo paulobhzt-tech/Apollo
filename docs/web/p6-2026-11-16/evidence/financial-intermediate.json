@@ -1,0 +1,212 @@
+[
+  {
+    "scenario": "real cash opening, quantities, admin discount, sale, stock and closing",
+    "project": "desktop",
+    "snapshot": {
+      "orders": [
+        {
+          "id": "df8018ac-3d35-43c2-96a6-07f5cabd3cf1",
+          "status": "pago",
+          "discount": 2,
+          "total": 18,
+          "payments": [
+            {
+              "method": "dinheiro",
+              "amount": 18,
+              "brand": null
+            }
+          ],
+          "waiter_id": "p6-admin",
+          "client_ref": "web-1b80b904-2ffd-4657-8824-e7ea394b8204"
+        }
+      ],
+      "stock": 998,
+      "lot": 998,
+      "markers": 1,
+      "stock_sales": 1,
+      "tickets": 1,
+      "ticket_printed": [
+        []
+      ],
+      "fiado_balance": 0,
+      "customer_moves": 0,
+      "cash": [
+        {
+          "id": "48dfe74e-42e4-4d76-a4c4-2c104460fb50",
+          "opened_by_name": "Fict\u00edcio admin",
+          "opened_at": "2026-11-16 15:53:10.087000+00:00",
+          "opening_amount": 100,
+          "status": "fechado",
+          "closed_at": "2026-11-16 15:53:18.453000+00:00",
+          "closed_by_name": "Fict\u00edcio admin",
+          "counted_amount": 118,
+          "expected_cash": 118,
+          "difference": 0,
+          "movements": [],
+          "totals_by_method": {
+            "dinheiro": 18
+          },
+          "sales_count": 1,
+          "sales_total": 18,
+          "financial_version": 1
+        }
+      ]
+    }
+  },
+  {
+    "scenario": "cashier fiado writes actual customer balance and movement atomically",
+    "project": "desktop",
+    "snapshot": {
+      "orders": [
+        {
+          "id": "e43b1767-9cec-45ac-88fe-c1c3419ce65c",
+          "status": "pago",
+          "discount": 0,
+          "total": 20,
+          "payments": [
+            {
+              "method": "fiado",
+              "amount": 20,
+              "brand": null
+            }
+          ],
+          "waiter_id": "p6-caixa",
+          "client_ref": "web-2c3ae21e-10e3-4af9-8a9a-48bfc785af85"
+        }
+      ],
+      "stock": 998,
+      "lot": 998,
+      "markers": 1,
+      "stock_sales": 1,
+      "tickets": 1,
+      "ticket_printed": [
+        []
+      ],
+      "fiado_balance": 20,
+      "customer_moves": 1,
+      "cash": [
+        {
+          "id": "eac83a95-cfc1-4807-b651-95cb4f13c63f",
+          "opened_by_name": "Fict\u00edcio caixa",
+          "opened_at": "2026-11-16 15:53:28.263000+00:00",
+          "opening_amount": 100,
+          "status": "aberto",
+          "closed_at": null,
+          "closed_by_name": "",
+          "counted_amount": null,
+          "expected_cash": 0,
+          "difference": 0,
+          "movements": [],
+          "totals_by_method": {},
+          "sales_count": 0,
+          "sales_total": 0,
+          "financial_version": 1
+        }
+      ]
+    }
+  },
+  {
+    "scenario": "lost response after real commit survives reload and tab close without replay",
+    "project": "desktop",
+    "snapshot": {
+      "orders": [
+        {
+          "id": "8c7d23d4-062e-4cc2-a98a-415543e6f5b6",
+          "status": "pago",
+          "discount": 0,
+          "total": 20,
+          "payments": [
+            {
+              "method": "dinheiro",
+              "amount": 20,
+              "brand": null
+            }
+          ],
+          "waiter_id": "p6-caixa",
+          "client_ref": "web-c35fb465-2580-42f5-91d8-f798f380587c"
+        }
+      ],
+      "stock": 998,
+      "lot": 998,
+      "markers": 1,
+      "stock_sales": 1,
+      "tickets": 1,
+      "ticket_printed": [
+        []
+      ],
+      "fiado_balance": 0,
+      "customer_moves": 0,
+      "cash": [
+        {
+          "id": "e927462c-d9fd-4f6a-9109-3dd2f2423928",
+          "opened_by_name": "Fict\u00edcio caixa",
+          "opened_at": "2026-11-16 15:53:44.591000+00:00",
+          "opening_amount": 100,
+          "status": "aberto",
+          "closed_at": null,
+          "closed_by_name": "",
+          "counted_amount": null,
+          "expected_cash": 0,
+          "difference": 0,
+          "movements": [],
+          "totals_by_method": {},
+          "sales_count": 0,
+          "sales_total": 0,
+          "financial_version": 1
+        }
+      ]
+    }
+  },
+  {
+    "scenario": "double submission and concurrent identical HTTP replay debit once",
+    "project": "desktop",
+    "snapshot": {
+      "orders": [
+        {
+          "id": "68bd92d1-f0a7-4fb8-8e14-d298e8452bc3",
+          "status": "pago",
+          "discount": 0,
+          "total": 20,
+          "payments": [
+            {
+              "method": "dinheiro",
+              "amount": 20,
+              "brand": null
+            }
+          ],
+          "waiter_id": "p6-caixa",
+          "client_ref": "web-abb992eb-bb5a-4f3c-bc4d-1868acc3ff56"
+        }
+      ],
+      "stock": 998,
+      "lot": 998,
+      "markers": 1,
+      "stock_sales": 1,
+      "tickets": 1,
+      "ticket_printed": [
+        []
+      ],
+      "fiado_balance": 0,
+      "customer_moves": 0,
+      "cash": [
+        {
+          "id": "ce1dcc46-d483-4c64-a5ad-38d3acf3784f",
+          "opened_by_name": "Fict\u00edcio caixa",
+          "opened_at": "2026-11-16 15:54:06.971000+00:00",
+          "opening_amount": 100,
+          "status": "aberto",
+          "closed_at": null,
+          "closed_by_name": "",
+          "counted_amount": null,
+          "expected_cash": 0,
+          "difference": 0,
+          "movements": [],
+          "totals_by_method": {},
+          "sales_count": 0,
+          "sales_total": 0,
+          "financial_version": 1
+        }
+      ]
+    }
+  }
+]

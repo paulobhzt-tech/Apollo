@@ -1,0 +1,61 @@
+{
+  "scope": "P6 UI test observations, last document navigation only. Not total commercial-flow latency, not load test, no baseline comparison.",
+  "projects": {
+    "desktop": {
+      "api_success_response_ttfb_ms": {
+        "n": 233,
+        "p50": 9.36,
+        "p95": 23.75,
+        "p99": 75.62
+      },
+      "last_navigation_duration_ms": {
+        "n": 10,
+        "p50": 307.8,
+        "p95": 419.5,
+        "p99": 419.5
+      }
+    },
+    "notebook": {
+      "api_success_response_ttfb_ms": {
+        "n": 233,
+        "p50": 10.05,
+        "p95": 25.03,
+        "p99": 35.67
+      },
+      "last_navigation_duration_ms": {
+        "n": 10,
+        "p50": 356.2,
+        "p95": 487.4,
+        "p99": 487.4
+      }
+    },
+    "tablet": {
+      "api_success_response_ttfb_ms": {
+        "n": 233,
+        "p50": 9.25,
+        "p95": 17.09,
+        "p99": 31.33
+      },
+      "last_navigation_duration_ms": {
+        "n": 10,
+        "p50": 347.2,
+        "p95": 427,
+        "p99": 427
+      }
+    },
+    "mobile": {
+      "api_success_response_ttfb_ms": {
+        "n": 233,
+        "p50": 8.49,
+        "p95": 19.3,
+        "p99": 32.59
+      },
+      "last_navigation_duration_ms": {
+        "n": 10,
+        "p50": 324.9,
+        "p95": 399.5,
+        "p99": 399.5
+      }
+    }
+  }
+}
