@@ -115,8 +115,8 @@ test('waiter cannot submit financial requests or inspect reconciliation',async({
 test('offline does not create a sale or queue; reconnect never submits it',async({page,context})=>{
  await login(page);await openCash(page);await prepare(page);
  let sent=0;page.on('request',r=>{if(r.url().endsWith('/api/pdv/sale'))sent++;});
- await context.setOffline(true);await page.getByTestId('payment-confirm-button').click();
- await expect(page.getByTestId('pdv-offline-banner')).toBeVisible();
+ await context.setOffline(true);await expect(page.getByTestId('pdv-offline-banner')).toBeVisible();
+ await page.getByTestId('payment-confirm-button').click();
  expect(db().orders).toHaveLength(0);expect(db().stock).toBe(1000);
  await context.setOffline(false);expect(sent).toBe(0);
  expect(await page.evaluate(()=>localStorage.getItem('pdv_offline_queue'))).toBeNull();
@@ -138,8 +138,9 @@ test('a pending operation in another tab blocks new requests at the browser boun
  test('browser print acknowledgement cancelled keeps the actual kitchen ticket pending',async({page})=>{
  await login(page);await openCash(page);await prepare(page);const result=await finalize(page);db('printer');
  await page.goto('/impressao');await expect(page.getByTestId('print-auto-toggle')).toBeDisabled();
- page.once('dialog',d=>d.dismiss());
+ const confirmation=page.waitForEvent('dialog');
  await page.getByTestId(`print-reprint-${result.order.number}-cozinha`).click();
+ await (await confirmation).dismiss();
  await expect(page.getByTestId('print-log')).toContainText('Nada impresso');
  expect(db().ticket_printed).toEqual([[]]);
 });

@@ -70,6 +70,7 @@ export default function Pdv() {
       void queryClient.invalidateQueries({ queryKey: ["cash"] });
     },
     onError: (e, p) => {
+      if (!isDesktop()) setPayOpen(false);
       if (!(e instanceof ApiError) && isDesktop()) {
         enqueue({ payload: p, total: subtotal, queued_at: new Date().toISOString() });
         toast.warning("Sem conexão: venda salva no modo contingência e será sincronizada");
