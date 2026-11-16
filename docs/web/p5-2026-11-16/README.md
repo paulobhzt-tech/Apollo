@@ -91,7 +91,7 @@ P5_BASE_URL permite escolher servidor de testes; P5_CHROMIUM é opcional para Ch
 - 221 testes backend isolados aprovados (test_auth_security, test_csrf_origin, test_role_permissions, test_frontend_paths, test_transaction_metrics).
 - Playwright local: 12 falhas de infraestrutura antes da abertura do browser; Chromium aborta com `socket() failed: Operation not permitted`. Nenhuma dessas falhas conta como aprovação/reprovação funcional. Relatório original em evidence/playwright-blocked.json.
 - MongoDB 7.0.16 oficial baixado; inicialização recusada por `open: Operation not permitted`, registrada em evidence/mongo-blocked.log. Integração financeira, concorrência e recuperação com réplica real **não executadas nesta missão**. Evidências anteriores não substituem revalidação.
-- Navegador de revisão abriu /login, título Apollo PDV · Web e formulário visível; conferência visual desktop apenas. Sem autenticar, sem criar transação. Capturas automatizadas de 390/820/1440 px serão artefatos do workflow, quando aprovado.
+- Navegador de revisão abriu /login, título Apollo PDV · Web e formulário visível; conferência visual desktop apenas. Sem autenticar, sem criar transação. Captura desktop em evidence/login-desktop.jpg. Capturas automatizadas de 390/820/1440 px serão artefatos do workflow, quando aprovado.
 - Não medidos: p50/p95/p99 web/API, carregamento em rede lenta, memória, recursos do servidor, concorrência de operadores e impressão. Backend #19 ainda registra 503 em soak; bloqueio crítico permanece.
 
 ## Desempenho de build
@@ -101,3 +101,7 @@ Mesma instalação e host: build legado eager ≈1.267 kB JS (≈368 kB gzip); e
 ## Critério de saída
 
 Entrega é uma base web funcional para desenvolvimento e revisão, com controles adicionais, **não homologação dos 20 módulos**. Antes de aceitar: aprovar CI web e testar fluxos completos com API/Mongo reais, concorrência e recuperação, matriz de autorização, impressão, dispositivos e navegadores compatíveis; resolver capacidade #19; conciliar PRs paralelos e P2/P3/P4; medir desempenho real. Sem isso a liberação permanece bloqueada.
+
+## Publicação
+
+PR em rascunho: https://github.com/paulobhzt-tech/Apollo/pull/20. Quatro commits de implementação/CI mais este registro visual/documental. Publicação via API GitHub com comparação dos SHAs de árvore local/remoto; hashes de commit diferem por metadados. Workflow P5 acionado no HEAD funcional `7fffdb2dc86ccb3d11d85df67932e826599f04a3`: https://github.com/paulobhzt-tech/Apollo/actions/runs/43896171908 (em execução na última consulta). Nenhuma aprovação remota dos 12 cenários é alegada neste registro.
