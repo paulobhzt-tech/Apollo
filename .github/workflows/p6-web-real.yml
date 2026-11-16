@@ -1,0 +1,61 @@
+name: P6 - Real financial web validation
+on:
+  push:
+    branches: ["test/p6-web-financial-validation"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Dependencies and official disposable MongoDB
+        run: |
+          python -m pip install fastapi==0.141.1 uvicorn motor==3.7.1 pymongo==4.18.2 bcrypt==4.0.1 python-dotenv pytest pytest-xdist pytest-asyncio pytest-subtests httpx python-multipart email-validator google-api-python-client google-auth-oauthlib requests pandas
+          npm --prefix frontend install --ignore-scripts --package-lock=false --no-audit
+          npm --prefix tests install --ignore-scripts --package-lock=false --no-audit
+          cd tests
+          npx playwright install --with-deps chromium
+          curl -fL https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-7.0.16.tgz -o /tmp/p6-mongo.tgz
+          tar -xzf /tmp/p6-mongo.tgz -C /tmp
+      - name: Regression - types, both builds, lint, offline and recovery
+        run: |
+          npm --prefix frontend run typecheck
+          npm --prefix frontend run build
+          cd frontend
+          npx vite build --config vite.web.config.ts
+          npm run lint
+          node --experimental-vm-modules --test tests/offline-queue.test.mjs tests/web-sale-recovery.test.mjs
+      - name: Preserve twelve P5 browser tests
+        run: |
+          cd frontend
+          npx vite --config vite.web.config.ts >/tmp/p5-regression-vite.log 2>&1 &
+          VITE_PID=$!
+          cd ../tests
+          trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do if curl -fsS http://127.0.0.1:3001/login >/dev/null; then break; fi; sleep 1; done
+          npx playwright test --config p5.playwright.config.ts
+      - name: Real backend financial, security, concurrency, recovery regression
+        env:
+          MONGOD_BIN: /tmp/mongodb-linux-x86_64-ubuntu2204-7.0.16/bin/mongod
+        working-directory: backend
+        run: python tools/run_replica_tests.py --http -q tests | tee /tmp/p6-backend.txt
+      - name: Actual browser, FastAPI and MongoDB - no financial mocks
+        env:
+          MONGOD_BIN: /tmp/mongodb-linux-x86_64-ubuntu2204-7.0.16/bin/mongod
+        run: python backend/tools/run_p6_web.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p6-real-web-evidence
+          path: |
+            tests/test-results/p6
+            tests/test-results/p5
+            docs/web/p6-2026-11-16/evidence
+            /tmp/p6-backend.txt

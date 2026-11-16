@@ -89,6 +89,23 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
         raise exc
 
 
+@router.get("/pdv/operations/{reference}")
+async def pdv_operation_status(reference: str, _: dict = Depends(require("caixa"))):
+    """Read-only reconciliation. Absence never certifies that a payment failed."""
+    if len(reference) > 120 or len(reference) < 6:
+        raise HTTPException(422, "Referência inválida")
+    key = "pdv:" + hashlib.sha256(reference.encode()).hexdigest()
+    async def inspect(session):
+        marker = await db.financial_operations.find_one({"_id": key, "kind": "pdv_sale"}, session=session)
+        if not marker or not marker.get("committed_at") or not marker.get("order_id"):
+            return {"state": "needs_review"}
+        order = await db.orders.find_one({"id": marker["order_id"], "client_ref": reference, "atomic_version": 1}, session=session)
+        if not order or order.get("status") not in ("pago", "cancelado"):
+            return {"state": "needs_review"}
+        return {"state": "confirmed", "order_id": order["id"], "number": order["number"], "status": order["status"]}
+    return await run_transaction(inspect)
+
+
 @router.get("/orders", response_model=list[Order])
 async def list_orders(status: Optional[str] = None, channel: Optional[str] = None, limit: int = 100,
                       _: dict = Depends(require("caixa"))):

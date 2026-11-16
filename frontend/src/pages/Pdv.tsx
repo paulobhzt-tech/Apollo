@@ -1,6 +1,8 @@
+import { webCheckout } from "@/lib/webSaleRecovery";
+import WebSaleRecovery from "@/components/WebSaleRecovery";
 import { isDesktop } from "@/lib/desktop";
 import { getReceiptPref, printSimpleReceipt } from "@/lib/receipt";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Minus, Plus, ShoppingBag, Trash2, WifiOff } from "lucide-react";
 import { toast } from "sonner";
@@ -24,7 +26,6 @@ export default function Pdv() {
   const { offline, queue } = useOffline();
   const products = useQuery({ queryKey: ["products"], queryFn: () => apiGet<Product[]>("/products") });
   const categories = useQuery({ queryKey: ["categories"], queryFn: () => apiGet<Category[]>("/categories") });
-  const unresolved = useRef<QuickSaleIn | null>(null);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customer, setCustomer] = useState("");
   const [kitchen, setKitchen] = useState(true);
@@ -59,9 +60,8 @@ export default function Pdv() {
   const reset = () => { setCart([]); setCustomer(""); setPayOpen(false); };
 
   const sale = useMutation({
-    mutationFn: (p: QuickSaleIn) => apiPost<SaleResult>("/pdv/sale", p),
+    mutationFn: (p: QuickSaleIn) => isDesktop() ? apiPost<SaleResult>("/pdv/sale", p) : webCheckout(ref => apiPost<SaleResult>("/pdv/sale", { ...p, client_ref: ref })),
     onSuccess: (r) => {
-      unresolved.current = null;
       toast.success(`Venda #${r.order.number} finalizada${r.order.change ? ` · Troco ${brl(r.order.change)}` : ""}`);
       reset();
       if (getReceiptPref()) void printSimpleReceipt(r.order);
@@ -70,7 +70,6 @@ export default function Pdv() {
       void queryClient.invalidateQueries({ queryKey: ["cash"] });
     },
     onError: (e, p) => {
-      if (e instanceof ApiError && e.status < 500 && ![408, 425, 429].includes(e.status)) unresolved.current = null;
       if (!(e instanceof ApiError) && isDesktop()) {
         enqueue({ payload: p, total: subtotal, queued_at: new Date().toISOString() });
         toast.warning("Sem conexão: venda salva no modo contingência e será sincronizada");
@@ -94,18 +93,6 @@ export default function Pdv() {
       reset();
       return;
     }
-    if (!isDesktop()) {
-      if (unresolved.current) {
-        const { client_ref: _previousRef, ...previous } = unresolved.current;
-        const { client_ref: _newRef, ...next } = payload;
-        if (JSON.stringify(previous) !== JSON.stringify(next)) {
-          toast.error("Há uma venda sem resultado confirmado. Confira o histórico antes de alterar e reenviar.");
-          return;
-        }
-        payload.client_ref = unresolved.current.client_ref;
-      }
-      unresolved.current = payload;
-    }
     sale.mutate(payload);
   };
 
@@ -114,6 +101,7 @@ export default function Pdv() {
       <PageHeader title="Frente de Caixa" subtitle="F2 pagamento · F4 limpar · Enter na busca adiciona o item" actions={
         offline ? <span className="flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs text-amber-200" data-testid="pdv-offline-banner"><WifiOff className="size-3.5" /> Contingência offline · {queue.length} na fila</span> : null
       } />
+      <WebSaleRecovery />
       <div className="grid gap-5 xl:grid-cols-12">
         <div className="xl:col-span-7 2xl:col-span-8">
           <ProductGrid products={prodList} categories={categories.data ?? []} onAdd={add} />
@@ -151,7 +139,7 @@ export default function Pdv() {
               <span className="text-sm text-zinc-400">{cart.reduce((s, l) => s + l.qty, 0)} itens</span>
               <span className="font-mono text-3xl font-medium text-white" data-testid="pdv-subtotal">{brl(subtotal)}</span>
             </div>
-            <Button className="mt-3 h-14 text-lg" disabled={!cart.length} onClick={() => setPayOpen(true)} data-testid="pdv-checkout-button">
+            <Button className="mt-3 h-14 text-lg" disabled={!cart.length || sale.isPending} onClick={() => setPayOpen(true)} data-testid="pdv-checkout-button">
               Pagamento (F2)
             </Button>
           </div>
