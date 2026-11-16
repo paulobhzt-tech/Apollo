@@ -1,0 +1,687 @@
+{
+  "config": {
+    "argv": [
+      "/opt/hostedtoolcache/node/24.22.2/x64/bin/node",
+      "/home/runner/work/Apollo/Apollo/tests/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "p5.playwright.config.ts"
+    ],
+    "configFile": "/home/runner/work/Apollo/Apollo/tests/p5.playwright.config.ts",
+    "rootDir": "/home/runner/work/Apollo/Apollo/tests/p5",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "ci": {
+        "commitHref": "https://github.com/paulobhzt-tech/Apollo/commit/dfca52809f45d223c5aea0d6045d30c5c6e46b32",
+        "commitHash": "dfca52809f45d223c5aea0d6045d30c5c6e46b32",
+        "buildHref": "https://github.com/paulobhzt-tech/Apollo/actions/runs/43911034137"
+      },
+      "gitCommit": {
+        "shortHash": "dfca528",
+        "hash": "dfca52809f45d223c5aea0d6045d30c5c6e46b32",
+        "subject": "test(p7): define ABBA campaign, long acceptance and web regression matrix",
+        "body": "test(p7): define ABBA campaign, long acceptance and web regression matrix",
+        "author": {
+          "name": "paulobhzt-tech",
+          "email": "paulobhzt@gmail.com",
+          "time": 1794847529000
+        },
+        "committer": {
+          "name": "paulobhzt-tech",
+          "email": "paulobhzt@gmail.com",
+          "time": 1794847529000
+        },
+        "branch": "fix/p7-transaction-contention"
+      },
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/home/runner/work/Apollo/Apollo/tests/test-results/p5",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "ci": {
+            "commitHref": "https://github.com/paulobhzt-tech/Apollo/commit/dfca52809f45d223c5aea0d6045d30c5c6e46b32",
+            "commitHash": "dfca52809f45d223c5aea0d6045d30c5c6e46b32",
+            "buildHref": "https://github.com/paulobhzt-tech/Apollo/actions/runs/43911034137"
+          },
+          "gitCommit": {
+            "shortHash": "dfca528",
+            "hash": "dfca52809f45d223c5aea0d6045d30c5c6e46b32",
+            "subject": "test(p7): define ABBA campaign, long acceptance and web regression matrix",
+            "body": "test(p7): define ABBA campaign, long acceptance and web regression matrix",
+            "author": {
+              "name": "paulobhzt-tech",
+              "email": "paulobhzt@gmail.com",
+              "time": 1794847529000
+            },
+            "committer": {
+              "name": "paulobhzt-tech",
+              "email": "paulobhzt@gmail.com",
+              "time": 1794847529000
+            },
+            "branch": "fix/p7-transaction-contention"
+          },
+          "actualWorkers": 1
+        },
+        "id": "desktop",
+        "name": "desktop",
+        "testDir": "/home/runner/work/Apollo/Apollo/tests/p5",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/runner/work/Apollo/Apollo/tests/test-results/p5",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "ci": {
+            "commitHref": "https://github.com/paulobhzt-tech/Apollo/commit/dfca52809f45d223c5aea0d6045d30c5c6e46b32",
+            "commitHash": "dfca52809f45d223c5aea0d6045d30c5c6e46b32",
+            "buildHref": "https://github.com/paulobhzt-tech/Apollo/actions/runs/43911034137"
+          },
+          "gitCommit": {
+            "shortHash": "dfca528",
+            "hash": "dfca52809f45d223c5aea0d6045d30c5c6e46b32",
+            "subject": "test(p7): define ABBA campaign, long acceptance and web regression matrix",
+            "body": "test(p7): define ABBA campaign, long acceptance and web regression matrix",
+            "author": {
+              "name": "paulobhzt-tech",
+              "email": "paulobhzt@gmail.com",
+              "time": 1794847529000
+            },
+            "committer": {
+              "name": "paulobhzt-tech",
+              "email": "paulobhzt@gmail.com",
+              "time": 1794847529000
+            },
+            "branch": "fix/p7-transaction-contention"
+          },
+          "actualWorkers": 1
+        },
+        "id": "tablet",
+        "name": "tablet",
+        "testDir": "/home/runner/work/Apollo/Apollo/tests/p5",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/runner/work/Apollo/Apollo/tests/test-results/p5",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "ci": {
+            "commitHref": "https://github.com/paulobhzt-tech/Apollo/commit/dfca52809f45d223c5aea0d6045d30c5c6e46b32",
+            "commitHash": "dfca52809f45d223c5aea0d6045d30c5c6e46b32",
+            "buildHref": "https://github.com/paulobhzt-tech/Apollo/actions/runs/43911034137"
+          },
+          "gitCommit": {
+            "shortHash": "dfca528",
+            "hash": "dfca52809f45d223c5aea0d6045d30c5c6e46b32",
+            "subject": "test(p7): define ABBA campaign, long acceptance and web regression matrix",
+            "body": "test(p7): define ABBA campaign, long acceptance and web regression matrix",
+            "author": {
+              "name": "paulobhzt-tech",
+              "email": "paulobhzt@gmail.com",
+              "time": 1794847529000
+            },
+            "committer": {
+              "name": "paulobhzt-tech",
+              "email": "paulobhzt@gmail.com",
+              "time": 1794847529000
+            },
+            "branch": "fix/p7-transaction-contention"
+          },
+          "actualWorkers": 1
+        },
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "/home/runner/work/Apollo/Apollo/tests/p5",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "./test-results/p5/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "web.spec.ts",
+      "file": "web.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "login responsive, keyboard skip link, no password persistence",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1346,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T16:46:56.711Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/home/runner/work/Apollo/Apollo/tests/test-results/p5/web-login-responsive-keybo-e04e8-ink-no-password-persistence-desktop/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2948388c6448a8e5345d-62afdebe200d30e1b378",
+          "file": "web.spec.ts",
+          "line": 19,
+          "column": 5
+        },
+        {
+          "title": "unauthenticated direct route never mounts protected module",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 343,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T16:46:58.353Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/home/runner/work/Apollo/Apollo/tests/test-results/p5/web-unauthenticated-direct-3a1d2-ver-mounts-protected-module-desktop/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2948388c6448a8e5345d-61cd9da28888ff60f3ff",
+          "file": "web.spec.ts",
+          "line": 33,
+          "column": 5
+        },
+        {
+          "title": "cashier direct admin URL does not fetch admin data",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 502,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T16:46:58.710Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/home/runner/work/Apollo/Apollo/tests/test-results/p5/web-cashier-direct-admin-URL-does-not-fetch-admin-data-desktop/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2948388c6448a8e5345d-486b96fe6ebe1278c9d9",
+          "file": "web.spec.ts",
+          "line": 40,
+          "column": 5
+        },
+        {
+          "title": "PDV navigation, logout visible, web contingency unavailable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1230,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T16:46:59.224Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/home/runner/work/Apollo/Apollo/tests/test-results/p5/web-PDV-navigation-logout--b29e0-web-contingency-unavailable-desktop/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2948388c6448a8e5345d-671cc560917efd408e44",
+          "file": "web.spec.ts",
+          "line": 49,
+          "column": 5
+        },
+        {
+          "title": "login responsive, keyboard skip link, no password persistence",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet",
+              "projectName": "tablet",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1341,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T16:47:00.842Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/home/runner/work/Apollo/Apollo/tests/test-results/p5/web-login-responsive-keybo-e04e8-ink-no-password-persistence-tablet/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2948388c6448a8e5345d-feae3acc530fb5639816",
+          "file": "web.spec.ts",
+          "line": 19,
+          "column": 5
+        },
+        {
+          "title": "unauthenticated direct route never mounts protected module",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet",
+              "projectName": "tablet",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 329,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T16:47:02.286Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/home/runner/work/Apollo/Apollo/tests/test-results/p5/web-unauthenticated-direct-3a1d2-ver-mounts-protected-module-tablet/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2948388c6448a8e5345d-0a213070c16f733e7c8d",
+          "file": "web.spec.ts",
+          "line": 33,
+          "column": 5
+        },
+        {
+          "title": "cashier direct admin URL does not fetch admin data",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet",
+              "projectName": "tablet",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 515,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T16:47:02.627Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/home/runner/work/Apollo/Apollo/tests/test-results/p5/web-cashier-direct-admin-URL-does-not-fetch-admin-data-tablet/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2948388c6448a8e5345d-a9c82c295c4d8548eb03",
+          "file": "web.spec.ts",
+          "line": 40,
+          "column": 5
+        },
+        {
+          "title": "PDV navigation, logout visible, web contingency unavailable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet",
+              "projectName": "tablet",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1160,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T16:47:03.154Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/home/runner/work/Apollo/Apollo/tests/test-results/p5/web-PDV-navigation-logout--b29e0-web-contingency-unavailable-tablet/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2948388c6448a8e5345d-a5a3a991ddd0b86ba85f",
+          "file": "web.spec.ts",
+          "line": 49,
+          "column": 5
+        },
+        {
+          "title": "login responsive, keyboard skip link, no password persistence",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1209,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T16:47:04.672Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/home/runner/work/Apollo/Apollo/tests/test-results/p5/web-login-responsive-keybo-e04e8-ink-no-password-persistence-mobile/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2948388c6448a8e5345d-9f50352b67e30918f791",
+          "file": "web.spec.ts",
+          "line": 19,
+          "column": 5
+        },
+        {
+          "title": "unauthenticated direct route never mounts protected module",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 254,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T16:47:05.974Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/home/runner/work/Apollo/Apollo/tests/test-results/p5/web-unauthenticated-direct-3a1d2-ver-mounts-protected-module-mobile/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2948388c6448a8e5345d-cee0ff0fc86e54da0bec",
+          "file": "web.spec.ts",
+          "line": 33,
+          "column": 5
+        },
+        {
+          "title": "cashier direct admin URL does not fetch admin data",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 405,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T16:47:06.239Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/home/runner/work/Apollo/Apollo/tests/test-results/p5/web-cashier-direct-admin-URL-does-not-fetch-admin-data-mobile/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2948388c6448a8e5345d-2b857975ad3b787f4c2b",
+          "file": "web.spec.ts",
+          "line": 40,
+          "column": 5
+        },
+        {
+          "title": "PDV navigation, logout visible, web contingency unavailable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1113,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T16:47:06.654Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/home/runner/work/Apollo/Apollo/tests/test-results/p5/web-PDV-navigation-logout--b29e0-web-contingency-unavailable-mobile/test-finished-1.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2948388c6448a8e5345d-e1815180f00688d1c630",
+          "file": "web.spec.ts",
+          "line": 49,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-16T16:46:56.316Z",
+    "duration": 11498.234,
+    "expected": 12,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

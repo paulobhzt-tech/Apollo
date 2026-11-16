@@ -1,0 +1,5 @@
+node --check desktop/main.js: exit 0
+node --check desktop/preload.js: exit 0
+node --check desktop/scripts/build-web.js: exit 0
+Desktop source diff vs P6: empty
+Scope: syntax only, no Electron hardware/runtime certification.

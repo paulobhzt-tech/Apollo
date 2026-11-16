@@ -1,0 +1,5840 @@
+{
+  "reproduce": {
+    "label": "reproduce",
+    "rows": [
+      {
+        "sessions": 5,
+        "duration_s": 15.33,
+        "completed_pairs": 623,
+        "requests": 1246,
+        "p50_ms": 11.81,
+        "p95_ms": 74.43,
+        "p99_ms": 1751.18,
+        "request_throughput_s": 81.28,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 623,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 81.28
+      },
+      {
+        "sessions": 10,
+        "duration_s": 15.725,
+        "completed_pairs": 526,
+        "requests": 1052,
+        "p50_ms": 13.72,
+        "p95_ms": 810.81,
+        "p99_ms": 3234.33,
+        "request_throughput_s": 66.9,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 526,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 66.9
+      },
+      {
+        "sessions": 20,
+        "duration_s": 15.922,
+        "completed_pairs": 448,
+        "requests": 896,
+        "p50_ms": 15.55,
+        "p95_ms": 2247.86,
+        "p99_ms": 5931.86,
+        "request_throughput_s": 56.27,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 448,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 56.27
+      },
+      {
+        "sessions": 30,
+        "duration_s": 16.392,
+        "completed_pairs": 363,
+        "requests": 726,
+        "p50_ms": 19.34,
+        "p95_ms": 4077.21,
+        "p99_ms": 7152.27,
+        "request_throughput_s": 44.29,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 363,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 44.29
+      },
+      {
+        "sessions": 50,
+        "duration_s": 17.008,
+        "completed_pairs": 242,
+        "requests": 484,
+        "p50_ms": 29.03,
+        "p95_ms": 7918.14,
+        "p99_ms": 14389.38,
+        "request_throughput_s": 28.46,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 242,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 28.46
+      },
+      {
+        "sessions": 50,
+        "duration_s": 222.034,
+        "completed_pairs": 3518,
+        "requests": 7038,
+        "p50_ms": 31.37,
+        "p95_ms": 8993.2,
+        "p99_ms": 17718.52,
+        "request_throughput_s": 31.7,
+        "error_rate": 0.0002841716396703609,
+        "errors": {
+          "/api/pdv/sale:503": 2
+        },
+        "unique_attempted": 3518,
+        "exhausted_operations": 0,
+        "unique_completed_operations_s": 31.69
+      }
+    ],
+    "integrity": {
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 5720,
+      "markers": 5720,
+      "stock_moves": 11440,
+      "cash_version": 11440
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 82.22265625,
+        "cpu_seconds_delta": 314.71,
+        "mean_cpu_core_equivalent": 1.048031591196691
+      },
+      "mongo": {
+        "rss_mib_max": 277.92578125,
+        "cpu_seconds_delta": 230.52,
+        "mean_cpu_core_equivalent": 0.7676662400389604
+      },
+      "mongo_connections_max": 53,
+      "sample_span_s": 300.28674960136414,
+      "sample_count": 61,
+      "server_status_write_conflicts_last": 0
+    },
+    "driver_counters_last_sample": {
+      "pool_checkout_count": 712864,
+      "pool_wait_us": 98155517,
+      "pool_max_checked_out": 44,
+      "find:other:count": 5726,
+      "find:other:us": 3174378,
+      "createIndexes:other:count": 6,
+      "createIndexes:other:us": 1226,
+      "createIndexes:employees:count": 2,
+      "createIndexes:employees:us": 2765,
+      "insert:other:count": 10,
+      "insert:other:us": 11243,
+      "createIndexes:sessions:count": 3,
+      "createIndexes:sessions:us": 993,
+      "createIndexes:login_attempts:count": 1,
+      "createIndexes:login_attempts:us": 304,
+      "createIndexes:categories:count": 1,
+      "createIndexes:categories:us": 712,
+      "createIndexes:products:count": 2,
+      "createIndexes:products:us": 1097,
+      "createIndexes:ingredients:count": 1,
+      "createIndexes:ingredients:us": 398,
+      "createIndexes:stock_moves:count": 1,
+      "createIndexes:stock_moves:us": 164,
+      "createIndexes:orders:count": 6,
+      "createIndexes:orders:us": 1854,
+      "createIndexes:kitchen_tickets:count": 3,
+      "createIndexes:kitchen_tickets:us": 843,
+      "createIndexes:invoices:count": 2,
+      "createIndexes:invoices:us": 1165,
+      "aggregate:other:count": 1,
+      "aggregate:other:us": 295,
+      "createIndexes:cash_sessions:count": 3,
+      "createIndexes:cash_sessions:us": 509,
+      "createIndexes:fiado_customers:count": 1,
+      "createIndexes:fiado_customers:us": 169,
+      "createIndexes:customer_moves:count": 2,
+      "createIndexes:customer_moves:us": 614,
+      "find:login_attempts:count": 165,
+      "find:login_attempts:us": 523501,
+      "find:employees:count": 11604,
+      "find:employees:us": 9122677,
+      "delete:login_attempts:count": 165,
+      "delete:login_attempts:us": 1911133,
+      "insert:sessions:count": 165,
+      "insert:sessions:us": 2069925,
+      "find:sessions:count": 11439,
+      "find:sessions:us": 9511051,
+      "find:financial_operations:count": 63280,
+      "find:financial_operations:us": 75416563,
+      "find:orders:count": 80462,
+      "find:orders:us": 180500313,
+      "insert:financial_operations:count": 63277,
+      "insert:financial_operations:us": 69849767,
+      "find:products:count": 74711,
+      "find:products:us": 79954191,
+      "find:categories:count": 63277,
+      "find:categories:us": 70751779,
+      "find:ingredients:count": 74711,
+      "find:ingredients:us": 75899969,
+      "findAndModify:counters:count": 63277,
+      "findAndModify:counters:us": 75117909,
+      "insert:orders:count": 15723,
+      "insert:orders:us": 12810536,
+      "update:orders:count": 27157,
+      "update:orders:us": 20850454,
+      "find:cash_sessions:count": 15723,
+      "find:cash_sessions:us": 12212257,
+      "update:cash_sessions:count": 21474,
+      "update:cash_sessions:us": 17906187,
+      "insert:kitchen_tickets:count": 5717,
+      "insert:kitchen_tickets:us": 3252483,
+      "update:cash_sessions:error:112": 10040,
+      "abortTransaction:other:count": 57594,
+      "abortTransaction:other:us": 92818219,
+      "abortTransaction:other:error:251": 57594,
+      "find:purchases:count": 5717,
+      "find:purchases:us": 2788165,
+      "update:ingredients:count": 11434,
+      "update:ingredients:us": 7098836,
+      "insert:stock_moves:count": 11434,
+      "insert:stock_moves:us": 6477158,
+      "update:financial_operations:count": 5717,
+      "update:financial_operations:us": 3020151,
+      "commitTransaction:other:count": 11436,
+      "commitTransaction:other:us": 13317193,
+      "findAndModify:counters:error:112": 47554,
+      "find:lot_consumptions:count": 5717,
+      "find:lot_consumptions:us": 3146069,
+      "update:kitchen_tickets:count": 5717,
+      "update:kitchen_tickets:us": 3731259
+    },
+    "driver_write_conflict_112": {
+      "update:cash_sessions:error:112": 10040,
+      "findAndModify:counters:error:112": 47554
+    },
+    "transaction_count": 11444,
+    "outcomes": {
+      "committed": 11442,
+      "error": 2
+    },
+    "callback_errors": {
+      "callback:112": 57594,
+      "outer:112": 2
+    },
+    "callback_attempts_sum": 69036,
+    "callback_retries_sum": 57592,
+    "commit_calls_sum": 11442,
+    "commit_retries_sum": 0,
+    "commit_calls_p50_p95_p99_max": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "callback_attempts_p50_p95_p99_max": [
+      1,
+      31,
+      61,
+      121
+    ],
+    "transaction_elapsed_ms_p50_p95_p99": [
+      16.93814900045254,
+      7090.818343999672,
+      15503.896399000041
+    ],
+    "admission_ms_p50_p95_p99": [
+      0,
+      0,
+      0
+    ],
+    "callback_ms_p50_p95_p99": [
+      14.572457000213035,
+      730.6929170008516,
+      1495.5087950029338
+    ],
+    "commit_ms_p50_p95_p99": [
+      1.2734890005958732,
+      3.8150459995449637,
+      6.405955999980506
+    ],
+    "failures": [
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 120,
+        "commits": 0,
+        "elapsed_s": 30.021827581000252,
+        "callback_s": 3.4284558670024126,
+        "commit_s": 0.0,
+        "abort_s": 0.5012853029975304,
+        "wait_s": 26.085519879003186,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 120,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 121,
+        "commits": 0,
+        "elapsed_s": 30.020682144999228,
+        "callback_s": 2.3500699899941537,
+        "commit_s": 0.0,
+        "abort_s": 0.30344612499629875,
+        "wait_s": 27.364436015998763,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 121,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      }
+    ],
+    "sha256": {
+      "load_json": "311ba81999adb22fccb3915e62610ec111c47512b5a80f40501343facafbb846",
+      "driver_jsonl": "4e02d670fc60411c3375dd9539bb3e092a242fa1841b1f4e1ea7bda023497990"
+    }
+  },
+  "pilot": {
+    "label": "pilot",
+    "rows": [
+      {
+        "sessions": 5,
+        "duration_s": 10.298,
+        "traffic_duration_s": 10.04,
+        "completed_pairs": 515,
+        "requests": 1030,
+        "p50_ms": 47.53,
+        "p95_ms": 67.55,
+        "p99_ms": 85.58,
+        "request_throughput_s": 100.01,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 515,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 51.29,
+        "pair_p50_ms": 94.62,
+        "pair_p95_ms": 128.06,
+        "pair_p99_ms": 151.45,
+        "unique_completed_operations_s": 100.01
+      },
+      {
+        "sessions": 10,
+        "duration_s": 10.545,
+        "traffic_duration_s": 10.169,
+        "completed_pairs": 497,
+        "requests": 994,
+        "p50_ms": 97.53,
+        "p95_ms": 152.61,
+        "p99_ms": 204.88,
+        "request_throughput_s": 94.27,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 497,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 48.87,
+        "pair_p50_ms": 192.07,
+        "pair_p95_ms": 288.81,
+        "pair_p99_ms": 359.34,
+        "unique_completed_operations_s": 94.27
+      },
+      {
+        "sessions": 20,
+        "duration_s": 10.86,
+        "traffic_duration_s": 10.224,
+        "completed_pairs": 540,
+        "requests": 1080,
+        "p50_ms": 179.86,
+        "p95_ms": 300.78,
+        "p99_ms": 339.94,
+        "request_throughput_s": 99.45,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 540,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 52.82,
+        "pair_p50_ms": 357.35,
+        "pair_p95_ms": 491.43,
+        "pair_p99_ms": 497.84,
+        "unique_completed_operations_s": 99.45
+      },
+      {
+        "sessions": 30,
+        "duration_s": 11.223,
+        "traffic_duration_s": 10.3,
+        "completed_pairs": 553,
+        "requests": 1106,
+        "p50_ms": 270.24,
+        "p95_ms": 393.62,
+        "p99_ms": 429.15,
+        "request_throughput_s": 98.55,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 553,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 53.69,
+        "pair_p50_ms": 569.92,
+        "pair_p95_ms": 647.0,
+        "pair_p99_ms": 672.52,
+        "unique_completed_operations_s": 98.55
+      },
+      {
+        "sessions": 50,
+        "duration_s": 11.989,
+        "traffic_duration_s": 10.388,
+        "completed_pairs": 559,
+        "requests": 1118,
+        "p50_ms": 452.73,
+        "p95_ms": 620.96,
+        "p99_ms": 689.58,
+        "request_throughput_s": 93.25,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 559,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 53.81,
+        "pair_p50_ms": 905.47,
+        "pair_p95_ms": 1070.09,
+        "pair_p99_ms": 1090.51,
+        "unique_completed_operations_s": 93.25
+      }
+    ],
+    "integrity": {
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 2664
+        }
+      ],
+      "counter": 2664,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 2664,
+      "markers": 2664,
+      "stock_moves": 5328,
+      "cash_version": 5328
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 72.73828125,
+        "cpu_seconds_delta": 53.74,
+        "mean_cpu_core_equivalent": 1.0739737812329817
+      },
+      "mongo": {
+        "rss_mib_max": 199.10546875,
+        "cpu_seconds_delta": 17.419999999999998,
+        "mean_cpu_core_equivalent": 0.3481321784346583
+      },
+      "mongo_connections_max": 27,
+      "sample_span_s": 50.03846549987793,
+      "sample_count": 11,
+      "server_status_write_conflicts_last": 0
+    },
+    "driver_counters_last_sample": {
+      "pool_checkout_count": 99083,
+      "pool_wait_us": 1034906,
+      "pool_max_checked_out": 17,
+      "createIndexes:other:count": 6,
+      "createIndexes:other:us": 2734,
+      "find:other:count": 2673,
+      "find:other:us": 519555,
+      "createIndexes:employees:count": 2,
+      "createIndexes:employees:us": 501,
+      "createIndexes:sessions:count": 3,
+      "createIndexes:sessions:us": 652,
+      "createIndexes:login_attempts:count": 1,
+      "createIndexes:login_attempts:us": 401,
+      "insert:other:count": 10,
+      "insert:other:us": 10754,
+      "createIndexes:categories:count": 1,
+      "createIndexes:categories:us": 418,
+      "createIndexes:products:count": 2,
+      "createIndexes:products:us": 605,
+      "createIndexes:ingredients:count": 1,
+      "createIndexes:ingredients:us": 184,
+      "createIndexes:stock_moves:count": 1,
+      "createIndexes:stock_moves:us": 170,
+      "createIndexes:orders:count": 6,
+      "createIndexes:orders:us": 3031,
+      "createIndexes:kitchen_tickets:count": 3,
+      "createIndexes:kitchen_tickets:us": 842,
+      "createIndexes:invoices:count": 2,
+      "createIndexes:invoices:us": 482,
+      "createIndexes:cash_sessions:count": 3,
+      "createIndexes:cash_sessions:us": 839,
+      "aggregate:other:count": 1,
+      "aggregate:other:us": 191,
+      "createIndexes:fiado_customers:count": 1,
+      "createIndexes:fiado_customers:us": 1412,
+      "createIndexes:customer_moves:count": 2,
+      "createIndexes:customer_moves:us": 388,
+      "find:login_attempts:count": 115,
+      "find:login_attempts:us": 316646,
+      "find:employees:count": 5443,
+      "find:employees:us": 2499119,
+      "delete:login_attempts:count": 115,
+      "delete:login_attempts:us": 879395,
+      "insert:sessions:count": 115,
+      "insert:sessions:us": 960276,
+      "find:sessions:count": 5328,
+      "find:sessions:us": 2381390,
+      "find:financial_operations:count": 2664,
+      "find:financial_operations:us": 1027525,
+      "find:orders:count": 10656,
+      "find:orders:us": 5270541,
+      "insert:financial_operations:count": 2664,
+      "insert:financial_operations:us": 786613,
+      "find:products:count": 7992,
+      "find:products:us": 2075675,
+      "find:categories:count": 2664,
+      "find:categories:us": 528912,
+      "find:ingredients:count": 7992,
+      "find:ingredients:us": 1481587,
+      "findAndModify:counters:count": 2664,
+      "findAndModify:counters:us": 555280,
+      "insert:orders:count": 2664,
+      "insert:orders:us": 561699,
+      "update:orders:count": 7992,
+      "update:orders:us": 2569658,
+      "find:cash_sessions:count": 2664,
+      "find:cash_sessions:us": 611050,
+      "update:cash_sessions:count": 5328,
+      "update:cash_sessions:us": 2130747,
+      "insert:kitchen_tickets:count": 2664,
+      "insert:kitchen_tickets:us": 522565,
+      "find:purchases:count": 2664,
+      "find:purchases:us": 400956,
+      "update:ingredients:count": 5328,
+      "update:ingredients:us": 1320198,
+      "insert:stock_moves:count": 5328,
+      "insert:stock_moves:us": 998225,
+      "update:financial_operations:count": 2664,
+      "update:financial_operations:us": 504448,
+      "commitTransaction:other:count": 5328,
+      "commitTransaction:other:us": 3032829,
+      "find:lot_consumptions:count": 2664,
+      "find:lot_consumptions:us": 406736,
+      "update:kitchen_tickets:count": 2664,
+      "update:kitchen_tickets:us": 718441,
+      "endSessions:other:count": 1,
+      "endSessions:other:us": 308
+    },
+    "driver_write_conflict_112": {},
+    "transaction_count": 5328,
+    "outcomes": {
+      "committed": 5328
+    },
+    "callback_errors": {},
+    "callback_attempts_sum": 5328,
+    "callback_retries_sum": 0,
+    "commit_calls_sum": 5328,
+    "commit_retries_sum": 0,
+    "commit_calls_p50_p95_p99_max": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "callback_attempts_p50_p95_p99_max": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "transaction_elapsed_ms_p50_p95_p99": [
+      180.6069979993481,
+      523.525282999799,
+      616.5424680002616
+    ],
+    "admission_ms_p50_p95_p99": [
+      171.49616599999717,
+      514.0816579996681,
+      606.4852199997404
+    ],
+    "callback_ms_p50_p95_p99": [
+      8.223400999668229,
+      12.78306399944995,
+      21.649453999998514
+    ],
+    "commit_ms_p50_p95_p99": [
+      0.5856269999640062,
+      1.505491999523656,
+      3.0262599993875483
+    ],
+    "failures": [],
+    "sha256": {
+      "load_json": "4cd425d83e6271060c274899ca2c36f001ab79cf220dab2e8e0737b4b14f941c",
+      "driver_jsonl": "1cefb7a0d16b3696ff8858719e3cda736ed05fb1c1959c8dcafa75309c320d0f"
+    }
+  },
+  "a1": {
+    "label": "a1",
+    "rows": [
+      {
+        "sessions": 5,
+        "duration_s": 15.675,
+        "traffic_duration_s": 15.41,
+        "completed_pairs": 673,
+        "requests": 1346,
+        "p50_ms": 11.19,
+        "p95_ms": 53.48,
+        "p99_ms": 1409.61,
+        "request_throughput_s": 85.87,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 673,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 43.67,
+        "pair_p50_ms": 21.51,
+        "pair_p95_ms": 364.01,
+        "pair_p99_ms": 3206.04,
+        "unique_completed_operations_s": 85.87
+      },
+      {
+        "sessions": 10,
+        "duration_s": 15.919,
+        "traffic_duration_s": 15.559,
+        "completed_pairs": 610,
+        "requests": 1220,
+        "p50_ms": 12.08,
+        "p95_ms": 709.61,
+        "p99_ms": 2963.78,
+        "request_throughput_s": 76.64,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 610,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 39.2,
+        "pair_p50_ms": 24.33,
+        "pair_p95_ms": 1549.39,
+        "pair_p99_ms": 3305.97,
+        "unique_completed_operations_s": 76.64
+      },
+      {
+        "sessions": 20,
+        "duration_s": 16.598,
+        "traffic_duration_s": 15.901,
+        "completed_pairs": 489,
+        "requests": 978,
+        "p50_ms": 14.89,
+        "p95_ms": 2084.01,
+        "p99_ms": 5210.72,
+        "request_throughput_s": 58.92,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 489,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 30.75,
+        "pair_p50_ms": 36.79,
+        "pair_p95_ms": 3557.74,
+        "pair_p99_ms": 6327.63,
+        "unique_completed_operations_s": 58.92
+      },
+      {
+        "sessions": 30,
+        "duration_s": 17.164,
+        "traffic_duration_s": 16.241,
+        "completed_pairs": 424,
+        "requests": 848,
+        "p50_ms": 17.85,
+        "p95_ms": 3248.77,
+        "p99_ms": 7807.18,
+        "request_throughput_s": 49.41,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 424,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 26.11,
+        "pair_p50_ms": 83.56,
+        "pair_p95_ms": 5615.71,
+        "pair_p99_ms": 9508.33,
+        "unique_completed_operations_s": 49.41
+      },
+      {
+        "sessions": 50,
+        "duration_s": 18.559,
+        "traffic_duration_s": 16.993,
+        "completed_pairs": 276,
+        "requests": 552,
+        "p50_ms": 32.65,
+        "p95_ms": 8327.48,
+        "p99_ms": 13365.26,
+        "request_throughput_s": 29.74,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 276,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 16.24,
+        "pair_p50_ms": 1618.19,
+        "pair_p95_ms": 10961.81,
+        "pair_p99_ms": 15908.89,
+        "unique_completed_operations_s": 29.74
+      }
+    ],
+    "integrity": {
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 2472
+        }
+      ],
+      "counter": 2472,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 2472,
+      "markers": 2472,
+      "stock_moves": 4944,
+      "cash_version": 4944
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 81.07421875,
+        "cpu_seconds_delta": 84.91,
+        "mean_cpu_core_equivalent": 1.0593544259982972
+      },
+      "mongo": {
+        "rss_mib_max": 231.86328125,
+        "cpu_seconds_delta": 39.660000000000004,
+        "mean_cpu_core_equivalent": 0.49480622465071805
+      },
+      "mongo_connections_max": 53,
+      "sample_span_s": 80.1525890827179,
+      "sample_count": 17,
+      "server_status_write_conflicts_last": 0
+    },
+    "driver_counters_last_sample": {
+      "pool_checkout_count": 177829,
+      "pool_wait_us": 18759732,
+      "pool_max_checked_out": 40,
+      "createIndexes:other:count": 6,
+      "createIndexes:other:us": 2942,
+      "find:other:count": 2470,
+      "find:other:us": 776478,
+      "createIndexes:employees:count": 2,
+      "createIndexes:employees:us": 540,
+      "createIndexes:sessions:count": 3,
+      "createIndexes:sessions:us": 631,
+      "createIndexes:login_attempts:count": 1,
+      "createIndexes:login_attempts:us": 432,
+      "insert:other:count": 10,
+      "insert:other:us": 11984,
+      "createIndexes:categories:count": 1,
+      "createIndexes:categories:us": 1093,
+      "createIndexes:products:count": 2,
+      "createIndexes:products:us": 639,
+      "createIndexes:ingredients:count": 1,
+      "createIndexes:ingredients:us": 409,
+      "createIndexes:stock_moves:count": 1,
+      "createIndexes:stock_moves:us": 562,
+      "createIndexes:orders:count": 6,
+      "createIndexes:orders:us": 1268,
+      "createIndexes:kitchen_tickets:count": 3,
+      "createIndexes:kitchen_tickets:us": 747,
+      "createIndexes:invoices:count": 2,
+      "createIndexes:invoices:us": 491,
+      "createIndexes:cash_sessions:count": 3,
+      "createIndexes:cash_sessions:us": 677,
+      "createIndexes:fiado_customers:count": 1,
+      "createIndexes:fiado_customers:us": 311,
+      "aggregate:other:count": 1,
+      "aggregate:other:us": 272,
+      "createIndexes:customer_moves:count": 2,
+      "createIndexes:customer_moves:us": 774,
+      "find:login_attempts:count": 115,
+      "find:login_attempts:us": 401687,
+      "find:employees:count": 5047,
+      "find:employees:us": 2834687,
+      "delete:login_attempts:count": 115,
+      "delete:login_attempts:us": 678558,
+      "insert:sessions:count": 115,
+      "insert:sessions:us": 972024,
+      "find:sessions:count": 4932,
+      "find:sessions:us": 2315006,
+      "find:financial_operations:count": 12095,
+      "find:financial_operations:us": 9793867,
+      "find:orders:count": 19496,
+      "find:orders:us": 21973180,
+      "insert:financial_operations:count": 12095,
+      "insert:financial_operations:us": 9306982,
+      "find:products:count": 17016,
+      "find:products:us": 11752765,
+      "find:categories:count": 12095,
+      "find:categories:us": 9431325,
+      "find:ingredients:count": 17016,
+      "find:ingredients:us": 11149089,
+      "findAndModify:counters:count": 12095,
+      "findAndModify:counters:us": 10530863,
+      "insert:orders:count": 4741,
+      "insert:orders:us": 2213526,
+      "update:orders:count": 9662,
+      "update:orders:us": 4395556,
+      "find:cash_sessions:count": 4741,
+      "find:cash_sessions:us": 2386609,
+      "update:cash_sessions:count": 7221,
+      "update:cash_sessions:us": 3570934,
+      "update:cash_sessions:error:112": 2300,
+      "abortTransaction:other:count": 9654,
+      "abortTransaction:other:us": 12414229,
+      "abortTransaction:other:error:251": 9654,
+      "insert:kitchen_tickets:count": 2461,
+      "insert:kitchen_tickets:us": 769414,
+      "find:purchases:count": 2461,
+      "find:purchases:us": 617738,
+      "update:ingredients:count": 4921,
+      "update:ingredients:us": 1916573,
+      "insert:stock_moves:count": 4920,
+      "insert:stock_moves:us": 1525877,
+      "update:financial_operations:count": 2460,
+      "update:financial_operations:us": 758248,
+      "commitTransaction:other:count": 4920,
+      "commitTransaction:other:us": 3810856,
+      "find:lot_consumptions:count": 2460,
+      "find:lot_consumptions:us": 755934,
+      "update:kitchen_tickets:count": 2460,
+      "update:kitchen_tickets:us": 952607,
+      "findAndModify:counters:error:112": 7354
+    },
+    "driver_write_conflict_112": {
+      "update:cash_sessions:error:112": 2300,
+      "findAndModify:counters:error:112": 7354
+    },
+    "transaction_count": 4944,
+    "outcomes": {
+      "committed": 4944
+    },
+    "callback_errors": {
+      "callback:112": 9659
+    },
+    "callback_attempts_sum": 14603,
+    "callback_retries_sum": 9659,
+    "commit_calls_sum": 4944,
+    "commit_retries_sum": 0,
+    "commit_calls_p50_p95_p99_max": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "callback_attempts_p50_p95_p99_max": [
+      1,
+      14,
+      30,
+      60
+    ],
+    "transaction_elapsed_ms_p50_p95_p99": [
+      9.993429999667569,
+      2417.7794899997025,
+      6977.360385999418
+    ],
+    "admission_ms_p50_p95_p99": [
+      0,
+      0,
+      0
+    ],
+    "callback_ms_p50_p95_p99": [
+      8.88741300059337,
+      205.35876699977962,
+      853.9569490012582
+    ],
+    "commit_ms_p50_p95_p99": [
+      0.7820789996912936,
+      2.1618490000037127,
+      3.744227000424871
+    ],
+    "failures": [],
+    "sha256": {
+      "load_json": "eecb6d395b66615bf4e16d00e184613ecbcaebad0047817c9ee3aa1b70a107b8",
+      "driver_jsonl": "f1d15998a886a73abff5273a8ae5c76b72dcc3e5ef4bfb23628ffaacb72d25d4"
+    }
+  },
+  "b1": {
+    "label": "b1",
+    "rows": [
+      {
+        "sessions": 5,
+        "duration_s": 15.287,
+        "traffic_duration_s": 15.047,
+        "completed_pairs": 870,
+        "requests": 1740,
+        "p50_ms": 42.21,
+        "p95_ms": 58.67,
+        "p99_ms": 80.2,
+        "request_throughput_s": 113.82,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 870,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 57.82,
+        "pair_p50_ms": 83.48,
+        "pair_p95_ms": 112.52,
+        "pair_p99_ms": 128.91,
+        "unique_completed_operations_s": 113.82
+      },
+      {
+        "sessions": 10,
+        "duration_s": 15.468,
+        "traffic_duration_s": 15.084,
+        "completed_pairs": 830,
+        "requests": 1660,
+        "p50_ms": 89.15,
+        "p95_ms": 119.5,
+        "p99_ms": 148.93,
+        "request_throughput_s": 107.32,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 830,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 55.02,
+        "pair_p50_ms": 179.86,
+        "pair_p95_ms": 218.86,
+        "pair_p99_ms": 237.05,
+        "unique_completed_operations_s": 107.32
+      },
+      {
+        "sessions": 20,
+        "duration_s": 16.008,
+        "traffic_duration_s": 15.376,
+        "completed_pairs": 778,
+        "requests": 1556,
+        "p50_ms": 196.56,
+        "p95_ms": 256.27,
+        "p99_ms": 281.24,
+        "request_throughput_s": 97.2,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 778,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 50.6,
+        "pair_p50_ms": 388.77,
+        "pair_p95_ms": 442.96,
+        "pair_p99_ms": 468.76,
+        "unique_completed_operations_s": 97.2
+      },
+      {
+        "sessions": 30,
+        "duration_s": 16.227,
+        "traffic_duration_s": 15.184,
+        "completed_pairs": 781,
+        "requests": 1562,
+        "p50_ms": 284.42,
+        "p95_ms": 410.82,
+        "p99_ms": 517.27,
+        "request_throughput_s": 96.26,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 781,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 51.43,
+        "pair_p50_ms": 557.5,
+        "pair_p95_ms": 709.01,
+        "pair_p99_ms": 837.1,
+        "unique_completed_operations_s": 96.26
+      },
+      {
+        "sessions": 50,
+        "duration_s": 16.87,
+        "traffic_duration_s": 15.338,
+        "completed_pairs": 750,
+        "requests": 1500,
+        "p50_ms": 496.39,
+        "p95_ms": 720.14,
+        "p99_ms": 815.72,
+        "request_throughput_s": 88.92,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 750,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 48.9,
+        "pair_p50_ms": 979.41,
+        "pair_p95_ms": 1212.77,
+        "pair_p99_ms": 1243.34,
+        "unique_completed_operations_s": 88.92
+      }
+    ],
+    "integrity": {
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 4009
+        }
+      ],
+      "counter": 4009,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 4009,
+      "markers": 4009,
+      "stock_moves": 8018,
+      "cash_version": 8018
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 72.7734375,
+        "cpu_seconds_delta": 71.45,
+        "mean_cpu_core_equivalent": 0.9519618876522729
+      },
+      "mongo": {
+        "rss_mib_max": 216.53125,
+        "cpu_seconds_delta": 27.66,
+        "mean_cpu_core_equivalent": 0.3685271632254985
+      },
+      "mongo_connections_max": 29,
+      "sample_span_s": 75.05552577972412,
+      "sample_count": 16,
+      "server_status_write_conflicts_last": 0
+    },
+    "driver_counters_last_sample": {
+      "pool_checkout_count": 148848,
+      "pool_wait_us": 1530178,
+      "pool_max_checked_out": 19,
+      "find:other:count": 4018,
+      "find:other:us": 778115,
+      "createIndexes:other:count": 6,
+      "createIndexes:other:us": 1860,
+      "createIndexes:employees:count": 2,
+      "createIndexes:employees:us": 345,
+      "createIndexes:sessions:count": 3,
+      "createIndexes:sessions:us": 427,
+      "createIndexes:login_attempts:count": 1,
+      "createIndexes:login_attempts:us": 101,
+      "createIndexes:categories:count": 1,
+      "createIndexes:categories:us": 89,
+      "createIndexes:products:count": 2,
+      "createIndexes:products:us": 636,
+      "insert:other:count": 10,
+      "insert:other:us": 9736,
+      "createIndexes:ingredients:count": 1,
+      "createIndexes:ingredients:us": 248,
+      "createIndexes:stock_moves:count": 1,
+      "createIndexes:stock_moves:us": 253,
+      "createIndexes:orders:count": 6,
+      "createIndexes:orders:us": 1383,
+      "createIndexes:kitchen_tickets:count": 3,
+      "createIndexes:kitchen_tickets:us": 485,
+      "createIndexes:invoices:count": 2,
+      "createIndexes:invoices:us": 312,
+      "createIndexes:cash_sessions:count": 3,
+      "createIndexes:cash_sessions:us": 548,
+      "createIndexes:fiado_customers:count": 1,
+      "createIndexes:fiado_customers:us": 219,
+      "createIndexes:customer_moves:count": 2,
+      "createIndexes:customer_moves:us": 377,
+      "aggregate:other:count": 1,
+      "aggregate:other:us": 257,
+      "find:login_attempts:count": 115,
+      "find:login_attempts:us": 690370,
+      "find:employees:count": 8133,
+      "find:employees:us": 3750327,
+      "delete:login_attempts:count": 115,
+      "delete:login_attempts:us": 824903,
+      "insert:sessions:count": 115,
+      "insert:sessions:us": 879949,
+      "find:sessions:count": 8018,
+      "find:sessions:us": 3409025,
+      "find:financial_operations:count": 4009,
+      "find:financial_operations:us": 1319414,
+      "find:orders:count": 16036,
+      "find:orders:us": 8642743,
+      "insert:financial_operations:count": 4009,
+      "insert:financial_operations:us": 1109874,
+      "find:products:count": 12027,
+      "find:products:us": 3136199,
+      "find:categories:count": 4009,
+      "find:categories:us": 759115,
+      "find:ingredients:count": 12027,
+      "find:ingredients:us": 2177139,
+      "findAndModify:counters:count": 4009,
+      "findAndModify:counters:us": 817484,
+      "insert:orders:count": 4009,
+      "insert:orders:us": 833693,
+      "update:orders:count": 12027,
+      "update:orders:us": 3794538,
+      "find:cash_sessions:count": 4009,
+      "find:cash_sessions:us": 890789,
+      "update:cash_sessions:count": 8018,
+      "update:cash_sessions:us": 3721552,
+      "insert:kitchen_tickets:count": 4009,
+      "insert:kitchen_tickets:us": 770050,
+      "find:purchases:count": 4009,
+      "find:purchases:us": 591324,
+      "update:ingredients:count": 8018,
+      "update:ingredients:us": 1940687,
+      "insert:stock_moves:count": 8018,
+      "insert:stock_moves:us": 1389380,
+      "update:financial_operations:count": 4009,
+      "update:financial_operations:us": 739072,
+      "commitTransaction:other:count": 8018,
+      "commitTransaction:other:us": 4277713,
+      "find:lot_consumptions:count": 4009,
+      "find:lot_consumptions:us": 605933,
+      "update:kitchen_tickets:count": 4009,
+      "update:kitchen_tickets:us": 981948,
+      "endSessions:other:count": 1,
+      "endSessions:other:us": 332
+    },
+    "driver_write_conflict_112": {},
+    "transaction_count": 8018,
+    "outcomes": {
+      "committed": 8018
+    },
+    "callback_errors": {},
+    "callback_attempts_sum": 8018,
+    "callback_retries_sum": 0,
+    "commit_calls_sum": 8018,
+    "commit_retries_sum": 0,
+    "commit_calls_p50_p95_p99_max": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "callback_attempts_p50_p95_p99_max": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "transaction_elapsed_ms_p50_p95_p99": [
+      178.64242500036198,
+      565.2912599998672,
+      708.3157360002588
+    ],
+    "admission_ms_p50_p95_p99": [
+      168.9559440001176,
+      555.1311990002432,
+      695.5835459993978
+    ],
+    "callback_ms_p50_p95_p99": [
+      8.339134999914677,
+      12.879678999524913,
+      18.274631000167574
+    ],
+    "commit_ms_p50_p95_p99": [
+      0.5678730003637611,
+      1.4651539995611529,
+      1.9335799997861614
+    ],
+    "failures": [],
+    "sha256": {
+      "load_json": "a85f473b70490562350031040386347e1ac84563ec33e47dc6a4e688af62e77d",
+      "driver_jsonl": "f296cd90a9aa591f9e3d2d83223761a70c78f78a9f8ac78ba7e05e8487a751f6"
+    }
+  },
+  "b2": {
+    "label": "b2",
+    "rows": [
+      {
+        "sessions": 5,
+        "duration_s": 15.286,
+        "traffic_duration_s": 15.024,
+        "completed_pairs": 780,
+        "requests": 1560,
+        "p50_ms": 47.01,
+        "p95_ms": 66.23,
+        "p99_ms": 84.57,
+        "request_throughput_s": 102.06,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 780,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 51.92,
+        "pair_p50_ms": 92.81,
+        "pair_p95_ms": 125.59,
+        "pair_p99_ms": 152.89,
+        "unique_completed_operations_s": 102.06
+      },
+      {
+        "sessions": 10,
+        "duration_s": 15.489,
+        "traffic_duration_s": 15.136,
+        "completed_pairs": 820,
+        "requests": 1640,
+        "p50_ms": 91.27,
+        "p95_ms": 121.23,
+        "p99_ms": 140.4,
+        "request_throughput_s": 105.88,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 820,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 54.17,
+        "pair_p50_ms": 180.25,
+        "pair_p95_ms": 223.24,
+        "pair_p99_ms": 258.27,
+        "unique_completed_operations_s": 105.88
+      },
+      {
+        "sessions": 20,
+        "duration_s": 15.968,
+        "traffic_duration_s": 15.278,
+        "completed_pairs": 780,
+        "requests": 1560,
+        "p50_ms": 193.36,
+        "p95_ms": 259.36,
+        "p99_ms": 302.21,
+        "request_throughput_s": 97.7,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 780,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 51.05,
+        "pair_p50_ms": 381.97,
+        "pair_p95_ms": 483.86,
+        "pair_p99_ms": 517.15,
+        "unique_completed_operations_s": 97.7
+      },
+      {
+        "sessions": 30,
+        "duration_s": 16.52,
+        "traffic_duration_s": 15.553,
+        "completed_pairs": 750,
+        "requests": 1500,
+        "p50_ms": 307.92,
+        "p95_ms": 425.29,
+        "p99_ms": 471.03,
+        "request_throughput_s": 90.8,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 750,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 48.22,
+        "pair_p50_ms": 598.23,
+        "pair_p95_ms": 786.31,
+        "pair_p99_ms": 806.1,
+        "unique_completed_operations_s": 90.8
+      },
+      {
+        "sessions": 50,
+        "duration_s": 17.144,
+        "traffic_duration_s": 15.603,
+        "completed_pairs": 750,
+        "requests": 1500,
+        "p50_ms": 511.34,
+        "p95_ms": 687.74,
+        "p99_ms": 772.47,
+        "request_throughput_s": 87.5,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 750,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 48.07,
+        "pair_p50_ms": 1023.74,
+        "pair_p95_ms": 1197.42,
+        "pair_p99_ms": 1218.13,
+        "unique_completed_operations_s": 87.5
+      }
+    ],
+    "integrity": {
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 3880
+        }
+      ],
+      "counter": 3880,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 3880,
+      "markers": 3880,
+      "stock_moves": 7760,
+      "cash_version": 7760
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 72.9296875,
+        "cpu_seconds_delta": 74.9,
+        "mean_cpu_core_equivalent": 0.9355051797367137
+      },
+      "mongo": {
+        "rss_mib_max": 218.69140625,
+        "cpu_seconds_delta": 29.930000000000003,
+        "mean_cpu_core_equivalent": 0.3738273702205586
+      },
+      "mongo_connections_max": 28,
+      "sample_span_s": 80.06369352340698,
+      "sample_count": 17,
+      "server_status_write_conflicts_last": 0
+    },
+    "driver_counters_last_sample": {
+      "pool_checkout_count": 143668,
+      "pool_wait_us": 1489132,
+      "pool_max_checked_out": 19,
+      "find:other:count": 3889,
+      "find:other:us": 789337,
+      "createIndexes:other:count": 6,
+      "createIndexes:other:us": 2062,
+      "createIndexes:employees:count": 2,
+      "createIndexes:employees:us": 415,
+      "createIndexes:sessions:count": 3,
+      "createIndexes:sessions:us": 371,
+      "createIndexes:login_attempts:count": 1,
+      "createIndexes:login_attempts:us": 94,
+      "createIndexes:categories:count": 1,
+      "createIndexes:categories:us": 93,
+      "createIndexes:products:count": 2,
+      "createIndexes:products:us": 247,
+      "createIndexes:ingredients:count": 1,
+      "createIndexes:ingredients:us": 100,
+      "createIndexes:stock_moves:count": 1,
+      "createIndexes:stock_moves:us": 278,
+      "insert:other:count": 10,
+      "insert:other:us": 11719,
+      "createIndexes:orders:count": 6,
+      "createIndexes:orders:us": 1579,
+      "createIndexes:kitchen_tickets:count": 3,
+      "createIndexes:kitchen_tickets:us": 746,
+      "createIndexes:invoices:count": 2,
+      "createIndexes:invoices:us": 389,
+      "createIndexes:cash_sessions:count": 3,
+      "createIndexes:cash_sessions:us": 1365,
+      "createIndexes:fiado_customers:count": 1,
+      "createIndexes:fiado_customers:us": 147,
+      "createIndexes:customer_moves:count": 2,
+      "createIndexes:customer_moves:us": 375,
+      "aggregate:other:count": 1,
+      "aggregate:other:us": 239,
+      "find:login_attempts:count": 115,
+      "find:login_attempts:us": 363558,
+      "find:employees:count": 7875,
+      "find:employees:us": 3544090,
+      "delete:login_attempts:count": 115,
+      "delete:login_attempts:us": 867799,
+      "insert:sessions:count": 115,
+      "insert:sessions:us": 1003667,
+      "find:sessions:count": 7760,
+      "find:sessions:us": 3525623,
+      "find:financial_operations:count": 3880,
+      "find:financial_operations:us": 1649699,
+      "find:orders:count": 15447,
+      "find:orders:us": 8705805,
+      "insert:financial_operations:count": 3880,
+      "insert:financial_operations:us": 1050665,
+      "find:products:count": 11603,
+      "find:products:us": 3073932,
+      "find:categories:count": 3880,
+      "find:categories:us": 769120,
+      "find:ingredients:count": 11603,
+      "find:ingredients:us": 2192522,
+      "findAndModify:counters:count": 3880,
+      "findAndModify:counters:us": 801566,
+      "insert:orders:count": 3880,
+      "insert:orders:us": 809388,
+      "update:orders:count": 11603,
+      "update:orders:us": 3814122,
+      "find:cash_sessions:count": 3880,
+      "find:cash_sessions:us": 892288,
+      "update:cash_sessions:count": 7723,
+      "update:cash_sessions:us": 3540411,
+      "insert:kitchen_tickets:count": 3880,
+      "insert:kitchen_tickets:us": 779048,
+      "find:purchases:count": 3880,
+      "find:purchases:us": 592149,
+      "update:ingredients:count": 7723,
+      "update:ingredients:us": 1935922,
+      "insert:stock_moves:count": 7723,
+      "insert:stock_moves:us": 1441864,
+      "update:financial_operations:count": 3880,
+      "update:financial_operations:us": 752252,
+      "commitTransaction:other:count": 7723,
+      "commitTransaction:other:us": 4195477,
+      "find:lot_consumptions:count": 3843,
+      "find:lot_consumptions:us": 600419,
+      "update:kitchen_tickets:count": 3843,
+      "update:kitchen_tickets:us": 963433
+    },
+    "driver_write_conflict_112": {},
+    "transaction_count": 7760,
+    "outcomes": {
+      "committed": 7760
+    },
+    "callback_errors": {},
+    "callback_attempts_sum": 7760,
+    "callback_retries_sum": 0,
+    "commit_calls_sum": 7760,
+    "commit_retries_sum": 0,
+    "commit_calls_p50_p95_p99_max": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "callback_attempts_p50_p95_p99_max": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "transaction_elapsed_ms_p50_p95_p99": [
+      181.35351999990235,
+      585.9703720007019,
+      679.9972030003119
+    ],
+    "admission_ms_p50_p95_p99": [
+      171.96881600011693,
+      576.1992940006166,
+      670.0351809995482
+    ],
+    "callback_ms_p50_p95_p99": [
+      8.960145999481028,
+      13.612254999316065,
+      18.579602000500017
+    ],
+    "commit_ms_p50_p95_p99": [
+      0.5835819993080804,
+      1.481586000409152,
+      1.9966459994975594
+    ],
+    "failures": [],
+    "sha256": {
+      "load_json": "af23f33da1b7615b4026525fc7f31edfe4e3b217b06f5c04b8bcf7efc75ac58a",
+      "driver_jsonl": "a4255d88aa1d8e80d5d9268ffc75996e70997bc6225e26121b376a2620bcd771"
+    }
+  },
+  "a2": {
+    "label": "a2",
+    "rows": [
+      {
+        "sessions": 5,
+        "duration_s": 15.736,
+        "traffic_duration_s": 15.467,
+        "completed_pairs": 629,
+        "requests": 1258,
+        "p50_ms": 11.69,
+        "p95_ms": 34.25,
+        "p99_ms": 1545.31,
+        "request_throughput_s": 79.95,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 629,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 40.67,
+        "pair_p50_ms": 22.31,
+        "pair_p95_ms": 292.41,
+        "pair_p99_ms": 3237.33,
+        "unique_completed_operations_s": 79.95
+      },
+      {
+        "sessions": 10,
+        "duration_s": 16.177,
+        "traffic_duration_s": 15.775,
+        "completed_pairs": 582,
+        "requests": 1164,
+        "p50_ms": 12.72,
+        "p95_ms": 816.98,
+        "p99_ms": 2846.84,
+        "request_throughput_s": 71.95,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 582,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 36.89,
+        "pair_p50_ms": 25.01,
+        "pair_p95_ms": 1927.17,
+        "pair_p99_ms": 3951.31,
+        "unique_completed_operations_s": 71.95
+      },
+      {
+        "sessions": 20,
+        "duration_s": 16.495,
+        "traffic_duration_s": 15.843,
+        "completed_pairs": 508,
+        "requests": 1016,
+        "p50_ms": 14.11,
+        "p95_ms": 1969.7,
+        "p99_ms": 6044.11,
+        "request_throughput_s": 61.59,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 508,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 32.06,
+        "pair_p50_ms": 33.83,
+        "pair_p95_ms": 3393.96,
+        "pair_p99_ms": 6959.7,
+        "unique_completed_operations_s": 61.59
+      },
+      {
+        "sessions": 30,
+        "duration_s": 17.423,
+        "traffic_duration_s": 16.407,
+        "completed_pairs": 406,
+        "requests": 812,
+        "p50_ms": 18.23,
+        "p95_ms": 4075.2,
+        "p99_ms": 7153.92,
+        "request_throughput_s": 46.6,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 406,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 24.75,
+        "pair_p50_ms": 93.22,
+        "pair_p95_ms": 5359.98,
+        "pair_p99_ms": 8815.96,
+        "unique_completed_operations_s": 46.6
+      },
+      {
+        "sessions": 50,
+        "duration_s": 19.376,
+        "traffic_duration_s": 17.805,
+        "completed_pairs": 250,
+        "requests": 500,
+        "p50_ms": 37.71,
+        "p95_ms": 8736.43,
+        "p99_ms": 12940.44,
+        "request_throughput_s": 25.81,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 250,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 14.04,
+        "pair_p50_ms": 2066.75,
+        "pair_p95_ms": 10643.29,
+        "pair_p99_ms": 15240.36,
+        "unique_completed_operations_s": 25.81
+      }
+    ],
+    "integrity": {
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 2375
+        }
+      ],
+      "counter": 2375,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 2375,
+      "markers": 2375,
+      "stock_moves": 4750,
+      "cash_version": 4750
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 81.0546875,
+        "cpu_seconds_delta": 89.17,
+        "mean_cpu_core_equivalent": 1.0477487842985242
+      },
+      "mongo": {
+        "rss_mib_max": 234.23046875,
+        "cpu_seconds_delta": 41.56,
+        "mean_cpu_core_equivalent": 0.48833059858076333
+      },
+      "mongo_connections_max": 53,
+      "sample_span_s": 85.10627865791321,
+      "sample_count": 18,
+      "server_status_write_conflicts_last": 0
+    },
+    "driver_counters_last_sample": {
+      "pool_checkout_count": 173100,
+      "pool_wait_us": 20418745,
+      "pool_max_checked_out": 42,
+      "find:other:count": 2382,
+      "find:other:us": 819329,
+      "createIndexes:other:count": 6,
+      "createIndexes:other:us": 2070,
+      "createIndexes:employees:count": 2,
+      "createIndexes:employees:us": 366,
+      "createIndexes:sessions:count": 3,
+      "createIndexes:sessions:us": 376,
+      "createIndexes:login_attempts:count": 1,
+      "createIndexes:login_attempts:us": 95,
+      "createIndexes:categories:count": 1,
+      "createIndexes:categories:us": 85,
+      "createIndexes:products:count": 2,
+      "createIndexes:products:us": 1845,
+      "insert:other:count": 10,
+      "insert:other:us": 12036,
+      "createIndexes:ingredients:count": 1,
+      "createIndexes:ingredients:us": 415,
+      "createIndexes:stock_moves:count": 1,
+      "createIndexes:stock_moves:us": 466,
+      "createIndexes:orders:count": 6,
+      "createIndexes:orders:us": 1147,
+      "createIndexes:kitchen_tickets:count": 3,
+      "createIndexes:kitchen_tickets:us": 1249,
+      "createIndexes:invoices:count": 2,
+      "createIndexes:invoices:us": 493,
+      "createIndexes:cash_sessions:count": 3,
+      "createIndexes:cash_sessions:us": 1188,
+      "createIndexes:fiado_customers:count": 1,
+      "createIndexes:fiado_customers:us": 195,
+      "createIndexes:customer_moves:count": 2,
+      "createIndexes:customer_moves:us": 504,
+      "aggregate:other:count": 1,
+      "aggregate:other:us": 254,
+      "find:login_attempts:count": 115,
+      "find:login_attempts:us": 679833,
+      "find:employees:count": 4863,
+      "find:employees:us": 3220433,
+      "delete:login_attempts:count": 115,
+      "delete:login_attempts:us": 909042,
+      "insert:sessions:count": 115,
+      "insert:sessions:us": 1181287,
+      "find:sessions:count": 4748,
+      "find:sessions:us": 2426098,
+      "find:financial_operations:count": 11867,
+      "find:financial_operations:us": 11256845,
+      "find:orders:count": 18989,
+      "find:orders:us": 22310316,
+      "insert:financial_operations:count": 11866,
+      "insert:financial_operations:us": 10321000,
+      "find:products:count": 16612,
+      "find:products:us": 12504479,
+      "find:categories:count": 11866,
+      "find:categories:us": 10036654,
+      "find:ingredients:count": 16612,
+      "find:ingredients:us": 11507007,
+      "findAndModify:counters:count": 11866,
+      "findAndModify:counters:us": 11037470,
+      "insert:orders:count": 4579,
+      "insert:orders:us": 2349312,
+      "update:orders:count": 9325,
+      "update:orders:us": 4403573,
+      "find:cash_sessions:count": 4579,
+      "find:cash_sessions:us": 2272716,
+      "update:cash_sessions:count": 6956,
+      "update:cash_sessions:us": 3599645,
+      "insert:kitchen_tickets:count": 2373,
+      "insert:kitchen_tickets:us": 858366,
+      "update:cash_sessions:error:112": 2210,
+      "abortTransaction:other:count": 9497,
+      "abortTransaction:other:us": 13080421,
+      "abortTransaction:other:error:251": 9497,
+      "find:purchases:count": 2373,
+      "find:purchases:us": 661781,
+      "update:ingredients:count": 4746,
+      "update:ingredients:us": 1852305,
+      "insert:stock_moves:count": 4746,
+      "insert:stock_moves:us": 1549351,
+      "update:financial_operations:count": 2373,
+      "update:financial_operations:us": 752696,
+      "commitTransaction:other:count": 4746,
+      "commitTransaction:other:us": 3769451,
+      "findAndModify:counters:error:112": 7287,
+      "find:lot_consumptions:count": 2373,
+      "find:lot_consumptions:us": 915492,
+      "update:kitchen_tickets:count": 2373,
+      "update:kitchen_tickets:us": 946983
+    },
+    "driver_write_conflict_112": {
+      "update:cash_sessions:error:112": 2210,
+      "findAndModify:counters:error:112": 7287
+    },
+    "transaction_count": 4750,
+    "outcomes": {
+      "committed": 4750
+    },
+    "callback_errors": {
+      "callback:112": 9497
+    },
+    "callback_attempts_sum": 14247,
+    "callback_retries_sum": 9497,
+    "commit_calls_sum": 4750,
+    "commit_retries_sum": 0,
+    "commit_calls_p50_p95_p99_max": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "callback_attempts_p50_p95_p99_max": [
+      1,
+      15,
+      32,
+      63
+    ],
+    "transaction_elapsed_ms_p50_p95_p99": [
+      10.315000000446162,
+      2530.69839499949,
+      7343.711220999467
+    ],
+    "admission_ms_p50_p95_p99": [
+      0,
+      0,
+      0
+    ],
+    "callback_ms_p50_p95_p99": [
+      9.16321800013975,
+      250.97180400098296,
+      883.2520110008772
+    ],
+    "commit_ms_p50_p95_p99": [
+      0.8152589998644544,
+      2.2801880004408304,
+      4.400687999805086
+    ],
+    "failures": [],
+    "sha256": {
+      "load_json": "e25036b3b4c88f4bf67b48b0b83648a28574cf9604756bf45db6ff91bb12dcb5",
+      "driver_jsonl": "8e13225160a3a0bd0c4903bf6f7c1cf6fba9ad469e982ba1141e1046de3ec88b"
+    }
+  },
+  "p6long": {
+    "label": "p6long",
+    "rows": [
+      {
+        "sessions": 50,
+        "duration_s": 1804.99,
+        "traffic_duration_s": 1803.467,
+        "completed_pairs": 21223,
+        "requests": 42595,
+        "p50_ms": 45.33,
+        "p95_ms": 12285.36,
+        "p99_ms": 23136.73,
+        "request_throughput_s": 23.6,
+        "error_rate": 0.0034980631529522243,
+        "errors": {
+          "/api/pdv/sale:503": 149
+        },
+        "unique_attempted": 21223,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 11.77,
+        "pair_p50_ms": 1626.33,
+        "pair_p95_ms": 16747.68,
+        "pair_p99_ms": 28033.04,
+        "unique_completed_operations_s": 23.52
+      }
+    ],
+    "integrity": {
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 21223
+        }
+      ],
+      "counter": 21223,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 21223,
+      "markers": 21223,
+      "stock_moves": 42446,
+      "cash_version": 42446
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 81.96484375,
+        "cpu_seconds_delta": 1686.8999999999999,
+        "mean_cpu_core_equivalent": 0.936027290147947
+      },
+      "mongo": {
+        "rss_mib_max": 406.10546875,
+        "cpu_seconds_delta": 2753.14,
+        "mean_cpu_core_equivalent": 1.5276626792328645
+      },
+      "mongo_connections_max": 53,
+      "sample_span_s": 1802.191044807434,
+      "sample_count": 361,
+      "server_status_write_conflicts_last": 0
+    },
+    "driver_counters_last_sample": {
+      "pool_checkout_count": 3953485,
+      "pool_wait_us": 663608392,
+      "pool_max_checked_out": 42,
+      "find:other:count": 21232,
+      "find:other:us": 18935927,
+      "createIndexes:other:count": 6,
+      "createIndexes:other:us": 2405,
+      "createIndexes:employees:count": 2,
+      "createIndexes:employees:us": 362,
+      "createIndexes:sessions:count": 3,
+      "createIndexes:sessions:us": 588,
+      "createIndexes:login_attempts:count": 1,
+      "createIndexes:login_attempts:us": 139,
+      "createIndexes:categories:count": 1,
+      "createIndexes:categories:us": 101,
+      "createIndexes:products:count": 2,
+      "createIndexes:products:us": 170,
+      "createIndexes:ingredients:count": 1,
+      "createIndexes:ingredients:us": 99,
+      "createIndexes:stock_moves:count": 1,
+      "createIndexes:stock_moves:us": 76,
+      "createIndexes:orders:count": 6,
+      "createIndexes:orders:us": 2494,
+      "insert:other:count": 10,
+      "insert:other:us": 13665,
+      "createIndexes:kitchen_tickets:count": 3,
+      "createIndexes:kitchen_tickets:us": 892,
+      "createIndexes:invoices:count": 2,
+      "createIndexes:invoices:us": 508,
+      "createIndexes:cash_sessions:count": 3,
+      "createIndexes:cash_sessions:us": 366,
+      "createIndexes:fiado_customers:count": 1,
+      "createIndexes:fiado_customers:us": 114,
+      "createIndexes:customer_moves:count": 2,
+      "createIndexes:customer_moves:us": 572,
+      "aggregate:other:count": 1,
+      "aggregate:other:us": 389,
+      "find:login_attempts:count": 50,
+      "find:login_attempts:us": 86889,
+      "find:employees:count": 42645,
+      "find:employees:us": 44370224,
+      "delete:login_attempts:count": 50,
+      "delete:login_attempts:us": 808118,
+      "insert:sessions:count": 50,
+      "insert:sessions:us": 836774,
+      "find:sessions:count": 42595,
+      "find:sessions:us": 46333191,
+      "find:financial_operations:count": 391275,
+      "find:financial_operations:us": 595653249,
+      "find:orders:count": 455112,
+      "find:orders:us": 2863273513,
+      "insert:financial_operations:count": 391126,
+      "insert:financial_operations:us": 564067350,
+      "find:products:count": 433572,
+      "find:products:us": 617509950,
+      "find:categories:count": 391126,
+      "find:categories:us": 540953619,
+      "find:ingredients:count": 433572,
+      "find:ingredients:us": 574672524,
+      "findAndModify:counters:count": 391126,
+      "findAndModify:counters:us": 582046794,
+      "insert:orders:count": 73025,
+      "insert:orders:us": 82825519,
+      "update:orders:count": 115471,
+      "update:orders:us": 128919439,
+      "find:cash_sessions:count": 73025,
+      "find:cash_sessions:us": 81584540,
+      "update:cash_sessions:count": 94565,
+      "update:cash_sessions:us": 112867660,
+      "update:cash_sessions:error:112": 52119,
+      "abortTransaction:other:count": 370220,
+      "abortTransaction:other:us": 781399693,
+      "abortTransaction:other:error:251": 370220,
+      "insert:kitchen_tickets:count": 21223,
+      "insert:kitchen_tickets:us": 19221597,
+      "find:purchases:count": 21223,
+      "find:purchases:us": 16617609,
+      "update:ingredients:count": 42446,
+      "update:ingredients:us": 39882204,
+      "insert:stock_moves:count": 42446,
+      "insert:stock_moves:us": 37081434,
+      "update:financial_operations:count": 21223,
+      "update:financial_operations:us": 17676887,
+      "commitTransaction:other:count": 42595,
+      "commitTransaction:other:us": 74816256,
+      "find:lot_consumptions:count": 21223,
+      "find:lot_consumptions:us": 18363359,
+      "findAndModify:counters:error:112": 318101,
+      "update:kitchen_tickets:count": 21223,
+      "update:kitchen_tickets:us": 21157259,
+      "endSessions:other:count": 1,
+      "endSessions:other:us": 369
+    },
+    "driver_write_conflict_112": {
+      "update:cash_sessions:error:112": 52119,
+      "findAndModify:counters:error:112": 318101
+    },
+    "transaction_count": 42744,
+    "outcomes": {
+      "committed": 42595,
+      "error": 149
+    },
+    "callback_errors": {
+      "callback:112": 370220,
+      "outer:112": 149
+    },
+    "callback_attempts_sum": 412815,
+    "callback_retries_sum": 370071,
+    "commit_calls_sum": 42595,
+    "commit_retries_sum": 0,
+    "commit_calls_p50_p95_p99_max": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "callback_attempts_p50_p95_p99_max": [
+      1,
+      47,
+      84,
+      125
+    ],
+    "transaction_elapsed_ms_p50_p95_p99": [
+      35.0799409998217,
+      12242.991714999334,
+      23049.37780199998
+    ],
+    "admission_ms_p50_p95_p99": [
+      0,
+      0,
+      0
+    ],
+    "callback_ms_p50_p95_p99": [
+      30.48021599988715,
+      1545.3982579974763,
+      2982.310847000008
+    ],
+    "commit_ms_p50_p95_p99": [
+      1.8072290004056413,
+      6.785710999793082,
+      10.824007999872265
+    ],
+    "failures": [
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 111,
+        "commits": 0,
+        "elapsed_s": 30.006088912999985,
+        "callback_s": 2.5074262170010115,
+        "commit_s": 0.0,
+        "abort_s": 0.33442961399305204,
+        "wait_s": 27.16195491099279,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 111,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 119,
+        "commits": 0,
+        "elapsed_s": 30.01603180999973,
+        "callback_s": 2.466817188006644,
+        "commit_s": 0.0,
+        "abort_s": 0.33533071399688197,
+        "wait_s": 27.209481568002047,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 119,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 106,
+        "commits": 0,
+        "elapsed_s": 30.032350448000216,
+        "callback_s": 2.1239767540037064,
+        "commit_s": 0.0,
+        "abort_s": 0.30008701200677024,
+        "wait_s": 27.60597015699659,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 106,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 119,
+        "commits": 0,
+        "elapsed_s": 30.03519021899956,
+        "callback_s": 2.848099513001216,
+        "commit_s": 0.0,
+        "abort_s": 0.34820493400002306,
+        "wait_s": 26.836262942995745,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 119,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 119,
+        "commits": 0,
+        "elapsed_s": 30.017821929000092,
+        "callback_s": 2.544704716004162,
+        "commit_s": 0.0,
+        "abort_s": 0.38260510599684494,
+        "wait_s": 27.088109552000788,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 119,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 115,
+        "commits": 0,
+        "elapsed_s": 30.016148590999364,
+        "callback_s": 2.357014307994177,
+        "commit_s": 0.0,
+        "abort_s": 0.4477083669953572,
+        "wait_s": 27.20900131500275,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 115,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 117,
+        "commits": 0,
+        "elapsed_s": 30.017068412999834,
+        "callback_s": 3.169843190003121,
+        "commit_s": 0.0,
+        "abort_s": 0.4441449840005589,
+        "wait_s": 26.400608710998313,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 117,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 117,
+        "commits": 0,
+        "elapsed_s": 30.04333448899979,
+        "callback_s": 3.0091831179997826,
+        "commit_s": 0.0,
+        "abort_s": 0.3760910690007222,
+        "wait_s": 26.656023929004732,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 117,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 111,
+        "commits": 0,
+        "elapsed_s": 30.004359535999356,
+        "callback_s": 3.0149493909993907,
+        "commit_s": 0.0,
+        "abort_s": 0.3887498459953349,
+        "wait_s": 26.598354892006682,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 111,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 119,
+        "commits": 0,
+        "elapsed_s": 30.02388269399944,
+        "callback_s": 3.0717571669983954,
+        "commit_s": 0.0,
+        "abort_s": 0.3940771479983596,
+        "wait_s": 26.5544903530008,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 119,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 112,
+        "commits": 0,
+        "elapsed_s": 30.01661820499976,
+        "callback_s": 3.080668230995798,
+        "commit_s": 0.0,
+        "abort_s": 0.44696691899753205,
+        "wait_s": 26.48689644800197,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 112,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 115,
+        "commits": 0,
+        "elapsed_s": 30.016439179000372,
+        "callback_s": 3.34810328000367,
+        "commit_s": 0.0,
+        "abort_s": 0.41791563499918993,
+        "wait_s": 26.247870693999175,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 115,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 110,
+        "commits": 0,
+        "elapsed_s": 30.00601340100002,
+        "callback_s": 2.656227515996761,
+        "commit_s": 0.0,
+        "abort_s": 0.4364505919975272,
+        "wait_s": 26.91130532799889,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 110,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 105,
+        "commits": 0,
+        "elapsed_s": 30.04217398399942,
+        "callback_s": 2.7162588790015434,
+        "commit_s": 0.0,
+        "abort_s": 0.36454134700124996,
+        "wait_s": 26.957518692997837,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 105,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 119,
+        "commits": 0,
+        "elapsed_s": 30.017351772999973,
+        "callback_s": 3.7538114640019558,
+        "commit_s": 0.0,
+        "abort_s": 0.3968959729991184,
+        "wait_s": 25.864030835999074,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 119,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 114,
+        "commits": 0,
+        "elapsed_s": 30.02036589799991,
+        "callback_s": 3.2767119989985076,
+        "commit_s": 0.0,
+        "abort_s": 0.3725255319959615,
+        "wait_s": 26.368429125003786,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 114,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 119,
+        "commits": 0,
+        "elapsed_s": 30.022476574000393,
+        "callback_s": 3.150087008004448,
+        "commit_s": 0.0,
+        "abort_s": 0.4116029209926637,
+        "wait_s": 26.457773479995012,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 119,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 104,
+        "commits": 0,
+        "elapsed_s": 30.003359164999893,
+        "callback_s": 2.751959602003808,
+        "commit_s": 0.0,
+        "abort_s": 0.378061364005589,
+        "wait_s": 26.871301504997973,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 104,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 109,
+        "commits": 0,
+        "elapsed_s": 30.0209763189996,
+        "callback_s": 3.2191937120005605,
+        "commit_s": 0.0,
+        "abort_s": 0.37025344199992105,
+        "wait_s": 26.42933252799594,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 109,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 111,
+        "commits": 0,
+        "elapsed_s": 30.031224367000505,
+        "callback_s": 2.805948551000256,
+        "commit_s": 0.0,
+        "abort_s": 0.4532903080016695,
+        "wait_s": 26.76916218500355,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 111,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 114,
+        "commits": 0,
+        "elapsed_s": 30.02565585100001,
+        "callback_s": 3.0505147530057,
+        "commit_s": 0.0,
+        "abort_s": 0.3409783370070727,
+        "wait_s": 26.631927194001037,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 114,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 113,
+        "commits": 0,
+        "elapsed_s": 30.008495432000018,
+        "callback_s": 3.1671272009998575,
+        "commit_s": 0.0,
+        "abort_s": 0.5258469130021695,
+        "wait_s": 26.312397321999015,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 113,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 108,
+        "commits": 0,
+        "elapsed_s": 30.022006653000062,
+        "callback_s": 3.2186409890055074,
+        "commit_s": 0.0,
+        "abort_s": 0.3739521280012923,
+        "wait_s": 26.42689795699789,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 108,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 115,
+        "commits": 0,
+        "elapsed_s": 30.014594362000025,
+        "callback_s": 3.1267630990005273,
+        "commit_s": 0.0,
+        "abort_s": 0.44736231099705037,
+        "wait_s": 26.437075876990093,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 115,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 114,
+        "commits": 0,
+        "elapsed_s": 30.007476291000785,
+        "callback_s": 3.2310377490048268,
+        "commit_s": 0.0,
+        "abort_s": 0.4450407919957797,
+        "wait_s": 26.328747282998847,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 114,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 111,
+        "commits": 0,
+        "elapsed_s": 30.01608827400014,
+        "callback_s": 3.454378866003026,
+        "commit_s": 0.0,
+        "abort_s": 0.5029806000029566,
+        "wait_s": 26.055761280008483,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 111,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 109,
+        "commits": 0,
+        "elapsed_s": 30.02121192999948,
+        "callback_s": 3.1762495070033765,
+        "commit_s": 0.0,
+        "abort_s": 0.46100138800011337,
+        "wait_s": 26.381625996998082,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 109,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 110,
+        "commits": 0,
+        "elapsed_s": 30.02624854199985,
+        "callback_s": 3.5356612759960626,
+        "commit_s": 0.0,
+        "abort_s": 0.3886985060062216,
+        "wait_s": 26.099409956010277,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 110,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 112,
+        "commits": 0,
+        "elapsed_s": 30.01606111500041,
+        "callback_s": 3.2948377429993343,
+        "commit_s": 0.0,
+        "abort_s": 0.40747713199834834,
+        "wait_s": 26.311591136996867,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 112,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 114,
+        "commits": 0,
+        "elapsed_s": 30.008097730000372,
+        "callback_s": 3.7744427309971798,
+        "commit_s": 0.0,
+        "abort_s": 0.5310893359992406,
+        "wait_s": 25.700167664999753,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 114,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 95,
+        "commits": 0,
+        "elapsed_s": 30.04836394099948,
+        "callback_s": 3.0087705359983374,
+        "commit_s": 0.0,
+        "abort_s": 0.3795873319995735,
+        "wait_s": 26.65779388899773,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 95,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 111,
+        "commits": 0,
+        "elapsed_s": 30.02552075800031,
+        "callback_s": 3.451406646009673,
+        "commit_s": 0.0,
+        "abort_s": 0.40289937400302733,
+        "wait_s": 26.168087990992717,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 111,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 108,
+        "commits": 0,
+        "elapsed_s": 30.050786355000128,
+        "callback_s": 3.4909204420055175,
+        "commit_s": 0.0,
+        "abort_s": 0.3978837770036989,
+        "wait_s": 26.159467473003133,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 108,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 103,
+        "commits": 0,
+        "elapsed_s": 30.019158988000527,
+        "callback_s": 3.3197726470025373,
+        "commit_s": 0.0,
+        "abort_s": 0.3912561649976851,
+        "wait_s": 26.30548937000367,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 103,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 115,
+        "commits": 0,
+        "elapsed_s": 30.0161169590001,
+        "callback_s": 3.7469486889976906,
+        "commit_s": 0.0,
+        "abort_s": 0.5234910489998583,
+        "wait_s": 25.742010043995833,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 115,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 108,
+        "commits": 0,
+        "elapsed_s": 30.04908938599965,
+        "callback_s": 3.1445520030001717,
+        "commit_s": 0.0,
+        "abort_s": 0.44467884799632884,
+        "wait_s": 26.457286875001955,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 108,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 108,
+        "commits": 0,
+        "elapsed_s": 30.018818300999556,
+        "callback_s": 3.2587500400068166,
+        "commit_s": 0.0,
+        "abort_s": 0.39764280899726145,
+        "wait_s": 26.35999675200037,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 108,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 114,
+        "commits": 0,
+        "elapsed_s": 30.0140912020006,
+        "callback_s": 3.4467626320056297,
+        "commit_s": 0.0,
+        "abort_s": 0.43783655100287433,
+        "wait_s": 26.12695337599871,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 114,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 114,
+        "commits": 0,
+        "elapsed_s": 30.02986738100026,
+        "callback_s": 3.6153110740024204,
+        "commit_s": 0.0,
+        "abort_s": 0.3833291670007384,
+        "wait_s": 26.027563598996494,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 114,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 106,
+        "commits": 0,
+        "elapsed_s": 30.033011172999977,
+        "callback_s": 3.526735040998574,
+        "commit_s": 0.0,
+        "abort_s": 0.45642555699487275,
+        "wait_s": 26.047026287003064,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 106,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 116,
+        "commits": 0,
+        "elapsed_s": 30.032813403000546,
+        "callback_s": 3.7724452959946575,
+        "commit_s": 0.0,
+        "abort_s": 0.5104050540048775,
+        "wait_s": 25.74712447800266,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 116,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 99,
+        "commits": 0,
+        "elapsed_s": 30.021592126999167,
+        "callback_s": 3.1846477870012677,
+        "commit_s": 0.0,
+        "abort_s": 0.3909814549951989,
+        "wait_s": 26.443942248003623,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 99,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 104,
+        "commits": 0,
+        "elapsed_s": 30.032913000000008,
+        "callback_s": 3.6645090759939194,
+        "commit_s": 0.0,
+        "abort_s": 0.39161344800413644,
+        "wait_s": 25.972909847994742,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 104,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 102,
+        "commits": 0,
+        "elapsed_s": 30.00359725999988,
+        "callback_s": 3.327731404995575,
+        "commit_s": 0.0,
+        "abort_s": 0.5317491620016881,
+        "wait_s": 26.141281678997984,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 102,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 113,
+        "commits": 0,
+        "elapsed_s": 30.0291271899996,
+        "callback_s": 3.6610737010059893,
+        "commit_s": 0.0,
+        "abort_s": 0.44932468900060485,
+        "wait_s": 25.91583834800531,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 113,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 112,
+        "commits": 0,
+        "elapsed_s": 30.018336887999794,
+        "callback_s": 3.3843425390004995,
+        "commit_s": 0.0,
+        "abort_s": 0.454528369997206,
+        "wait_s": 26.17551482900035,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 112,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 108,
+        "commits": 0,
+        "elapsed_s": 30.021102587000314,
+        "callback_s": 3.4606451120007478,
+        "commit_s": 0.0,
+        "abort_s": 0.4412672670041502,
+        "wait_s": 26.115228986999682,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 108,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 105,
+        "commits": 0,
+        "elapsed_s": 30.01406166200013,
+        "callback_s": 3.69316149900078,
+        "commit_s": 0.0,
+        "abort_s": 0.4523829299978388,
+        "wait_s": 25.86566064899762,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 105,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 114,
+        "commits": 0,
+        "elapsed_s": 30.023038338999868,
+        "callback_s": 3.6199109330082138,
+        "commit_s": 0.0,
+        "abort_s": 0.4131250649998037,
+        "wait_s": 25.987275984998632,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 114,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 110,
+        "commits": 0,
+        "elapsed_s": 30.056307554999876,
+        "callback_s": 3.4919180020024214,
+        "commit_s": 0.0,
+        "abort_s": 0.39634371700503834,
+        "wait_s": 26.164719606003928,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 110,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 109,
+        "commits": 0,
+        "elapsed_s": 30.049357965000127,
+        "callback_s": 3.601752034004676,
+        "commit_s": 0.0,
+        "abort_s": 0.5309722980036895,
+        "wait_s": 25.914071086001968,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 109,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 109,
+        "commits": 0,
+        "elapsed_s": 30.046725334000257,
+        "callback_s": 3.824462470006438,
+        "commit_s": 0.0,
+        "abort_s": 0.5386617769991062,
+        "wait_s": 25.68128564500057,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 109,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 101,
+        "commits": 0,
+        "elapsed_s": 30.010066595999888,
+        "callback_s": 3.69575258900295,
+        "commit_s": 0.0,
+        "abort_s": 0.4341926080023768,
+        "wait_s": 25.877245089998723,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 101,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 99,
+        "commits": 0,
+        "elapsed_s": 30.03009389900035,
+        "callback_s": 3.8616232260046672,
+        "commit_s": 0.0,
+        "abort_s": 0.4766751250008383,
+        "wait_s": 25.68794857099965,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 99,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 106,
+        "commits": 0,
+        "elapsed_s": 30.01488696600063,
+        "callback_s": 3.6313168729993777,
+        "commit_s": 0.0,
+        "abort_s": 0.4330792879982255,
+        "wait_s": 25.9480477099969,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 106,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 115,
+        "commits": 0,
+        "elapsed_s": 30.02009772600013,
+        "callback_s": 3.9860627549996934,
+        "commit_s": 0.0,
+        "abort_s": 0.48211834100038686,
+        "wait_s": 25.548534784998992,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 115,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 103,
+        "commits": 0,
+        "elapsed_s": 30.03323277599975,
+        "callback_s": 3.5177557730012268,
+        "commit_s": 0.0,
+        "abort_s": 0.4369333950044165,
+        "wait_s": 26.07576307599811,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 103,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 111,
+        "commits": 0,
+        "elapsed_s": 30.02168587199958,
+        "callback_s": 4.173273361000611,
+        "commit_s": 0.0,
+        "abort_s": 0.5189201969960777,
+        "wait_s": 25.327088385000025,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 111,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 104,
+        "commits": 0,
+        "elapsed_s": 30.02406444999997,
+        "callback_s": 3.9394194939986846,
+        "commit_s": 0.0,
+        "abort_s": 0.5194427350052138,
+        "wait_s": 25.56219559500005,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 104,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 101,
+        "commits": 0,
+        "elapsed_s": 30.03706828199938,
+        "callback_s": 3.892464579001171,
+        "commit_s": 0.0,
+        "abort_s": 0.4378692649997902,
+        "wait_s": 25.701100668003164,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 101,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 108,
+        "commits": 0,
+        "elapsed_s": 30.01541160600027,
+        "callback_s": 3.811470037003346,
+        "commit_s": 0.0,
+        "abort_s": 0.4918505859977813,
+        "wait_s": 25.708181040990894,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 108,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 104,
+        "commits": 0,
+        "elapsed_s": 30.04857254000035,
+        "callback_s": 3.803285764993234,
+        "commit_s": 0.0,
+        "abort_s": 0.5934516040033486,
+        "wait_s": 25.64938049999273,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 104,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 100,
+        "commits": 0,
+        "elapsed_s": 30.02325153899983,
+        "callback_s": 3.6290009819986153,
+        "commit_s": 0.0,
+        "abort_s": 0.5094851310013837,
+        "wait_s": 25.881994647999818,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 100,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 116,
+        "commits": 0,
+        "elapsed_s": 30.07144033700024,
+        "callback_s": 4.303655115995753,
+        "commit_s": 0.0,
+        "abort_s": 0.4538154289975864,
+        "wait_s": 25.311198609998428,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 116,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 104,
+        "commits": 0,
+        "elapsed_s": 30.013894106999942,
+        "callback_s": 4.0957576319997315,
+        "commit_s": 0.0,
+        "abort_s": 0.5717165879987078,
+        "wait_s": 25.3438702409876,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 104,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 103,
+        "commits": 0,
+        "elapsed_s": 30.07737796099991,
+        "callback_s": 4.061305454998546,
+        "commit_s": 0.0,
+        "abort_s": 0.5389685250029288,
+        "wait_s": 25.47445310400417,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 103,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 102,
+        "commits": 0,
+        "elapsed_s": 30.08632660800049,
+        "callback_s": 4.208139611005208,
+        "commit_s": 0.0,
+        "abort_s": 0.5143184349990406,
+        "wait_s": 25.360664449001888,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 102,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 103,
+        "commits": 0,
+        "elapsed_s": 30.022586289000174,
+        "callback_s": 4.0499847029968805,
+        "commit_s": 0.0,
+        "abort_s": 0.5185266279977441,
+        "wait_s": 25.45163690800746,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 103,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 105,
+        "commits": 0,
+        "elapsed_s": 30.02042778499981,
+        "callback_s": 4.291883630999109,
+        "commit_s": 0.0,
+        "abort_s": 0.4856623799951194,
+        "wait_s": 25.24064380299842,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 105,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 107,
+        "commits": 0,
+        "elapsed_s": 30.030708797999978,
+        "callback_s": 4.386106856996776,
+        "commit_s": 0.0,
+        "abort_s": 0.49775714399766,
+        "wait_s": 25.144235834995925,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 107,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 108,
+        "commits": 0,
+        "elapsed_s": 30.031134264000684,
+        "callback_s": 3.995122898993941,
+        "commit_s": 0.0,
+        "abort_s": 0.47645056700093846,
+        "wait_s": 25.556899043002886,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 108,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 114,
+        "commits": 0,
+        "elapsed_s": 30.01573325299978,
+        "callback_s": 4.077458635001676,
+        "commit_s": 0.0,
+        "abort_s": 0.5362619309953516,
+        "wait_s": 25.399129263994837,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 114,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 104,
+        "commits": 0,
+        "elapsed_s": 30.016141867999977,
+        "callback_s": 3.9311357300002783,
+        "commit_s": 0.0,
+        "abort_s": 0.4036391419986103,
+        "wait_s": 25.67811303500457,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 104,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 109,
+        "commits": 0,
+        "elapsed_s": 30.01056722500016,
+        "callback_s": 3.961515341006816,
+        "commit_s": 0.0,
+        "abort_s": 0.45114615300190053,
+        "wait_s": 25.593136060001598,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 109,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 103,
+        "commits": 0,
+        "elapsed_s": 30.01678223700037,
+        "callback_s": 3.5025781120011743,
+        "commit_s": 0.0,
+        "abort_s": 0.45278825699733716,
+        "wait_s": 26.05454649799958,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 103,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 106,
+        "commits": 0,
+        "elapsed_s": 30.055644688999564,
+        "callback_s": 3.5773112259957998,
+        "commit_s": 0.0,
+        "abort_s": 0.4959968269995443,
+        "wait_s": 25.97911636099616,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 106,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 97,
+        "commits": 0,
+        "elapsed_s": 30.01770404600029,
+        "callback_s": 3.58983638999689,
+        "commit_s": 0.0,
+        "abort_s": 0.4156182679989797,
+        "wait_s": 26.009339679000732,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 97,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 115,
+        "commits": 0,
+        "elapsed_s": 30.04117181299989,
+        "callback_s": 4.450942137999846,
+        "commit_s": 0.0,
+        "abort_s": 0.49422905600113154,
+        "wait_s": 25.093405762994735,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 115,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 104,
+        "commits": 0,
+        "elapsed_s": 30.03761556900008,
+        "callback_s": 4.046255201997155,
+        "commit_s": 0.0,
+        "abort_s": 0.48620615400432143,
+        "wait_s": 25.50116856900422,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 104,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 107,
+        "commits": 0,
+        "elapsed_s": 30.044478879999588,
+        "callback_s": 4.026257582004291,
+        "commit_s": 0.0,
+        "abort_s": 0.4437424470052065,
+        "wait_s": 25.571867526998176,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 107,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 103,
+        "commits": 0,
+        "elapsed_s": 30.02254035900023,
+        "callback_s": 3.8588124199995946,
+        "commit_s": 0.0,
+        "abort_s": 0.47283803799928137,
+        "wait_s": 25.687875622003048,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 103,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 104,
+        "commits": 0,
+        "elapsed_s": 30.05694474899974,
+        "callback_s": 4.309817992003445,
+        "commit_s": 0.0,
+        "abort_s": 0.4696210020019862,
+        "wait_s": 25.274094574995615,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 104,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 102,
+        "commits": 0,
+        "elapsed_s": 30.03913136400024,
+        "callback_s": 4.024480218998178,
+        "commit_s": 0.0,
+        "abort_s": 0.47907710099661927,
+        "wait_s": 25.53242540398969,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 102,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 100,
+        "commits": 0,
+        "elapsed_s": 30.039334992000477,
+        "callback_s": 3.8398919810033476,
+        "commit_s": 0.0,
+        "abort_s": 0.49272625900266576,
+        "wait_s": 25.703592255009426,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 100,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 115,
+        "commits": 0,
+        "elapsed_s": 30.045768781000334,
+        "callback_s": 4.483898419994148,
+        "commit_s": 0.0,
+        "abort_s": 0.5543962169967926,
+        "wait_s": 25.004368854998575,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 115,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 106,
+        "commits": 0,
+        "elapsed_s": 30.02078172599977,
+        "callback_s": 4.136094557999968,
+        "commit_s": 0.0,
+        "abort_s": 0.41355652199672477,
+        "wait_s": 25.467928850005592,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 106,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 107,
+        "commits": 0,
+        "elapsed_s": 30.001038082000377,
+        "callback_s": 4.165389352002421,
+        "commit_s": 0.0,
+        "abort_s": 0.5204734289982298,
+        "wait_s": 25.312297269994815,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 107,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 110,
+        "commits": 0,
+        "elapsed_s": 30.044627852999838,
+        "callback_s": 4.608982298002047,
+        "commit_s": 0.0,
+        "abort_s": 0.5057767760090428,
+        "wait_s": 24.926634353001646,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 110,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 115,
+        "commits": 0,
+        "elapsed_s": 30.038318516999425,
+        "callback_s": 4.369343497997761,
+        "commit_s": 0.0,
+        "abort_s": 0.6103869469961865,
+        "wait_s": 25.055166188005387,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 115,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 114,
+        "commits": 0,
+        "elapsed_s": 30.00745635400017,
+        "callback_s": 4.376009211996461,
+        "commit_s": 0.0,
+        "abort_s": 0.5053291239964892,
+        "wait_s": 25.120307006000075,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 114,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 107,
+        "commits": 0,
+        "elapsed_s": 30.02414453900019,
+        "callback_s": 3.952642891001233,
+        "commit_s": 0.0,
+        "abort_s": 0.4780019080035345,
+        "wait_s": 25.59073264899689,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 107,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 102,
+        "commits": 0,
+        "elapsed_s": 30.01261215700015,
+        "callback_s": 4.268384602996775,
+        "commit_s": 0.0,
+        "abort_s": 0.4876011270007439,
+        "wait_s": 25.254074568999386,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 102,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 106,
+        "commits": 0,
+        "elapsed_s": 30.020165664999695,
+        "callback_s": 4.103448603000288,
+        "commit_s": 0.0,
+        "abort_s": 0.4656813899964618,
+        "wait_s": 25.443410083003073,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 106,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 114,
+        "commits": 0,
+        "elapsed_s": 30.056964916000652,
+        "callback_s": 4.4921014330020625,
+        "commit_s": 0.0,
+        "abort_s": 0.580387683011395,
+        "wait_s": 24.980946881002637,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 114,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 107,
+        "commits": 0,
+        "elapsed_s": 30.019356537999556,
+        "callback_s": 4.0637387009956,
+        "commit_s": 0.0,
+        "abort_s": 0.5033076379950217,
+        "wait_s": 25.449723825991896,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 107,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 121,
+        "commits": 0,
+        "elapsed_s": 30.06271735199971,
+        "callback_s": 4.707856523001283,
+        "commit_s": 0.0,
+        "abort_s": 0.5722481150023668,
+        "wait_s": 24.77979511599824,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 121,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 103,
+        "commits": 0,
+        "elapsed_s": 30.045568837000246,
+        "callback_s": 3.932626732996141,
+        "commit_s": 0.0,
+        "abort_s": 0.4382416380049108,
+        "wait_s": 25.67165106399807,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 103,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 111,
+        "commits": 0,
+        "elapsed_s": 30.02484357999947,
+        "callback_s": 3.891236045000369,
+        "commit_s": 0.0,
+        "abort_s": 0.47679129600055603,
+        "wait_s": 25.653090354998312,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 111,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 96,
+        "commits": 0,
+        "elapsed_s": 30.090043479000087,
+        "callback_s": 3.9037942029926853,
+        "commit_s": 0.0,
+        "abort_s": 0.40253011300319486,
+        "wait_s": 25.780794148001405,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 96,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 109,
+        "commits": 0,
+        "elapsed_s": 30.033529879000525,
+        "callback_s": 4.1449876070037135,
+        "commit_s": 0.0,
+        "abort_s": 0.5488935679932183,
+        "wait_s": 25.33697813399158,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 109,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 112,
+        "commits": 0,
+        "elapsed_s": 30.048026952999862,
+        "callback_s": 4.658253956994486,
+        "commit_s": 0.0,
+        "abort_s": 0.5628139800019198,
+        "wait_s": 24.820554505002292,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 112,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 106,
+        "commits": 0,
+        "elapsed_s": 30.013190573999964,
+        "callback_s": 4.418618165002954,
+        "commit_s": 0.0,
+        "abort_s": 0.4574356819948662,
+        "wait_s": 25.13414879299671,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 106,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 109,
+        "commits": 0,
+        "elapsed_s": 30.02829004599971,
+        "callback_s": 4.24258429600286,
+        "commit_s": 0.0,
+        "abort_s": 0.5461555099973339,
+        "wait_s": 25.2367932330053,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 109,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 104,
+        "commits": 0,
+        "elapsed_s": 30.029186726000262,
+        "callback_s": 4.086002697000367,
+        "commit_s": 0.0,
+        "abort_s": 0.49154336399988097,
+        "wait_s": 25.448821251996378,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 104,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 116,
+        "commits": 0,
+        "elapsed_s": 30.03345718499986,
+        "callback_s": 4.89865278599882,
+        "commit_s": 0.0,
+        "abort_s": 0.5222196419990723,
+        "wait_s": 24.608315453002433,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 116,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 102,
+        "commits": 0,
+        "elapsed_s": 30.044831852999778,
+        "callback_s": 4.390415409000525,
+        "commit_s": 0.0,
+        "abort_s": 0.5814809060029802,
+        "wait_s": 25.069969287001186,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 102,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 113,
+        "commits": 0,
+        "elapsed_s": 30.007168756000283,
+        "callback_s": 4.572970759996679,
+        "commit_s": 0.0,
+        "abort_s": 0.511054762004278,
+        "wait_s": 24.920631427002263,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 113,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 116,
+        "commits": 0,
+        "elapsed_s": 30.03183629399973,
+        "callback_s": 4.9427107099982095,
+        "commit_s": 0.0,
+        "abort_s": 0.5445550819940763,
+        "wait_s": 24.541090514000643,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 116,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 107,
+        "commits": 0,
+        "elapsed_s": 30.014746546000424,
+        "callback_s": 4.781164598997748,
+        "commit_s": 0.0,
+        "abort_s": 0.5154926229988632,
+        "wait_s": 24.71310982599698,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 107,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 104,
+        "commits": 0,
+        "elapsed_s": 30.015869908999775,
+        "callback_s": 4.507178771998952,
+        "commit_s": 0.0,
+        "abort_s": 0.5831050220003817,
+        "wait_s": 24.92327794799894,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 104,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 116,
+        "commits": 0,
+        "elapsed_s": 30.017200600999786,
+        "callback_s": 4.567825007005922,
+        "commit_s": 0.0,
+        "abort_s": 0.4919459680058935,
+        "wait_s": 24.954405380000026,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 116,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 108,
+        "commits": 0,
+        "elapsed_s": 30.003849260000607,
+        "callback_s": 4.159977497006366,
+        "commit_s": 0.0,
+        "abort_s": 0.4890072779953698,
+        "wait_s": 25.3504417109898,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 108,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 109,
+        "commits": 0,
+        "elapsed_s": 30.028664315999777,
+        "callback_s": 4.36018658699868,
+        "commit_s": 0.0,
+        "abort_s": 0.4935647529973721,
+        "wait_s": 25.171786782998424,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 109,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 105,
+        "commits": 0,
+        "elapsed_s": 30.02118214999973,
+        "callback_s": 3.9619896520007387,
+        "commit_s": 0.0,
+        "abort_s": 0.3878698889939187,
+        "wait_s": 25.66863762099456,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 105,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 110,
+        "commits": 0,
+        "elapsed_s": 30.046083227000054,
+        "callback_s": 4.493290418003198,
+        "commit_s": 0.0,
+        "abort_s": 0.49695317300029274,
+        "wait_s": 25.052600585006985,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 110,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 104,
+        "commits": 0,
+        "elapsed_s": 30.042809245999706,
+        "callback_s": 4.471102329999667,
+        "commit_s": 0.0,
+        "abort_s": 0.5695176470062506,
+        "wait_s": 24.999482113997146,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 104,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 99,
+        "commits": 0,
+        "elapsed_s": 30.04584773500028,
+        "callback_s": 3.8048554580009295,
+        "commit_s": 0.0,
+        "abort_s": 0.3476747890053957,
+        "wait_s": 25.89108693400067,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 99,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 111,
+        "commits": 0,
+        "elapsed_s": 30.027562147000026,
+        "callback_s": 4.286596924999685,
+        "commit_s": 0.0,
+        "abort_s": 0.48797147900586424,
+        "wait_s": 25.25042367700098,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 111,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 105,
+        "commits": 0,
+        "elapsed_s": 30.012081539000064,
+        "callback_s": 4.135676634000447,
+        "commit_s": 0.0,
+        "abort_s": 0.5406866520070253,
+        "wait_s": 25.332583499995962,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 105,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 111,
+        "commits": 0,
+        "elapsed_s": 30.003044693999982,
+        "callback_s": 4.407794647000628,
+        "commit_s": 0.0,
+        "abort_s": 0.5793482710023454,
+        "wait_s": 25.01275697100118,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 111,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 97,
+        "commits": 0,
+        "elapsed_s": 30.03833846100042,
+        "callback_s": 3.899906881994866,
+        "commit_s": 0.0,
+        "abort_s": 0.3988452209987372,
+        "wait_s": 25.736732990994824,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 97,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 107,
+        "commits": 0,
+        "elapsed_s": 30.00430688400047,
+        "callback_s": 4.849472960996536,
+        "commit_s": 0.0,
+        "abort_s": 0.5958204769995064,
+        "wait_s": 24.55634118499711,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 107,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 103,
+        "commits": 0,
+        "elapsed_s": 30.019848255999932,
+        "callback_s": 4.450620204002007,
+        "commit_s": 0.0,
+        "abort_s": 0.4584778650005319,
+        "wait_s": 25.107137967005656,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 103,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 106,
+        "commits": 0,
+        "elapsed_s": 30.004229185999975,
+        "callback_s": 4.384917824998411,
+        "commit_s": 0.0,
+        "abort_s": 0.5061183300040284,
+        "wait_s": 25.109868673991514,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 106,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 100,
+        "commits": 0,
+        "elapsed_s": 30.023817704000066,
+        "callback_s": 4.063821294999798,
+        "commit_s": 0.0,
+        "abort_s": 0.5784290649935429,
+        "wait_s": 25.37897591300225,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 100,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 110,
+        "commits": 0,
+        "elapsed_s": 30.025160174999655,
+        "callback_s": 4.698088950996862,
+        "commit_s": 0.0,
+        "abort_s": 0.6041320260028442,
+        "wait_s": 24.720218725995437,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 110,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 107,
+        "commits": 0,
+        "elapsed_s": 30.021791260999635,
+        "callback_s": 4.340592828994886,
+        "commit_s": 0.0,
+        "abort_s": 0.5883879920038453,
+        "wait_s": 25.089772222005195,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 107,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 104,
+        "commits": 0,
+        "elapsed_s": 30.023720401999526,
+        "callback_s": 4.383191228002943,
+        "commit_s": 0.0,
+        "abort_s": 0.47057870899425325,
+        "wait_s": 25.167572570998345,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 104,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 109,
+        "commits": 0,
+        "elapsed_s": 30.03778326200063,
+        "callback_s": 4.553705149000052,
+        "commit_s": 0.0,
+        "abort_s": 0.4463996019994738,
+        "wait_s": 25.032383743001446,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 109,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 98,
+        "commits": 0,
+        "elapsed_s": 30.036732068000674,
+        "callback_s": 4.180437724001422,
+        "commit_s": 0.0,
+        "abort_s": 0.4855147289981687,
+        "wait_s": 25.36829082600343,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 98,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 109,
+        "commits": 0,
+        "elapsed_s": 30.07950621800046,
+        "callback_s": 4.8923976679998304,
+        "commit_s": 0.0,
+        "abort_s": 0.5239766060058173,
+        "wait_s": 24.660036604999732,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 109,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 107,
+        "commits": 0,
+        "elapsed_s": 30.030181975999767,
+        "callback_s": 4.716148212997723,
+        "commit_s": 0.0,
+        "abort_s": 0.5167711829953987,
+        "wait_s": 24.794676684003207,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 107,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 99,
+        "commits": 0,
+        "elapsed_s": 30.003181606,
+        "callback_s": 4.122570557999097,
+        "commit_s": 0.0,
+        "abort_s": 0.486166816001969,
+        "wait_s": 25.39153507800347,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 99,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 109,
+        "commits": 0,
+        "elapsed_s": 30.040945808000288,
+        "callback_s": 4.903296603000854,
+        "commit_s": 0.0,
+        "abort_s": 0.556630185999893,
+        "wait_s": 24.5778077089999,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 109,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 102,
+        "commits": 0,
+        "elapsed_s": 30.03877378299967,
+        "callback_s": 4.727676100994358,
+        "commit_s": 0.0,
+        "abort_s": 0.4356784899991908,
+        "wait_s": 24.87256436500229,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 102,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 103,
+        "commits": 0,
+        "elapsed_s": 30.061149777000537,
+        "callback_s": 4.873707786999148,
+        "commit_s": 0.0,
+        "abort_s": 0.5584721260047445,
+        "wait_s": 24.626449979004974,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 103,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 100,
+        "commits": 0,
+        "elapsed_s": 30.02679949799949,
+        "callback_s": 4.444342533002782,
+        "commit_s": 0.0,
+        "abort_s": 0.4745710810066157,
+        "wait_s": 25.104178480999508,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 100,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 107,
+        "commits": 0,
+        "elapsed_s": 30.039799193000363,
+        "callback_s": 4.888334625004063,
+        "commit_s": 0.0,
+        "abort_s": 0.5761054399963541,
+        "wait_s": 24.572843490996092,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 107,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 105,
+        "commits": 0,
+        "elapsed_s": 30.04068180500053,
+        "callback_s": 5.1695154240032934,
+        "commit_s": 0.0,
+        "abort_s": 0.5708084560001225,
+        "wait_s": 24.29758306199983,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 105,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 101,
+        "commits": 0,
+        "elapsed_s": 30.003647815000477,
+        "callback_s": 4.758381998000004,
+        "commit_s": 0.0,
+        "abort_s": 0.587337478003974,
+        "wait_s": 24.655338447005306,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 101,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 109,
+        "commits": 0,
+        "elapsed_s": 30.050947869000083,
+        "callback_s": 4.88509226700171,
+        "commit_s": 0.0,
+        "abort_s": 0.5277982929983409,
+        "wait_s": 24.63498167801299,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 109,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 108,
+        "commits": 0,
+        "elapsed_s": 30.060533965000104,
+        "callback_s": 5.154877139993914,
+        "commit_s": 0.0,
+        "abort_s": 0.5679740710083934,
+        "wait_s": 24.333319960002882,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 108,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 111,
+        "commits": 0,
+        "elapsed_s": 30.080003233000753,
+        "callback_s": 5.036592561004909,
+        "commit_s": 0.0,
+        "abort_s": 0.560850308001136,
+        "wait_s": 24.479531816999952,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 111,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 106,
+        "commits": 0,
+        "elapsed_s": 30.029562020999947,
+        "callback_s": 4.731296917007967,
+        "commit_s": 0.0,
+        "abort_s": 0.5815300949925586,
+        "wait_s": 24.71197397800279,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 106,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 99,
+        "commits": 0,
+        "elapsed_s": 30.023218154999995,
+        "callback_s": 4.638204618996497,
+        "commit_s": 0.0,
+        "abort_s": 0.40233092999733344,
+        "wait_s": 24.980150899000364,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 99,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 108,
+        "commits": 0,
+        "elapsed_s": 30.02064931299992,
+        "callback_s": 4.474290465002923,
+        "commit_s": 0.0,
+        "abort_s": 0.5050328899924352,
+        "wait_s": 25.037975076999828,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 108,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 110,
+        "commits": 0,
+        "elapsed_s": 30.023909148999337,
+        "callback_s": 4.655475457999273,
+        "commit_s": 0.0,
+        "abort_s": 0.4649337200062291,
+        "wait_s": 24.899774641997283,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 110,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 108,
+        "commits": 0,
+        "elapsed_s": 30.022555930000635,
+        "callback_s": 4.497825930006002,
+        "commit_s": 0.0,
+        "abort_s": 0.494709124007386,
+        "wait_s": 25.026991691999683,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 108,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      },
+      {
+        "kind": "transaction",
+        "operation": "create",
+        "outcome": "error",
+        "phase": "callback",
+        "attempts": 103,
+        "commits": 0,
+        "elapsed_s": 30.01584879099937,
+        "callback_s": 4.436137950004195,
+        "commit_s": 0.0,
+        "abort_s": 0.6129751629996463,
+        "wait_s": 24.96220104299755,
+        "budget_exhausted": true,
+        "errors": {
+          "callback:112": 103,
+          "outer:112": 1
+        },
+        "last_error": {
+          "code": 112,
+          "labels": [
+            "TransientTransactionError"
+          ],
+          "category": "OperationFailure"
+        }
+      }
+    ],
+    "sha256": {
+      "load_json": "2621e375f701e394835e46096c0ee7354e920abd6413f395fbfe4ab6632e0385",
+      "driver_jsonl": "306ebe72ce6dc248a5ddf8adfd8424594f7504c85bd9a50ab9582b0f59e4fbb2"
+    }
+  },
+  "acceptance": {
+    "label": "acceptance",
+    "rows": [
+      {
+        "sessions": 50,
+        "duration_s": 1803.525,
+        "traffic_duration_s": 1801.873,
+        "completed_pairs": 59899,
+        "requests": 119798,
+        "p50_ms": 679.2,
+        "p95_ms": 1359.15,
+        "p99_ms": 1574.31,
+        "request_throughput_s": 66.42,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 59899,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 33.24,
+        "pair_p50_ms": 1514.79,
+        "pair_p95_ms": 2063.44,
+        "pair_p99_ms": 2185.99,
+        "unique_completed_operations_s": 66.42
+      }
+    ],
+    "integrity": {
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 59899
+        }
+      ],
+      "counter": 59899,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 59899,
+      "markers": 59899,
+      "stock_moves": 119798,
+      "cash_version": 119798
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 73.48828125,
+        "cpu_seconds_delta": 863.99,
+        "mean_cpu_core_equivalent": 0.4795012077790331
+      },
+      "mongo": {
+        "rss_mib_max": 370.51171875,
+        "cpu_seconds_delta": 1078.63,
+        "mean_cpu_core_equivalent": 0.5986231180299524
+      },
+      "mongo_connections_max": 26,
+      "sample_span_s": 1801.8515615463257,
+      "sample_count": 361,
+      "server_status_write_conflicts_last": 0
+    },
+    "driver_counters_last_sample": {
+      "pool_checkout_count": 2216518,
+      "pool_wait_us": 22008963,
+      "pool_max_checked_out": 16,
+      "find:other:count": 59908,
+      "find:other:us": 12111862,
+      "createIndexes:other:count": 6,
+      "createIndexes:other:us": 3394,
+      "createIndexes:employees:count": 2,
+      "createIndexes:employees:us": 747,
+      "insert:other:count": 10,
+      "insert:other:us": 14231,
+      "createIndexes:sessions:count": 3,
+      "createIndexes:sessions:us": 1285,
+      "createIndexes:login_attempts:count": 1,
+      "createIndexes:login_attempts:us": 220,
+      "createIndexes:categories:count": 1,
+      "createIndexes:categories:us": 706,
+      "createIndexes:products:count": 2,
+      "createIndexes:products:us": 694,
+      "createIndexes:ingredients:count": 1,
+      "createIndexes:ingredients:us": 332,
+      "createIndexes:stock_moves:count": 1,
+      "createIndexes:stock_moves:us": 182,
+      "createIndexes:orders:count": 6,
+      "createIndexes:orders:us": 1644,
+      "createIndexes:kitchen_tickets:count": 3,
+      "createIndexes:kitchen_tickets:us": 738,
+      "createIndexes:invoices:count": 2,
+      "createIndexes:invoices:us": 794,
+      "createIndexes:cash_sessions:count": 3,
+      "createIndexes:cash_sessions:us": 1522,
+      "createIndexes:fiado_customers:count": 1,
+      "createIndexes:fiado_customers:us": 830,
+      "aggregate:other:count": 1,
+      "aggregate:other:us": 376,
+      "createIndexes:customer_moves:count": 2,
+      "createIndexes:customer_moves:us": 711,
+      "find:login_attempts:count": 50,
+      "find:login_attempts:us": 86307,
+      "find:employees:count": 119848,
+      "find:employees:us": 41849890,
+      "delete:login_attempts:count": 50,
+      "delete:login_attempts:us": 706159,
+      "insert:sessions:count": 50,
+      "insert:sessions:us": 669554,
+      "find:sessions:count": 119798,
+      "find:sessions:us": 49117644,
+      "find:financial_operations:count": 59899,
+      "find:financial_operations:us": 16873051,
+      "find:orders:count": 239596,
+      "find:orders:us": 724473798,
+      "insert:financial_operations:count": 59899,
+      "insert:financial_operations:us": 14260655,
+      "find:products:count": 179697,
+      "find:products:us": 47297728,
+      "find:categories:count": 59899,
+      "find:categories:us": 11641842,
+      "find:ingredients:count": 179697,
+      "find:ingredients:us": 34173780,
+      "findAndModify:counters:count": 59899,
+      "findAndModify:counters:us": 14479085,
+      "insert:orders:count": 59899,
+      "insert:orders:us": 14472914,
+      "update:orders:count": 179697,
+      "update:orders:us": 59667352,
+      "find:cash_sessions:count": 59899,
+      "find:cash_sessions:us": 14138943,
+      "update:cash_sessions:count": 119798,
+      "update:cash_sessions:us": 55974518,
+      "insert:kitchen_tickets:count": 59899,
+      "insert:kitchen_tickets:us": 13012703,
+      "find:purchases:count": 59899,
+      "find:purchases:us": 9132093,
+      "update:ingredients:count": 119798,
+      "update:ingredients:us": 30029015,
+      "insert:stock_moves:count": 119798,
+      "insert:stock_moves:us": 22544298,
+      "update:financial_operations:count": 59899,
+      "update:financial_operations:us": 11765792,
+      "commitTransaction:other:count": 119798,
+      "commitTransaction:other:us": 84380303,
+      "find:lot_consumptions:count": 59899,
+      "find:lot_consumptions:us": 9104469,
+      "update:kitchen_tickets:count": 59899,
+      "update:kitchen_tickets:us": 14890364,
+      "endSessions:other:count": 1,
+      "endSessions:other:us": 289
+    },
+    "driver_write_conflict_112": {},
+    "transaction_count": 119798,
+    "outcomes": {
+      "committed": 119798
+    },
+    "callback_errors": {},
+    "callback_attempts_sum": 119798,
+    "callback_retries_sum": 0,
+    "commit_calls_sum": 119798,
+    "commit_retries_sum": 0,
+    "commit_calls_p50_p95_p99_max": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "callback_attempts_p50_p95_p99_max": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "transaction_elapsed_ms_p50_p95_p99": [
+      675.1891949998026,
+      1355.01429299984,
+      1570.3486319998774
+    ],
+    "admission_ms_p50_p95_p99": [
+      661.0502510002334,
+      1336.159910000788,
+      1547.2380189985415
+    ],
+    "callback_ms_p50_p95_p99": [
+      9.516179999991436,
+      30.416016999879503,
+      36.446582000280614
+    ],
+    "commit_ms_p50_p95_p99": [
+      0.7119689998944523,
+      1.6216200001508696,
+      1.8810340006893966
+    ],
+    "failures": [],
+    "sha256": {
+      "load_json": "d1095a591690275a3fa019f0d846a6335a8440ec77c63ef30f99af7ba904e4c5",
+      "driver_jsonl": "f3f9adea8b5f27afc6b5027049ccf082efdb567795fa4a6aaafa52f22a974e51"
+    }
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "artifacts": [
+    {
+      "id": 14248516767,
+      "name": "p7-real-web-desktop",
+      "size_in_bytes": 1850488,
+      "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/artifacts/14248516767",
+      "archive_download_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/artifacts/14248516767/zip",
+      "expired": false,
+      "created_at": "2026-11-16T16:51:22Z",
+      "expires_at": "2027-02-14T16:45:39Z",
+      "updated_at": "2026-11-16T16:51:22Z",
+      "digest": "sha256:2e1cc5d60f76746046bb1e86e58df08905241afbbe72a652a8d55c986520db63",
+      "workflow_run": {
+        "id": 43911034137,
+        "repository_id": 1446193183,
+        "head_repository_id": 1446193183,
+        "head_branch": "fix/p7-transaction-contention",
+        "head_sha": "dfca52809f45d223c5aea0d6045d30c5c6e46b32"
+      }
+    },
+    {
+      "id": 14247966834,
+      "name": "p7-real-web-tablet",
+      "size_in_bytes": 903771,
+      "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/artifacts/14247966834",
+      "archive_download_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/artifacts/14247966834/zip",
+      "expired": false,
+      "created_at": "2026-11-16T16:49:22Z",
+      "expires_at": "2027-02-14T16:45:39Z",
+      "updated_at": "2026-11-16T16:49:22Z",
+      "digest": "sha256:8ccf4b0d3c2b766a712e2052f45d624e5f9e371bc47ce76ae96addd66526b06f",
+      "workflow_run": {
+        "id": 43911034137,
+        "repository_id": 1446193183,
+        "head_repository_id": 1446193183,
+        "head_branch": "fix/p7-transaction-contention",
+        "head_sha": "dfca52809f45d223c5aea0d6045d30c5c6e46b32"
+      }
+    },
+    {
+      "id": 14246914501,
+      "name": "p7-real-web-mobile",
+      "size_in_bytes": 649911,
+      "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/artifacts/14246914501",
+      "archive_download_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/artifacts/14246914501/zip",
+      "expired": false,
+      "created_at": "2026-11-16T16:49:49Z",
+      "expires_at": "2027-02-14T16:45:39Z",
+      "updated_at": "2026-11-16T16:49:49Z",
+      "digest": "sha256:bdc81527c80f6dca5bc8ead8cab34dff9c98a072ee5600098c2e37108a93a459",
+      "workflow_run": {
+        "id": 43911034137,
+        "repository_id": 1446193183,
+        "head_repository_id": 1446193183,
+        "head_branch": "fix/p7-transaction-contention",
+        "head_sha": "dfca52809f45d223c5aea0d6045d30c5c6e46b32"
+      }
+    },
+    {
+      "id": 14246644744,
+      "name": "p7-real-web-notebook",
+      "size_in_bytes": 981415,
+      "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/artifacts/14246644744",
+      "archive_download_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/artifacts/14246644744/zip",
+      "expired": false,
+      "created_at": "2026-11-16T16:50:16Z",
+      "expires_at": "2027-02-14T16:45:39Z",
+      "updated_at": "2026-11-16T16:50:16Z",
+      "digest": "sha256:ff7319a5f46c0e81079b192e9cbed3289c75125396832a9c2821c515281d04ae",
+      "workflow_run": {
+        "id": 43911034137,
+        "repository_id": 1446193183,
+        "head_repository_id": 1446193183,
+        "head_branch": "fix/p7-transaction-contention",
+        "head_sha": "dfca52809f45d223c5aea0d6045d30c5c6e46b32"
+      }
+    }
+  ]
+}
