@@ -8,7 +8,7 @@ processes=[]
 def launch(command,log,env,cwd=root):
     p=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,env=env,cwd=cwd);processes.append(p);return p
 with tempfile.TemporaryDirectory(prefix='apollo-p6-') as tmp:
-    out=root/'docs/web/p6-2026-11-16/evidence';out.mkdir(parents=True,exist_ok=True)
+    out=Path(os.environ.get('APOLLO_WEB_EVIDENCE_DIR',str(root/'docs/web/p6-2026-11-16/evidence')));out.mkdir(parents=True,exist_ok=True)
     log=open(out/'runtime.log','w')
     env={**os.environ,'MONGO_URL':'mongodb://127.0.0.1:27028/?replicaSet=p6','DB_NAME':'apollo_p6_web','P6_DB_NAME':'apollo_p6_web',
          'COOKIE_SECURE':'false','APP_URL':'http://127.0.0.1:3001','NO_PROXY':'localhost,127.0.0.1','P6_PYTHON':sys.executable}
