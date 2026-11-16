@@ -35,3 +35,8 @@ test('corrupt storage fails closed without sending',async()=>{
   const {api,shared}=await setup();shared.set(api.PENDING_SALE_KEY,'{broken');let sent=0;
   await assert.rejects(api.webCheckout(async()=>{sent++;}));assert.equal(sent,0);
 });
+test('storage quota failure prevents network submission',async()=>{
+ const storage=new class extends Map {set(){throw Error('Quota exceeded');}}();
+ const {api}=await setup(storage);let sent=0;
+ await assert.rejects(api.webCheckout(async()=>{sent++;}),/Quota/);assert.equal(sent,0);
+});

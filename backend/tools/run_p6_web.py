@@ -34,6 +34,27 @@ with tempfile.TemporaryDirectory(prefix='apollo-p6-') as tmp:
                     except httpx.TransportError:pass
                     time.sleep(.2)
                 else:raise RuntimeError('Server not ready: '+url)
+        cert=Path(tmp)/'test.crt';key=Path(tmp)/'test.key'
+        subprocess.run(['openssl','req','-x509','-newkey','rsa:2048','-nodes','-keyout',str(key),'-out',str(cert),'-days','1','-subj','/CN=127.0.0.1','-addext','subjectAltName=IP:127.0.0.1'],check=True,stdout=log,stderr=log)
+        tls_env={**env,'COOKIE_SECURE':'true','APP_URL':'https://127.0.0.1:8443'}
+        launch([sys.executable,'-m','uvicorn','server:app','--host','127.0.0.1','--port','8443','--ssl-certfile',str(cert),'--ssl-keyfile',str(key)],log,tls_env,root/'backend')
+        with httpx.Client(base_url='https://127.0.0.1:8443',verify=str(cert),trust_env=False,timeout=2) as tls:
+            for _ in range(100):
+                try:
+                    if tls.get('/api/').status_code==200:break
+                except httpx.TransportError:pass
+                time.sleep(.2)
+            response=tls.post('/api/auth/login',json={'username':'p6-caixa','password':'Synthetic-P6-Test-Only!'},headers={'Origin':'https://127.0.0.1:8443'})
+            assert response.status_code==200
+            cookie=response.headers['set-cookie'].lower()
+            assert 'secure' in cookie and 'httponly' in cookie and 'samesite=lax' in cookie
+            assert tls.get('/api/auth/me').status_code==200
+            hostile=tls.post('/api/cash/open',json={'opening_amount':0},headers={'Origin':'http://127.0.0.1:8443'})
+            assert hostile.status_code==403
+            cors=tls.options('/api/auth/me',headers={'Origin':'https://hostile.invalid','Access-Control-Request-Method':'GET'})
+            assert 'access-control-allow-origin' not in cors.headers
+            (out/'tls-security.json').write_text(json.dumps({'tls_certificate_verified':True,'secure_cookie':True,'httpOnly':True,'sameSite':'lax','authenticated_https':True,'cross_scheme_csrf_status':hostile.status_code,'hostile_cors_not_allowed':True,'scope':'localhost synthetic certificate; no production infrastructure certified'},indent=2)+'\n')
+        if '--tls-only' in sys.argv: raise SystemExit(0)
         command=['npx','playwright','test','--config','p6.playwright.config.ts',*sys.argv[1:]]
         result=subprocess.run(command,env=env,cwd=root/'tests')
         raise SystemExit(result.returncode)

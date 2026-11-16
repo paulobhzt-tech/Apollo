@@ -104,3 +104,26 @@ test('waiter cannot submit financial requests or inspect reconciliation',async({
  expect((await page.request.post('/api/pdv/sale',{data:body,headers:{Origin:'http://127.0.0.1:3001'}})).status()).toBe(403);
  expect((await page.request.get('/api/pdv/operations/p6-forbidden')).status()).toBe(403);expect(db().orders).toHaveLength(0);
 });
+
+test('offline does not create a sale or queue; reconnect never submits it',async({page,context})=>{
+ await login(page);await openCash(page);await prepare(page);
+ let sent=0;page.on('request',r=>{if(r.url().endsWith('/api/pdv/sale'))sent++;});
+ await context.setOffline(true);await page.getByTestId('payment-confirm-button').click();
+ await expect(page.getByTestId('pdv-offline-banner')).toBeVisible();
+ expect(db().orders).toHaveLength(0);expect(db().stock).toBe(1000);
+ await context.setOffline(false);expect(sent).toBe(0);
+ expect(await page.evaluate(()=>localStorage.getItem('pdv_offline_queue'))).toBeNull();
+});
+
+test('a pending operation in another tab blocks new requests at the browser boundary',async({page,context})=>{
+ await login(page);await openCash(page);await prepare(page);
+ await page.route('**/api/pdv/sale',async route=>{await route.fetch();await route.abort('failed');});
+ await page.getByTestId('payment-confirm-button').click();await expect(page.getByTestId('web-sale-recovery')).toBeVisible();
+ const second=await context.newPage();await prepare(second);let sent=0;
+ second.on('request',r=>{if(r.url().endsWith('/api/pdv/sale'))sent++;});
+ await second.getByTestId('payment-confirm-button').click();
+ await expect(second.getByTestId('web-sale-recovery')).toBeVisible();expect(sent).toBe(0);expect(db().orders).toHaveLength(1);
+ await second.getByTestId('web-sale-reconcile').click();
+ await expect(second.getByTestId('payment-dialog')).toBeHidden();
+ await expect(second.getByTestId('pdv-checkout-button')).toBeDisabled();
+});
