@@ -5,15 +5,19 @@ import bcrypt, httpx
 from pymongo import MongoClient
 root=Path(__file__).resolve().parents[2]
 out=root/'docs/web/p6-2026-11-16/evidence';out.mkdir(parents=True,exist_ok=True)
+suffix=os.environ.get('P6_LOAD_SUFFIX','')
+assert not suffix or suffix=='-diagnostic'
+
 baseline=Path(os.environ['P6_BASELINE_ROOT'])
 seconds=os.environ.get('P6_LOAD_SECONDS','300')
 for label,checkout in [('before',baseline),('after',root)]:
+    if label not in os.environ.get('P6_LOAD_VERSIONS','before,after').split(','): continue
     children=[]
-    with tempfile.TemporaryDirectory(prefix='apollo-p6-load-') as tmp, open(out/f'load-{label}.log','w') as log:
+    with tempfile.TemporaryDirectory(prefix='apollo-p6-load-') as tmp, open(out/f'load-{label}{suffix}.log','w') as log:
         env={**os.environ,'MONGO_URL':'mongodb://127.0.0.1:27029/?replicaSet=p6load','DB_NAME':'apollo_p0_http_test',
              'APOLLO_P0_INTEGRATION':'1','BACKEND_URL':'http://127.0.0.1:8002','COOKIE_SECURE':'false','APP_URL':'http://127.0.0.1:8002',
-             'APOLLO_LOAD_SESSIONS':'5,10,20,30,50','APOLLO_STAGE_SECONDS':'15','APOLLO_SOAK_SECONDS':seconds,
-             'APOLLO_SOAK_OUTPUT':str(out/f'load-{label}.json'),'APOLLO_TX_METRICS':'1','NO_PROXY':'127.0.0.1,localhost'}
+             'APOLLO_LOAD_SESSIONS':os.environ.get('P6_LOAD_SESSIONS','5,10,20,30,50'),'APOLLO_STAGE_SECONDS':os.environ.get('P6_STAGE_SECONDS','15'),'APOLLO_SOAK_SECONDS':seconds,
+             'APOLLO_SOAK_OUTPUT':str(out/f'load-{label}{suffix}.json'),'APOLLO_TX_METRICS':'1','NO_PROXY':'127.0.0.1,localhost'}
         try:
             def start(cmd,cwd=root):
                 p=subprocess.Popen(cmd,cwd=cwd,env=env,stdout=log,stderr=subprocess.STDOUT);children.append(p);return p

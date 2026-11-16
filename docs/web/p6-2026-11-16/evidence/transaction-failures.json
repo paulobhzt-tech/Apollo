@@ -1,0 +1,302 @@
+[
+  {
+    "version": "before",
+    "aborts": 105,
+    "attempts": 105,
+    "commit_calls": 0,
+    "elapsed_ms": 30001.699,
+    "errors": [
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      }
+    ],
+    "errors_omitted": 90,
+    "event": "apollo_transaction",
+    "outcome": "failed",
+    "retries": {
+      "transient_callback": 104
+    },
+    "timings_ms": {
+      "abort": 239.518,
+      "callback": 2143.862,
+      "commit": 0.0,
+      "retry_wait": 27615.818
+    },
+    "trace_id": "a6be2f32f570"
+  },
+  {
+    "version": "after",
+    "aborts": 108,
+    "attempts": 108,
+    "commit_calls": 0,
+    "elapsed_ms": 30003.922,
+    "errors": [
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      },
+      {
+        "exception_type": "OperationFailure",
+        "mongo_code": 112,
+        "mongo_labels": [
+          "TransientTransactionError"
+        ],
+        "stage": "callback"
+      }
+    ],
+    "errors_omitted": 93,
+    "event": "apollo_transaction",
+    "outcome": "failed",
+    "retries": {
+      "transient_callback": 107
+    },
+    "timings_ms": {
+      "abort": 211.548,
+      "callback": 1899.844,
+      "commit": 0.0,
+      "retry_wait": 27890.746
+    },
+    "trace_id": "a60e9d6c709f"
+  }
+]

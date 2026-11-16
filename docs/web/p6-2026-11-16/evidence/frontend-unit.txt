@@ -1,0 +1,31 @@
+(node:13) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:13) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ browser print API failure rejects instead of acknowledging a ticket (63.168966ms)
+✔ opening a browser print dialog resolves without claiming physical delivery (2.095576ms)
+(node:14) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:14) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ sale enqueued during an awaited replay survives synchronization (61.980847ms)
+✔ network failure preserves both the attempted sale and new arrivals (4.0564ms)
+✔ successful replay removes only completed entries and does not send arrivals early (3.696279ms)
+✔ rejected financial records are not silently truncated (3.89693ms)
+✔ corrupt pending queue cannot be silently replaced by enqueue (2.813123ms)
+✔ failure to archive a rejection preserves the pending operation (2.582417ms)
+✔ browser cannot enqueue, replay or remove legacy financial records (1.80578ms)
+(node:15) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ unknown response survives reload; another submit is never sent (60.021926ms)
+✔ parallel clicks cannot create two operation identities (1.879131ms)
+✔ only matching confirmed reference can be removed (2.654746ms)
+✔ corrupt storage fails closed without sending (1.71854ms)
+✔ storage quota failure prevents network submission (1.654614ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 233.141978
