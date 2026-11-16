@@ -1,0 +1,27 @@
+{
+  "python": "3.12.14",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "logical_cpus": 9,
+  "baseline_tree": "4347c2bc88a7c4dbc266b6fb780bac2a2fcadae9",
+  "candidate_tree": "2aa96cf18ef1846ea840e4c94c9e29494bb327d4",
+  "mongo_version": "7.0.16",
+  "replica_members": 1,
+  "uvicorn_workers": 1,
+  "wired_tiger_cache_gb": 0.25,
+  "bcrypt_cost": 12,
+  "network": "loopback HTTP keep-alive",
+  "data": "synthetic shared cash, product and ingredient; no physical payment provider",
+  "cpu_affinity_count": 9,
+  "memory_total_kib": "MemTotal:       10206472 kB",
+  "cgroup": {},
+  "node_version": "24 (GitHub Actions; exact dependency/build logs retained in run 43911034137)",
+  "benchmark_packages": {
+    "fastapi": "0.141.1",
+    "uvicorn": "0.54.0",
+    "motor": "3.7.1",
+    "pymongo": "4.18.2",
+    "httpx": "0.28.1",
+    "bcrypt": "4.0.1",
+    "pytest": "9.2.0"
+  }
+}

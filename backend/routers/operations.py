@@ -103,7 +103,7 @@ async def pdv_operation_status(reference: str, _: dict = Depends(require("caixa"
         if not order or order.get("status") not in ("pago", "cancelado"):
             return {"state": "needs_review"}
         return {"state": "confirmed", "order_id": order["id"], "number": order["number"], "status": order["status"]}
-    return await run_transaction(inspect)
+    return await run_transaction(inspect,read_only=True)
 
 
 @router.get("/orders", response_model=list[Order])

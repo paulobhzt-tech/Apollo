@@ -1,0 +1,78 @@
+{
+  "desktop": {
+    "api_observations": 246,
+    "api_ttfb_p50_p95_p99_ms": [
+      10.0,
+      22.5,
+      56.59
+    ],
+    "api_http_statuses": {
+      "200": 233,
+      "401": 12,
+      "503": 1
+    },
+    "navigation_count": 10,
+    "navigation_load_event_end_ms_p50_p95": [
+      316.3,
+      403.5
+    ],
+    "scope": "sequential functional UI tests including deliberate failure scenarios; not load API quantiles or page-interactive SLA"
+  },
+  "notebook": {
+    "api_observations": 246,
+    "api_ttfb_p50_p95_p99_ms": [
+      12.57,
+      34.61,
+      103.95
+    ],
+    "api_http_statuses": {
+      "200": 233,
+      "401": 12,
+      "503": 1
+    },
+    "navigation_count": 10,
+    "navigation_load_event_end_ms_p50_p95": [
+      333.4,
+      407.5
+    ],
+    "scope": "sequential functional UI tests including deliberate failure scenarios; not load API quantiles or page-interactive SLA"
+  },
+  "tablet": {
+    "api_observations": 246,
+    "api_ttfb_p50_p95_p99_ms": [
+      9.69,
+      27.99,
+      57.67
+    ],
+    "api_http_statuses": {
+      "200": 233,
+      "401": 12,
+      "503": 1
+    },
+    "navigation_count": 10,
+    "navigation_load_event_end_ms_p50_p95": [
+      251,
+      303.3
+    ],
+    "scope": "sequential functional UI tests including deliberate failure scenarios; not load API quantiles or page-interactive SLA"
+  },
+  "mobile": {
+    "api_observations": 246,
+    "api_ttfb_p50_p95_p99_ms": [
+      8.61,
+      24.55,
+      70.98
+    ],
+    "api_http_statuses": {
+      "200": 233,
+      "401": 12,
+      "503": 1
+    },
+    "navigation_count": 10,
+    "navigation_load_event_end_ms_p50_p95": [
+      311.5,
+      384
+    ],
+    "scope": "sequential functional UI tests including deliberate failure scenarios; not load API quantiles or page-interactive SLA"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "desktop": {
+    "startTime": "2026-11-16T16:48:21.105Z",
+    "duration": 179825.505,
+    "expected": 11,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "notebook": {
+    "startTime": "2026-11-16T16:46:59.053Z",
+    "duration": 195434.696,
+    "expected": 11,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tablet": {
+    "startTime": "2026-11-16T16:46:53.768Z",
+    "duration": 145353.425,
+    "expected": 11,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "mobile": {
+    "startTime": "2026-11-16T16:46:54.726Z",
+    "duration": 172882.769,
+    "expected": 11,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "attachment_counts": {
+    "financial-snapshot.json": 44,
+    "api-observations.json": 44,
+    "interface-navigation.json": 40
+  }
+}

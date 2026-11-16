@@ -1,0 +1,29 @@
+{
+  "criteria_file": "../ACCEPTANCE.json",
+  "actual": {
+    "active_traffic_seconds_minimum": 1801.873,
+    "http_503_maximum": 0,
+    "other_http_or_transport_errors_maximum": 0,
+    "exhausted_operations_maximum": 0,
+    "request_p95_ms_maximum": 1359.15,
+    "request_p99_ms_maximum": 1574.31,
+    "sale_cancel_pair_p95_ms_maximum": 2063.44,
+    "sale_cancel_pair_p99_ms_maximum": 2185.99
+  },
+  "checks": {
+    "active_traffic_seconds_minimum": true,
+    "http_503_maximum": true,
+    "other_http_or_transport_errors_maximum": true,
+    "exhausted_operations_maximum": true,
+    "request_p95_ms_maximum": false,
+    "request_p99_ms_maximum": true,
+    "sale_cancel_pair_p95_ms_maximum": false,
+    "sale_cancel_pair_p99_ms_maximum": true,
+    "financial_integrity_assertions": true
+  },
+  "load_scope_passed": false,
+  "production_approved": false,
+  "configured_active_seconds": 1800,
+  "duration_note": "Campaign config supplies 1800 active seconds; measured traffic_duration_s also includes draining already-started pairs. Run the full campaign unchanged.",
+  "note": "Load verdict only. Financial failure/recovery and UI evidence are reported separately; counts are not a substitute for those tests."
+}

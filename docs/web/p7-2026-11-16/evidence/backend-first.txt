@@ -1,0 +1,179 @@
+REAL MongoDB 7.0.16 replica set apolloP0 PRIMARY
+/tmp/apollo-p5-venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+..................................................................... [ 19%]
+.........................................................F.............. [ 38%]
+........................................................................ [ 58%]
+........................................................................ [ 78%]
+........................................................................ [ 98%]
+.....                                                                    [100%]
+=================================== FAILURES ===================================
+______________ test_backup_during_sale_is_one_consistent_snapshot ______________
+
+client = AsyncIOMotorClient(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio')))
+deadline = 5147.64822369
+probe = <lib.transaction_observability.TransactionProbe object at 0x7f9b11f70470>
+
+    @asynccontextmanager
+    async def admit(client, deadline, probe):
+        gate = _gate_for(client)
+        acquired = False
+        started = time.monotonic()
+        try:
+            try:
+                # The deadline is the original transaction budget, set at arrival.
+                async with asyncio.timeout_at(deadline):
+>                   await gate.lock.acquire()
+
+lib/transaction_admission.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <asyncio.locks.Lock object at 0x7f9b11fc52e0 [unlocked]>
+
+    async def acquire(self):
+        """Acquire a lock.
+    
+        This method blocks until the lock is unlocked, then sets it to
+        locked and returns True.
+        """
+        if (not self._locked and (self._waiters is None or
+                all(w.cancelled() for w in self._waiters))):
+            self._locked = True
+            return True
+    
+        if self._waiters is None:
+            self._waiters = collections.deque()
+        fut = self._get_loop().create_future()
+        self._waiters.append(fut)
+    
+        # Finally block should be called before the CancelledError
+        # handling as we don't want CancelledError to call
+        # _wake_up_first() and attempt to wake up itself.
+        try:
+            try:
+>               await fut
+E               asyncio.exceptions.CancelledError
+
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/locks.py:113: CancelledError
+
+The above exception was the direct cause of the following exception:
+
+client = AsyncIOMotorClient(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio')))
+deadline = 5147.64822369
+probe = <lib.transaction_observability.TransactionProbe object at 0x7f9b11f70470>
+
+    @asynccontextmanager
+    async def admit(client, deadline, probe):
+        gate = _gate_for(client)
+        acquired = False
+        started = time.monotonic()
+        try:
+            try:
+                # The deadline is the original transaction budget, set at arrival.
+>               async with asyncio.timeout_at(deadline):
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+lib/transaction_admission.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Timeout [expired]>
+exc_type = <class 'asyncio.exceptions.CancelledError'>
+exc_val = CancelledError(), exc_tb = <traceback object at 0x7f9b11f615c0>
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> Optional[bool]:
+        assert self._state in (_State.ENTERED, _State.EXPIRING)
+    
+        if self._timeout_handler is not None:
+            self._timeout_handler.cancel()
+            self._timeout_handler = None
+    
+        if self._state is _State.EXPIRING:
+            self._state = _State.EXPIRED
+    
+            if self._task.uncancel() <= self._cancelling and exc_type is exceptions.CancelledError:
+                # Since there are no new cancel requests, we're
+                # handling this.
+>               raise TimeoutError from exc_val
+E               TimeoutError
+
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/timeouts.py:115: TimeoutError
+
+The above exception was the direct cause of the following exception:
+
+p1 = (AsyncIOMotorDatabase(Database(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False...are=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio'))))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f9b11f33530>
+
+    async def test_backup_during_sale_is_one_consistent_snapshot(p1,monkeypatch):
+        from motor.motor_asyncio import AsyncIOMotorCursor
+        db,_=p1;await operations.quick_sale(sale(),USER)
+        original=AsyncIOMotorCursor.to_list;injected=False
+        async def concurrent(cursor,*a,**kw):
+            nonlocal injected
+            result=await original(cursor,*a,**kw)
+            if cursor.collection.database.name==db.name and cursor.collection.name=='orders' and not injected:
+                injected=True
+                await operations.quick_sale(sale(),USER)
+            return result
+        monkeypatch.setattr(AsyncIOMotorCursor,'to_list',concurrent)
+>       _,backup=await config.build_backup()
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_p1_integrity_integration.py:168: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+routers/config.py:68: in build_backup
+    return await export_backup(db)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+lib/backups.py:61: in export_backup
+    return await run_transaction(snapshot,client=source.client)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+lib/transactions.py:55: in run_transaction
+    result = await callback(session)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+lib/backups.py:48: in snapshot
+    raw[name]=await source[name].find(query,projection,session=session).to_list(None)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_p1_integrity_integration.py:165: in concurrent
+    await operations.quick_sale(sale(),USER)
+routers/operations.py:86: in quick_sale
+    result = await run_transaction(replay)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+lib/transactions.py:45: in run_transaction
+    async with admit(active_client, deadline, probe):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:210: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+client = AsyncIOMotorClient(MongoClient(host=['127.0.0.1:27027'], document_class=dict, tz_aware=True, connect=False, replicaset='apolloP0', driver=DriverInfo(name='Motor', version='3.7.1', platform='asyncio')))
+deadline = 5147.64822369
+probe = <lib.transaction_observability.TransactionProbe object at 0x7f9b11f70470>
+
+    @asynccontextmanager
+    async def admit(client, deadline, probe):
+        gate = _gate_for(client)
+        acquired = False
+        started = time.monotonic()
+        try:
+            try:
+                # The deadline is the original transaction budget, set at arrival.
+                async with asyncio.timeout_at(deadline):
+                    await gate.lock.acquire()
+                    acquired = True
+            except TimeoutError as exc:
+                probe.error('admission', exc)
+>               raise HTTPException(503, 'Operação não confirmada: capacidade transacional ocupada. '
+                                    'Consulte a mesma referência; não crie outro pagamento.') from exc
+E                                   fastapi.exceptions.HTTPException: 503: Operação não confirmada: capacidade transacional ocupada. Consulte a mesma referência; não crie outro pagamento.
+
+lib/transaction_admission.py:43: HTTPException
+=========================== short test summary info ============================
+FAILED tests/test_p1_integrity_integration.py::test_backup_during_sale_is_one_consistent_snapshot
+1 failed, 361 passed, 3 subtests passed in 106.08s (0:01:46)

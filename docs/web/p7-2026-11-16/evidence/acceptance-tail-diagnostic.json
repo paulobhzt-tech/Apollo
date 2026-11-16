@@ -1,0 +1,96 @@
+{
+  "scope": "partial tail diagnostic, not whole-run request quantiles",
+  "window_s": 10.019545078277588,
+  "top_commands": [
+    {
+      "command": "find:orders",
+      "count": 1210,
+      "mean_ms": 3.713,
+      "total_ms": 4492.32
+    },
+    {
+      "command": "commitTransaction:other",
+      "count": 605,
+      "mean_ms": 0.764,
+      "total_ms": 462.23
+    },
+    {
+      "command": "update:orders",
+      "count": 910,
+      "mean_ms": 0.348,
+      "total_ms": 316.46
+    },
+    {
+      "command": "update:cash_sessions",
+      "count": 605,
+      "mean_ms": 0.438,
+      "total_ms": 264.74
+    },
+    {
+      "command": "find:sessions",
+      "count": 605,
+      "mean_ms": 0.419,
+      "total_ms": 253.33
+    },
+    {
+      "command": "find:products",
+      "count": 910,
+      "mean_ms": 0.276,
+      "total_ms": 251.24
+    },
+    {
+      "command": "find:employees",
+      "count": 605,
+      "mean_ms": 0.32,
+      "total_ms": 193.46
+    },
+    {
+      "command": "find:ingredients",
+      "count": 910,
+      "mean_ms": 0.199,
+      "total_ms": 180.68
+    },
+    {
+      "command": "update:ingredients",
+      "count": 605,
+      "mean_ms": 0.254,
+      "total_ms": 153.63
+    },
+    {
+      "command": "insert:stock_moves",
+      "count": 605,
+      "mean_ms": 0.182,
+      "total_ms": 109.97
+    },
+    {
+      "command": "insert:orders",
+      "count": 305,
+      "mean_ms": 0.266,
+      "total_ms": 81.26
+    },
+    {
+      "command": "findAndModify:counters",
+      "count": 305,
+      "mean_ms": 0.257,
+      "total_ms": 78.51
+    },
+    {
+      "command": "update:kitchen_tickets",
+      "count": 300,
+      "mean_ms": 0.255,
+      "total_ms": 76.53
+    },
+    {
+      "command": "find:financial_operations",
+      "count": 305,
+      "mean_ms": 0.249,
+      "total_ms": 75.95
+    },
+    {
+      "command": "insert:financial_operations",
+      "count": 305,
+      "mean_ms": 0.246,
+      "total_ms": 75.16
+    }
+  ]
+}

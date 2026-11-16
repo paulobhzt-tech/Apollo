@@ -1,0 +1,13 @@
+2026-11-16T16:46:49.1487246Z ##[group]Run npm --prefix frontend run typecheck
+2026-11-16T16:46:49.1487588Z [36;1mnpm --prefix frontend run typecheck[0m
+2026-11-16T16:46:49.1488520Z [36;1mnpm run lint[0m
+2026-11-16T16:46:49.2435381Z > frontend@0.0.0 typecheck
+2026-11-16T16:46:52.8180960Z [32m✓ built in 830ms[39m
+2026-11-16T16:46:53.9919157Z [32m✓ built in 740ms[39m
+2026-11-16T16:46:54.1705127Z Found 9 warnings and 0 errors.
+2026-11-16T16:46:54.3577651Z ℹ tests 14
+2026-11-16T16:46:54.3578105Z ℹ pass 14
+2026-11-16T16:46:54.3578270Z ℹ fail 0
+2026-11-16T16:47:07.8154926Z   12 passed (11.5s)
+2026-11-16T16:48:13.2137381Z 363 passed, 3 subtests passed in 62.56s (0:01:02)
+2026-11-16T16:51:20.9317333Z   11 passed (3.0m)

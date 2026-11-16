@@ -1,0 +1,347 @@
+[
+  {
+    "operators": 5,
+    "P6": {
+      "p50_ms": {
+        "median": 11.44,
+        "minimum": 11.19,
+        "maximum": 11.69
+      },
+      "p95_ms": {
+        "median": 43.864999999999995,
+        "minimum": 34.25,
+        "maximum": 53.48
+      },
+      "p99_ms": {
+        "median": 1477.46,
+        "minimum": 1409.61,
+        "maximum": 1545.31
+      },
+      "financial_pairs_s": {
+        "median": 42.17,
+        "minimum": 40.67,
+        "maximum": 43.67
+      },
+      "pair_p95_ms": {
+        "median": 328.21000000000004,
+        "minimum": 292.41,
+        "maximum": 364.01
+      },
+      "pair_p99_ms": {
+        "median": 3221.685,
+        "minimum": 3206.04,
+        "maximum": 3237.33
+      },
+      "errors": 0
+    },
+    "P7": {
+      "p50_ms": {
+        "median": 44.61,
+        "minimum": 42.21,
+        "maximum": 47.01
+      },
+      "p95_ms": {
+        "median": 62.45,
+        "minimum": 58.67,
+        "maximum": 66.23
+      },
+      "p99_ms": {
+        "median": 82.38499999999999,
+        "minimum": 80.2,
+        "maximum": 84.57
+      },
+      "financial_pairs_s": {
+        "median": 54.870000000000005,
+        "minimum": 51.92,
+        "maximum": 57.82
+      },
+      "pair_p95_ms": {
+        "median": 119.055,
+        "minimum": 112.52,
+        "maximum": 125.59
+      },
+      "pair_p99_ms": {
+        "median": 140.89999999999998,
+        "minimum": 128.91,
+        "maximum": 152.89
+      },
+      "errors": 0
+    }
+  },
+  {
+    "operators": 10,
+    "P6": {
+      "p50_ms": {
+        "median": 12.4,
+        "minimum": 12.08,
+        "maximum": 12.72
+      },
+      "p95_ms": {
+        "median": 763.2950000000001,
+        "minimum": 709.61,
+        "maximum": 816.98
+      },
+      "p99_ms": {
+        "median": 2905.3100000000004,
+        "minimum": 2846.84,
+        "maximum": 2963.78
+      },
+      "financial_pairs_s": {
+        "median": 38.045,
+        "minimum": 36.89,
+        "maximum": 39.2
+      },
+      "pair_p95_ms": {
+        "median": 1738.2800000000002,
+        "minimum": 1549.39,
+        "maximum": 1927.17
+      },
+      "pair_p99_ms": {
+        "median": 3628.64,
+        "minimum": 3305.97,
+        "maximum": 3951.31
+      },
+      "errors": 0
+    },
+    "P7": {
+      "p50_ms": {
+        "median": 90.21000000000001,
+        "minimum": 89.15,
+        "maximum": 91.27
+      },
+      "p95_ms": {
+        "median": 120.36500000000001,
+        "minimum": 119.5,
+        "maximum": 121.23
+      },
+      "p99_ms": {
+        "median": 144.66500000000002,
+        "minimum": 140.4,
+        "maximum": 148.93
+      },
+      "financial_pairs_s": {
+        "median": 54.595,
+        "minimum": 54.17,
+        "maximum": 55.02
+      },
+      "pair_p95_ms": {
+        "median": 221.05,
+        "minimum": 218.86,
+        "maximum": 223.24
+      },
+      "pair_p99_ms": {
+        "median": 247.66,
+        "minimum": 237.05,
+        "maximum": 258.27
+      },
+      "errors": 0
+    }
+  },
+  {
+    "operators": 20,
+    "P6": {
+      "p50_ms": {
+        "median": 14.5,
+        "minimum": 14.11,
+        "maximum": 14.89
+      },
+      "p95_ms": {
+        "median": 2026.855,
+        "minimum": 1969.7,
+        "maximum": 2084.01
+      },
+      "p99_ms": {
+        "median": 5627.415,
+        "minimum": 5210.72,
+        "maximum": 6044.11
+      },
+      "financial_pairs_s": {
+        "median": 31.405,
+        "minimum": 30.75,
+        "maximum": 32.06
+      },
+      "pair_p95_ms": {
+        "median": 3475.85,
+        "minimum": 3393.96,
+        "maximum": 3557.74
+      },
+      "pair_p99_ms": {
+        "median": 6643.665,
+        "minimum": 6327.63,
+        "maximum": 6959.7
+      },
+      "errors": 0
+    },
+    "P7": {
+      "p50_ms": {
+        "median": 194.96,
+        "minimum": 193.36,
+        "maximum": 196.56
+      },
+      "p95_ms": {
+        "median": 257.815,
+        "minimum": 256.27,
+        "maximum": 259.36
+      },
+      "p99_ms": {
+        "median": 291.725,
+        "minimum": 281.24,
+        "maximum": 302.21
+      },
+      "financial_pairs_s": {
+        "median": 50.825,
+        "minimum": 50.6,
+        "maximum": 51.05
+      },
+      "pair_p95_ms": {
+        "median": 463.40999999999997,
+        "minimum": 442.96,
+        "maximum": 483.86
+      },
+      "pair_p99_ms": {
+        "median": 492.955,
+        "minimum": 468.76,
+        "maximum": 517.15
+      },
+      "errors": 0
+    }
+  },
+  {
+    "operators": 30,
+    "P6": {
+      "p50_ms": {
+        "median": 18.04,
+        "minimum": 17.85,
+        "maximum": 18.23
+      },
+      "p95_ms": {
+        "median": 3661.9849999999997,
+        "minimum": 3248.77,
+        "maximum": 4075.2
+      },
+      "p99_ms": {
+        "median": 7480.55,
+        "minimum": 7153.92,
+        "maximum": 7807.18
+      },
+      "financial_pairs_s": {
+        "median": 25.43,
+        "minimum": 24.75,
+        "maximum": 26.11
+      },
+      "pair_p95_ms": {
+        "median": 5487.844999999999,
+        "minimum": 5359.98,
+        "maximum": 5615.71
+      },
+      "pair_p99_ms": {
+        "median": 9162.145,
+        "minimum": 8815.96,
+        "maximum": 9508.33
+      },
+      "errors": 0
+    },
+    "P7": {
+      "p50_ms": {
+        "median": 296.17,
+        "minimum": 284.42,
+        "maximum": 307.92
+      },
+      "p95_ms": {
+        "median": 418.055,
+        "minimum": 410.82,
+        "maximum": 425.29
+      },
+      "p99_ms": {
+        "median": 494.15,
+        "minimum": 471.03,
+        "maximum": 517.27
+      },
+      "financial_pairs_s": {
+        "median": 49.825,
+        "minimum": 48.22,
+        "maximum": 51.43
+      },
+      "pair_p95_ms": {
+        "median": 747.66,
+        "minimum": 709.01,
+        "maximum": 786.31
+      },
+      "pair_p99_ms": {
+        "median": 821.6,
+        "minimum": 806.1,
+        "maximum": 837.1
+      },
+      "errors": 0
+    }
+  },
+  {
+    "operators": 50,
+    "P6": {
+      "p50_ms": {
+        "median": 35.18,
+        "minimum": 32.65,
+        "maximum": 37.71
+      },
+      "p95_ms": {
+        "median": 8531.955,
+        "minimum": 8327.48,
+        "maximum": 8736.43
+      },
+      "p99_ms": {
+        "median": 13152.85,
+        "minimum": 12940.44,
+        "maximum": 13365.26
+      },
+      "financial_pairs_s": {
+        "median": 15.139999999999999,
+        "minimum": 14.04,
+        "maximum": 16.24
+      },
+      "pair_p95_ms": {
+        "median": 10802.55,
+        "minimum": 10643.29,
+        "maximum": 10961.81
+      },
+      "pair_p99_ms": {
+        "median": 15574.625,
+        "minimum": 15240.36,
+        "maximum": 15908.89
+      },
+      "errors": 0
+    },
+    "P7": {
+      "p50_ms": {
+        "median": 503.865,
+        "minimum": 496.39,
+        "maximum": 511.34
+      },
+      "p95_ms": {
+        "median": 703.94,
+        "minimum": 687.74,
+        "maximum": 720.14
+      },
+      "p99_ms": {
+        "median": 794.095,
+        "minimum": 772.47,
+        "maximum": 815.72
+      },
+      "financial_pairs_s": {
+        "median": 48.485,
+        "minimum": 48.07,
+        "maximum": 48.9
+      },
+      "pair_p95_ms": {
+        "median": 1205.095,
+        "minimum": 1197.42,
+        "maximum": 1212.77
+      },
+      "pair_p99_ms": {
+        "median": 1230.7350000000001,
+        "minimum": 1218.13,
+        "maximum": 1243.34
+      },
+      "errors": 0
+    }
+  }
+]

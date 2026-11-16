@@ -29,7 +29,7 @@ class TransactionProbe:
         self.commit_calls = 0
         self.aborts = 0
         self.retries = {}
-        self.timings = {"callback": 0.0, "commit": 0.0, "abort": 0.0, "retry_wait": 0.0}
+        self.timings = {"callback": 0.0, "commit": 0.0, "abort": 0.0, "retry_wait": 0.0, "admission_wait": 0.0}
         self.errors = []
         self.errors_omitted = 0
         self.trace_id = uuid.uuid4().hex[:12] if self.enabled else None
@@ -82,7 +82,7 @@ class TransactionProbe:
             emit_file({'kind':'transaction','operation':self.operation,'outcome':'committed' if self.status=='committed' else 'error',
                 'phase':self.errors[-1]['stage'] if self.errors else 'commit','attempts':self.attempts,'commits':self.commit_calls,
                 'elapsed_s':(time.monotonic()-self.started),'callback_s':self.timings['callback'],
-                'commit_s':self.timings['commit'],'abort_s':self.timings['abort'],'wait_s':self.timings['retry_wait'],
+                'admission_s':self.timings['admission_wait'],'commit_s':self.timings['commit'],'abort_s':self.timings['abort'],'wait_s':self.timings['retry_wait'],
                 'budget_exhausted':time.monotonic()>=self.budget_deadline,'errors':dict(self.error_counts),
                 'last_error':({'code':self.errors[-1]['mongo_code'],'labels':self.errors[-1]['mongo_labels'],
                     'category':self.errors[-1]['exception_type']} if self.errors else None)})

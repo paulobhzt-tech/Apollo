@@ -1,0 +1,37 @@
+{
+  "head": "dfca52809f45d223c5aea0d6045d30c5c6e46b32",
+  "run": 43911034137,
+  "jobs": [
+    {
+      "project": "desktop",
+      "id": 133452661588,
+      "summary": [
+        "(1.954396ms)\\n2026-11-16T16:46:54.3577651Z ℹ tests 14\\n2026-11-16T16:46:54.3577896Z ℹ suites 0\\n2026-11-16T16:46:54.3578105",
+        "07.8151451Z \\n2026-11-16T16:47:07.8154926Z   12 passed (11.5s)\\n2026-11-16T16:47:07.8461350Z ##[group]Run python tools/run_r",
+        "        [100%]\\n2026-11-16T16:48:13.2137381Z 363 passed, 3 subtests passed in 62.56s (0:01:02)\\n2026-11-16T16:48:16.4761489Z ",
+        "20.9313848Z \\n2026-11-16T16:51:20.9317333Z   11 passed (3.0m)\\n2026-11-16T16:51:22.0056191Z ##[group]Run actions/upload-arti"
+      ]
+    },
+    {
+      "project": "mobile",
+      "id": 133452660948,
+      "summary": [
+        "47.6100103Z \\n2026-11-16T16:49:47.6103422Z   11 passed (2.9m)\\n2026-11-16T16:49:48.6757682Z ##[group]Run actions/upload-arti"
+      ]
+    },
+    {
+      "project": "tablet",
+      "id": 133452661362,
+      "summary": [
+        "19.1224377Z \\n2026-11-16T16:49:19.1226246Z   11 passed (2.4m)\\n2026-11-16T16:49:21.0271378Z ##[group]Run actions/upload-arti"
+      ]
+    },
+    {
+      "project": "notebook",
+      "id": 133452661541,
+      "summary": [
+        "14.4887300Z \\n2026-11-16T16:50:14.4892227Z   11 passed (3.3m)\\n2026-11-16T16:50:15.6782785Z ##[group]Run actions/upload-arti"
+      ]
+    }
+  ]
+}
