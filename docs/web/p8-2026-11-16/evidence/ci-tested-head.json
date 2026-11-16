@@ -1,0 +1,1200 @@
+{
+  "tested_head": "908007e1130e40502a8d61c114cd5bf323a83267",
+  "runs": [
+    {
+      "id": 43960186056,
+      "name": "P5 Web - Browser validation",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "908007e1130e40502a8d61c114cd5bf323a83267",
+      "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/43960186056",
+      "started_at": "2026-11-16T21:26:54Z",
+      "updated_at": "2026-11-16T21:28:23Z",
+      "event": "pull_request",
+      "jobs": [
+        {
+          "id": 133625181586,
+          "name": "web",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:57Z",
+          "completed_at": "2026-11-16T21:28:23Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Install frontend and browser tests",
+              "conclusion": "success"
+            },
+            {
+              "name": "Types, lint, desktop and web builds, offline regression",
+              "conclusion": "success"
+            },
+            {
+              "name": "Isolated browser UI tests (synthetic API)",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/upload-artifact@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 43960186180,
+      "name": "Apollo - Bateria de testes",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "908007e1130e40502a8d61c114cd5bf323a83267",
+      "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/43960186180",
+      "started_at": "2026-11-16T21:26:54Z",
+      "updated_at": "2026-11-16T21:28:34Z",
+      "event": "pull_request",
+      "jobs": [
+        {
+          "id": 133625181625,
+          "name": "backend",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:57Z",
+          "completed_at": "2026-11-16T21:28:10Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Verificar sintaxe Python",
+              "conclusion": "success"
+            },
+            {
+              "name": "Instalar dependencias (incluindo indice Emergent)",
+              "conclusion": "success"
+            },
+            {
+              "name": "Testes isolados de autenticacao, CSRF e protecao de dados",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625182081,
+          "name": "frontend",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:57Z",
+          "completed_at": "2026-11-16T21:27:44Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Regressao da fila offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Instalar dependencias com Yarn (gerenciador do projeto)",
+              "conclusion": "success"
+            },
+            {
+              "name": "Verificar tipos TypeScript",
+              "conclusion": "success"
+            },
+            {
+              "name": "Compilar interface",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625182114,
+          "name": "desktop",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:57Z",
+          "completed_at": "2026-11-16T21:27:05Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Verificar sintaxe Electron",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625182142,
+          "name": "recovery-failover",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:27:02Z",
+          "completed_at": "2026-11-16T21:27:51Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Instalar driver de homologacao",
+              "conclusion": "success"
+            },
+            {
+              "name": "Preparar MongoDB descartavel",
+              "conclusion": "success"
+            },
+            {
+              "name": "Failover real autenticado com tres membros",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625182254,
+          "name": "pagamentos",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:27:02Z",
+          "completed_at": "2026-11-16T21:28:33Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Instalar dependencias (incluindo indice Emergent)",
+              "conclusion": "success"
+            },
+            {
+              "name": "Criar MongoDB de testes com transacoes",
+              "conclusion": "success"
+            },
+            {
+              "name": "Testar pagamentos parciais e concorrencia",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 43960176995,
+      "name": "P8 - Order lookup latency and real financial regression",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "908007e1130e40502a8d61c114cd5bf323a83267",
+      "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/43960176995",
+      "started_at": "2026-11-16T21:26:51Z",
+      "updated_at": "2026-11-16T21:33:27Z",
+      "event": "push",
+      "jobs": [
+        {
+          "id": 133625149352,
+          "name": "real-web (notebook)",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:54Z",
+          "completed_at": "2026-11-16T21:30:42Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Dependencies and official disposable MongoDB",
+              "conclusion": "success"
+            },
+            {
+              "name": "Regression - types, both builds, lint, offline and recovery",
+              "conclusion": "skipped"
+            },
+            {
+              "name": "Preserve twelve P5 browser tests",
+              "conclusion": "skipped"
+            },
+            {
+              "name": "Real backend financial, security, concurrency, recovery regression",
+              "conclusion": "skipped"
+            },
+            {
+              "name": "Actual browser, FastAPI and MongoDB - no financial mocks",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/upload-artifact@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625149872,
+          "name": "real-web (desktop)",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:53Z",
+          "completed_at": "2026-11-16T21:33:27Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Dependencies and official disposable MongoDB",
+              "conclusion": "success"
+            },
+            {
+              "name": "Regression - types, both builds, lint, offline and recovery",
+              "conclusion": "success"
+            },
+            {
+              "name": "Preserve twelve P5 browser tests",
+              "conclusion": "success"
+            },
+            {
+              "name": "Real backend financial, security, concurrency, recovery regression",
+              "conclusion": "success"
+            },
+            {
+              "name": "Actual browser, FastAPI and MongoDB - no financial mocks",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/upload-artifact@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625149934,
+          "name": "real-web (tablet)",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:54Z",
+          "completed_at": "2026-11-16T21:32:06Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Dependencies and official disposable MongoDB",
+              "conclusion": "success"
+            },
+            {
+              "name": "Regression - types, both builds, lint, offline and recovery",
+              "conclusion": "skipped"
+            },
+            {
+              "name": "Preserve twelve P5 browser tests",
+              "conclusion": "skipped"
+            },
+            {
+              "name": "Real backend financial, security, concurrency, recovery regression",
+              "conclusion": "skipped"
+            },
+            {
+              "name": "Actual browser, FastAPI and MongoDB - no financial mocks",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/upload-artifact@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625150092,
+          "name": "real-web (mobile)",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:54Z",
+          "completed_at": "2026-11-16T21:32:00Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Dependencies and official disposable MongoDB",
+              "conclusion": "success"
+            },
+            {
+              "name": "Regression - types, both builds, lint, offline and recovery",
+              "conclusion": "skipped"
+            },
+            {
+              "name": "Preserve twelve P5 browser tests",
+              "conclusion": "skipped"
+            },
+            {
+              "name": "Real backend financial, security, concurrency, recovery regression",
+              "conclusion": "skipped"
+            },
+            {
+              "name": "Actual browser, FastAPI and MongoDB - no financial mocks",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/upload-artifact@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 43960176976,
+      "name": "Validacao de seguranca e compilacao do Apollo PDV",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "908007e1130e40502a8d61c114cd5bf323a83267",
+      "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/43960176976",
+      "started_at": "2026-11-16T21:26:51Z",
+      "updated_at": "2026-11-16T21:28:05Z",
+      "event": "push",
+      "jobs": [
+        {
+          "id": 133625149474,
+          "name": "local-windows",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:54Z",
+          "completed_at": "2026-11-16T21:27:14Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Validar sintaxe do instalador PowerShell",
+              "conclusion": "success"
+            },
+            {
+              "name": "Testar emissao de certificado HTTPS local",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625149980,
+          "name": "vps-linux",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:54Z",
+          "completed_at": "2026-11-16T21:27:00Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Verificar sintaxe do backup da VPS",
+              "conclusion": "success"
+            },
+            {
+              "name": "Verificar configuracao Docker Compose da VPS",
+              "conclusion": "success"
+            },
+            {
+              "name": "Verificar ambiente de demonstracao isolado sem publicacao",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625150098,
+          "name": "frontend",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:54Z",
+          "completed_at": "2026-11-16T21:27:33Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Instalar dependencias",
+              "conclusion": "success"
+            },
+            {
+              "name": "Verificar TypeScript",
+              "conclusion": "success"
+            },
+            {
+              "name": "Gerar frontend",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625150112,
+          "name": "commercial-panel",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:54Z",
+          "completed_at": "2026-11-16T21:27:02Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Testar painel comercial (autenticacao, CSRF, pagamentos)",
+              "conclusion": "success"
+            },
+            {
+              "name": "Compilar modulos administrativos",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625150181,
+          "name": "backend-security",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:54Z",
+          "completed_at": "2026-11-16T21:27:26Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Instalar dependencias para testes isolados",
+              "conclusion": "success"
+            },
+            {
+              "name": "Verificar sintaxe Python de todo backend",
+              "conclusion": "success"
+            },
+            {
+              "name": "Testar protecao CSRF e autenticacao",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625150244,
+          "name": "partial-payments-integration",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:55Z",
+          "completed_at": "2026-11-16T21:28:05Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Install integration test dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Start MongoDB replica set for transactional tests",
+              "conclusion": "success"
+            },
+            {
+              "name": "Test partial payments, idempotency, balance and concurrent settlements",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 43960176840,
+      "name": "Apollo - Bateria de testes",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "908007e1130e40502a8d61c114cd5bf323a83267",
+      "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/43960176840",
+      "started_at": "2026-11-16T21:26:51Z",
+      "updated_at": "2026-11-16T21:28:42Z",
+      "event": "push",
+      "jobs": [
+        {
+          "id": 133625149064,
+          "name": "backend",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:54Z",
+          "completed_at": "2026-11-16T21:28:08Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Verificar sintaxe Python",
+              "conclusion": "success"
+            },
+            {
+              "name": "Instalar dependencias (incluindo indice Emergent)",
+              "conclusion": "success"
+            },
+            {
+              "name": "Testes isolados de autenticacao, CSRF e protecao de dados",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625149354,
+          "name": "recovery-failover",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:54Z",
+          "completed_at": "2026-11-16T21:27:46Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Instalar driver de homologacao",
+              "conclusion": "success"
+            },
+            {
+              "name": "Preparar MongoDB descartavel",
+              "conclusion": "success"
+            },
+            {
+              "name": "Failover real autenticado com tres membros",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625149361,
+          "name": "frontend",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:54Z",
+          "completed_at": "2026-11-16T21:27:49Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Regressao da fila offline",
+              "conclusion": "success"
+            },
+            {
+              "name": "Instalar dependencias com Yarn (gerenciador do projeto)",
+              "conclusion": "success"
+            },
+            {
+              "name": "Verificar tipos TypeScript",
+              "conclusion": "success"
+            },
+            {
+              "name": "Compilar interface",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625149476,
+          "name": "desktop",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:54Z",
+          "completed_at": "2026-11-16T21:27:00Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Verificar sintaxe Electron",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 133625149560,
+          "name": "pagamentos",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:54Z",
+          "completed_at": "2026-11-16T21:28:42Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Instalar dependencias (incluindo indice Emergent)",
+              "conclusion": "success"
+            },
+            {
+              "name": "Criar MongoDB de testes com transacoes",
+              "conclusion": "success"
+            },
+            {
+              "name": "Testar pagamentos parciais e concorrencia",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 43960177013,
+      "name": "P8 FINAL - isolated prolonged acceptance",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "908007e1130e40502a8d61c114cd5bf323a83267",
+      "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/43960177013",
+      "started_at": "2026-11-16T21:26:51Z",
+      "updated_at": "2026-11-16T22:36:00Z",
+      "event": "push",
+      "jobs": [
+        {
+          "id": 133625149936,
+          "name": "financial-acceptance",
+          "conclusion": "success",
+          "started_at": "2026-11-16T21:26:54Z",
+          "completed_at": "2026-11-16T22:35:59Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Install the same isolated runtime for both versions",
+              "conclusion": "success"
+            },
+            {
+              "name": "Verify post-drain audit on real small fixture",
+              "conclusion": "success"
+            },
+            {
+              "name": "Full unchanged workload - history ABBA and two 1800-second runs",
+              "conclusion": "success"
+            },
+            {
+              "name": "Actual query plans using the respective index source",
+              "conclusion": "success"
+            },
+            {
+              "name": "Frozen verdict and reviewable evidence - never assume success",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/upload-artifact@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "verified_log_excerpts": [
+    {
+      "id": 133625149872,
+      "excerpts": [
+        "2026-11-16T21:28:17.4996698Z Found 9 warnings and 0 errors.",
+        "2026-11-16T21:28:17.7461930Z ℹ tests 14",
+        "2026-11-16T21:28:32.4304815Z   12 passed (12.2s)",
+        "2026-11-16T21:29:42.3912156Z 369 passed, 3 subtests passed in 66.87s (0:01:06)",
+        "2026-11-16T21:33:22.2857878Z   11 passed (3.5m)"
+      ]
+    },
+    {
+      "id": 133625149352,
+      "excerpts": [
+        "2026-11-16T21:30:37.3572316Z   11 passed (2.6m)"
+      ]
+    },
+    {
+      "id": 133625149934,
+      "excerpts": [
+        "2026-11-16T21:32:00.4500735Z   11 passed (3.5m)"
+      ]
+    },
+    {
+      "id": 133625150092,
+      "excerpts": [
+        "2026-11-16T21:31:53.2724045Z   11 passed (3.4m)"
+      ]
+    },
+    {
+      "id": 133625182142,
+      "excerpts": [
+        "2026-11-16T21:27:09.5838998Z ##[group]Run python tools/test_replica_failover.py /tmp/apollo-failover.json",
+        "2026-11-16T21:27:09.5839442Z \u001b[36;1mpython tools/test_replica_failover.py /tmp/apollo-failover.json\u001b[0m"
+      ]
+    },
+    {
+      "id": 133625182114,
+      "excerpts": [
+        "2026-11-16T21:27:02.6909100Z ##[group]Run node --check main.js",
+        "2026-11-16T21:27:02.6909989Z \u001b[36;1mnode --check main.js\u001b[0m",
+        "2026-11-16T21:27:02.6910565Z \u001b[36;1mnode --check preload.js\u001b[0m",
+        "2026-11-16T21:27:02.6911020Z \u001b[36;1mnode --check scripts/build-web.js\u001b[0m"
+      ]
+    },
+    {
+      "id": 133625181586,
+      "excerpts": [
+        "2026-11-16T21:27:58.9023140Z Found 9 warnings and 0 errors.",
+        "2026-11-16T21:28:03.5459003Z ℹ tests 7",
+        "2026-11-16T21:28:20.0937027Z   12 passed (13.8s)"
+      ]
+    }
+  ],
+  "interpretation": "Green long workflow means collection completed; acceptance-result.json explicitly fails HTTP p95."
+}

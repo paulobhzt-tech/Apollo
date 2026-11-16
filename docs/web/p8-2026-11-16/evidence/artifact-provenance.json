@@ -1,0 +1,23 @@
+{
+  "artifacts": [
+    {
+      "id": 14279180466,
+      "name": "p8-final-financial-908007e1130e40502a8d61c114cd5bf323a83267",
+      "size_in_bytes": 58186609,
+      "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/artifacts/14279180466",
+      "archive_download_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/artifacts/14279180466/zip",
+      "expired": false,
+      "created_at": "2026-11-16T22:35:55Z",
+      "expires_at": "2027-02-14T21:26:51Z",
+      "updated_at": "2026-11-16T22:35:55Z",
+      "digest": "sha256:0b61aaf4b25877673eabe400cffa120ab56a6d895b30712f98ffcc5b8be31514",
+      "workflow_run": {
+        "id": 43960177013,
+        "repository_id": 1446193183,
+        "head_repository_id": 1446193183,
+        "head_branch": "perf/p8-order-read-latency",
+        "head_sha": "908007e1130e40502a8d61c114cd5bf323a83267"
+      }
+    }
+  ]
+}

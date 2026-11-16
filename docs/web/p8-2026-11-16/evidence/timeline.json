@@ -1,0 +1,124 @@
+{
+  "run": "https://github.com/paulobhzt-tech/Apollo/actions/runs/43960177013",
+  "campaign": {
+    "running": null,
+    "completed": [
+      "history-pair",
+      "repeated-abba",
+      "p7-long",
+      "p8-acceptance"
+    ],
+    "updated_at": "2026-11-16T22:35:21.324366+00:00"
+  },
+  "executions": [
+    {
+      "label": "smoke",
+      "version": "after",
+      "source_head": "908007e1130e40502a8d61c114cd5bf323a83267",
+      "started_at": 1794864442.5176566,
+      "finished_at": 1794864446.3753746,
+      "elapsed_s": 3.8577197749999996,
+      "exit_code": 0,
+      "sessions": "5",
+      "active_stage_seconds": 2.0,
+      "history": 0
+    },
+    {
+      "label": "h1",
+      "version": "before",
+      "source_head": "0a0766421d57f13ec2fbfd31aa8e1cd45461bb77",
+      "started_at": 1794864452.6094937,
+      "finished_at": 1794864490.6352417,
+      "elapsed_s": 38.02574984299999,
+      "exit_code": 0,
+      "sessions": "50",
+      "active_stage_seconds": 30.0,
+      "history": 60000
+    },
+    {
+      "label": "h2",
+      "version": "after",
+      "source_head": "908007e1130e40502a8d61c114cd5bf323a83267",
+      "started_at": 1794864497.3700793,
+      "finished_at": 1794864533.88326,
+      "elapsed_s": 36.51318297599998,
+      "exit_code": 0,
+      "sessions": "50",
+      "active_stage_seconds": 30.0,
+      "history": 60000
+    },
+    {
+      "label": "a1",
+      "version": "before",
+      "source_head": "0a0766421d57f13ec2fbfd31aa8e1cd45461bb77",
+      "started_at": 1794864537.070737,
+      "finished_at": 1794864624.1653244,
+      "elapsed_s": 87.09459007800001,
+      "exit_code": 0,
+      "sessions": "5,10,20,30,50",
+      "active_stage_seconds": 15.0,
+      "history": 0
+    },
+    {
+      "label": "b1",
+      "version": "after",
+      "source_head": "908007e1130e40502a8d61c114cd5bf323a83267",
+      "started_at": 1794864626.9112504,
+      "finished_at": 1794864714.5856683,
+      "elapsed_s": 87.67442031500002,
+      "exit_code": 0,
+      "sessions": "5,10,20,30,50",
+      "active_stage_seconds": 15.0,
+      "history": 0
+    },
+    {
+      "label": "b2",
+      "version": "after",
+      "source_head": "908007e1130e40502a8d61c114cd5bf323a83267",
+      "started_at": 1794864717.6633801,
+      "finished_at": 1794864805.3536408,
+      "elapsed_s": 87.69026304699997,
+      "exit_code": 0,
+      "sessions": "5,10,20,30,50",
+      "active_stage_seconds": 15.0,
+      "history": 0
+    },
+    {
+      "label": "a2",
+      "version": "before",
+      "source_head": "0a0766421d57f13ec2fbfd31aa8e1cd45461bb77",
+      "started_at": 1794864808.4540298,
+      "finished_at": 1794864896.6502292,
+      "elapsed_s": 88.19620162400003,
+      "exit_code": 0,
+      "sessions": "5,10,20,30,50",
+      "active_stage_seconds": 15.0,
+      "history": 0
+    },
+    {
+      "label": "p7long",
+      "version": "before",
+      "source_head": "0a0766421d57f13ec2fbfd31aa8e1cd45461bb77",
+      "started_at": 1794864899.7479196,
+      "finished_at": 1794866708.4146361,
+      "elapsed_s": 1808.666718066,
+      "exit_code": 0,
+      "sessions": "50",
+      "active_stage_seconds": 1800.0,
+      "history": 0
+    },
+    {
+      "label": "acceptance",
+      "version": "after",
+      "source_head": "908007e1130e40502a8d61c114cd5bf323a83267",
+      "started_at": 1794866711.5941846,
+      "finished_at": 1794868519.9093533,
+      "elapsed_s": 1808.315170026,
+      "exit_code": 0,
+      "sessions": "50",
+      "active_stage_seconds": 1800.0,
+      "history": 0
+    }
+  ],
+  "note": "START/exit timestamps are in campaign.log; each row duration excludes/records login as documented. No prior partial execution reused."
+}

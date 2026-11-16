@@ -1,0 +1,73 @@
+name: P8 FINAL - isolated prolonged acceptance
+on:
+  push:
+    branches: ["perf/p8-order-read-latency"]
+    paths:
+      - ".github/workflows/p8-final-acceptance.yml"
+      - "backend/**"
+      - "docs/web/p8-2026-11-16/ACCEPTANCE.json"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: p8-final-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  financial-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    env:
+      MONGOD_BIN: /tmp/mongodb-linux-x86_64-ubuntu2204-7.0.16/bin/mongod
+      P8_BASELINE_ROOT: ${{ github.workspace }}/.p8-p7-base
+      NO_PROXY: 127.0.0.1,localhost
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 0a0766421d57f13ec2fbfd31aa8e1cd45461bb77
+          path: .p8-p7-base
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install the same isolated runtime for both versions
+        run: |
+          python -m pip install fastapi==0.141.1 uvicorn==0.54.0 motor==3.7.1 pymongo==4.18.2 bcrypt==4.0.1 httpx==0.28.1 pytest==9.2.0 python-dotenv pytest-xdist pytest-asyncio pytest-subtests python-multipart email-validator google-api-python-client google-auth-oauthlib requests pandas
+          curl -fL https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-7.0.16.tgz -o /tmp/p8-mongo.tgz
+          tar -xzf /tmp/p8-mongo.tgz -C /tmp
+          mkdir -p docs/web/p8-2026-11-16/evidence
+          python -m pip freeze > docs/web/p8-2026-11-16/evidence/runtime-packages.txt
+          cmp docs/web/p8-2026-11-16/ACCEPTANCE.json .p8-p7-base/docs/web/p7-2026-11-16/ACCEPTANCE.json
+          git diff --exit-code 47ad2fca98b7dc8c280846ece8f1e75ce9bb6a93 HEAD -- backend/lib backend/routers frontend desktop
+          python -m py_compile backend/tools/p8_final_audit.py backend/tools/p8_final_collect.py backend/tools/run_p8_load.py backend/tools/p8_query_probe.py backend/benchmarks/p8_web_load.py
+      - name: Verify post-drain audit on real small fixture
+        env:
+          P8_PLAN: after:smoke
+          P8_LOAD_SESSIONS: '5'
+          P8_STAGE_SECONDS: '2'
+          P8_LOAD_SECONDS: '0'
+        run: python backend/tools/run_p8_load.py
+      - name: Full unchanged workload - history ABBA and two 1800-second runs
+        id: campaign
+        run: |
+          set -o pipefail
+          python backend/tools/run_p8_campaign.py | tee docs/web/p8-2026-11-16/evidence/campaign.log
+      - name: Actual query plans using the respective index source
+        run: |
+          P8_FINAL_VOLUME=$(python -c "import json;from pathlib import Path;p=Path('docs/web/p8-2026-11-16/evidence');print(max(json.loads((p/('load-'+k+'.json')).read_text())['integrity']['orders'] for k in ['p7long','acceptance']))")
+          export P8_QUERY_VOLUMES="0,1000,10000,60000,$P8_FINAL_VOLUME"
+          P8_LOOKUP_INDEX=0 P8_QUERY_SOURCE_ROOT="$P8_BASELINE_ROOT" P8_QUERY_OUTPUT=query-plans-P7.json python backend/tools/p8_query_probe.py > docs/web/p8-2026-11-16/evidence/query-plans-P7.log
+          P8_LOOKUP_INDEX=1 P8_QUERY_SOURCE_ROOT="$GITHUB_WORKSPACE" P8_QUERY_OUTPUT=query-plans-P8.json python backend/tools/p8_query_probe.py > docs/web/p8-2026-11-16/evidence/query-plans-P8.log
+      - name: Frozen verdict and reviewable evidence - never assume success
+        if: always()
+        env:
+          P8_CAMPAIGN_OUTCOME: ${{ steps.campaign.outcome }}
+        run: python backend/tools/p8_final_collect.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p8-final-financial-${{ github.sha }}
+          retention-days: 90
+          path: docs/web/p8-2026-11-16

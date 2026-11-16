@@ -1,0 +1,1234 @@
+{
+  "h1": {
+    "complete_and_verified": true,
+    "partial": false,
+    "pytest_passed": true,
+    "rows": [
+      {
+        "sessions": 50,
+        "duration_s": 36.968,
+        "traffic_duration_s": 32.986,
+        "completed_pairs": 450,
+        "requests": 900,
+        "operations": {
+          "sale": {
+            "count": 450,
+            "p50_ms": 1837.1,
+            "p95_ms": 2922.89,
+            "p99_ms": 3242.85
+          },
+          "cancel": {
+            "count": 450,
+            "p50_ms": 1763.82,
+            "p95_ms": 2852.83,
+            "p99_ms": 3189.57
+          }
+        },
+        "p50_ms": 1802.52,
+        "p95_ms": 2888.07,
+        "p99_ms": 3197.03,
+        "request_throughput_s": 24.35,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 450,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 13.64,
+        "pair_p50_ms": 3582.44,
+        "pair_p95_ms": 4059.06,
+        "pair_p99_ms": 4102.01,
+        "unique_completed_operations_s": 24.35
+      }
+    ],
+    "integrity": {
+      "historical_fixture_orders": 60000,
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 60450
+        }
+      ],
+      "counter": 60450,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 60450,
+      "markers": 450,
+      "stock_moves": 900,
+      "cash_version": 900,
+      "order_audit": {
+        "checked_new_orders": 450,
+        "historical_fixture_orders": 60000,
+        "partial_confirmations": 0,
+        "financial_divergences": 0,
+        "orphan_markers": 0,
+        "unexpected_stock_moves": 0,
+        "duplicate_marker_orders": 0
+      },
+      "audit_started_at": 1794864490.245322,
+      "post_load_audit_s": 0.061759233474731445
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 82.9921875,
+        "cpu_seconds_delta": 25.82,
+        "mean_cpu_core_equivalent": 0.7368656390490258
+      },
+      "mongo": {
+        "rss_mib_max": 271.66015625,
+        "cpu_seconds_delta": 22.29,
+        "mean_cpu_core_equivalent": 0.6361245195353519
+      },
+      "mongo_connections_max": 27,
+      "sample_span_s": 35.0403094291687
+    },
+    "source_sha256": "188411bb6e64cb0f6aa7dd11d4c18a21b556a5b83a411ff5c65b691459019430"
+  },
+  "h2": {
+    "complete_and_verified": true,
+    "partial": false,
+    "pytest_passed": true,
+    "rows": [
+      {
+        "sessions": 50,
+        "duration_s": 35.298,
+        "traffic_duration_s": 31.035,
+        "completed_pairs": 871,
+        "requests": 1742,
+        "operations": {
+          "sale": {
+            "count": 871,
+            "p50_ms": 882.76,
+            "p95_ms": 1088.07,
+            "p99_ms": 1134.32
+          },
+          "cancel": {
+            "count": 871,
+            "p50_ms": 879.67,
+            "p95_ms": 1078.62,
+            "p99_ms": 1106.66
+          }
+        },
+        "p50_ms": 880.92,
+        "p95_ms": 1083.31,
+        "p99_ms": 1116.46,
+        "request_throughput_s": 49.35,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 871,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 28.06,
+        "pair_p50_ms": 1762.83,
+        "pair_p95_ms": 1826.57,
+        "pair_p99_ms": 1870.35,
+        "unique_completed_operations_s": 49.35
+      }
+    ],
+    "integrity": {
+      "historical_fixture_orders": 60000,
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 60871
+        }
+      ],
+      "counter": 60871,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 60871,
+      "markers": 871,
+      "stock_moves": 1742,
+      "cash_version": 1742,
+      "order_audit": {
+        "checked_new_orders": 871,
+        "historical_fixture_orders": 60000,
+        "partial_confirmations": 0,
+        "financial_divergences": 0,
+        "orphan_markers": 0,
+        "unexpected_stock_moves": 0,
+        "duplicate_marker_orders": 0
+      },
+      "audit_started_at": 1794864533.38451,
+      "post_load_audit_s": 0.025201082229614258
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 83.09375,
+        "cpu_seconds_delta": 34.339999999999996,
+        "mean_cpu_core_equivalent": 1.1432439934613532
+      },
+      "mongo": {
+        "rss_mib_max": 259.203125,
+        "cpu_seconds_delta": 10.14,
+        "mean_cpu_core_equivalent": 0.3375799095427526
+      },
+      "mongo_connections_max": 27,
+      "sample_span_s": 30.03733253479004
+    },
+    "source_sha256": "ed89cc8c5df03962e524263f3c4d15b88c655edfc70de083829e1b67a1b2f32c"
+  },
+  "a1": {
+    "complete_and_verified": true,
+    "partial": false,
+    "pytest_passed": true,
+    "rows": [
+      {
+        "sessions": 5,
+        "duration_s": 15.632,
+        "traffic_duration_s": 15.134,
+        "completed_pairs": 455,
+        "requests": 910,
+        "operations": {
+          "sale": {
+            "count": 455,
+            "p50_ms": 86.37,
+            "p95_ms": 103.98,
+            "p99_ms": 124.47
+          },
+          "cancel": {
+            "count": 455,
+            "p50_ms": 78.68,
+            "p95_ms": 95.8,
+            "p99_ms": 99.28
+          }
+        },
+        "p50_ms": 83.52,
+        "p95_ms": 102.77,
+        "p99_ms": 106.62,
+        "request_throughput_s": 58.21,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 455,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 30.06,
+        "pair_p50_ms": 164.92,
+        "pair_p95_ms": 171.56,
+        "pair_p99_ms": 213.17,
+        "unique_completed_operations_s": 58.21
+      },
+      {
+        "sessions": 10,
+        "duration_s": 15.965,
+        "traffic_duration_s": 15.153,
+        "completed_pairs": 440,
+        "requests": 880,
+        "operations": {
+          "sale": {
+            "count": 440,
+            "p50_ms": 174.98,
+            "p95_ms": 216.58,
+            "p99_ms": 245.47
+          },
+          "cancel": {
+            "count": 440,
+            "p50_ms": 166.41,
+            "p95_ms": 206.15,
+            "p99_ms": 219.63
+          }
+        },
+        "p50_ms": 171.11,
+        "p95_ms": 212.75,
+        "p99_ms": 236.38,
+        "request_throughput_s": 55.12,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 440,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 29.04,
+        "pair_p50_ms": 340.85,
+        "pair_p95_ms": 377.81,
+        "pair_p99_ms": 396.44,
+        "unique_completed_operations_s": 55.12
+      },
+      {
+        "sessions": 20,
+        "duration_s": 16.865,
+        "traffic_duration_s": 15.287,
+        "completed_pairs": 444,
+        "requests": 888,
+        "operations": {
+          "sale": {
+            "count": 444,
+            "p50_ms": 348.62,
+            "p95_ms": 426.33,
+            "p99_ms": 447.41
+          },
+          "cancel": {
+            "count": 444,
+            "p50_ms": 338.29,
+            "p95_ms": 415.09,
+            "p99_ms": 430.78
+          }
+        },
+        "p50_ms": 343.51,
+        "p95_ms": 421.58,
+        "p99_ms": 441.02,
+        "request_throughput_s": 52.65,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 444,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 29.04,
+        "pair_p50_ms": 682.13,
+        "pair_p95_ms": 719.78,
+        "pair_p99_ms": 761.92,
+        "unique_completed_operations_s": 52.65
+      },
+      {
+        "sessions": 30,
+        "duration_s": 17.708,
+        "traffic_duration_s": 15.341,
+        "completed_pairs": 452,
+        "requests": 904,
+        "operations": {
+          "sale": {
+            "count": 452,
+            "p50_ms": 512.21,
+            "p95_ms": 628.32,
+            "p99_ms": 645.36
+          },
+          "cancel": {
+            "count": 452,
+            "p50_ms": 501.5,
+            "p95_ms": 618.13,
+            "p99_ms": 631.93
+          }
+        },
+        "p50_ms": 505.14,
+        "p95_ms": 622.85,
+        "p99_ms": 639.08,
+        "request_throughput_s": 51.05,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 452,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 29.46,
+        "pair_p50_ms": 1009.02,
+        "pair_p95_ms": 1086.89,
+        "pair_p99_ms": 1093.12,
+        "unique_completed_operations_s": 51.05
+      },
+      {
+        "sessions": 50,
+        "duration_s": 20.053,
+        "traffic_duration_s": 16.101,
+        "completed_pairs": 450,
+        "requests": 900,
+        "operations": {
+          "sale": {
+            "count": 450,
+            "p50_ms": 880.1,
+            "p95_ms": 1102.9,
+            "p99_ms": 1341.33
+          },
+          "cancel": {
+            "count": 450,
+            "p50_ms": 874.88,
+            "p95_ms": 1223.9,
+            "p99_ms": 1399.28
+          }
+        },
+        "p50_ms": 877.83,
+        "p95_ms": 1145.98,
+        "p99_ms": 1383.12,
+        "request_throughput_s": 44.88,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 450,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 27.95,
+        "pair_p50_ms": 1741.51,
+        "pair_p95_ms": 2066.59,
+        "pair_p99_ms": 2075.42,
+        "unique_completed_operations_s": 44.88
+      }
+    ],
+    "integrity": {
+      "historical_fixture_orders": 0,
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 2241
+        }
+      ],
+      "counter": 2241,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 2241,
+      "markers": 2241,
+      "stock_moves": 4482,
+      "cash_version": 4482,
+      "order_audit": {
+        "checked_new_orders": 2241,
+        "historical_fixture_orders": 0,
+        "partial_confirmations": 0,
+        "financial_divergences": 0,
+        "orphan_markers": 0,
+        "unexpected_stock_moves": 0,
+        "duplicate_marker_orders": 0
+      },
+      "audit_started_at": 1794864623.7425895,
+      "post_load_audit_s": 0.14586424827575684
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 83.02734375,
+        "cpu_seconds_delta": 94.23,
+        "mean_cpu_core_equivalent": 1.1061011818843076
+      },
+      "mongo": {
+        "rss_mib_max": 204.26171875,
+        "cpu_seconds_delta": 26.0,
+        "mean_cpu_core_equivalent": 0.30519612362296505
+      },
+      "mongo_connections_max": 28,
+      "sample_span_s": 85.19112133979797
+    },
+    "source_sha256": "a560972970b217765fa9425c06bf86f5676d173ea626d9602b76c1109b5d967f"
+  },
+  "b1": {
+    "complete_and_verified": true,
+    "partial": false,
+    "pytest_passed": true,
+    "rows": [
+      {
+        "sessions": 5,
+        "duration_s": 15.554,
+        "traffic_duration_s": 15.049,
+        "completed_pairs": 445,
+        "requests": 890,
+        "operations": {
+          "sale": {
+            "count": 445,
+            "p50_ms": 87.81,
+            "p95_ms": 104.79,
+            "p99_ms": 123.1
+          },
+          "cancel": {
+            "count": 445,
+            "p50_ms": 79.85,
+            "p95_ms": 97.09,
+            "p99_ms": 101.05
+          }
+        },
+        "p50_ms": 84.83,
+        "p95_ms": 103.38,
+        "p99_ms": 112.56,
+        "request_throughput_s": 57.22,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 445,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 29.57,
+        "pair_p50_ms": 167.87,
+        "pair_p95_ms": 177.05,
+        "pair_p99_ms": 220.65,
+        "unique_completed_operations_s": 57.22
+      },
+      {
+        "sessions": 10,
+        "duration_s": 16.069,
+        "traffic_duration_s": 15.265,
+        "completed_pairs": 450,
+        "requests": 900,
+        "operations": {
+          "sale": {
+            "count": 450,
+            "p50_ms": 173.27,
+            "p95_ms": 209.29,
+            "p99_ms": 231.0
+          },
+          "cancel": {
+            "count": 450,
+            "p50_ms": 165.46,
+            "p95_ms": 200.23,
+            "p99_ms": 203.64
+          }
+        },
+        "p50_ms": 169.44,
+        "p95_ms": 205.14,
+        "p99_ms": 218.03,
+        "request_throughput_s": 56.01,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 450,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 29.48,
+        "pair_p50_ms": 338.04,
+        "pair_p95_ms": 352.56,
+        "pair_p99_ms": 381.86,
+        "unique_completed_operations_s": 56.01
+      },
+      {
+        "sessions": 20,
+        "duration_s": 16.996,
+        "traffic_duration_s": 15.425,
+        "completed_pairs": 450,
+        "requests": 900,
+        "operations": {
+          "sale": {
+            "count": 450,
+            "p50_ms": 342.87,
+            "p95_ms": 417.27,
+            "p99_ms": 439.58
+          },
+          "cancel": {
+            "count": 450,
+            "p50_ms": 336.92,
+            "p95_ms": 408.41,
+            "p99_ms": 429.79
+          }
+        },
+        "p50_ms": 340.5,
+        "p95_ms": 413.34,
+        "p99_ms": 437.34,
+        "request_throughput_s": 52.95,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 450,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 29.17,
+        "pair_p50_ms": 676.54,
+        "pair_p95_ms": 731.18,
+        "pair_p99_ms": 753.6,
+        "unique_completed_operations_s": 52.95
+      },
+      {
+        "sessions": 30,
+        "duration_s": 18.256,
+        "traffic_duration_s": 15.816,
+        "completed_pairs": 450,
+        "requests": 900,
+        "operations": {
+          "sale": {
+            "count": 450,
+            "p50_ms": 528.28,
+            "p95_ms": 638.79,
+            "p99_ms": 696.76
+          },
+          "cancel": {
+            "count": 450,
+            "p50_ms": 519.79,
+            "p95_ms": 631.61,
+            "p99_ms": 668.39
+          }
+        },
+        "p50_ms": 523.66,
+        "p95_ms": 634.5,
+        "p99_ms": 676.34,
+        "request_throughput_s": 49.3,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 450,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 28.45,
+        "pair_p50_ms": 1045.19,
+        "pair_p95_ms": 1090.61,
+        "pair_p99_ms": 1149.65,
+        "unique_completed_operations_s": 49.3
+      },
+      {
+        "sessions": 50,
+        "duration_s": 19.592,
+        "traffic_duration_s": 15.652,
+        "completed_pairs": 450,
+        "requests": 900,
+        "operations": {
+          "sale": {
+            "count": 450,
+            "p50_ms": 863.05,
+            "p95_ms": 1063.24,
+            "p99_ms": 1099.12
+          },
+          "cancel": {
+            "count": 450,
+            "p50_ms": 863.32,
+            "p95_ms": 1044.07,
+            "p99_ms": 1076.3
+          }
+        },
+        "p50_ms": 863.32,
+        "p95_ms": 1052.97,
+        "p99_ms": 1090.22,
+        "request_throughput_s": 45.94,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 450,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 28.75,
+        "pair_p50_ms": 1722.78,
+        "pair_p95_ms": 1845.23,
+        "pair_p99_ms": 1852.08,
+        "unique_completed_operations_s": 45.94
+      }
+    ],
+    "integrity": {
+      "historical_fixture_orders": 0,
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 2245
+        }
+      ],
+      "counter": 2245,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 2245,
+      "markers": 2245,
+      "stock_moves": 4490,
+      "cash_version": 4490,
+      "order_audit": {
+        "checked_new_orders": 2245,
+        "historical_fixture_orders": 0,
+        "partial_confirmations": 0,
+        "financial_divergences": 0,
+        "orphan_markers": 0,
+        "unexpected_stock_moves": 0,
+        "duplicate_marker_orders": 0
+      },
+      "audit_started_at": 1794864713.855458,
+      "post_load_audit_s": 0.15974044799804688
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 83.06640625,
+        "cpu_seconds_delta": 95.14,
+        "mean_cpu_core_equivalent": 1.1170303408293594
+      },
+      "mongo": {
+        "rss_mib_max": 206.15625,
+        "cpu_seconds_delta": 24.279999999999998,
+        "mean_cpu_core_equivalent": 0.2850693365076397
+      },
+      "mongo_connections_max": 28,
+      "sample_span_s": 85.17226123809814
+    },
+    "source_sha256": "18e5424ca6e06f0097df1ed6f75bfe5676325269aed6dbc3632f84f8c42c9270"
+  },
+  "b2": {
+    "complete_and_verified": true,
+    "partial": false,
+    "pytest_passed": true,
+    "rows": [
+      {
+        "sessions": 5,
+        "duration_s": 15.622,
+        "traffic_duration_s": 15.115,
+        "completed_pairs": 448,
+        "requests": 896,
+        "operations": {
+          "sale": {
+            "count": 448,
+            "p50_ms": 87.75,
+            "p95_ms": 104.9,
+            "p99_ms": 110.38
+          },
+          "cancel": {
+            "count": 448,
+            "p50_ms": 79.59,
+            "p95_ms": 97.11,
+            "p99_ms": 102.97
+          }
+        },
+        "p50_ms": 84.4,
+        "p95_ms": 103.28,
+        "p99_ms": 110.17,
+        "request_throughput_s": 57.36,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 448,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 29.64,
+        "pair_p50_ms": 167.53,
+        "pair_p95_ms": 176.33,
+        "pair_p99_ms": 214.27,
+        "unique_completed_operations_s": 57.36
+      },
+      {
+        "sessions": 10,
+        "duration_s": 16.025,
+        "traffic_duration_s": 15.219,
+        "completed_pairs": 430,
+        "requests": 860,
+        "operations": {
+          "sale": {
+            "count": 430,
+            "p50_ms": 179.6,
+            "p95_ms": 220.1,
+            "p99_ms": 235.99
+          },
+          "cancel": {
+            "count": 430,
+            "p50_ms": 171.95,
+            "p95_ms": 213.88,
+            "p99_ms": 243.17
+          }
+        },
+        "p50_ms": 175.92,
+        "p95_ms": 218.42,
+        "p99_ms": 238.69,
+        "request_throughput_s": 53.67,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 430,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 28.25,
+        "pair_p50_ms": 349.63,
+        "pair_p95_ms": 380.12,
+        "pair_p99_ms": 405.1,
+        "unique_completed_operations_s": 53.67
+      },
+      {
+        "sessions": 20,
+        "duration_s": 17.234,
+        "traffic_duration_s": 15.66,
+        "completed_pairs": 440,
+        "requests": 880,
+        "operations": {
+          "sale": {
+            "count": 440,
+            "p50_ms": 358.04,
+            "p95_ms": 435.8,
+            "p99_ms": 461.21
+          },
+          "cancel": {
+            "count": 440,
+            "p50_ms": 349.84,
+            "p95_ms": 428.64,
+            "p99_ms": 451.01
+          }
+        },
+        "p50_ms": 353.76,
+        "p95_ms": 432.93,
+        "p99_ms": 456.43,
+        "request_throughput_s": 51.06,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 440,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 28.1,
+        "pair_p50_ms": 707.28,
+        "pair_p95_ms": 751.31,
+        "pair_p99_ms": 768.26,
+        "unique_completed_operations_s": 51.06
+      },
+      {
+        "sessions": 30,
+        "duration_s": 18.058,
+        "traffic_duration_s": 15.68,
+        "completed_pairs": 450,
+        "requests": 900,
+        "operations": {
+          "sale": {
+            "count": 450,
+            "p50_ms": 520.92,
+            "p95_ms": 637.22,
+            "p99_ms": 661.97
+          },
+          "cancel": {
+            "count": 450,
+            "p50_ms": 516.18,
+            "p95_ms": 633.42,
+            "p99_ms": 683.19
+          }
+        },
+        "p50_ms": 519.26,
+        "p95_ms": 636.18,
+        "p99_ms": 668.86,
+        "request_throughput_s": 49.84,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 450,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 28.7,
+        "pair_p50_ms": 1035.45,
+        "pair_p95_ms": 1130.33,
+        "pair_p99_ms": 1136.76,
+        "unique_completed_operations_s": 49.84
+      },
+      {
+        "sessions": 50,
+        "duration_s": 19.947,
+        "traffic_duration_s": 15.985,
+        "completed_pairs": 450,
+        "requests": 900,
+        "operations": {
+          "sale": {
+            "count": 450,
+            "p50_ms": 882.23,
+            "p95_ms": 1098.61,
+            "p99_ms": 1204.44
+          },
+          "cancel": {
+            "count": 450,
+            "p50_ms": 867.82,
+            "p95_ms": 1088.8,
+            "p99_ms": 1192.93
+          }
+        },
+        "p50_ms": 874.53,
+        "p95_ms": 1094.15,
+        "p99_ms": 1194.19,
+        "request_throughput_s": 45.12,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 450,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 28.15,
+        "pair_p50_ms": 1743.57,
+        "pair_p95_ms": 1930.55,
+        "pair_p99_ms": 1939.99,
+        "unique_completed_operations_s": 45.12
+      }
+    ],
+    "integrity": {
+      "historical_fixture_orders": 0,
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 2218
+        }
+      ],
+      "counter": 2218,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 2218,
+      "markers": 2218,
+      "stock_moves": 4436,
+      "cash_version": 4436,
+      "order_audit": {
+        "checked_new_orders": 2218,
+        "historical_fixture_orders": 0,
+        "partial_confirmations": 0,
+        "financial_divergences": 0,
+        "orphan_markers": 0,
+        "unexpected_stock_moves": 0,
+        "duplicate_marker_orders": 0
+      },
+      "audit_started_at": 1794864805.02025,
+      "post_load_audit_s": 0.16526579856872559
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 82.921875,
+        "cpu_seconds_delta": 95.46,
+        "mean_cpu_core_equivalent": 1.1194118162755267
+      },
+      "mongo": {
+        "rss_mib_max": 206.4609375,
+        "cpu_seconds_delta": 24.34,
+        "mean_cpu_core_equivalent": 0.28542304219721687
+      },
+      "mongo_connections_max": 28,
+      "sample_span_s": 85.27692723274231
+    },
+    "source_sha256": "848efa1d3dd1d6a396217bc35442898f03170e5503e10ef34dcf3e2a9ad2e665"
+  },
+  "a2": {
+    "complete_and_verified": true,
+    "partial": false,
+    "pytest_passed": true,
+    "rows": [
+      {
+        "sessions": 5,
+        "duration_s": 15.636,
+        "traffic_duration_s": 15.136,
+        "completed_pairs": 440,
+        "requests": 880,
+        "operations": {
+          "sale": {
+            "count": 440,
+            "p50_ms": 89.48,
+            "p95_ms": 109.0,
+            "p99_ms": 127.88
+          },
+          "cancel": {
+            "count": 440,
+            "p50_ms": 81.06,
+            "p95_ms": 100.13,
+            "p99_ms": 106.98
+          }
+        },
+        "p50_ms": 85.36,
+        "p95_ms": 106.37,
+        "p99_ms": 116.86,
+        "request_throughput_s": 56.28,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 440,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 29.07,
+        "pair_p50_ms": 170.62,
+        "pair_p95_ms": 183.66,
+        "pair_p99_ms": 208.4,
+        "unique_completed_operations_s": 56.28
+      },
+      {
+        "sessions": 10,
+        "duration_s": 16.052,
+        "traffic_duration_s": 15.25,
+        "completed_pairs": 440,
+        "requests": 880,
+        "operations": {
+          "sale": {
+            "count": 440,
+            "p50_ms": 176.98,
+            "p95_ms": 215.4,
+            "p99_ms": 238.66
+          },
+          "cancel": {
+            "count": 440,
+            "p50_ms": 167.83,
+            "p95_ms": 207.37,
+            "p99_ms": 241.06
+          }
+        },
+        "p50_ms": 172.02,
+        "p95_ms": 213.16,
+        "p99_ms": 241.06,
+        "request_throughput_s": 54.82,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 440,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 28.85,
+        "pair_p50_ms": 343.46,
+        "pair_p95_ms": 363.28,
+        "pair_p99_ms": 401.9,
+        "unique_completed_operations_s": 54.82
+      },
+      {
+        "sessions": 20,
+        "duration_s": 16.981,
+        "traffic_duration_s": 15.398,
+        "completed_pairs": 440,
+        "requests": 880,
+        "operations": {
+          "sale": {
+            "count": 440,
+            "p50_ms": 352.11,
+            "p95_ms": 437.09,
+            "p99_ms": 466.35
+          },
+          "cancel": {
+            "count": 440,
+            "p50_ms": 342.21,
+            "p95_ms": 422.67,
+            "p99_ms": 448.77
+          }
+        },
+        "p50_ms": 347.72,
+        "p95_ms": 431.23,
+        "p99_ms": 460.08,
+        "request_throughput_s": 51.82,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 440,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 28.58,
+        "pair_p50_ms": 694.62,
+        "pair_p95_ms": 729.25,
+        "pair_p99_ms": 758.01,
+        "unique_completed_operations_s": 51.82
+      },
+      {
+        "sessions": 30,
+        "duration_s": 18.544,
+        "traffic_duration_s": 15.813,
+        "completed_pairs": 443,
+        "requests": 886,
+        "operations": {
+          "sale": {
+            "count": 443,
+            "p50_ms": 530.75,
+            "p95_ms": 663.68,
+            "p99_ms": 713.34
+          },
+          "cancel": {
+            "count": 443,
+            "p50_ms": 525.2,
+            "p95_ms": 655.4,
+            "p99_ms": 688.84
+          }
+        },
+        "p50_ms": 528.07,
+        "p95_ms": 659.82,
+        "p99_ms": 703.19,
+        "request_throughput_s": 47.78,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 443,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 28.02,
+        "pair_p50_ms": 1066.47,
+        "pair_p95_ms": 1132.16,
+        "pair_p99_ms": 1143.23,
+        "unique_completed_operations_s": 47.78
+      },
+      {
+        "sessions": 50,
+        "duration_s": 19.818,
+        "traffic_duration_s": 15.867,
+        "completed_pairs": 450,
+        "requests": 900,
+        "operations": {
+          "sale": {
+            "count": 450,
+            "p50_ms": 873.0,
+            "p95_ms": 1089.09,
+            "p99_ms": 1146.89
+          },
+          "cancel": {
+            "count": 450,
+            "p50_ms": 867.6,
+            "p95_ms": 1071.81,
+            "p99_ms": 1109.79
+          }
+        },
+        "p50_ms": 870.8,
+        "p95_ms": 1079.95,
+        "p99_ms": 1127.35,
+        "request_throughput_s": 45.41,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 450,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 28.36,
+        "pair_p50_ms": 1744.76,
+        "pair_p95_ms": 1811.76,
+        "pair_p99_ms": 1818.17,
+        "unique_completed_operations_s": 45.41
+      }
+    ],
+    "integrity": {
+      "historical_fixture_orders": 0,
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 2213
+        }
+      ],
+      "counter": 2213,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 2213,
+      "markers": 2213,
+      "stock_moves": 4426,
+      "cash_version": 4426,
+      "order_audit": {
+        "checked_new_orders": 2213,
+        "historical_fixture_orders": 0,
+        "partial_confirmations": 0,
+        "financial_divergences": 0,
+        "orphan_markers": 0,
+        "unexpected_stock_moves": 0,
+        "duplicate_marker_orders": 0
+      },
+      "audit_started_at": 1794864895.9283576,
+      "post_load_audit_s": 0.16155552864074707
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 83.02734375,
+        "cpu_seconds_delta": 93.96000000000001,
+        "mean_cpu_core_equivalent": 1.1031575955814243
+      },
+      "mongo": {
+        "rss_mib_max": 204.73828125,
+        "cpu_seconds_delta": 25.91,
+        "mean_cpu_core_equivalent": 0.3042019295606077
+      },
+      "mongo_connections_max": 28,
+      "sample_span_s": 85.17368721961975
+    },
+    "source_sha256": "a076aab1a4ab3aef8d06ffc60160739cd33592e822edddd59572f179bfa4e5aa"
+  },
+  "p7long": {
+    "complete_and_verified": true,
+    "partial": false,
+    "pytest_passed": true,
+    "rows": [
+      {
+        "sessions": 50,
+        "duration_s": 1806.139,
+        "traffic_duration_s": 1802.158,
+        "completed_pairs": 40800,
+        "requests": 81600,
+        "operations": {
+          "sale": {
+            "count": 40800,
+            "p50_ms": 1047.32,
+            "p95_ms": 1804.88,
+            "p99_ms": 2065.77
+          },
+          "cancel": {
+            "count": 40800,
+            "p50_ms": 1031.3,
+            "p95_ms": 1778.12,
+            "p99_ms": 2035.22
+          }
+        },
+        "p50_ms": 1039.04,
+        "p95_ms": 1791.83,
+        "p99_ms": 2052.15,
+        "request_throughput_s": 45.18,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 40800,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 22.64,
+        "pair_p50_ms": 2175.48,
+        "pair_p95_ms": 2782.55,
+        "pair_p99_ms": 2947.28,
+        "unique_completed_operations_s": 45.18
+      }
+    ],
+    "integrity": {
+      "historical_fixture_orders": 0,
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 40800
+        }
+      ],
+      "counter": 40800,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 40800,
+      "markers": 40800,
+      "stock_moves": 81600,
+      "cash_version": 81600,
+      "order_audit": {
+        "checked_new_orders": 40800,
+        "historical_fixture_orders": 0,
+        "partial_confirmations": 0,
+        "financial_divergences": 0,
+        "orphan_markers": 0,
+        "unexpected_stock_moves": 0,
+        "duplicate_marker_orders": 0
+      },
+      "audit_started_at": 1794866706.6298459,
+      "post_load_audit_s": 1.208707332611084
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 83.5390625,
+        "cpu_seconds_delta": 1115.16,
+        "mean_cpu_core_equivalent": 0.6187213151386438
+      },
+      "mongo": {
+        "rss_mib_max": 405.12109375,
+        "cpu_seconds_delta": 976.52,
+        "mean_cpu_core_equivalent": 0.5418000454277309
+      },
+      "mongo_connections_max": 28,
+      "sample_span_s": 1802.3623442649841
+    },
+    "source_sha256": "18c8a61e03ddbdabaf3708bd0f481c1aa119c4d6cad5afb83a4153ce116b7153"
+  },
+  "acceptance": {
+    "complete_and_verified": true,
+    "partial": false,
+    "pytest_passed": true,
+    "rows": [
+      {
+        "sessions": 50,
+        "duration_s": 1804.791,
+        "traffic_duration_s": 1800.846,
+        "completed_pairs": 54415,
+        "requests": 108830,
+        "operations": {
+          "sale": {
+            "count": 54415,
+            "p50_ms": 827.85,
+            "p95_ms": 1059.08,
+            "p99_ms": 1189.89
+          },
+          "cancel": {
+            "count": 54415,
+            "p50_ms": 819.71,
+            "p95_ms": 1052.16,
+            "p99_ms": 1182.31
+          }
+        },
+        "p50_ms": 823.68,
+        "p95_ms": 1055.64,
+        "p99_ms": 1186.79,
+        "request_throughput_s": 60.3,
+        "error_rate": 0.0,
+        "errors": {},
+        "unique_attempted": 54415,
+        "exhausted_operations": 0,
+        "financial_pairs_s": 30.21,
+        "pair_p50_ms": 1606.83,
+        "pair_p95_ms": 1999.96,
+        "pair_p99_ms": 2159.12,
+        "unique_completed_operations_s": 60.3
+      }
+    ],
+    "integrity": {
+      "historical_fixture_orders": 0,
+      "duplicate_numbers": 0,
+      "number_range": [
+        {
+          "_id": null,
+          "minimum": 1,
+          "maximum": 54415
+        }
+      ],
+      "counter": 54415,
+      "stock": 1000.0,
+      "paid_orders": 0,
+      "duplicate_refs": 0,
+      "orders": 54415,
+      "markers": 54415,
+      "stock_moves": 108830,
+      "cash_version": 108830,
+      "order_audit": {
+        "checked_new_orders": 54415,
+        "historical_fixture_orders": 0,
+        "partial_confirmations": 0,
+        "financial_divergences": 0,
+        "orphan_markers": 0,
+        "unexpected_stock_moves": 0,
+        "duplicate_marker_orders": 0
+      },
+      "audit_started_at": 1794868517.3182054,
+      "post_load_audit_s": 1.9884207248687744
+    },
+    "resources": {
+      "backend": {
+        "rss_mib_max": 83.40625,
+        "cpu_seconds_delta": 1507.52,
+        "mean_cpu_core_equivalent": 0.8364409836470476
+      },
+      "mongo": {
+        "rss_mib_max": 417.34765625,
+        "cpu_seconds_delta": 582.77,
+        "mean_cpu_core_equivalent": 0.3233474262629948
+      },
+      "mongo_connections_max": 27,
+      "sample_span_s": 1802.3028874397278
+    },
+    "source_sha256": "194b7efa4237accabdbe40cbd6b311d62bd64162e8b2a94cca507ff46bbae26a"
+  }
+}
