@@ -4,7 +4,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import vm from 'node:vm';
 import test from 'node:test';
 
-async function setup(post) {
+async function setup(post, desktop = true) {
   const storage = new Map();
   const context = vm.createContext({
     navigator: { onLine: true }, window: { addEventListener() {}, removeEventListener() {} },
@@ -14,7 +14,7 @@ async function setup(post) {
     react: { useSyncExternalStore() {} },
     './api': { ApiError: class ApiError extends Error {}, apiPost: post },
     './queryClient': { queryClient: { invalidateQueries() {} } },
-    './desktop': { deviceTag: () => 'test', kv: {
+    './desktop': { isDesktop: () => desktop, deviceTag: () => 'test', kv: {
       get: key => storage.get(key) ?? null,
       set: (key, value) => storage.set(key, value),
     } },
@@ -101,4 +101,19 @@ test('failure to archive a rejection preserves the pending operation', async () 
   result.storage.set = (key, value) => { if (key === 'pdv_offline_rejected') throw new Error('Synthetic quota error'); return set(key, value); };
   await assert.rejects(result.api.syncQueue(), /quota/);
   assert.deepEqual(result.queue().map(x => x.payload.client_ref), ['pending']);
+});
+
+ test('browser cannot enqueue, replay or remove legacy financial records', async () => {
+  let calls = 0;
+  const { api, storage } = await setup(async () => { calls++; }, false);
+  storage.set('pdv_offline_queue', JSON.stringify([sale('legacy')]));
+  const original = storage.get('pdv_offline_queue');
+  assert.throws(() => api.enqueue(sale('new')), /indisponíveis/);
+  api.setForcedOffline(true);
+  assert.equal(api.isOffline(), false);
+  assert.equal((await api.syncQueue()).synced, 0);
+  assert.throws(() => api.retryRejected('legacy'), /conciliação/);
+  assert.throws(() => api.dismissRejected('legacy'), /conciliação/);
+  assert.equal(calls, 0);
+  assert.equal(storage.get('pdv_offline_queue'), original);
 });

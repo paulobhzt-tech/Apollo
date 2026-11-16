@@ -1,0 +1,18 @@
+(node:17) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:17) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+✔ sale enqueued during an awaited replay survives synchronization (54.413269ms)
+✔ network failure preserves both the attempted sale and new arrivals (2.715415ms)
+✔ successful replay removes only completed entries and does not send arrivals early (3.842458ms)
+✔ rejected financial records are not silently truncated (3.966173ms)
+✔ corrupt pending queue cannot be silently replaced by enqueue (2.785579ms)
+✔ failure to archive a rejection preserves the pending operation (2.573854ms)
+✔ browser cannot enqueue, replay or remove legacy financial records (2.620233ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 175.465953

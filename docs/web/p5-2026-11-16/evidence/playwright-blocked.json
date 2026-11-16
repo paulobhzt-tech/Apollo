@@ -1,0 +1,18 @@
+{
+  "stats": {
+    "startTime": "2026-11-16T15:18:13.383Z",
+    "duration": 5318.01,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 12,
+    "flaky": 0
+  },
+  "classification": "Infrastructure blocked before browser startup; no functional result",
+  "error_sample": "browserType.launch: Chromium fatal: socket() failed: Operation not permitted (1)",
+  "projects": [
+    "desktop",
+    "tablet",
+    "mobile"
+  ],
+  "cases_per_project": 4
+}

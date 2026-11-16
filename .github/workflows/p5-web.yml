@@ -1,0 +1,46 @@
+name: P5 Web - Browser validation
+on:
+  push:
+    branches: ["feat/p5-professional-web"]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install frontend and browser tests
+        run: |
+          npm --prefix frontend install --ignore-scripts --package-lock=false --no-audit
+          npm --prefix tests install --ignore-scripts --package-lock=false --no-audit
+          cd tests
+          npx playwright install --with-deps chromium
+      - name: Types, lint, desktop and web builds, offline regression
+        working-directory: frontend
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run build
+          npx vite build --config vite.web.config.ts
+          node --experimental-vm-modules --test tests/offline-queue.test.mjs
+      - name: Isolated browser UI tests (synthetic API)
+        run: |
+          cd frontend
+          npx vite --config vite.web.config.ts > /tmp/apollo-p5-vite.log 2>&1 &
+          cd ../tests
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3001/login >/dev/null; then break; fi
+            sleep 1
+          done
+          npx playwright test --config p5.playwright.config.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p5-browser-evidence
+          path: tests/test-results/p5
