@@ -29,6 +29,12 @@ if os.environ.get("P9_CPU_PROFILE") == "1":
     handle.write(json.dumps({"kind":"event_loop","lag_s":max(0,loop.time()-expected),"at":time.time()})+"\n")
  async def app(scope,receive,send):
   global _lag_task
+  if scope["type"]=="lifespan":
+   async def _lifespan_send(message):
+    if message["type"]=="lifespan.shutdown.complete":
+     _finish()
+    await send(message)
+   return await _base_app(scope,receive,_lifespan_send)
   if scope["type"]=="http" and _lag_task is None:
    _lag_task=asyncio.create_task(_lag_monitor())
   return await _base_app(scope,receive,send)
@@ -44,6 +50,8 @@ try:
   assert data['partial'] is False
   print('P9_ROWS',label,json.dumps(data['rows']),flush=True)
   print('P9_INTEGRITY',label,json.dumps(data['integrity']),flush=True)
+ if not (dest/'cpu.prof').exists():
+  raise RuntimeError('CPU profile missing: diagnostic incomplete')
  if (dest/'cpu.prof').exists():
   with (dest/'cpu.txt').open('w') as handle:
    stats=pstats.Stats(str(dest/'cpu.prof'),stream=handle)
