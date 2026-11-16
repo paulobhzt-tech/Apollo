@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { ApiError, apiPost } from "./api";
 import { queryClient } from "./queryClient";
 import type { Product, QuickSaleIn } from "./types";
-import { deviceTag, kv } from "./desktop";
+import { isDesktop, deviceTag, kv } from "./desktop";
 
 const KEY = "pdv_offline_queue";
 const MENU_KEY = "pdv_offline_menu";
@@ -16,7 +16,7 @@ const LOG_KEY = "pdv_offline_last_sync";
 export const newClientRef = () => `${deviceTag()}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 const listeners = new Set<() => void>();
-let forced = kv.get("pdv_force_offline") === "1";
+let forced = isDesktop() && kv.get("pdv_force_offline") === "1";
 let queueIssue: string | null = null;
 let rejectedIssue: string | null = null;
 let persistenceIssue: string | null = null;
@@ -69,12 +69,14 @@ function subscribe(l: () => void) {
 
 export const isOffline = () => forced || !navigator.onLine;
 export function setForcedOffline(v: boolean) {
+  if (!isDesktop()) return;
   forced = v;
   kv.set("pdv_force_offline", v ? "1" : "0");
   emit();
   if (!v) void syncQueue().catch(() => emit());
 }
 export function enqueue(sale: QueuedSale) {
+  if (!isDesktop()) throw new Error("Vendas offline indisponíveis no navegador; confira o histórico antes de repetir.");
   requireHealthyStorage();
   const current = read();
   if (current.some(x => x.payload.client_ref === sale.payload.client_ref)) return;
@@ -82,9 +84,11 @@ export function enqueue(sale: QueuedSale) {
   emit();
 }
 export function cacheMenu(products: Product[]) {
+  if (!isDesktop()) return;
   kv.set(MENU_KEY, JSON.stringify(products));
 }
 export function cachedMenu(): Product[] {
+  if (!isDesktop()) return [];
   try {
     return JSON.parse(kv.get(MENU_KEY) || "[]") as Product[];
   } catch {
@@ -94,7 +98,7 @@ export function cachedMenu(): Product[] {
 
 let syncing = false;
 export async function syncQueue(): Promise<{ synced: number; failed: number }> {
-  if (syncing || isOffline()) return { synced: 0, failed: 0 };
+  if (!isDesktop() || syncing || isOffline()) return { synced: 0, failed: 0 };
   try { requireHealthyStorage(); } catch { return { synced: 0, failed: 0 }; }
   persistenceIssue = null;
   syncing = true;
@@ -156,6 +160,7 @@ export function lastSync(): { at: string; synced: number; failed: number; pendin
 
 /** Puts a rejected sale back in the queue (e.g. after opening the cash register). */
 export function retryRejected(ref: string) {
+  if (!isDesktop()) throw new Error("Recuperação da fila web exige conciliação assistida.");
   requireHealthyStorage();
   const r = readRejected();
   const item = r.find((x) => x.payload.client_ref === ref);
@@ -167,6 +172,7 @@ export function retryRejected(ref: string) {
   void syncQueue().catch(() => emit());
 }
 export function dismissRejected(ref: string) {
+  if (!isDesktop()) throw new Error("Preserve a fila web para conciliação assistida.");
   requireHealthyStorage();
   kv.set(REJ_KEY, JSON.stringify(readRejected().filter((x) => x.payload.client_ref !== ref)));
   emit();

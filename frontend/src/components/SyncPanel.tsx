@@ -20,6 +20,7 @@ export default function SyncPanel() {
     if (r.synced || r.failed) toast.success(`${r.synced} venda(s) sincronizada(s)${r.failed ? ` · ${r.failed} recusada(s)` : ""}`);
     else toast.message(offline ? "Sem conexão: as vendas continuam guardadas" : "Nada pendente");
   };
+  if (!d) return <Panel title="Operação web online"><p role="status">Vendas offline e replay automático não estão disponíveis no navegador. Filas antigas são preservadas para conciliação assistida.</p></Panel>;
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Panel title="Vendas offline deste computador">
