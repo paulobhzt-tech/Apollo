@@ -457,3 +457,46 @@ async def test_atomic_flag_without_committed_marker_never_certifies_replay(scena
     assert await db.financial_operations.count_documents({})==0
     assert await db.stock_moves.count_documents({})==0
     assert (await db.ingredients.find_one({'id':'ing'}))['stock']==100
+
+@pytest.mark.parametrize('mode,expected_qty,expected_reads', [
+    ('snapshot', 1, 0), ('legacy', 17, 1),
+    ('mixed', 18, 1), ('empty_snapshot', 0, 0),
+])
+async def test_p9_recipe_fallback_preserves_snapshot_and_legacy_stock(
+        scenario, monkeypatch, mode, expected_qty, expected_reads):
+    """Real transactional stock/lots; spy forwards every query to MongoDB."""
+    from models.schemas import OrderItem
+    from lib.transactions import run_transaction
+    from motor.motor_asyncio import AsyncIOMotorCollection
+    db, _ = scenario
+    paid = await operations.quick_sale(sale(emit_invoice=False), USER)
+    saved = dict(paid['order']['items'][0])
+    await db.products.update_one({'id': 'product'},
+                                {'$set': {'recipe': [{'ingredient_id': 'ing', 'qty': 17}]}})
+    snapshot = OrderItem(**saved)
+    legacy = OrderItem(**{**saved, 'stock_recipe': None})
+    empty = OrderItem(**{**saved, 'stock_recipe': []})
+    selected = {'snapshot': [snapshot], 'legacy': [legacy],
+                'mixed': [snapshot, legacy], 'empty_snapshot': [empty]}[mode]
+    calls = []
+    real_find = AsyncIOMotorCollection.find
+    def observed_find(collection, *args, **kwargs):
+        if collection.name == 'products' and collection.database.name == db.name:
+            calls.append(kwargs.get('session'))
+        return real_find(collection, *args, **kwargs)
+    monkeypatch.setattr(AsyncIOMotorCollection, 'find', observed_find)
+    async def consume(session):
+        await orders.move_stock(selected, USER['name'], 'p9-consume', session=session)
+    await run_transaction(consume)
+    assert len(calls) == expected_reads
+    assert all(session is not None for session in calls)
+    assert (await db.ingredients.find_one({'id': 'ing'}))['stock'] == 99 - expected_qty
+    assert (await db.purchases.find_one({'id': 'lot'}))['remaining_qty'] == 99 - expected_qty
+    calls.clear()
+    async def restore(session):
+        await orders.move_stock(selected, USER['name'], 'p9-restore', sign=1,
+                                session=session, stock_reference='p9-consume')
+    await run_transaction(restore)
+    assert len(calls) == expected_reads
+    assert (await db.ingredients.find_one({'id': 'ing'}))['stock'] == 99
+    assert (await db.purchases.find_one({'id': 'lot'}))['remaining_qty'] == 99
