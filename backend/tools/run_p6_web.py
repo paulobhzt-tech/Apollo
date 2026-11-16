@@ -55,6 +55,9 @@ with tempfile.TemporaryDirectory(prefix='apollo-p6-') as tmp:
             assert 'access-control-allow-origin' not in cors.headers
             (out/'tls-security.json').write_text(json.dumps({'tls_certificate_verified':True,'secure_cookie':True,'httpOnly':True,'sameSite':'lax','authenticated_https':True,'cross_scheme_csrf_status':hostile.status_code,'hostile_cors_not_allowed':True,'scope':'localhost synthetic certificate; no production infrastructure certified'},indent=2)+'\n')
         if '--tls-only' in sys.argv: raise SystemExit(0)
+        if '--serve' in sys.argv:
+            print('Synthetic P6 services ready on localhost:3001',flush=True)
+            while True: time.sleep(1)
         command=['npx','playwright','test','--config','p6.playwright.config.ts',*sys.argv[1:]]
         result=subprocess.run(command,env=env,cwd=root/'tests')
         raise SystemExit(result.returncode)

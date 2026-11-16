@@ -24,7 +24,17 @@ if mode == 'reset':
     db.ingredients.insert_one(Ingredient(id='p6-ing',name='Insumo fictício',unit='un',stock=1000,cost_per_unit=2).model_dump())
     db.products.insert_one(Product(id='p6-product',code='P6',name='Produto fictício P6',category_id='p6-cat',price=10,recipe=[{'ingredient_id':'p6-ing','qty':1}]).model_dump())
     db.fiado_customers.insert_one(FiadoCustomer(id='p6-customer',name='Cliente fictício P6',credit_limit=100).model_dump())
+    import asyncio
+    from routers.finance import ensure_finance_defaults
+    from routers.production import ensure_environments
+    async def defaults():
+        await ensure_finance_defaults()
+        await ensure_environments()
+    asyncio.run(defaults())
     db.purchases.insert_one({'id':'p6-lot','ingredient_id':'p6-ing','remaining_qty':1000,'expiry_date':'2099-12-31','lot_number':'P6','created_at':datetime.now(timezone.utc)})
+elif mode == 'printer':
+    from models.schemas import Printer
+    db.printers.insert_one(Printer(id='p6-printer',name='Impressora fictícia',purpose='cozinha').model_dump())
 elif mode == 'snapshot':
     orders=list(db.orders.find({}, {'_id':0,'id':1,'client_ref':1,'status':1,'total':1,'discount':1,'payments':1,'waiter_id':1}))
     print(json.dumps({'orders':orders,'stock':db.ingredients.find_one({'id':'p6-ing'})['stock'],
@@ -32,6 +42,7 @@ elif mode == 'snapshot':
        'markers':db.financial_operations.count_documents({'kind':'pdv_sale'}),
        'stock_sales':db.stock_moves.count_documents({'type':'venda'}),
        'tickets':db.kitchen_tickets.count_documents({}),
+       'ticket_printed':[t.get('printed',[]) for t in db.kitchen_tickets.find({})],
        'fiado_balance':db.fiado_customers.find_one({'id':'p6-customer'})['balance'],
        'customer_moves':db.customer_moves.count_documents({}),
        'cash':list(db.cash_sessions.find({}, {'_id':0}))},default=str))

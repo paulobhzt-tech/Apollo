@@ -33,8 +33,15 @@ async function finalize(page:Page) {
  await page.getByTestId('payment-confirm-button').click();
  const r=await response;expect(r.status()).toBe(200);return r.json();
 }
-test.beforeEach(()=>db('reset'));
-test.afterEach(async({},info)=>{db('clear-failpoint');await info.attach('financial-snapshot.json',{body:JSON.stringify(db(),null,2),contentType:'application/json'});});
+let observations: {path:string;status:number;ttfb_ms:number}[]=[];
+test.beforeEach(({page})=>{db('reset');observations=[];page.on('response',response=>{
+ const request=response.request();const timing=request.timing();
+ if(response.url().includes('/api/'))observations.push({path:new URL(response.url()).pathname,status:response.status(),ttfb_ms:Math.max(0,timing.responseStart-timing.requestStart)});
+});});
+test.afterEach(async({page},info)=>{
+ await info.attach('api-observations.json',{body:JSON.stringify(observations),contentType:'application/json'});
+ if(!page.isClosed()){const navigation=await page.evaluate(()=>performance.getEntriesByType('navigation').map(e=>e.toJSON()));await info.attach('interface-navigation.json',{body:JSON.stringify(navigation),contentType:'application/json'});}
+ db('clear-failpoint');await info.attach('financial-snapshot.json',{body:JSON.stringify(db(),null,2),contentType:'application/json'});});
 
 test('real cash opening, quantities, admin discount, sale, stock and closing',async({page})=>{
  await login(page,'admin');await openCash(page);await prepare(page,'dinheiro','2');const result=await finalize(page);
@@ -126,4 +133,13 @@ test('a pending operation in another tab blocks new requests at the browser boun
  await second.getByTestId('web-sale-reconcile').click();
  await expect(second.getByTestId('payment-dialog')).toBeHidden();
  await expect(second.getByTestId('pdv-checkout-button')).toBeDisabled();
+});
+
+ test('browser print acknowledgement cancelled keeps the actual kitchen ticket pending',async({page})=>{
+ await login(page);await openCash(page);await prepare(page);const result=await finalize(page);db('printer');
+ await page.goto('/impressao');await expect(page.getByTestId('print-auto-toggle')).toBeDisabled();
+ page.once('dialog',d=>d.dismiss());
+ await page.getByTestId(`print-reprint-${result.order.number}-cozinha`).click();
+ await expect(page.getByTestId('print-log')).toContainText('Nada impresso');
+ expect(db().ticket_printed).toEqual([[]]);
 });
