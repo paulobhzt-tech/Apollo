@@ -1,0 +1,19 @@
+{
+  "candidate_head": "908007e1130e40502a8d61c114cd5bf323a83267",
+  "application_reference": "47ad2fca98b7dc8c280846ece8f1e75ce9bb6a93",
+  "baseline_head": "0a0766421d57f13ec2fbfd31aa8e1cd45461bb77",
+  "run_id": "43960177013",
+  "run_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/43960177013",
+  "python": "3.12.16",
+  "platform": "Linux-7.0.0-1019-azure-x86_64-with-glibc2.43",
+  "cpus": 4,
+  "affinity_cpus": 4,
+  "mongo": "7.0.16",
+  "replica_members": 1,
+  "workers": 1,
+  "cache_gib": 0.25,
+  "bcrypt_cost": 12,
+  "http": "loopback keep-alive",
+  "campaign_outcome": "success",
+  "collected_at": "2026-11-16T22:35:37.406534+00:00"
+}

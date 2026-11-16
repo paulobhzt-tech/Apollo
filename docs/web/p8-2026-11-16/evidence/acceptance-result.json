@@ -1,0 +1,50 @@
+{
+  "verdict": "REPROVADA",
+  "execution_complete": true,
+  "index_contract_verified": true,
+  "query_plans_verified": true,
+  "production_approved": false,
+  "criteria_sha256": "29942733b82407d0771454fed42507b183ea31e699ed41b41f6750d7115eb992",
+  "actual": {
+    "active_traffic_seconds_minimum": 1800.846,
+    "http_503_maximum": 0,
+    "other_http_or_transport_errors_maximum": 0,
+    "exhausted_operations_maximum": 0,
+    "request_p95_ms_maximum": 1055.64,
+    "request_p99_ms_maximum": 1186.79,
+    "sale_cancel_pair_p95_ms_maximum": 1999.96,
+    "sale_cancel_pair_p99_ms_maximum": 2159.12,
+    "financial_divergences_maximum": 0,
+    "duplicate_financial_references_maximum": 0,
+    "duplicate_order_numbers_maximum": 0,
+    "partial_confirmations_maximum": 0
+  },
+  "checks": {
+    "active_traffic_seconds_minimum": true,
+    "http_503_maximum": true,
+    "other_http_or_transport_errors_maximum": true,
+    "exhausted_operations_maximum": true,
+    "request_p95_ms_maximum": false,
+    "request_p99_ms_maximum": true,
+    "sale_cancel_pair_p95_ms_maximum": true,
+    "sale_cancel_pair_p99_ms_maximum": true,
+    "financial_divergences_maximum": true,
+    "duplicate_financial_references_maximum": true,
+    "duplicate_order_numbers_maximum": true,
+    "partial_confirmations_maximum": true
+  },
+  "campaign": {
+    "running": null,
+    "completed": [
+      "history-pair",
+      "repeated-abba",
+      "p7-long",
+      "p8-acceptance"
+    ],
+    "updated_at": "2026-11-16T22:35:21.324366+00:00"
+  },
+  "candidate_head": "908007e1130e40502a8d61c114cd5bf323a83267",
+  "baseline_head": "0a0766421d57f13ec2fbfd31aa8e1cd45461bb77",
+  "configured_active_seconds": 1800,
+  "duration_note": "traffic_duration_s includes drain; campaign schedules 1800 active seconds. Financial audits occur only after drain."
+}

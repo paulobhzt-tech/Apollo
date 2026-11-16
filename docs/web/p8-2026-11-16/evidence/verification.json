@@ -1,0 +1,56 @@
+{
+  "verified_at": "2026-11-16T22:41:22.524Z",
+  "runner_manifest_files_verified": 31,
+  "hash_algorithm": "SHA-256",
+  "gzip_crc_isize_and_json_verified": [
+    {
+      "path": "docs/web/p8-2026-11-16/evidence/request-components.json.gz",
+      "bytes": 186461
+    },
+    {
+      "path": "docs/web/p8-2026-11-16/evidence/load-a2.json.gz",
+      "bytes": 30149
+    },
+    {
+      "path": "docs/web/p8-2026-11-16/evidence/load-b2.json.gz",
+      "bytes": 30144
+    },
+    {
+      "path": "docs/web/p8-2026-11-16/evidence/load-h2.json.gz",
+      "bytes": 11343
+    },
+    {
+      "path": "docs/web/p8-2026-11-16/evidence/load-a1.json.gz",
+      "bytes": 30153
+    },
+    {
+      "path": "docs/web/p8-2026-11-16/evidence/load-p7long.json.gz",
+      "bytes": 510481
+    },
+    {
+      "path": "docs/web/p8-2026-11-16/evidence/load-b1.json.gz",
+      "bytes": 30143
+    },
+    {
+      "path": "docs/web/p8-2026-11-16/evidence/load-acceptance.json.gz",
+      "bytes": 510623
+    },
+    {
+      "path": "docs/web/p8-2026-11-16/evidence/load-h1.json.gz",
+      "bytes": 12748
+    },
+    {
+      "path": "docs/web/p8-2026-11-16/evidence/query-plans-P7.json.gz",
+      "bytes": 252487
+    },
+    {
+      "path": "docs/web/p8-2026-11-16/evidence/query-plans-P8.json.gz",
+      "bytes": 296292
+    }
+  ],
+  "criteria_p7_p8_identical": true,
+  "criteria_sha256": "29942733b82407d0771454fed42507b183ea31e699ed41b41f6750d7115eb992",
+  "all_eight_runs_complete_and_financially_verified": true,
+  "unexpected_errors_or_exhaustions": 0,
+  "interpretation": "Acceptance fails HTTP p95; green workflow denotes execution completed, not SLA approval."
+}

@@ -1,0 +1,5251 @@
+{
+  "P7": {
+    "source_root": "/home/runner/work/Apollo/Apollo/.p8-p7-base",
+    "indexes": {
+      "_id_": {
+        "v": 2,
+        "key": [
+          [
+            "_id",
+            1
+          ]
+        ]
+      },
+      "id": {
+        "v": 2,
+        "key": [
+          [
+            "id",
+            1
+          ]
+        ],
+        "unique": true
+      },
+      "status_created": {
+        "v": 2,
+        "key": [
+          [
+            "status",
+            1
+          ],
+          [
+            "created_at",
+            -1
+          ]
+        ]
+      },
+      "paid_at": {
+        "v": 2,
+        "key": [
+          [
+            "paid_at",
+            -1
+          ]
+        ]
+      },
+      "channel_created": {
+        "v": 2,
+        "key": [
+          [
+            "channel",
+            1
+          ],
+          [
+            "created_at",
+            -1
+          ]
+        ]
+      },
+      "cash_session": {
+        "v": 2,
+        "key": [
+          [
+            "cash_session_id",
+            1
+          ]
+        ]
+      },
+      "client_ref": {
+        "v": 2,
+        "key": [
+          [
+            "client_ref",
+            1
+          ]
+        ],
+        "unique": true,
+        "partialFilterExpression": {
+          "client_ref": {
+            "$type": "string"
+          }
+        }
+      }
+    },
+    "rows": [
+      {
+        "volume": 0,
+        "name": "sale_ref_absent",
+        "query": {
+          "client_ref": "soak-new-reference"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "filter": {
+                "client_ref": {
+                  "$eq": "soak-new-reference"
+                }
+              },
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5933,
+          "p95_ms": 1.0508,
+          "p99_ms": 1.0508
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 0,
+        "name": "sale_ref_present",
+        "query": {
+          "client_ref": "seed-0"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "filter": {
+                "client_ref": {
+                  "$eq": "seed-0"
+                }
+              },
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.4903,
+          "p95_ms": 0.5385,
+          "p99_ms": 0.5385
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 0,
+        "name": "sale_ref_typed",
+        "query": {
+          "client_ref": {
+            "$eq": "soak-new-reference",
+            "$type": "string"
+          }
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "filter": {
+                  "client_ref": {
+                    "$type": [
+                      2
+                    ]
+                  }
+                },
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": true,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5092,
+          "p95_ms": 0.5532,
+          "p99_ms": 0.5532
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 0,
+        "name": "sale_final_id",
+        "query": {
+          "id": "p8-order-0"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5032,
+          "p95_ms": 0.5264,
+          "p99_ms": 0.5264
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 0,
+        "name": "cancel_id",
+        "query": {
+          "id": "p8-order-0"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.503,
+          "p95_ms": 0.5302,
+          "p99_ms": 0.5302
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 0,
+        "name": "reconciliation",
+        "query": {
+          "id": "p8-order-0",
+          "client_ref": "seed-0",
+          "atomic_version": 1
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "atomic_version": {
+                      "$eq": 1
+                    }
+                  },
+                  {
+                    "client_ref": {
+                      "$eq": "seed-0"
+                    }
+                  }
+                ]
+              },
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5249,
+          "p95_ms": 2.1532,
+          "p99_ms": 2.1532
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 0,
+        "name": "list_default",
+        "query": {},
+        "winningPlan": {
+          "stage": "PROJECTION_SIMPLE",
+          "transformBy": {
+            "_id": 0
+          },
+          "inputStage": {
+            "stage": "SORT",
+            "sortPattern": {
+              "created_at": -1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 100,
+            "type": "simple",
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.4938,
+          "p95_ms": 0.5233,
+          "p99_ms": 0.5233
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 0,
+        "name": "list_status",
+        "query": {
+          "status": "cancelado"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 100,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "status": 1,
+                  "created_at": -1
+                },
+                "indexName": "status_created",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "status": [],
+                  "created_at": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "status": [
+                    "[\"cancelado\", \"cancelado\"]"
+                  ],
+                  "created_at": [
+                    "[MaxKey, MinKey]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.4738,
+          "p95_ms": 0.5341,
+          "p99_ms": 0.5341
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "sale_ref_absent",
+        "query": {
+          "client_ref": "soak-new-reference"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "filter": {
+                "client_ref": {
+                  "$eq": "soak-new-reference"
+                }
+              },
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 1000,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 1.0834,
+          "p95_ms": 1.2727,
+          "p99_ms": 1.2727
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "sale_ref_present",
+        "query": {
+          "client_ref": "seed-999"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "filter": {
+                "client_ref": {
+                  "$eq": "seed-999"
+                }
+              },
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 1000,
+        "keys_examined": 0,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 1.0795,
+          "p95_ms": 1.3024,
+          "p99_ms": 1.3024
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "sale_ref_typed",
+        "query": {
+          "client_ref": {
+            "$eq": "soak-new-reference",
+            "$type": "string"
+          }
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "filter": {
+                  "client_ref": {
+                    "$type": [
+                      2
+                    ]
+                  }
+                },
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": true,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.6026,
+          "p95_ms": 0.652,
+          "p99_ms": 0.652
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "sale_final_id",
+        "query": {
+          "id": "p8-order-999"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-999\", \"p8-order-999\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5636,
+          "p95_ms": 0.5855,
+          "p99_ms": 0.5855
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "cancel_id",
+        "query": {
+          "id": "p8-order-0"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.561,
+          "p95_ms": 0.5885,
+          "p99_ms": 0.5885
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "reconciliation",
+        "query": {
+          "id": "p8-order-0",
+          "client_ref": "seed-0",
+          "atomic_version": 1
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "atomic_version": {
+                      "$eq": 1
+                    }
+                  },
+                  {
+                    "client_ref": {
+                      "$eq": "seed-0"
+                    }
+                  }
+                ]
+              },
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5747,
+          "p95_ms": 0.6297,
+          "p99_ms": 0.6297
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "list_default",
+        "query": {},
+        "winningPlan": {
+          "stage": "PROJECTION_SIMPLE",
+          "transformBy": {
+            "_id": 0
+          },
+          "inputStage": {
+            "stage": "SORT",
+            "sortPattern": {
+              "created_at": -1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 100,
+            "type": "simple",
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 1000,
+        "keys_examined": 0,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 1.8642,
+          "p95_ms": 2.2639,
+          "p99_ms": 2.2639
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "list_status",
+        "query": {
+          "status": "cancelado"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 100,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "status": 1,
+                  "created_at": -1
+                },
+                "indexName": "status_created",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "status": [],
+                  "created_at": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "status": [
+                    "[\"cancelado\", \"cancelado\"]"
+                  ],
+                  "created_at": [
+                    "[MaxKey, MinKey]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 100,
+        "keys_examined": 100,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 1.1675,
+          "p95_ms": 14.9701,
+          "p99_ms": 14.9701
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 28672,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "sale_ref_absent",
+        "query": {
+          "client_ref": "soak-new-reference"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "filter": {
+                "client_ref": {
+                  "$eq": "soak-new-reference"
+                }
+              },
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 10000,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 6.5711,
+          "p95_ms": 7.3395,
+          "p99_ms": 7.3395
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 1802240,
+          "indexSizes": {
+            "_id_": 204800,
+            "id": 434176,
+            "status_created": 196608,
+            "paid_at": 167936,
+            "channel_created": 196608,
+            "cash_session": 167936,
+            "client_ref": 434176
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "sale_ref_present",
+        "query": {
+          "client_ref": "seed-9999"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "filter": {
+                "client_ref": {
+                  "$eq": "seed-9999"
+                }
+              },
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 10000,
+        "keys_examined": 0,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 6.7751,
+          "p95_ms": 7.2178,
+          "p99_ms": 7.2178
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 1802240,
+          "indexSizes": {
+            "_id_": 204800,
+            "id": 434176,
+            "status_created": 196608,
+            "paid_at": 167936,
+            "channel_created": 196608,
+            "cash_session": 167936,
+            "client_ref": 434176
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "sale_ref_typed",
+        "query": {
+          "client_ref": {
+            "$eq": "soak-new-reference",
+            "$type": "string"
+          }
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "filter": {
+                  "client_ref": {
+                    "$type": [
+                      2
+                    ]
+                  }
+                },
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": true,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.6245,
+          "p95_ms": 0.7066,
+          "p99_ms": 0.7066
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 1802240,
+          "indexSizes": {
+            "_id_": 204800,
+            "id": 434176,
+            "status_created": 196608,
+            "paid_at": 167936,
+            "channel_created": 196608,
+            "cash_session": 167936,
+            "client_ref": 434176
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "sale_final_id",
+        "query": {
+          "id": "p8-order-9999"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-9999\", \"p8-order-9999\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.587,
+          "p95_ms": 0.8309,
+          "p99_ms": 0.8309
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 1802240,
+          "indexSizes": {
+            "_id_": 204800,
+            "id": 434176,
+            "status_created": 196608,
+            "paid_at": 167936,
+            "channel_created": 196608,
+            "cash_session": 167936,
+            "client_ref": 434176
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "cancel_id",
+        "query": {
+          "id": "p8-order-0"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.572,
+          "p95_ms": 0.5817,
+          "p99_ms": 0.5817
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 1802240,
+          "indexSizes": {
+            "_id_": 204800,
+            "id": 434176,
+            "status_created": 196608,
+            "paid_at": 167936,
+            "channel_created": 196608,
+            "cash_session": 167936,
+            "client_ref": 434176
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "reconciliation",
+        "query": {
+          "id": "p8-order-0",
+          "client_ref": "seed-0",
+          "atomic_version": 1
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "atomic_version": {
+                      "$eq": 1
+                    }
+                  },
+                  {
+                    "client_ref": {
+                      "$eq": "seed-0"
+                    }
+                  }
+                ]
+              },
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5939,
+          "p95_ms": 0.6124,
+          "p99_ms": 0.6124
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 1802240,
+          "indexSizes": {
+            "_id_": 204800,
+            "id": 434176,
+            "status_created": 196608,
+            "paid_at": 167936,
+            "channel_created": 196608,
+            "cash_session": 167936,
+            "client_ref": 434176
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "list_default",
+        "query": {},
+        "winningPlan": {
+          "stage": "PROJECTION_SIMPLE",
+          "transformBy": {
+            "_id": 0
+          },
+          "inputStage": {
+            "stage": "SORT",
+            "sortPattern": {
+              "created_at": -1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 100,
+            "type": "simple",
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 10000,
+        "keys_examined": 0,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 10.5948,
+          "p95_ms": 10.8421,
+          "p99_ms": 10.8421
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 1802240,
+          "indexSizes": {
+            "_id_": 204800,
+            "id": 434176,
+            "status_created": 196608,
+            "paid_at": 167936,
+            "channel_created": 196608,
+            "cash_session": 167936,
+            "client_ref": 434176
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "list_status",
+        "query": {
+          "status": "cancelado"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 100,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "status": 1,
+                  "created_at": -1
+                },
+                "indexName": "status_created",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "status": [],
+                  "created_at": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "status": [
+                    "[\"cancelado\", \"cancelado\"]"
+                  ],
+                  "created_at": [
+                    "[MaxKey, MinKey]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 100,
+        "keys_examined": 100,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 1.3318,
+          "p95_ms": 1.595,
+          "p99_ms": 1.595
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 1802240,
+          "indexSizes": {
+            "_id_": 204800,
+            "id": 434176,
+            "status_created": 196608,
+            "paid_at": 167936,
+            "channel_created": 196608,
+            "cash_session": 167936,
+            "client_ref": 434176
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "sale_ref_absent",
+        "query": {
+          "client_ref": "soak-new-reference"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "filter": {
+                "client_ref": {
+                  "$eq": "soak-new-reference"
+                }
+              },
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 54415,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 33.4411,
+          "p95_ms": 39.5387,
+          "p99_ms": 39.5387
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 11337728,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2764800,
+            "status_created": 1232896,
+            "paid_at": 1028096,
+            "channel_created": 1236992,
+            "cash_session": 1028096,
+            "client_ref": 2764800
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "sale_ref_present",
+        "query": {
+          "client_ref": "seed-54414"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "filter": {
+                "client_ref": {
+                  "$eq": "seed-54414"
+                }
+              },
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 54415,
+        "keys_examined": 0,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 33.9052,
+          "p95_ms": 34.747,
+          "p99_ms": 34.747
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 11337728,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2764800,
+            "status_created": 1232896,
+            "paid_at": 1028096,
+            "channel_created": 1236992,
+            "cash_session": 1028096,
+            "client_ref": 2764800
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "sale_ref_typed",
+        "query": {
+          "client_ref": {
+            "$eq": "soak-new-reference",
+            "$type": "string"
+          }
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "filter": {
+                  "client_ref": {
+                    "$type": [
+                      2
+                    ]
+                  }
+                },
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": true,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.533,
+          "p95_ms": 0.6098,
+          "p99_ms": 0.6098
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 11337728,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2764800,
+            "status_created": 1232896,
+            "paid_at": 1028096,
+            "channel_created": 1236992,
+            "cash_session": 1028096,
+            "client_ref": 2764800
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "sale_final_id",
+        "query": {
+          "id": "p8-order-54414"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-54414\", \"p8-order-54414\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5269,
+          "p95_ms": 0.7434,
+          "p99_ms": 0.7434
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 11337728,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2764800,
+            "status_created": 1232896,
+            "paid_at": 1028096,
+            "channel_created": 1236992,
+            "cash_session": 1028096,
+            "client_ref": 2764800
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "cancel_id",
+        "query": {
+          "id": "p8-order-0"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5188,
+          "p95_ms": 0.5353,
+          "p99_ms": 0.5353
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 11337728,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2764800,
+            "status_created": 1232896,
+            "paid_at": 1028096,
+            "channel_created": 1236992,
+            "cash_session": 1028096,
+            "client_ref": 2764800
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "reconciliation",
+        "query": {
+          "id": "p8-order-0",
+          "client_ref": "seed-0",
+          "atomic_version": 1
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "atomic_version": {
+                      "$eq": 1
+                    }
+                  },
+                  {
+                    "client_ref": {
+                      "$eq": "seed-0"
+                    }
+                  }
+                ]
+              },
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5459,
+          "p95_ms": 0.605,
+          "p99_ms": 0.605
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 11337728,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2764800,
+            "status_created": 1232896,
+            "paid_at": 1028096,
+            "channel_created": 1236992,
+            "cash_session": 1028096,
+            "client_ref": 2764800
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "list_default",
+        "query": {},
+        "winningPlan": {
+          "stage": "PROJECTION_SIMPLE",
+          "transformBy": {
+            "_id": 0
+          },
+          "inputStage": {
+            "stage": "SORT",
+            "sortPattern": {
+              "created_at": -1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 100,
+            "type": "simple",
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 54415,
+        "keys_examined": 0,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 49.5268,
+          "p95_ms": 49.7597,
+          "p99_ms": 49.7597
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 11337728,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2764800,
+            "status_created": 1232896,
+            "paid_at": 1028096,
+            "channel_created": 1236992,
+            "cash_session": 1028096,
+            "client_ref": 2764800
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "list_status",
+        "query": {
+          "status": "cancelado"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 100,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "status": 1,
+                  "created_at": -1
+                },
+                "indexName": "status_created",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "status": [],
+                  "created_at": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "status": [
+                    "[\"cancelado\", \"cancelado\"]"
+                  ],
+                  "created_at": [
+                    "[MaxKey, MinKey]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 100,
+        "keys_examined": 100,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 1.2064,
+          "p95_ms": 1.3029,
+          "p99_ms": 1.3029
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 11337728,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2764800,
+            "status_created": 1232896,
+            "paid_at": 1028096,
+            "channel_created": 1236992,
+            "cash_session": 1028096,
+            "client_ref": 2764800
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "sale_ref_absent",
+        "query": {
+          "client_ref": "soak-new-reference"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "filter": {
+                "client_ref": {
+                  "$eq": "soak-new-reference"
+                }
+              },
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 60000,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 36.6649,
+          "p95_ms": 50.3339,
+          "p99_ms": 50.3339
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 11956224,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2912256,
+            "status_created": 1343488,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1028096,
+            "client_ref": 2916352
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "sale_ref_present",
+        "query": {
+          "client_ref": "seed-59999"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "filter": {
+                "client_ref": {
+                  "$eq": "seed-59999"
+                }
+              },
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 60000,
+        "keys_examined": 0,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 37.32,
+          "p95_ms": 37.6505,
+          "p99_ms": 37.6505
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 11956224,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2912256,
+            "status_created": 1343488,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1028096,
+            "client_ref": 2916352
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "sale_ref_typed",
+        "query": {
+          "client_ref": {
+            "$eq": "soak-new-reference",
+            "$type": "string"
+          }
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "filter": {
+                  "client_ref": {
+                    "$type": [
+                      2
+                    ]
+                  }
+                },
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": true,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5581,
+          "p95_ms": 0.6025,
+          "p99_ms": 0.6025
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 11956224,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2912256,
+            "status_created": 1343488,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1028096,
+            "client_ref": 2916352
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "sale_final_id",
+        "query": {
+          "id": "p8-order-59999"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-59999\", \"p8-order-59999\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5284,
+          "p95_ms": 0.7912,
+          "p99_ms": 0.7912
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 11956224,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2912256,
+            "status_created": 1343488,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1028096,
+            "client_ref": 2916352
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "cancel_id",
+        "query": {
+          "id": "p8-order-0"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5309,
+          "p95_ms": 0.5564,
+          "p99_ms": 0.5564
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 11956224,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2912256,
+            "status_created": 1343488,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1028096,
+            "client_ref": 2916352
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "reconciliation",
+        "query": {
+          "id": "p8-order-0",
+          "client_ref": "seed-0",
+          "atomic_version": 1
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "atomic_version": {
+                      "$eq": 1
+                    }
+                  },
+                  {
+                    "client_ref": {
+                      "$eq": "seed-0"
+                    }
+                  }
+                ]
+              },
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5475,
+          "p95_ms": 0.5741,
+          "p99_ms": 0.5741
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 11956224,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2912256,
+            "status_created": 1343488,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1028096,
+            "client_ref": 2916352
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "list_default",
+        "query": {},
+        "winningPlan": {
+          "stage": "PROJECTION_SIMPLE",
+          "transformBy": {
+            "_id": 0
+          },
+          "inputStage": {
+            "stage": "SORT",
+            "sortPattern": {
+              "created_at": -1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 100,
+            "type": "simple",
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 60000,
+        "keys_examined": 0,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 55.033,
+          "p95_ms": 55.2504,
+          "p99_ms": 55.2504
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 11956224,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2912256,
+            "status_created": 1343488,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1028096,
+            "client_ref": 2916352
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "list_status",
+        "query": {
+          "status": "cancelado"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 100,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "status": 1,
+                  "created_at": -1
+                },
+                "indexName": "status_created",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "status": [],
+                  "created_at": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "status": [
+                    "[\"cancelado\", \"cancelado\"]"
+                  ],
+                  "created_at": [
+                    "[MaxKey, MinKey]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 100,
+        "keys_examined": 100,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 1.4103,
+          "p95_ms": 1.6074,
+          "p99_ms": 1.6074
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 11956224,
+          "indexSizes": {
+            "_id_": 1282048,
+            "id": 2912256,
+            "status_created": 1343488,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1028096,
+            "client_ref": 2916352
+          }
+        }
+      }
+    ]
+  },
+  "P8": {
+    "source_root": "/home/runner/work/Apollo/Apollo",
+    "indexes": {
+      "_id_": {
+        "v": 2,
+        "key": [
+          [
+            "_id",
+            1
+          ]
+        ]
+      },
+      "id": {
+        "v": 2,
+        "key": [
+          [
+            "id",
+            1
+          ]
+        ],
+        "unique": true
+      },
+      "status_created": {
+        "v": 2,
+        "key": [
+          [
+            "status",
+            1
+          ],
+          [
+            "created_at",
+            -1
+          ]
+        ]
+      },
+      "paid_at": {
+        "v": 2,
+        "key": [
+          [
+            "paid_at",
+            -1
+          ]
+        ]
+      },
+      "channel_created": {
+        "v": 2,
+        "key": [
+          [
+            "channel",
+            1
+          ],
+          [
+            "created_at",
+            -1
+          ]
+        ]
+      },
+      "cash_session": {
+        "v": 2,
+        "key": [
+          [
+            "cash_session_id",
+            1
+          ]
+        ]
+      },
+      "client_ref": {
+        "v": 2,
+        "key": [
+          [
+            "client_ref",
+            1
+          ]
+        ],
+        "unique": true,
+        "partialFilterExpression": {
+          "client_ref": {
+            "$type": "string"
+          }
+        }
+      },
+      "client_ref_lookup": {
+        "v": 2,
+        "key": [
+          [
+            "client_ref",
+            1
+          ]
+        ]
+      }
+    },
+    "rows": [
+      {
+        "volume": 0,
+        "name": "sale_ref_absent",
+        "query": {
+          "client_ref": "soak-new-reference"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref_lookup",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5685,
+          "p95_ms": 1.1656,
+          "p99_ms": 1.1656
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 0,
+        "name": "sale_ref_present",
+        "query": {
+          "client_ref": "seed-0"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref_lookup",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"seed-0\", \"seed-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5308,
+          "p95_ms": 0.6836,
+          "p99_ms": 0.6836
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 0,
+        "name": "sale_ref_typed",
+        "query": {
+          "client_ref": {
+            "$eq": "soak-new-reference",
+            "$type": "string"
+          }
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "filter": {
+                  "client_ref": {
+                    "$type": [
+                      2
+                    ]
+                  }
+                },
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": true,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5178,
+          "p95_ms": 0.5708,
+          "p99_ms": 0.5708
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 0,
+        "name": "sale_final_id",
+        "query": {
+          "id": "p8-order-0"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5087,
+          "p95_ms": 0.5578,
+          "p99_ms": 0.5578
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 0,
+        "name": "cancel_id",
+        "query": {
+          "id": "p8-order-0"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5126,
+          "p95_ms": 0.5448,
+          "p99_ms": 0.5448
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 0,
+        "name": "reconciliation",
+        "query": {
+          "id": "p8-order-0",
+          "client_ref": "seed-0",
+          "atomic_version": 1
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "atomic_version": {
+                      "$eq": 1
+                    }
+                  },
+                  {
+                    "client_ref": {
+                      "$eq": "seed-0"
+                    }
+                  }
+                ]
+              },
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.538,
+          "p95_ms": 0.6703,
+          "p99_ms": 0.6703
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 0,
+        "name": "list_default",
+        "query": {},
+        "winningPlan": {
+          "stage": "PROJECTION_SIMPLE",
+          "transformBy": {
+            "_id": 0
+          },
+          "inputStage": {
+            "stage": "SORT",
+            "sortPattern": {
+              "created_at": -1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 100,
+            "type": "simple",
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5089,
+          "p95_ms": 0.6316,
+          "p99_ms": 0.6316
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 0,
+        "name": "list_status",
+        "query": {
+          "status": "cancelado"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 100,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "status": 1,
+                  "created_at": -1
+                },
+                "indexName": "status_created",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "status": [],
+                  "created_at": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "status": [
+                    "[\"cancelado\", \"cancelado\"]"
+                  ],
+                  "created_at": [
+                    "[MaxKey, MinKey]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5051,
+          "p95_ms": 0.5406,
+          "p99_ms": 0.5406
+        },
+        "collectionStats": {
+          "count": 0,
+          "size": 0,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "sale_ref_absent",
+        "query": {
+          "client_ref": "soak-new-reference"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref_lookup",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.512,
+          "p95_ms": 0.654,
+          "p99_ms": 0.654
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "sale_ref_present",
+        "query": {
+          "client_ref": "seed-999"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref_lookup",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"seed-999\", \"seed-999\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5132,
+          "p95_ms": 0.5509,
+          "p99_ms": 0.5509
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "sale_ref_typed",
+        "query": {
+          "client_ref": {
+            "$eq": "soak-new-reference",
+            "$type": "string"
+          }
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "filter": {
+                  "client_ref": {
+                    "$type": [
+                      2
+                    ]
+                  }
+                },
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": true,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5106,
+          "p95_ms": 0.5485,
+          "p99_ms": 0.5485
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "sale_final_id",
+        "query": {
+          "id": "p8-order-999"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-999\", \"p8-order-999\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.527,
+          "p95_ms": 0.6704,
+          "p99_ms": 0.6704
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "cancel_id",
+        "query": {
+          "id": "p8-order-0"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5464,
+          "p95_ms": 0.7995,
+          "p99_ms": 0.7995
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "reconciliation",
+        "query": {
+          "id": "p8-order-0",
+          "client_ref": "seed-0",
+          "atomic_version": 1
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "atomic_version": {
+                      "$eq": 1
+                    }
+                  },
+                  {
+                    "client_ref": {
+                      "$eq": "seed-0"
+                    }
+                  }
+                ]
+              },
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5618,
+          "p95_ms": 0.5804,
+          "p99_ms": 0.5804
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "list_default",
+        "query": {},
+        "winningPlan": {
+          "stage": "PROJECTION_SIMPLE",
+          "transformBy": {
+            "_id": 0
+          },
+          "inputStage": {
+            "stage": "SORT",
+            "sortPattern": {
+              "created_at": -1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 100,
+            "type": "simple",
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 1000,
+        "keys_examined": 0,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 1.8685,
+          "p95_ms": 2.1686,
+          "p99_ms": 2.1686
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 1000,
+        "name": "list_status",
+        "query": {
+          "status": "cancelado"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 100,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "status": 1,
+                  "created_at": -1
+                },
+                "indexName": "status_created",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "status": [],
+                  "created_at": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "status": [
+                    "[\"cancelado\", \"cancelado\"]"
+                  ],
+                  "created_at": [
+                    "[MaxKey, MinKey]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 100,
+        "keys_examined": 100,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 1.3255,
+          "p95_ms": 15.4209,
+          "p99_ms": 15.4209
+        },
+        "collectionStats": {
+          "count": 1000,
+          "size": 646780,
+          "totalIndexSize": 32768,
+          "indexSizes": {
+            "_id_": 4096,
+            "id": 4096,
+            "status_created": 4096,
+            "paid_at": 4096,
+            "channel_created": 4096,
+            "cash_session": 4096,
+            "client_ref": 4096,
+            "client_ref_lookup": 4096
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "sale_ref_absent",
+        "query": {
+          "client_ref": "soak-new-reference"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref_lookup",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5939,
+          "p95_ms": 0.8113,
+          "p99_ms": 0.8113
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 2084864,
+          "indexSizes": {
+            "_id_": 192512,
+            "id": 450560,
+            "status_created": 200704,
+            "paid_at": 167936,
+            "channel_created": 200704,
+            "cash_session": 167936,
+            "client_ref": 450560,
+            "client_ref_lookup": 253952
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "sale_ref_present",
+        "query": {
+          "client_ref": "seed-9999"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref_lookup",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"seed-9999\", \"seed-9999\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5887,
+          "p95_ms": 0.634,
+          "p99_ms": 0.634
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 2084864,
+          "indexSizes": {
+            "_id_": 192512,
+            "id": 450560,
+            "status_created": 200704,
+            "paid_at": 167936,
+            "channel_created": 200704,
+            "cash_session": 167936,
+            "client_ref": 450560,
+            "client_ref_lookup": 253952
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "sale_ref_typed",
+        "query": {
+          "client_ref": {
+            "$eq": "soak-new-reference",
+            "$type": "string"
+          }
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "filter": {
+                  "client_ref": {
+                    "$type": [
+                      2
+                    ]
+                  }
+                },
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": true,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.6055,
+          "p95_ms": 0.639,
+          "p99_ms": 0.639
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 2084864,
+          "indexSizes": {
+            "_id_": 192512,
+            "id": 450560,
+            "status_created": 200704,
+            "paid_at": 167936,
+            "channel_created": 200704,
+            "cash_session": 167936,
+            "client_ref": 450560,
+            "client_ref_lookup": 253952
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "sale_final_id",
+        "query": {
+          "id": "p8-order-9999"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-9999\", \"p8-order-9999\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5717,
+          "p95_ms": 0.8107,
+          "p99_ms": 0.8107
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 2084864,
+          "indexSizes": {
+            "_id_": 192512,
+            "id": 450560,
+            "status_created": 200704,
+            "paid_at": 167936,
+            "channel_created": 200704,
+            "cash_session": 167936,
+            "client_ref": 450560,
+            "client_ref_lookup": 253952
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "cancel_id",
+        "query": {
+          "id": "p8-order-0"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5631,
+          "p95_ms": 0.5819,
+          "p99_ms": 0.5819
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 2084864,
+          "indexSizes": {
+            "_id_": 192512,
+            "id": 450560,
+            "status_created": 200704,
+            "paid_at": 167936,
+            "channel_created": 200704,
+            "cash_session": 167936,
+            "client_ref": 450560,
+            "client_ref_lookup": 253952
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "reconciliation",
+        "query": {
+          "id": "p8-order-0",
+          "client_ref": "seed-0",
+          "atomic_version": 1
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "atomic_version": {
+                      "$eq": 1
+                    }
+                  },
+                  {
+                    "client_ref": {
+                      "$eq": "seed-0"
+                    }
+                  }
+                ]
+              },
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5809,
+          "p95_ms": 0.5966,
+          "p99_ms": 0.5966
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 2084864,
+          "indexSizes": {
+            "_id_": 192512,
+            "id": 450560,
+            "status_created": 200704,
+            "paid_at": 167936,
+            "channel_created": 200704,
+            "cash_session": 167936,
+            "client_ref": 450560,
+            "client_ref_lookup": 253952
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "list_default",
+        "query": {},
+        "winningPlan": {
+          "stage": "PROJECTION_SIMPLE",
+          "transformBy": {
+            "_id": 0
+          },
+          "inputStage": {
+            "stage": "SORT",
+            "sortPattern": {
+              "created_at": -1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 100,
+            "type": "simple",
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 10000,
+        "keys_examined": 0,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 10.6182,
+          "p95_ms": 11.1106,
+          "p99_ms": 11.1106
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 2084864,
+          "indexSizes": {
+            "_id_": 192512,
+            "id": 450560,
+            "status_created": 200704,
+            "paid_at": 167936,
+            "channel_created": 200704,
+            "cash_session": 167936,
+            "client_ref": 450560,
+            "client_ref_lookup": 253952
+          }
+        }
+      },
+      {
+        "volume": 10000,
+        "name": "list_status",
+        "query": {
+          "status": "cancelado"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 100,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "status": 1,
+                  "created_at": -1
+                },
+                "indexName": "status_created",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "status": [],
+                  "created_at": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "status": [
+                    "[\"cancelado\", \"cancelado\"]"
+                  ],
+                  "created_at": [
+                    "[MaxKey, MinKey]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 100,
+        "keys_examined": 100,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 1.4267,
+          "p95_ms": 1.558,
+          "p99_ms": 1.558
+        },
+        "collectionStats": {
+          "count": 10000,
+          "size": 6487780,
+          "totalIndexSize": 2084864,
+          "indexSizes": {
+            "_id_": 192512,
+            "id": 450560,
+            "status_created": 200704,
+            "paid_at": 167936,
+            "channel_created": 200704,
+            "cash_session": 167936,
+            "client_ref": 450560,
+            "client_ref_lookup": 253952
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "sale_ref_absent",
+        "query": {
+          "client_ref": "soak-new-reference"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref_lookup",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5655,
+          "p95_ms": 0.7095,
+          "p99_ms": 0.7095
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 12075008,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2621440,
+            "status_created": 1216512,
+            "paid_at": 864256,
+            "channel_created": 1052672,
+            "cash_session": 1007616,
+            "client_ref": 2674688,
+            "client_ref_lookup": 1396736
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "sale_ref_present",
+        "query": {
+          "client_ref": "seed-54414"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref_lookup",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"seed-54414\", \"seed-54414\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5518,
+          "p95_ms": 0.5954,
+          "p99_ms": 0.5954
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 12075008,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2621440,
+            "status_created": 1216512,
+            "paid_at": 864256,
+            "channel_created": 1052672,
+            "cash_session": 1007616,
+            "client_ref": 2674688,
+            "client_ref_lookup": 1396736
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "sale_ref_typed",
+        "query": {
+          "client_ref": {
+            "$eq": "soak-new-reference",
+            "$type": "string"
+          }
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "filter": {
+                  "client_ref": {
+                    "$type": [
+                      2
+                    ]
+                  }
+                },
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": true,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5482,
+          "p95_ms": 0.5849,
+          "p99_ms": 0.5849
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 12075008,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2621440,
+            "status_created": 1216512,
+            "paid_at": 864256,
+            "channel_created": 1052672,
+            "cash_session": 1007616,
+            "client_ref": 2674688,
+            "client_ref_lookup": 1396736
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "sale_final_id",
+        "query": {
+          "id": "p8-order-54414"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-54414\", \"p8-order-54414\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5548,
+          "p95_ms": 0.7762,
+          "p99_ms": 0.7762
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 12075008,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2621440,
+            "status_created": 1216512,
+            "paid_at": 864256,
+            "channel_created": 1052672,
+            "cash_session": 1007616,
+            "client_ref": 2674688,
+            "client_ref_lookup": 1396736
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "cancel_id",
+        "query": {
+          "id": "p8-order-0"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5377,
+          "p95_ms": 0.5816,
+          "p99_ms": 0.5816
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 12075008,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2621440,
+            "status_created": 1216512,
+            "paid_at": 864256,
+            "channel_created": 1052672,
+            "cash_session": 1007616,
+            "client_ref": 2674688,
+            "client_ref_lookup": 1396736
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "reconciliation",
+        "query": {
+          "id": "p8-order-0",
+          "client_ref": "seed-0",
+          "atomic_version": 1
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "atomic_version": {
+                      "$eq": 1
+                    }
+                  },
+                  {
+                    "client_ref": {
+                      "$eq": "seed-0"
+                    }
+                  }
+                ]
+              },
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5772,
+          "p95_ms": 0.6389,
+          "p99_ms": 0.6389
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 12075008,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2621440,
+            "status_created": 1216512,
+            "paid_at": 864256,
+            "channel_created": 1052672,
+            "cash_session": 1007616,
+            "client_ref": 2674688,
+            "client_ref_lookup": 1396736
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "list_default",
+        "query": {},
+        "winningPlan": {
+          "stage": "PROJECTION_SIMPLE",
+          "transformBy": {
+            "_id": 0
+          },
+          "inputStage": {
+            "stage": "SORT",
+            "sortPattern": {
+              "created_at": -1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 100,
+            "type": "simple",
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 54415,
+        "keys_examined": 0,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 48.5179,
+          "p95_ms": 49.0438,
+          "p99_ms": 49.0438
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 12075008,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2621440,
+            "status_created": 1216512,
+            "paid_at": 864256,
+            "channel_created": 1052672,
+            "cash_session": 1007616,
+            "client_ref": 2674688,
+            "client_ref_lookup": 1396736
+          }
+        }
+      },
+      {
+        "volume": 54415,
+        "name": "list_status",
+        "query": {
+          "status": "cancelado"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 100,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "status": 1,
+                  "created_at": -1
+                },
+                "indexName": "status_created",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "status": [],
+                  "created_at": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "status": [
+                    "[\"cancelado\", \"cancelado\"]"
+                  ],
+                  "created_at": [
+                    "[MaxKey, MinKey]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 100,
+        "keys_examined": 100,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 1.2417,
+          "p95_ms": 1.3437,
+          "p99_ms": 1.3437
+        },
+        "collectionStats": {
+          "count": 54415,
+          "size": 35401945,
+          "totalIndexSize": 12075008,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2621440,
+            "status_created": 1216512,
+            "paid_at": 864256,
+            "channel_created": 1052672,
+            "cash_session": 1007616,
+            "client_ref": 2674688,
+            "client_ref_lookup": 1396736
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "sale_ref_absent",
+        "query": {
+          "client_ref": "soak-new-reference"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref_lookup",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5567,
+          "p95_ms": 0.683,
+          "p99_ms": 0.683
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 13574144,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2940928,
+            "status_created": 1347584,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1122304,
+            "client_ref": 2965504,
+            "client_ref_lookup": 1482752
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "sale_ref_present",
+        "query": {
+          "client_ref": "seed-59999"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref_lookup",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"seed-59999\", \"seed-59999\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5665,
+          "p95_ms": 0.6028,
+          "p99_ms": 0.6028
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 13574144,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2940928,
+            "status_created": 1347584,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1122304,
+            "client_ref": 2965504,
+            "client_ref_lookup": 1482752
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "sale_ref_typed",
+        "query": {
+          "client_ref": {
+            "$eq": "soak-new-reference",
+            "$type": "string"
+          }
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "filter": {
+                  "client_ref": {
+                    "$type": [
+                      2
+                    ]
+                  }
+                },
+                "keyPattern": {
+                  "client_ref": 1
+                },
+                "indexName": "client_ref",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "client_ref": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": true,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "client_ref": [
+                    "[\"soak-new-reference\", \"soak-new-reference\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 0,
+        "keys_examined": 0,
+        "n_returned": 0,
+        "transaction_query_ms": {
+          "p50_ms": 0.5651,
+          "p95_ms": 0.5831,
+          "p99_ms": 0.5831
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 13574144,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2940928,
+            "status_created": 1347584,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1122304,
+            "client_ref": 2965504,
+            "client_ref_lookup": 1482752
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "sale_final_id",
+        "query": {
+          "id": "p8-order-59999"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-59999\", \"p8-order-59999\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5665,
+          "p95_ms": 0.8029,
+          "p99_ms": 0.8029
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 13574144,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2940928,
+            "status_created": 1347584,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1122304,
+            "client_ref": 2965504,
+            "client_ref_lookup": 1482752
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "cancel_id",
+        "query": {
+          "id": "p8-order-0"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5541,
+          "p95_ms": 0.5814,
+          "p99_ms": 0.5814
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 13574144,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2940928,
+            "status_created": 1347584,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1122304,
+            "client_ref": 2965504,
+            "client_ref_lookup": 1482752
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "reconciliation",
+        "query": {
+          "id": "p8-order-0",
+          "client_ref": "seed-0",
+          "atomic_version": 1
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 1,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "filter": {
+                "$and": [
+                  {
+                    "atomic_version": {
+                      "$eq": 1
+                    }
+                  },
+                  {
+                    "client_ref": {
+                      "$eq": "seed-0"
+                    }
+                  }
+                ]
+              },
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "id": 1
+                },
+                "indexName": "id",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "id": []
+                },
+                "isUnique": true,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "id": [
+                    "[\"p8-order-0\", \"p8-order-0\"]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 1,
+        "keys_examined": 1,
+        "n_returned": 1,
+        "transaction_query_ms": {
+          "p50_ms": 0.5748,
+          "p95_ms": 0.5986,
+          "p99_ms": 0.5986
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 13574144,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2940928,
+            "status_created": 1347584,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1122304,
+            "client_ref": 2965504,
+            "client_ref_lookup": 1482752
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "list_default",
+        "query": {},
+        "winningPlan": {
+          "stage": "PROJECTION_SIMPLE",
+          "transformBy": {
+            "_id": 0
+          },
+          "inputStage": {
+            "stage": "SORT",
+            "sortPattern": {
+              "created_at": -1
+            },
+            "memLimit": 104857600,
+            "limitAmount": 100,
+            "type": "simple",
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "direction": "forward"
+            }
+          }
+        },
+        "docs_examined": 60000,
+        "keys_examined": 0,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 53.228,
+          "p95_ms": 53.8277,
+          "p99_ms": 53.8277
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 13574144,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2940928,
+            "status_created": 1347584,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1122304,
+            "client_ref": 2965504,
+            "client_ref_lookup": 1482752
+          }
+        }
+      },
+      {
+        "volume": 60000,
+        "name": "list_status",
+        "query": {
+          "status": "cancelado"
+        },
+        "winningPlan": {
+          "stage": "LIMIT",
+          "limitAmount": 100,
+          "inputStage": {
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "status": 1,
+                  "created_at": -1
+                },
+                "indexName": "status_created",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "status": [],
+                  "created_at": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "status": [
+                    "[\"cancelado\", \"cancelado\"]"
+                  ],
+                  "created_at": [
+                    "[MaxKey, MinKey]"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "docs_examined": 100,
+        "keys_examined": 100,
+        "n_returned": 100,
+        "transaction_query_ms": {
+          "p50_ms": 1.2089,
+          "p95_ms": 1.3143,
+          "p99_ms": 1.3143
+        },
+        "collectionStats": {
+          "count": 60000,
+          "size": 39037780,
+          "totalIndexSize": 13574144,
+          "indexSizes": {
+            "_id_": 1241088,
+            "id": 2940928,
+            "status_created": 1347584,
+            "paid_at": 1126400,
+            "channel_created": 1347584,
+            "cash_session": 1122304,
+            "client_ref": 2965504,
+            "client_ref_lookup": 1482752
+          }
+        }
+      }
+    ]
+  }
+}

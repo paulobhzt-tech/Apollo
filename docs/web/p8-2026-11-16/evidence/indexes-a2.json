@@ -1,0 +1,547 @@
+{
+  "status_checks": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "timestamp_desc": {
+      "v": 2,
+      "key": [
+        [
+          "timestamp",
+          -1
+        ]
+      ]
+    }
+  },
+  "employees": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "id": {
+      "v": 2,
+      "key": [
+        [
+          "id",
+          1
+        ]
+      ],
+      "unique": true
+    },
+    "pin_hash": {
+      "v": 2,
+      "key": [
+        [
+          "pin_hash",
+          1
+        ]
+      ]
+    }
+  },
+  "sessions": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "token_hash": {
+      "v": 2,
+      "key": [
+        [
+          "token_hash",
+          1
+        ]
+      ],
+      "unique": true,
+      "partialFilterExpression": {
+        "token_hash": {
+          "$type": "string"
+        }
+      }
+    },
+    "token": {
+      "v": 2,
+      "key": [
+        [
+          "token",
+          1
+        ]
+      ],
+      "unique": true
+    },
+    "expires_ttl": {
+      "v": 2,
+      "key": [
+        [
+          "expires_at",
+          1
+        ]
+      ],
+      "expireAfterSeconds": 0
+    }
+  },
+  "login_attempts": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "login_attempts_ttl": {
+      "v": 2,
+      "key": [
+        [
+          "expires_at",
+          1
+        ]
+      ],
+      "expireAfterSeconds": 0
+    }
+  },
+  "categories": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "id": {
+      "v": 2,
+      "key": [
+        [
+          "id",
+          1
+        ]
+      ],
+      "unique": true
+    }
+  },
+  "products": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "id": {
+      "v": 2,
+      "key": [
+        [
+          "id",
+          1
+        ]
+      ],
+      "unique": true
+    },
+    "category": {
+      "v": 2,
+      "key": [
+        [
+          "category_id",
+          1
+        ]
+      ]
+    }
+  },
+  "ingredients": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "id": {
+      "v": 2,
+      "key": [
+        [
+          "id",
+          1
+        ]
+      ],
+      "unique": true
+    }
+  },
+  "stock_moves": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "created_desc": {
+      "v": 2,
+      "key": [
+        [
+          "created_at",
+          -1
+        ]
+      ]
+    }
+  },
+  "tables": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "id": {
+      "v": 2,
+      "key": [
+        [
+          "id",
+          1
+        ]
+      ],
+      "unique": true
+    },
+    "kind_number": {
+      "v": 2,
+      "key": [
+        [
+          "kind",
+          1
+        ],
+        [
+          "number",
+          1
+        ]
+      ],
+      "unique": true
+    }
+  },
+  "orders": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "id": {
+      "v": 2,
+      "key": [
+        [
+          "id",
+          1
+        ]
+      ],
+      "unique": true
+    },
+    "status_created": {
+      "v": 2,
+      "key": [
+        [
+          "status",
+          1
+        ],
+        [
+          "created_at",
+          -1
+        ]
+      ]
+    },
+    "paid_at": {
+      "v": 2,
+      "key": [
+        [
+          "paid_at",
+          -1
+        ]
+      ]
+    },
+    "channel_created": {
+      "v": 2,
+      "key": [
+        [
+          "channel",
+          1
+        ],
+        [
+          "created_at",
+          -1
+        ]
+      ]
+    },
+    "cash_session": {
+      "v": 2,
+      "key": [
+        [
+          "cash_session_id",
+          1
+        ]
+      ]
+    },
+    "client_ref": {
+      "v": 2,
+      "key": [
+        [
+          "client_ref",
+          1
+        ]
+      ],
+      "unique": true,
+      "partialFilterExpression": {
+        "client_ref": {
+          "$type": "string"
+        }
+      }
+    }
+  },
+  "kitchen_tickets": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "id": {
+      "v": 2,
+      "key": [
+        [
+          "id",
+          1
+        ]
+      ],
+      "unique": true
+    },
+    "status_created": {
+      "v": 2,
+      "key": [
+        [
+          "status",
+          1
+        ],
+        [
+          "created_at",
+          1
+        ]
+      ]
+    },
+    "order_id": {
+      "v": 2,
+      "key": [
+        [
+          "order_id",
+          1
+        ]
+      ]
+    }
+  },
+  "invoices": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "id": {
+      "v": 2,
+      "key": [
+        [
+          "id",
+          1
+        ]
+      ],
+      "unique": true
+    },
+    "emitted_desc": {
+      "v": 2,
+      "key": [
+        [
+          "emitted_at",
+          -1
+        ]
+      ]
+    }
+  },
+  "cash_sessions": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "id": {
+      "v": 2,
+      "key": [
+        [
+          "id",
+          1
+        ]
+      ],
+      "unique": true
+    },
+    "status": {
+      "v": 2,
+      "key": [
+        [
+          "status",
+          1
+        ]
+      ]
+    },
+    "single_open_cash": {
+      "v": 2,
+      "key": [
+        [
+          "status",
+          1
+        ]
+      ],
+      "unique": true,
+      "partialFilterExpression": {
+        "status": "aberto"
+      }
+    }
+  },
+  "fiado_customers": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "id": {
+      "v": 2,
+      "key": [
+        [
+          "id",
+          1
+        ]
+      ],
+      "unique": true
+    }
+  },
+  "printers": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "id": {
+      "v": 2,
+      "key": [
+        [
+          "id",
+          1
+        ]
+      ],
+      "unique": true
+    }
+  },
+  "customer_moves": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "customer_at": {
+      "v": 2,
+      "key": [
+        [
+          "customer_id",
+          1
+        ],
+        [
+          "at",
+          -1
+        ]
+      ]
+    },
+    "cash_session": {
+      "v": 2,
+      "key": [
+        [
+          "cash_session_id",
+          1
+        ]
+      ]
+    }
+  },
+  "expenses": {
+    "_id_": {
+      "v": 2,
+      "key": [
+        [
+          "_id",
+          1
+        ]
+      ]
+    },
+    "id": {
+      "v": 2,
+      "key": [
+        [
+          "id",
+          1
+        ]
+      ],
+      "unique": true
+    },
+    "date_desc": {
+      "v": 2,
+      "key": [
+        [
+          "date",
+          -1
+        ]
+      ]
+    }
+  }
+}
