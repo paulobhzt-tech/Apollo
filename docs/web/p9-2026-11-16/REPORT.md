@@ -48,3 +48,12 @@ Checks automáticos deste PR devem ser consultados separadamente e não signific
 P9 INCONCLUSIVA por ausência de nova execução; missão de correção e homologação ainda não concluída.
 P8 continua REPROVADA no SLA. Não autorizar produção.
 Continuam pendentes desempenho a 50 operadores, capacidade multiworker/hosts, segurança externa, impressão física/dispositivos e homologação comercial integral. Sem merge, deploy ou dados financeiros reais.
+
+## Retomada solicitada — verificação em 16/11/2026
+PR #24 reconfirmado aberto, em rascunho, sem merge, base perf/p8-order-read-latency. HEAD remoto antes desta atualização: c9b03b671e5ab407fae8f8d847c693fe10c33f3e, idêntico à referência solicitada. Relatório recuperado integralmente desse HEAD.
+
+Nova tentativa de execução nesta retomada: comando mínimo pwd via exec_command. Resultado: "No usable execution environment is available. Wait for an environment to become available before using this tool." O comando não chegou a executar; não se trata de falha de teste, de MongoDB ou de reprovação financeira nova.
+
+Aplicada a instrução de contingência do solicitante: preservar trabalho e registrar impedimento se o ambiente continuar indisponível. Nenhum novo PR, ambiente Mongo, alteração de aplicação, benchmark, perfil ou regressão foi criado/executado nesta retomada. Etapas experimentais 3–9 continuam pendentes; atualização documental do mesmo PR atende ao registro do impedimento, não conclui homologação.
+
+Veredito mantido: P9 INCONCLUSIVA, P8 REPROVADA, PRODUÇÃO BLOQUEADA. Sem merge ou deploy. Retomar as etapas de Continuidade obrigatória quando houver executor disponível.
