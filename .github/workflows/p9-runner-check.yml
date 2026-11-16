@@ -1,0 +1,35 @@
+
+name: P9 - Verificar executor
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - perf/p8-order-read-latency
+    paths:
+      - .github/workflows/p9-runner-check.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verificar-executor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+
+      - name: Verificar ambiente
+        run: |
+          pwd
+          python3 --version
+          git rev-parse HEAD
+          git status --short
+
+      - name: Verificar arquivos P9
+        run: |
+          test -f docs/web/p9-2026-11-16/REPORT.md
+          test -f docs/web/p9-2026-11-16/ACCEPTANCE.json
+          echo "Arquivos P9 encontrados"
