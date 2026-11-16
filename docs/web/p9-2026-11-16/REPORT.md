@@ -1,0 +1,50 @@
+# P9 — INCONCLUSIVA; PRODUÇÃO BLOQUEADA
+
+## Estado recuperado em 16/11/2026
+PRs #20, #21, #22 e #23 consultados via API: abertos, em rascunho, sem merge.
+Cadeia confirmada: #20 feat/p5-professional-web (70905439235a5b298156f50ad29d72d91a5f1053) → #21 test/p6-web-financial-validation (adfbdcd43263161c03d280b775f73a3e387d38f2) → #22 fix/p7-transaction-contention (0a0766421d57f13ec2fbfd31aa8e1cd45461bb77) → #23 perf/p8-order-read-latency (e670c5e24321cc6bc1de69348da3d55bc7730887).
+Branch P9 criada exatamente no HEAD documental P8 acima, sem alteração da aplicação.
+
+## Evidências anteriores e diagnóstico
+Fontes preservadas na árvore herdada: ../p7-2026-11-16/{REPORT,BENCHMARK,INTEGRITY}.md e ../p8-2026-11-16/{REPORT,BENCHMARK,QUERY_ANALYSIS,INTEGRITY}.md, evidence/driver-summary.json e evidence/acceptance-result.json.
+Os ACCEPTANCE.json P7/P8 foram recuperados e comparados: conteúdo idêntico. A cópia P9 preserva exatamente esses bytes.
+
+| Métrica prolongada a 50 operadores | P8 anterior | P9 |
+|---|---:|---|
+| HTTP p50 / p95 / p99 ms | 823,68 / 1.055,64 / 1.186,79 | Não executado |
+| Par p50 / p95 / p99 ms | 1.606,83 / 1.999,96 / 2.159,12 | Não executado |
+| Pares/s | 30,21 | Não executado |
+| HTTP503 / outros erros / esgotadas | 0 / 0 / 0 | Não executado |
+| Divergências / duplicações / parciais | 0 / 0 / 0 | Não executado |
+
+A P8 permanece REPROVADA: excesso de 55,64 ms no HTTP p95. O par p95 tem apenas 0,04 ms de margem.
+Na P8, admissão FIFO p95 venda=1.027,6207 ms e cancelamento=1.029,1243 ms: ponto de acumulação medido. Callback p95=21,0283/12,8544 ms; commit p95=2,3445/2,2209 ms.
+Isso não identifica a causa interna do custo serial nem prova uma otimização segura. Não somar percentis sobrepostos.
+O índice client_ref_lookup já elimina o COLLSCAN financeiro. Listagem sem filtro não integra o workload e não explica esse p95.
+
+Driver P8 prolongado: 2.013.611 aquisições, 47.277.209 µs cumulativos de espera e máximo 17 conexões simultâneas no último snapshot amostrado. Média descritiva ~0,02348 ms/aquisição; não é p95 nem exclui eventos de cauda. Zero retries de callback/falhas reportados; não equivale a auditoria completa dos locks internos Mongo.
+ABBA anterior e resultados de 5/10/20/30/50 operadores permanecem no BENCHMARK P8; não são resultados P9.
+
+## Bloqueio da execução P9
+A tentativa de iniciar o executor local retornou literalmente: "No usable execution environment is available. Wait for an environment to become available before using this tool."
+Consequentemente, não foi possível disponibilizar checkout executável, MongoDB descartável, perfis novos ou execução local de testes nesta sessão.
+Nenhuma nova campanha remota foi configurada ou disparada nesta entrega. O GitHub foi usado para leitura e publicação documental.
+Os gzip brutos/artefato anterior estão referenciados nos relatórios herdados; não foram descomprimidos nem revalidados nesta P9.
+Não há diagnóstico causal novo, otimização implementada, ABBA P8/P9 ou prolongado P9. Todas essas etapas permanecem pendentes.
+
+## Mudanças e regressões
+Somente documentação de recuperação, critérios herdados e veredito. Nenhum código financeiro, fila, retry, timeout, índice, regra comercial ou teste alterado.
+Nenhuma regressão P9 executada. O CI anterior citado na P8 (369 backend +3 subtestes, 44 P6 reais, 12 P5, 14 Node, typecheck/lint/builds e recuperação) é evidência histórica, não reexecução P9.
+Checks automáticos deste PR devem ser consultados separadamente e não significam aprovação de desempenho.
+
+## Continuidade obrigatória
+1. Disponibilizar executor isolado e MongoDB 7.0.16 descartável; preservar condições P8 (um worker, keep-alive, cache 0,25 GiB, contas distintas, mesmo caixa/produto).
+2. Instrumentar e correlacionar por requisição admissão, tempo de posse da fila, transação, pool, comandos/locks, processamento FastAPI e cliente. Coletar event-loop lag e perfil CPU com controle do overhead; manter o perfil intensivo fora da aceitação definitiva.
+3. Separar custos internos do caminho serial; testar uma alteração somente após evidência causal. Não remover FIFO ou relaxar atomicidade.
+4. Comparar fontes P8/P9 fixadas, ABBA nas cinco cargas e 1.800 s ativos por versão, mais drenagem, bancos novos equivalentes; conservar todos os erros e tentativas. Auditar contador, referências, marcadores, caixa, estoque, lotes e confirmações.
+5. Executar backend/financeiro/recuperação/idempotência, 44 P6 reais, P5 browser, Node, typecheck/lint e builds web/Electron. Preservar tentativas malsucedidas e resultados brutos.
+
+## Veredito
+P9 INCONCLUSIVA por ausência de nova execução; missão de correção e homologação ainda não concluída.
+P8 continua REPROVADA no SLA. Não autorizar produção.
+Continuam pendentes desempenho a 50 operadores, capacidade multiworker/hosts, segurança externa, impressão física/dispositivos e homologação comercial integral. Sem merge, deploy ou dados financeiros reais.
