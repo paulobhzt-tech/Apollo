@@ -1,5 +1,7 @@
 name: P5 Web - Browser validation
 on:
+  push:
+    branches: ["feat/p5-professional-web"]
   pull_request:
   workflow_dispatch:
 permissions:

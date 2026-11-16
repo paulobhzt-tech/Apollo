@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
-import { renameSync } from "node:fs";
+import { existsSync, renameSync } from "node:fs";
 
 // Separate build: does not change the Electron entry, output or development config.
 export default defineConfig({
@@ -15,7 +15,8 @@ export default defineConfig({
       });
     },
     closeBundle() {
-      renameSync(path.resolve(import.meta.dirname, "dist-web/web.html"), path.resolve(import.meta.dirname, "dist-web/index.html"));
+      const entry = path.resolve(import.meta.dirname, "dist-web/web.html");
+      if (existsSync(entry)) renameSync(entry, path.resolve(import.meta.dirname, "dist-web/index.html"));
     },
   }],
   resolve: { alias: [
