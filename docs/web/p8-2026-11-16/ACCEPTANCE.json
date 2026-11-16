@@ -1,0 +1,18 @@
+{
+  "defined_before_acceptance_run": true,
+  "scope": "single FastAPI worker, MongoDB 7.0.16 single-member replica, synthetic shared cash register and product, 50 distinct closed-loop HTTP keep-alive operators",
+  "active_traffic_seconds_minimum": 1800,
+  "http_503_maximum": 0,
+  "other_http_or_transport_errors_maximum": 0,
+  "exhausted_operations_maximum": 0,
+  "request_p95_ms_maximum": 1000,
+  "request_p99_ms_maximum": 2000,
+  "sale_cancel_pair_p95_ms_maximum": 2000,
+  "sale_cancel_pair_p99_ms_maximum": 4000,
+  "financial_divergences_maximum": 0,
+  "duplicate_financial_references_maximum": 0,
+  "duplicate_order_numbers_maximum": 0,
+  "partial_confirmations_maximum": 0,
+  "production_approval": false,
+  "note": "No external banking/SEFAZ/printer certification; criteria apply only to this declared workload. Admission waiting counts in the original 30-second retry budget."
+}
