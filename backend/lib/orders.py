@@ -176,8 +176,12 @@ async def move_stock(items: list[OrderItem], by_name: str, note: str, sign: int 
     """
     from decimal import Decimal, ROUND_HALF_UP
 
-    ids = list({i.product_id for i in items} | {x for i in items for x in i.option_products})
-    prods = {p["id"]: p for p in await db.products.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "recipe": 1}, **session_kwargs(session)).to_list(500)}
+    # Snapshot recipes are authoritative for sales and reversals. Only legacy
+    # items without a snapshot require the catalogue fallback in this snapshot.
+    legacy_items = [i for i in items if not i.cancelled and i.stock_recipe is None]
+    ids = list({i.product_id for i in legacy_items} | {x for i in legacy_items for x in i.option_products})
+    prods = ({p["id"]: p for p in await db.products.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "recipe": 1}, **session_kwargs(session)).to_list(500)}
+             if ids else {})
     agg: dict[str, Decimal] = {}
     for it in items:
         if it.cancelled:
