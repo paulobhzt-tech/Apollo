@@ -3,7 +3,7 @@ import { apiGet } from '@/lib/api';
 import { isDesktop } from '@/lib/desktop';
 import { clearConfirmedWebSale, pendingWebSale, PENDING_SALE_KEY, type PendingWebSale } from '@/lib/webSaleRecovery';
 
-export default function WebSaleRecovery() {
+export default function WebSaleRecovery({ onConfirmed }: { onConfirmed: () => void }) {
   const [pending, setPending] = useState<PendingWebSale | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -11,12 +11,12 @@ export default function WebSaleRecovery() {
   useEffect(() => {
     if (isDesktop()) return;
     refresh();
-    const onStorage = (e: StorageEvent) => { if (e.key === PENDING_SALE_KEY) refresh(); };
+    const onStorage = (e: StorageEvent) => { if (e.key === PENDING_SALE_KEY) { if (e.oldValue && !e.newValue) onConfirmed(); refresh(); } };
     window.addEventListener('storage', onStorage);
     // Updates on the same tab, including errors while an async mutation is running.
     const timer = window.setInterval(refresh, 1000);
     return () => { window.removeEventListener('storage', onStorage); window.clearInterval(timer); };
-  }, []);
+  }, [onConfirmed]);
   if (isDesktop() || (!pending && !message)) return null;
   const reconcile = async () => {
     if (!pending || busy) return;
@@ -24,7 +24,7 @@ export default function WebSaleRecovery() {
     try {
       const result = await apiGet<{ state: string; number?: number }>(`/pdv/operations/${encodeURIComponent(pending.ref)}`);
       if (result.state === 'confirmed') {
-        clearConfirmedWebSale(pending.ref); setPending(null);
+        clearConfirmedWebSale(pending.ref); setPending(null); onConfirmed();
         setMessage(`Venda #${result.number} confirmada no servidor. Confira o histórico; o carrinho atual não foi reenviado nem impresso.`);
       } else setMessage('Resultado ainda não confirmado. Novas vendas seguem bloqueadas neste navegador. Solicite conciliação assistida; não reenvie o pagamento.');
     } catch { setMessage('Não foi possível consultar. A referência foi preservada; não reenvie o pagamento.'); }

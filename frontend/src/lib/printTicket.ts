@@ -35,7 +35,7 @@ export async function printHtml(html: string, copies = 1, printer?: Pick<Printer
     if (!r.ok) throw new Error(r.error || "Falha na impressão");
     return;
   }
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const frame = document.createElement("iframe");
     frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
     frame.setAttribute("data-testid", "print-frame");
@@ -45,7 +45,10 @@ export async function printHtml(html: string, copies = 1, printer?: Pick<Printer
     doc.write(Array.from({ length: Math.max(1, copies) }, () => html).join('<div style="page-break-after:always"></div>'));
     doc.close();
     setTimeout(() => {
-      try { frame.contentWindow?.focus(); frame.contentWindow?.print(); } catch (err) { console.error("Falha ao imprimir ticket:", err); }
+      try {
+        if (!frame.contentWindow) throw new Error("Janela de impressão indisponível");
+        frame.contentWindow.focus(); frame.contentWindow.print();
+      } catch { frame.remove(); reject(new Error("Não foi possível abrir a impressão. Ticket permanece pendente.")); return; }
       setTimeout(() => { frame.remove(); resolve(); }, 500);
     }, 250);
   });

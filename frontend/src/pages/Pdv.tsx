@@ -2,7 +2,7 @@ import { webCheckout } from "@/lib/webSaleRecovery";
 import WebSaleRecovery from "@/components/WebSaleRecovery";
 import { isDesktop } from "@/lib/desktop";
 import { getReceiptPref, printSimpleReceipt } from "@/lib/receipt";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Minus, Plus, ShoppingBag, Trash2, WifiOff } from "lucide-react";
 import { toast } from "sonner";
@@ -57,7 +57,7 @@ export default function Pdv() {
   const setQty = (i: number, d: number) =>
     setCart((c) => c.flatMap((l, j) => (j !== i ? [l] : l.qty + d <= 0 ? [] : [{ ...l, qty: l.qty + d }])));
 
-  const reset = () => { setCart([]); setCustomer(""); setPayOpen(false); };
+  const reset = useCallback(() => { setCart([]); setCustomer(""); setPayOpen(false); }, []);
 
   const sale = useMutation({
     mutationFn: (p: QuickSaleIn) => isDesktop() ? apiPost<SaleResult>("/pdv/sale", p) : webCheckout(ref => apiPost<SaleResult>("/pdv/sale", { ...p, client_ref: ref })),
@@ -101,7 +101,7 @@ export default function Pdv() {
       <PageHeader title="Frente de Caixa" subtitle="F2 pagamento · F4 limpar · Enter na busca adiciona o item" actions={
         offline ? <span className="flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs text-amber-200" data-testid="pdv-offline-banner"><WifiOff className="size-3.5" /> Contingência offline · {queue.length} na fila</span> : null
       } />
-      <WebSaleRecovery />
+      <WebSaleRecovery onConfirmed={reset} />
       <div className="grid gap-5 xl:grid-cols-12">
         <div className="xl:col-span-7 2xl:col-span-8">
           <ProductGrid products={prodList} categories={categories.data ?? []} onAdd={add} />

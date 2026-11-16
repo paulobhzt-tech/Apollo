@@ -31,11 +31,11 @@ jobs:
           cd frontend
           npx vite build --config vite.web.config.ts
           npm run lint
-          node --experimental-vm-modules --test tests/offline-queue.test.mjs tests/web-sale-recovery.test.mjs
+          node --experimental-vm-modules --test tests/offline-queue.test.mjs tests/web-sale-recovery.test.mjs tests/browser-print.test.mjs
       - name: Preserve twelve P5 browser tests
         run: |
           cd frontend
-          npx vite --config vite.web.config.ts >/tmp/p5-regression-vite.log 2>&1 &
+          ./node_modules/.bin/vite --config vite.web.config.ts >/tmp/p5-regression-vite.log 2>&1 &
           VITE_PID=$!
           cd ../tests
           trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT

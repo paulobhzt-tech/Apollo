@@ -23,7 +23,7 @@ const loadCfg = (): DeviceCfg => { try { return { stations: [], auto: false, ...
 export default function Impressao() {
   const envs = useEnvironments();
   const printers = useQuery({ queryKey: ["printers"], queryFn: () => apiGet<Printer[]>("/printers") });
-  const [cfg, setCfg] = useState<DeviceCfg>(loadCfg);
+  const [cfg, setCfg] = useState<DeviceCfg>(() => ({ ...loadCfg(), auto: isDesktop() && loadCfg().auto }));
   const [log, setLog] = useState<{ id: string; text: string; at: string }[]>([]);
   const busy = useRef(false);
   const autoKeys = cfg.stations.filter((k) => envs.data?.find((e) => e.key === k)?.auto_print !== false && printers.data?.some((p) => p.active && p.purpose === k && (isDesktop() ? !!p.device_name : true)));
@@ -33,17 +33,19 @@ export default function Impressao() {
   const queue = useQuery({
     queryKey: ["print-queue", autoKeys.join(",")],
     queryFn: () => apiGet<KitchenTicket[]>(`/print/queue?stations=${encodeURIComponent(autoKeys.join(","))}`),
-    enabled: cfg.auto && autoKeys.length > 0, refetchInterval: 4000,
+    enabled: isDesktop() && cfg.auto && autoKeys.length > 0, refetchInterval: 4000,
   });
   const recent = useQuery({ queryKey: ["print-recent"], queryFn: () => apiGet<KitchenTicket[]>("/print/recent"), refetchInterval: 8000 });
 
   const printerFor = (station: string) => printers.data?.find((p) => p.active && p.purpose === station);
 
   const printOne = async (t: KitchenTicket, station: string) => {
+    if (!isDesktop() && t.printed.includes(station) && !window.confirm("Este ticket já foi confirmado. Reimprimir pode gerar uma cópia duplicada. Continuar?")) return;
     const pr = printerFor(station);
     if (!pr) throw new Error(`Cadastre uma impressora ativa para ${envName(envs.data, station)}`);
     if (isDesktop() && !pr.device_name) throw new Error(`Selecione a impressora Windows para ${envName(envs.data, station)}`);
     await printHtml(ticketHtml(t, station, envName(envs.data, station), pr?.paper), pr?.copies ?? 1, pr);
+    if (!isDesktop() && !window.confirm("O ticket foi impresso fisicamente e está legível? Se cancelou ou houve falha, escolha Cancelar para mantê-lo pendente.")) return;
     await apiPost<KitchenTicket>(`/kds/tickets/${t.id}/printed`, { station });
     setLog((l) => [{ id: `${t.id}-${station}-${Date.now()}`, text: `${envName(envs.data, station)} · ${t.label} (#${t.order_number})${pr ? ` → ${pr.name}` : ""}`, at: new Date().toISOString() }, ...l].slice(0, 30));
   };
@@ -51,7 +53,7 @@ export default function Impressao() {
   const latest = useRef({ printOne, autoKeys });
   latest.current = { printOne, autoKeys };
   useEffect(() => {
-    if (!cfg.auto || !queue.data?.length || busy.current) return;
+    if (!isDesktop() || !cfg.auto || !queue.data?.length || busy.current) return;
     const { printOne: print, autoKeys: keys } = latest.current;
     busy.current = true;
     void (async () => {
@@ -71,10 +73,11 @@ export default function Impressao() {
     <AppShell roles={["caixa", "cozinha", "garcom"]}>
       <PageHeader title="Central de Impressão" subtitle="Deixe esta tela aberta no computador ligado à impressora: cada pedido novo sai impresso no ambiente certo"
         actions={
-          <Button onClick={() => setCfg((c) => ({ ...c, auto: !c.auto }))} disabled={!cfg.auto && !autoKeys.length} variant={cfg.auto ? "outline" : "default"} data-testid="print-auto-toggle">
+          <Button onClick={() => setCfg((c) => ({ ...c, auto: !c.auto }))} disabled={!isDesktop() || (!cfg.auto && !autoKeys.length)} variant={cfg.auto ? "outline" : "default"} data-testid="print-auto-toggle">
             {cfg.auto ? <><Pause className="size-4" /> Pausar impressão automática</> : <><Play className="size-4" /> Ligar impressão automática</>}
           </Button>
         } />
+      {!isDesktop() && <p role="status" className="mb-4 text-sm text-amber-200">Navegador: impressão manual. Cancelar o diálogo não confirma impressão física. Confirme somente após conferir o papel; impressoras térmicas não estão homologadas aqui.</p>}
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
         <div className="space-y-4">
           <Panel title="Ambientes impressos neste computador">
