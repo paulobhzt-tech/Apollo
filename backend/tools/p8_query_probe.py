@@ -24,14 +24,17 @@ def main():
    c.admin.command('ping')
    os.environ.update(MONGO_URL='mongodb://127.0.0.1:27030',DB_NAME='apollo_p8_query_test')
    sys.path.insert(0,str(ROOT/'backend'))
-   from lib.db import INDEXES
+   import runpy
+   source=Path(os.environ.get('P8_QUERY_SOURCE_ROOT',str(ROOT)))
+   index_module=runpy.run_path(str(source/'backend/lib/db.py'))
+   INDEXES=index_module['INDEXES'];index_module['client'].close()
    from models.schemas import Order
    db=c[os.environ['DB_NAME']]
    db.orders.create_indexes(INDEXES['orders'])
    if os.environ.get('P8_LOOKUP_INDEX')=='1':db.orders.create_index([('client_ref',1)],name='client_ref_lookup')
    db.command('profile',2,slowms=0)
    count=0
-   for volume in [0,1000,10000,60000]:
+   for volume in sorted(set(map(int,os.environ.get('P8_QUERY_VOLUMES','0,1000,10000,60000').split(',')))):
     seed_started=time.perf_counter()
     for first in range(count,volume,1000):
      db.orders.insert_many([{**Order(id='p8-order-'+str(i),number=i+1,client_ref='seed-'+str(i),status='cancelado',channel='balcao',source='pdv',items=[]).model_dump(),'atomic_version':1} for i in range(first,min(first+1000,volume))])
@@ -39,6 +42,7 @@ def main():
     count=volume
     cases={
      'sale_ref_absent':{'client_ref':'soak-new-reference'},
+     'sale_ref_present':{'client_ref':'seed-'+str(max(0,volume-1))},
      'sale_ref_typed':{'client_ref':{'$eq':'soak-new-reference','$type':'string'}},
      'sale_final_id':{'id':'p8-order-'+str(max(0,volume-1))},
      'cancel_id':{'id':'p8-order-0'},
@@ -62,7 +66,7 @@ def main():
      profiles=list(db.system.profile.find({'command.comment':'p8:'+name+':'+str(volume)},{'_id':0,'planSummary':1,'docsExamined':1,'keysExamined':1,'millis':1,'nreturned':1}))
      row={'volume':volume,'seed_batch_ms':seed_ms,'collectionStats':{k:stats[k] for k in ['count','size','totalIndexSize','indexSizes']},'sort':command.get('sort'),'limit':command['limit'],'name':name,'query':query,'executionStats':explain['executionStats'],'queryPlanner':explain['queryPlanner'],'transaction_query_ms':timings,'profile':profiles}
      results.append(row);print(volume,name,explain['queryPlanner']['winningPlan'],explain['executionStats']['totalDocsExamined'],flush=True)
-   (OUT/os.environ.get('P8_QUERY_OUTPUT','query-plans-before.json')).write_text(json.dumps({'mongo':c.server_info()['version'],'indexes':db.orders.index_information(),'results':results},indent=2,default=str)+'\n')
+   (OUT/os.environ.get('P8_QUERY_OUTPUT','query-plans-before.json')).write_text(json.dumps({'source_root':str(source),'mongo':c.server_info()['version'],'indexes':db.orders.index_information(),'results':results},indent=2,default=str)+'\n')
    c.close()
   finally:
    p.terminate()

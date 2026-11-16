@@ -121,8 +121,16 @@ async def test_contention_http():
                'markers':db.financial_operations.count_documents({'kind':'pdv_sale'}),
                'stock_moves':db.stock_moves.count_documents({}),
                'cash_version':db.cash_sessions.find_one({'id':'http-cash'}).get('financial_version',0)}
+        # Audit only after traffic/drain. It performs no financial mutation.
+        audit_started=time.time()
+        from p8_final_audit import audit
+        final['order_audit']=audit(db,history)
+        final['audit_started_at']=audit_started
+        final['post_load_audit_s']=time.time()-audit_started
         output.write_text(json.dumps({'partial':False,'duration_s':time.monotonic()-started,'rows':results,
             'resources':resources,'integrity':final,'kds_index':kds_index,'scope':'real HTTP keep-alive + single-node MongoDB; synthetic PDV sale/cancel; transaction policy under test'},indent=2)+'\n')
+        assert final['order_audit']['checked_new_orders']==final['orders']-history,final
+        assert final['order_audit']['partial_confirmations']==final['order_audit']['financial_divergences']==0,final
         assert final['markers']==final['orders']-history and final['stock_moves']==2*(final['orders']-history) and final['cash_version']==2*(final['orders']-history),final
         assert final['stock']==1000 and final['paid_orders']==0 and not duplicates and not duplicate_numbers,final
         assert final['counter']==final['orders'] and number_range[0]['minimum']==1 and number_range[0]['maximum']==final['orders'],final

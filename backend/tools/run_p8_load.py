@@ -68,7 +68,11 @@ for item in os.environ.get('P8_PLAN','before:a1,after:b1,after:b2,before:a2').sp
             if os.environ.get('P8_PROFILE_ORDERS')=='1':db.command('profile',2,filter={'ns':db.name+'.orders','op':'query'})
             # Run the same benchmark file for both implementations, against the respective HTTP process.
             run_started=time.monotonic()
+            started_at=time.time()
+            source_head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=checkout,text=True).strip()
             result=subprocess.run([sys.executable,'-m','pytest','-n','0','-q',str(root/'backend/benchmarks/p8_web_load.py')],cwd=checkout/'backend',env=env,stdout=log,stderr=subprocess.STDOUT)
+            timeline={'label':label,'version':version,'source_head':source_head,'started_at':started_at,'finished_at':time.time(),'elapsed_s':time.monotonic()-run_started,'exit_code':result.returncode,'sessions':env['APOLLO_LOAD_SESSIONS'],'active_stage_seconds':float(env['APOLLO_STAGE_SECONDS']),'history':history}
+            with (out/'execution-timeline.jsonl').open('a') as trace:trace.write(json.dumps(timeline)+'\n')
             print(label,'exit',result.returncode,'elapsed',round(time.monotonic()-run_started,2),flush=True)
             if result.returncode:raise RuntimeError(label+' benchmark failed; inspect log')
             if os.environ.get('P8_PROFILE_ORDERS')=='1':
