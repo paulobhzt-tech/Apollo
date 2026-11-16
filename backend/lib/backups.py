@@ -58,7 +58,7 @@ async def export_backup(source):
         return stamp,{'app':'Apollo PDV','format_version':2,'created_at':stamp,'data':data,
             'manifest':{'collections':list(BACKUP_COLLS),'counts':{k:len(v) for k,v in data.items()},
                         'sha256':digest(data),'excluded':EXCLUDED,'codec':'bson-extended-json'}}
-    return await run_transaction(snapshot,client=source.client)
+    return await run_transaction(snapshot,client=source.client,read_only=True)
 
 
 def decode_backup(data,manifest,version):
