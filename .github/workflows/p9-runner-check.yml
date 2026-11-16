@@ -1,5 +1,5 @@
 
-name: P9 - Verificar executor
+name: P9 - Verificar executor e MongoDB
 
 on:
   workflow_dispatch:
@@ -14,22 +14,55 @@ permissions:
 
 jobs:
   verificar-executor:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
 
     steps:
       - name: Baixar codigo
         uses: actions/checkout@v4
 
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Verificar ambiente
         run: |
           pwd
-          python3 --version
+          python --version
           git rev-parse HEAD
-          git status --short
-
-      - name: Verificar arquivos P9
-        run: |
           test -f docs/web/p9-2026-11-16/REPORT.md
           test -f docs/web/p9-2026-11-16/ACCEPTANCE.json
-          echo "Arquivos P9 encontrados"
+
+      - name: Baixar MongoDB 7.0.16
+        run: |
+          curl -fL \
+            https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-7.0.16.tgz \
+            -o /tmp/mongodb.tgz
+          mkdir -p /tmp/p9-mongodb
+          tar -xzf /tmp/mongodb.tgz -C /tmp/p9-mongodb
+          /tmp/p9-mongodb/mongodb-linux-x86_64-ubuntu2204-7.0.16/bin/mongod --version
+
+      - name: Inicializar MongoDB descartavel
+        run: |
+          mkdir -p /tmp/p9-mongo-data
+          /tmp/p9-mongodb/mongodb-linux-x86_64-ubuntu2204-7.0.16/bin/mongod \
+            --dbpath /tmp/p9-mongo-data \
+            --bind_ip 127.0.0.1 \
+            --port 27017 \
+            --fork \
+            --logpath /tmp/p9-mongo.log
+
+      - name: Verificar conexao MongoDB
+        run: |
+          python -m pip install pymongo==4.18.2
+          python - <<'PY'
+          from pymongo import MongoClient
+          client = MongoClient(
+              "mongodb://127.0.0.1:27017",
+              serverSelectionTimeoutMS=10000
+          )
+          print("MongoDB:", client.admin.command("ping"))
+          print("Versao:", client.server_info()["version"])
+          client.close()
+          PY
