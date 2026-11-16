@@ -1,7 +1,7 @@
 name: P9 - Financial causal diagnostic
 on:
-  pull_request:
-    branches: ["perf/p8-order-read-latency"]
+  push:
+    branches: ["perf/p9-financial-latency"]
     paths:
       - ".github/workflows/p9-financial-diagnostic.yml"
       - "backend/tools/p9_remote_diagnostic.py"
