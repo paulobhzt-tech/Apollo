@@ -1,7 +1,7 @@
 name: P9 - Real financial web and Electron regression
 on:
-  pull_request:
-    branches: ["perf/p8-order-read-latency"]
+  push:
+    branches: ["perf/p9-financial-latency"]
     paths:
       - ".github/workflows/p9-regression.yml"
       - "backend/lib/**"
