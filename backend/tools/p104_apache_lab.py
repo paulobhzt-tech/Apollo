@@ -13,6 +13,7 @@ with tempfile.TemporaryDirectory(prefix='p104-alma-') as tmp:
     (tmp/'Dockerfile').write_text('FROM '+base+'\nRUN dnf -y install httpd mod_ssl && dnf clean all\n')
     run('docker','build','-t','apollo-p104-apache-lab',str(tmp))
     original=(root/'deploy/p10/apache-virtualmin.conf.example').read_text()
+    original=original.replace('http://127.0.0.1:18082/','http://172.31.240.2:10000/')
     original=original.replace('*:443','127.0.0.1:19443').replace('/APPROVED/P10/fullchain.pem','/lab/test.crt').replace('/APPROVED/P10/privkey.pem','/lab/test.key')
     prefix='ServerRoot /etc/httpd\nServerName homolog.apollo-pdv.com\nListen 127.0.0.1:19443\nPidFile /tmp/p104-httpd.pid\nErrorLog /dev/stderr\nLogLevel warn\nUser apache\nGroup apache\n'
     for module in ['mpm_event','unixd','authz_core','authz_host','ssl','proxy','proxy_http','headers','log_config']:

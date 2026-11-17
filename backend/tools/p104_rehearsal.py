@@ -87,6 +87,9 @@ asyncio.run(main())
         dc,owner,recovery,env=create_project('source')
         prep=json.loads(dc('--profile','recovery','run','--rm','--no-deps','recovery','prepare-target','--owner-file','/recovery/owner.json',capture=True).stdout)
         ready(dc);mark('private_replica_and_tls_ready')
+        with httpx.Client(trust_env=False,timeout=5,headers={'Host':'homolog.apollo-pdv.com'}) as direct:
+            assert direct.get('http://172.31.240.2:10000/api/health/ready').status_code==200
+        mark('host_private_bridge_verified_no_web_port_published')
         run([sys.executable,str(root/'backend/tools/p104_apache_lab.py')],env={**os.environ,'P104_CERTS_DIR':str(certs)})
         mark('almalinux9_apache_tls_and_ip_deny_passed')
         with client(owner) as c:
@@ -171,6 +174,6 @@ asyncio.run(main())
         for value in all_secret_values:
             if value and value in content:content=content.replace(value,'[REDACTED]');leaked=True
         (out/'rehearsal.log').write_text(content)
-        run(['sudo','rm','-rf',str(tmp)])
+        subprocess.run(['sudo','rm','-rf',str(tmp)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         if leaked:raise RuntimeError('Generated secret appeared in logs (redacted)')
 (out/'result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)

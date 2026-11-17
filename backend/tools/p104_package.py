@@ -49,7 +49,7 @@ compose['services']['proxy']['image']=lock['nginx']['offline_tag']
 for service in compose['services'].values():
     service['pull_policy']='never'
     service['logging']={'driver':'json-file','options':{'max-size':'10m','max-file':'3'}}
-web=compose['services']['web'];web.pop('build');web['image']='${P104_WEB_IMAGE:?Use verified package image}'
+web=compose['services']['web'];web.pop('build');web.pop('ports',None);web['image']='${P104_WEB_IMAGE:?Use verified package image}'
 web['environment']['APOLLO_BOOTSTRAP_TOKEN_FILE']=''
 web['volumes']=[v for v in web['volumes'] if '/bootstrap_token:' not in v]
 recovery=json.loads(json.dumps(web));recovery.pop('ports');recovery.pop('healthcheck');recovery.pop('depends_on')
@@ -65,6 +65,7 @@ for service in compose['services'].values():
 for name in ['homologation.env.example','mongo-init.js','replica-init.js','nginx.conf','generate_secrets.py','apache-virtualmin.conf.example']:
     shutil.copy(root/'deploy/p10'/name,bundle/name)
 shutil.copy(root/'deploy/homologation/start-mongo.sh',bundle/'start-mongo.sh')
+p=bundle/'apache-virtualmin.conf.example';p.write_text(p.read_text().replace('http://127.0.0.1:18082/','http://172.31.240.2:10000/'))
 (bundle/'images.lock.json').write_text(json.dumps(lock,indent=2)+'\n')
 # Two no-cache builds. Reproducibility gate is the OCI image manifest digest, not tar ordering.
 metadata=[]
@@ -105,7 +106,7 @@ try:
 finally:
     run('docker','rm',cid);run('docker','rm',basecid)
 # SBOM from the retained OCI, with OS/Python packages. Add locked frontend build/bundle inventory separately.
-run('docker','run','--rm','--network','none','-v',str(bundle)+':/data:ro',lock['syft']['reference'],
+run('docker','run','--rm','--network','none','-e','SYFT_CHECK_FOR_APP_UPDATE=false','-v',str(bundle)+':/data:ro',lock['syft']['reference'],
     'oci-archive:/data/apollo-web.oci.tar','-o','cyclonedx-json',stdout=(bundle/'sbom.cdx.json').open('w'))
 sbom=json.loads((bundle/'sbom.cdx.json').read_text());assert sbom.get('bomFormat')=='CycloneDX' and sbom.get('components')
 frontend=json.loads((root/'frontend/package-lock.json').read_text())

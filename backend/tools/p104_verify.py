@@ -15,7 +15,9 @@ def verify(directory, loaded=False):
         if not re.fullmatch('[0-9a-f]{64}',info['sha256']):
             raise ValueError('Invalid manifest hash')
         with file.open('rb') as stream:
-            actual=hashlib.file_digest(stream,'sha256').hexdigest()
+            digest=hashlib.sha256()
+            for chunk in iter(lambda:stream.read(1024*1024),b''):digest.update(chunk)
+            actual=digest.hexdigest()
         if actual!=info['sha256'] or file.stat().st_size!=info['bytes']:
             raise ValueError('Package integrity mismatch: '+name)
     if loaded:
