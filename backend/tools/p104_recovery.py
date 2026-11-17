@@ -34,6 +34,10 @@ def read_backup(path, expected):
     if hashlib.sha256(raw).hexdigest() != expected:
         raise ValueError('Backup SHA256 mismatch')
     payload = json.loads(raw)
+    origin = payload.get('p104_origin', {})
+    if (origin.get('environment') != 'homologation' or origin.get('synthetic') is not True
+            or not re.fullmatch('[0-9a-f]{64}', origin.get('source_target_id', ''))):
+        raise ValueError('P104 synthetic backup provenance required; ordinary exports cannot be imported')
     from lib.backups import decode_backup
     decode_backup(payload['data'], payload['manifest'], payload['format_version'])
     return payload
@@ -133,9 +137,10 @@ async def main(args):
             token, _ = await target_token(db)
             result = {'target_id':token}
         elif args.mode == 'backup':
-            await identity(db)
+            source_target, _ = await target_token(db)
             from lib.backups import export_backup
             _, payload = await export_backup(db)
+            payload['p104_origin']={'environment':'homologation','synthetic':True,'source_target_id':source_target}
             raw = (json.dumps(payload,ensure_ascii=False,sort_keys=True)+'\n').encode()
             if len(raw) > MAX_BYTES:
                 raise ValueError('Backup exceeds the supported recovery size')

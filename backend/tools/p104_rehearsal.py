@@ -1,5 +1,5 @@
 """Destructive rehearsal ONLY inside a disposable GitHub runner; never on a VPS."""
-import concurrent.futures,hashlib,json,os,secrets,subprocess,sys,tempfile,time
+import concurrent.futures,hashlib,json,os,re,secrets,subprocess,sys,tempfile,time
 from pathlib import Path
 import httpx
 root=Path(__file__).resolve().parents[2]
@@ -182,6 +182,7 @@ asyncio.run(main())
             except subprocess.CalledProcessError:pass
             run(['sudo','rm','-rf',str(secretdir)])
         log.close();content=(out/'rehearsal.log').read_text();leaked=False
+        content=re.sub(r'(?i)(?:set-cookie|cookie):[^\n\r]*', '[REDACTED COOKIE HEADER]', content)
         for value in all_secret_values:
             if value and value in content:content=content.replace(value,'[REDACTED]');leaked=True
         (out/'rehearsal.log').write_text(content)

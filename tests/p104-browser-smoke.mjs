@@ -17,13 +17,13 @@ try{
  await page.getByTestId('page-title').waitFor();
  if(!(await page.getByTestId('demo-notice').innerText()).includes('HOMOLOGAÇÃO'))throw new Error('Environment banner missing');
  await page.reload();
- if((await page.request.get('https://homolog.apollo-pdv.com/api/auth/me')).status()!==200)throw new Error('Session lost on reload');
+ if((await page.evaluate(async()=> (await fetch('/api/auth/me')).status))!==200)throw new Error('Session lost on reload');
  await page.goto('https://homolog.apollo-pdv.com/produtos');
  await page.getByText('Fictício produto',{exact:true}).first().waitFor();
  await page.screenshot({path:path.join(output,'final-image-products.png'),fullPage:true});
  await page.goto('https://homolog.apollo-pdv.com/pdv');await page.getByRole('button',{name:/Fictício produto/}).first().waitFor().catch(async()=>{await page.getByText('Fictício produto',{exact:true}).first().waitFor();});
  await page.screenshot({path:path.join(output,'final-image-pdv.png'),fullPage:true});
- const logout=await page.request.post('https://homolog.apollo-pdv.com/api/auth/logout',{data:{},headers:{Origin:'https://homolog.apollo-pdv.com'}});
- if(logout.status()!==200||(await page.request.get('https://homolog.apollo-pdv.com/api/auth/me')).status()!==401)throw new Error('Logout failed');
+ const logout=await page.evaluate(async()=> (await fetch('/api/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status);
+ if(logout!==200||(await page.evaluate(async()=> (await fetch('/api/auth/me')).status))!==401)throw new Error('Logout failed');
  fs.writeFileSync(path.join(output,'browser.json'),JSON.stringify({verdict:'PASS',final_exported_image:true,origin_mapped_to_loopback:true,login:true,session_reload:true,product_ui:true,pdv_ui:true,logout:true,browser_cert_exception:'lab self-signed only; HTTP preflight verifies CA',vps_tested:false},null,2));
-}finally{await browser.close();}
+}catch(error){console.error('P104 browser smoke failed: '+error.name);process.exitCode=1;}finally{await browser.close();}

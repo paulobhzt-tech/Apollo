@@ -34,7 +34,7 @@ def test_recovery_rejects_corrupt_manifest(tmp_path,monkeypatch):
     monkeypatch.setenv("MONGO_URL",os.environ.get("MONGO_URL","mongodb://127.0.0.1:59999"))
     monkeypatch.setenv("DB_NAME",os.environ.get("DB_NAME","apollo_p10_test_unit"))
     from fastapi import HTTPException
-    f=tmp_path/'backup';f.write_text(json.dumps({'data':{},'manifest':{},'format_version':2}));f.chmod(0o600)
+    f=tmp_path/'backup';f.write_text(json.dumps({'data':{},'manifest':{},'format_version':2,'p104_origin':{'environment':'homologation','synthetic':True,'source_target_id':'0'*64}}));f.chmod(0o600)
     with pytest.raises(HTTPException):
         read_backup(f,hashlib.sha256(f.read_bytes()).hexdigest())
 
@@ -85,3 +85,15 @@ def test_authenticated_client_context_is_opened_once_and_closed():
     with authenticated_client({'username':'synthetic','password':'synthetic-only'},verify=True,transport=httpx.MockTransport(handler)) as client:
         assert client.get('/api/auth/me').status_code==200 and not client.is_closed
     assert client.is_closed
+
+
+def test_recovery_rejects_untagged_legacy_export_even_with_valid_checksum(tmp_path,monkeypatch):
+    import os
+    monkeypatch.setenv('MONGO_URL',os.environ.get('MONGO_URL','mongodb://127.0.0.1:59999'))
+    monkeypatch.setenv('DB_NAME',os.environ.get('DB_NAME','apollo_p10_test_unit'))
+    from lib.backups import BACKUP_COLLS,digest
+    data={name:[] for name in BACKUP_COLLS}
+    payload={'format_version':2,'data':data,'manifest':{'collections':BACKUP_COLLS,'counts':{k:0 for k in data},'sha256':digest(data),'codec':'bson-extended-json'}}
+    file=tmp_path/'untagged.json';file.write_text(json.dumps(payload));file.chmod(0o600)
+    with pytest.raises(ValueError,match='provenance'):
+        read_backup(file,hashlib.sha256(file.read_bytes()).hexdigest())
