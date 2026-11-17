@@ -46,9 +46,23 @@ async function geometry(panel: Locator) {
     const p = el.getBoundingClientRect();
     const overflowing = [...el.querySelectorAll<HTMLElement>('button,input,select,p,span,[data-testid="grouped-line"]')]
       .filter(n => n.getClientRects().length && getComputedStyle(n).position !== 'absolute')
-      .filter(n => { const r=n.getBoundingClientRect(); return r.left < p.left - 1 || r.right > p.right + 1 || (!n.matches('[data-slot=checkbox],[data-slot=checkbox-indicator]') && n.scrollWidth > n.clientWidth + 2); })
+      .filter(n => { const r=n.getBoundingClientRect(); return r.left < p.left - 1 || r.right > p.right + 1 || (!n.matches('input,select,[data-slot=checkbox],[data-slot=checkbox-indicator]') && n.scrollWidth > n.clientWidth + 2); })
       .map(n => n.dataset.testid || n.tagName).slice(0, 30);
-    return { viewport: innerWidth, panelWidth: p.width, panelScrollWidth: el.scrollWidth, panelClientWidth: el.clientWidth,
+    const controls = [...el.querySelectorAll<HTMLElement>('button,input:not([type=hidden]),select,[role=combobox]')].filter(n => {
+      const r = n.getBoundingClientRect();
+      if (getComputedStyle(n).position === 'absolute' && r.width <= 1) return false;
+      if (!r.width || !r.height || r.top < p.top || r.bottom > p.bottom) return false;
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return !!hit && (n.contains(hit) || n.parentElement?.contains(hit));
+    });
+    const overlappingControls: string[] = [];
+    for (let i=0;i<controls.length;i++) for(let j=i+1;j<controls.length;j++) {
+      const a=controls[i],b=controls[j];if(a.contains(b)||b.contains(a))continue;
+      const x=a.getBoundingClientRect(),y=b.getBoundingClientRect();
+      if(Math.min(x.right,y.right)-Math.max(x.left,y.left)>1 && Math.min(x.bottom,y.bottom)-Math.max(x.top,y.top)>1)
+        overlappingControls.push(`${a.dataset.testid||a.tagName}/${b.dataset.testid||b.tagName}`);
+    }
+    return { overlappingControls, viewport: innerWidth, panelWidth: p.width, panelScrollWidth: el.scrollWidth, panelClientWidth: el.clientWidth,
       pageWidth: document.documentElement.scrollWidth, overflowing };
   });
 }
@@ -64,6 +78,7 @@ test('panel geometry, long text, money and all main actions', async ({ page }, i
   expect(metrics.pageWidth).toBeLessThanOrEqual(page.viewportSize()!.width);
   expect(metrics.panelScrollWidth).toBeLessThanOrEqual(metrics.panelClientWidth + 1);
   expect(metrics.overflowing).toEqual([]);
+  expect(metrics.overlappingControls).toEqual([]);
   await expect(page.getByTestId('table-order-total')).toHaveText(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total));
   await expect(page.getByTestId('close-table-button')).toBeInViewport();
   await expect(panel.locator('[data-slot="sheet-close"]')).toBeInViewport();
@@ -95,10 +110,14 @@ test('keyboard trap, close/return focus and nested actions without writes', asyn
   await page.getByRole('button', { name: 'Dividir conta por itens', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Divisão da conta por itens' })).toBeVisible();
   await page.keyboard.press('Escape');
+  await expect(page.getByRole('heading', { name: 'Divisão da conta por itens' })).toBeHidden();
+  await expect(panel).toBeVisible();
   await page.getByTestId('table-qr-button').click();
   await expect(page.getByTestId('qr-dialog')).toBeVisible();
   expect((await geometry(page.getByTestId('qr-dialog'))).overflowing).toEqual([]);
   await page.keyboard.press('Escape');
+  await expect(page.getByTestId('qr-dialog')).toBeHidden();
+  await expect(panel).toBeVisible();
   await page.getByTestId('toggle-group-items').click();
   expect((await geometry(panel)).overflowing).toEqual([]);
   await page.getByTestId('transfer-select').click();

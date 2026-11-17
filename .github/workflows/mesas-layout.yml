@@ -64,7 +64,8 @@ jobs:
             sleep 1
           done
           kill -0 "$VITE_PID"
-          curl -fsS http://127.0.0.1:3018/src/pages/Mesas.tsx | grep -q "mesas-sheet"
+          curl -fsS http://127.0.0.1:3018/src/pages/Mesas.tsx -o /tmp/mesas-candidate-module.js
+          grep -q "mesas-sheet" /tmp/mesas-candidate-module.js
           cd ../tests
           npx playwright test -c mesas.playwright.config.ts --update-snapshots
           npx playwright test -c mesas.playwright.config.ts

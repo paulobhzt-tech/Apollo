@@ -1,4 +1,4 @@
-import { useRef, useState, type RefObject } from "react";
+import { useRef, useState, type ReactNode, type RefObject } from "react";
 import "./Mesas.css";
 import { Link, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -166,8 +166,7 @@ export default function Mesas() {
           <Plus className="size-4" /> Adicionar mais {kind === "mesa" ? "mesas" : "comandas"}
         </button>
       )}
-      <TableSheet returnFocus={tableOpener} table={sel} onClose={() => setSelId(null)} onQr={setQrTable} tables={all} canDelete={canCreate} />
-      <QrDialog table={qrTable} onClose={() => setQrTable(null)} />
+      <TableSheet returnFocus={tableOpener} table={sel} onClose={() => setSelId(null)} onQr={setQrTable} tables={all} canDelete={canCreate} qrDialog={<QrDialog table={qrTable} onClose={() => setQrTable(null)} />} />
       <NewTableDialog open={creating} kind={kind} existing={all.filter((t) => t.kind === kind)} onClose={() => setCreating(false)} />
     </AppShell>
   );
@@ -264,7 +263,7 @@ export function QrDialog({ table, onClose }: { table: Table | null; onClose: () 
 
 interface Pending { key: string; product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number; customerName: string }
 
-function TableSheet({ table, onClose, onQr, tables, canDelete, returnFocus }: { returnFocus: RefObject<HTMLButtonElement | null>; table: Table | null; onClose: () => void; onQr: (t: Table) => void; tables: Table[]; canDelete: boolean }) {
+function TableSheet({ table, onClose, onQr, tables, canDelete, returnFocus, qrDialog }: { qrDialog: ReactNode; returnFocus: RefObject<HTMLButtonElement | null>; table: Table | null; onClose: () => void; onQr: (t: Table) => void; tables: Table[]; canDelete: boolean }) {
   const open = !!table;
   const scrollRegion = useRef<HTMLDivElement | null>(null);
   const { data: me } = useMe();
@@ -523,7 +522,6 @@ function TableSheet({ table, onClose, onQr, tables, canDelete, returnFocus }: { 
             </>
           )}
         </SheetContent>
-      </Sheet>
       <RemoveItemDialog group={removing} needsPin={!canCancel(me)} pending={removeItems.isPending} onClose={() => setRemoving(null)} onConfirm={(r) => removeItems.mutate(r)} />
       {table && preBill && (
         <PreBillDialog table={table} order={o} open={preBill} onClose={() => setPreBill(false)}
@@ -532,8 +530,10 @@ function TableSheet({ table, onClose, onQr, tables, canDelete, returnFocus }: { 
       {table && <PartialBillDialog tableId={table.id} items={items} open={partialOpen} onClose={() => setPartialOpen(false)} />}
       <PaymentDialog contentClassName="mesas-dialog" open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} defaultService={10}
         title={`Fechamento · ${table ? tableLabel(table) : ""}`} pending={pay.isPending} onConfirm={(p) => pay.mutate(p)} />
-      <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />
       <OptionsDialog product={optFor} onClose={() => setOptFor(null)} onConfirm={push} />
+      {qrDialog}
+      </Sheet>
+      <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />
     </>
   );
 }
@@ -632,8 +632,8 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
           <Button className="mt-3 w-full" onClick={() => setPayOpen(true)}>Receber itens selecionados</Button>
         </div>}
       </DialogContent>
-    </Dialog>
     <PaymentDialog contentClassName="mesas-dialog" open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} defaultService={10} partialMode title="Recebimento parcial (não fiscal)" pending={payment.isPending} onConfirm={(p) => payment.mutate(p)} />
+    </Dialog>
     </>
   );
 }
