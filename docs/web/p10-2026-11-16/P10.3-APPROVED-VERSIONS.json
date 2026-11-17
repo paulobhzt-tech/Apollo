@@ -1,0 +1,251 @@
+{
+  "baseline_head": "1ea6d5a9377bf0b7a287e1be92478a2e7411add7",
+  "tested_application_head": "526dd72b78d57b7799fc995af42e0fe925c04379",
+  "p9_unchanged": "310948f9c77e62e12593ed502c3c152568686c8c",
+  "verification": "Remote GitHub blob SHA1 matched local bytes; SHA256 calculated. Seven local artifact ZIP SHA256/size recomputed and matched committed REVIEW. No VPS access.",
+  "files": [
+    {
+      "path": "docs/web/p10-2026-11-16/REPORT.md",
+      "git_blob_sha1": "c79936c4bd7f55f999d6168a7aff7742324c6dd0",
+      "sha256": "cd63b1846f7b395ed9a59dc7ccd2edca15f61d08b8953dafa90a095469962d50",
+      "bytes": 16122
+    },
+    {
+      "path": "deploy/p10/RUNBOOK.md",
+      "git_blob_sha1": "a266e8b92c5bbf23d23e21513a7c2dbc1087f933",
+      "sha256": "42e47a3a287204e169d3425e12b0407be5a998af69f270a453dc49d71372ff9c",
+      "bytes": 9276
+    },
+    {
+      "path": "deploy/p10/compose.yml",
+      "git_blob_sha1": "b0f3e3c0bc8c061728f1921250538571e0dfbd99",
+      "sha256": "2ec63b1bb2cf71f191e6bbd9d014837c05ebc7d6647db027e69239c221c6b30c",
+      "bytes": 2756
+    },
+    {
+      "path": "deploy/p10/apache-virtualmin.conf.example",
+      "git_blob_sha1": "786f33c8779523a9c96b04471678779db270524b",
+      "sha256": "a61e2d64d2d33eb3f48b93aba34434ac490b025d3a154407acf9b5e944c4121b",
+      "bytes": 923
+    },
+    {
+      "path": "deploy/p10/homologation.env.example",
+      "git_blob_sha1": "e3efa7f37544f5c6b252b8d49800f33cbccef3f7",
+      "sha256": "a329d1e9df4fd013715e5c9b35b5a1577a262dce25926ea49c224d9e895c10ed",
+      "bytes": 479
+    },
+    {
+      "path": "deploy/p10/requirements.web.txt",
+      "git_blob_sha1": "256f14961b51793c1587188bbe4e72bf329fe4e3",
+      "sha256": "ed6c4eca0f90379640adbb982edd834a2762813550175f07545097ee14bf56dd",
+      "bytes": 162
+    },
+    {
+      "path": "deploy/p10/nginx.conf",
+      "git_blob_sha1": "44156a8386bb0808caccf8df34a3c64e9b7c201d",
+      "sha256": "8514f62e8e9a393f1a058dcb8f4db1c90e680410930d57261a01a78299537b0c",
+      "bytes": 868
+    },
+    {
+      "path": "deploy/p10/Dockerfile.web",
+      "git_blob_sha1": "c42efa795cd15d69737e5533643b50f44d4e91d9",
+      "sha256": "bde95557843eec1ecbfeb89b92a5dffa86eb19a6de83fc9106ccd1ec5cc25ff3",
+      "bytes": 968
+    },
+    {
+      "path": "backend/tools/p10_environment.py",
+      "git_blob_sha1": "700da926f2f26da2488be42862400ae52319dde9",
+      "sha256": "0c4242c813166d699011855fe681f93b488b84f2032ed37d21c849f67d10bb1e",
+      "bytes": 3296
+    },
+    {
+      "path": "backend/lib/homologation.py",
+      "git_blob_sha1": "de0fc8dc8bfb7a4a23b1d28d0dae4cd82dac8a09",
+      "sha256": "302747aa7723a973f2057254c2eb1d305348b722cb60d0ed303b185195ebcab6",
+      "bytes": 7338
+    },
+    {
+      "path": "deploy/p10/generate_secrets.py",
+      "git_blob_sha1": "291faa702d17b30eadbd681d78066d711fca5aa2",
+      "sha256": "ca0bbc2209e59972897eac707a50f876b25d9ac89cdc848171264a8bccc076b7",
+      "bytes": 1032
+    },
+    {
+      "path": "deploy/homologation/start-mongo.sh",
+      "git_blob_sha1": "218f0429990f415161e46dda690b579337dac77e",
+      "sha256": "605bc1949c55fc0dee26ff781c5e2789626665234add516ccd2481c9db36e37c",
+      "bytes": 301
+    },
+    {
+      "path": "frontend/package.json",
+      "git_blob_sha1": "e650d131f90f821b64b8a80050d72360adaa8cb7",
+      "sha256": "7d4e9d69ee01213a4c66b277d5df2ecd559d19de23e3f4c7ff868bcb03a7cbe4",
+      "bytes": 2333
+    },
+    {
+      "path": "frontend/package-lock.json",
+      "git_blob_sha1": "9ffdc32604cc5aea18a74a347f6e280bf685c143",
+      "sha256": "1c9371d56ea8e7514f463f6ecbfa1df8b96f03da492cce8aad5a63e21b697e63",
+      "bytes": 180937
+    },
+    {
+      "path": "tests/package.json",
+      "git_blob_sha1": "8a508ee0b7489d8bb80dab247d7bf31e19caec4e",
+      "sha256": "a5ecf9e1cc917986237c9183b196d2f3f7cc40a6e77d4b4dabfee696d0fbf925",
+      "bytes": 162
+    },
+    {
+      "path": "desktop/package.json",
+      "git_blob_sha1": "e269765e6e72c444d8b19707671294a5fdaebb36",
+      "sha256": "9204e2eae40693937fbf0e9a94244d918956b36f7ae896213f35bc91ac472957",
+      "bytes": 1255
+    },
+    {
+      "path": "docs/web/p10-2026-11-16/evidence/REVIEW.json",
+      "git_blob_sha1": "c03b40cef5ef1f89be822aeab563a5e249d9cab1",
+      "sha256": "48aee0fe86fe121eeb5a8b4350a62d3a92599878c42d5a8bc8d036d537da9650",
+      "bytes": 225956
+    },
+    {
+      "path": "docs/web/p10-2026-11-16/evidence/CI.json",
+      "git_blob_sha1": "8d4a935a989e56cc18a9390ac472a01f13264e3e",
+      "sha256": "e380a9da48c41abd10f638f47cd081545a9787c21328ceefc4aaaba55a7004f2",
+      "bytes": 15975
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 14294826023,
+      "name": "p10-real-web-desktop-526dd72b78d57b7799fc995af42e0fe925c04379",
+      "bytes": 2307463,
+      "sha256": "9781279e1c9fb02d5d2d18a706694cc0a8099a5cadcf900d24497bf25cef3b6e",
+      "url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44005034180/artifacts/14294826023",
+      "expires_at": "2027-02-15T02:43:13Z"
+    },
+    {
+      "id": 14294645456,
+      "name": "p10-container-526dd72b78d57b7799fc995af42e0fe925c04379",
+      "bytes": 33867,
+      "sha256": "837ca270138515aa8ff8c020c9a46336eb4e727532e764b21a54a99f4da41443",
+      "url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44005034180/artifacts/14294645456",
+      "expires_at": "2027-02-15T02:43:13Z"
+    },
+    {
+      "id": 14294601666,
+      "name": "p10-real-web-notebook-526dd72b78d57b7799fc995af42e0fe925c04379",
+      "bytes": 2184494,
+      "sha256": "186e5d968bc5767d1d29bf66986a64387a9204184d52351047a786579d8736bd",
+      "url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44005034180/artifacts/14294601666",
+      "expires_at": "2027-02-15T02:43:13Z"
+    },
+    {
+      "id": 14293634243,
+      "name": "p10-real-web-tablet-526dd72b78d57b7799fc995af42e0fe925c04379",
+      "bytes": 2112212,
+      "sha256": "6ee9abd8aa500d41175fe35be9acd6c5a4949a64449ad0cf403fef009d33b3eb",
+      "url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44005034180/artifacts/14293634243",
+      "expires_at": "2027-02-15T02:43:13Z"
+    },
+    {
+      "id": 14293603076,
+      "name": "p10-regression-526dd72b78d57b7799fc995af42e0fe925c04379",
+      "bytes": 843932,
+      "sha256": "49038129a42aa6a6e8825034ea8977edca12b032db72cddaaeb42e56d18ecc99",
+      "url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44005034180/artifacts/14293603076",
+      "expires_at": "2027-02-15T02:43:13Z"
+    },
+    {
+      "id": 14293504488,
+      "name": "p10-real-web-mobile-526dd72b78d57b7799fc995af42e0fe925c04379",
+      "bytes": 1473481,
+      "sha256": "75e82a8d01ab4ff05e9029c75ca67fd5887598d1491a7dac3645f9557b208e9f",
+      "url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44005034180/artifacts/14293504488",
+      "expires_at": "2027-02-15T02:43:13Z"
+    },
+    {
+      "id": 14293413959,
+      "name": "p10-electron-test-526dd72b78d57b7799fc995af42e0fe925c04379",
+      "bytes": 82447905,
+      "sha256": "b839ba784c9c29e277826cdfb721c53696c91deaa8ceadeb57e3e7dbb3d01b0f",
+      "url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44005034151/artifacts/14293413959",
+      "expires_at": "2027-02-15T02:43:13Z"
+    }
+  ],
+  "frontend_lock_versions": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "vite": "8.3.8",
+    "typescript": "7.0.2"
+  },
+  "container": {
+    "verdict": "PASS",
+    "tls_certificate_verified": true,
+    "dist_web_index_verified": true,
+    "mongo_replica_authenticated": true,
+    "bootstrap_secret_gated": true,
+    "secure_httpOnly_cookie": true,
+    "hostile_csrf_blocked": true,
+    "external_routes_and_tcp_blocked": true,
+    "unsafe_startup_rejected": true,
+    "nonroot_readonly_private_network": true,
+    "image_id": "48e4289d885e9a1a9d168ea0ddfc722a3cbd1d3f83e6bd8301028238487d92c9",
+    "production_deployment": false
+  },
+  "electron": {
+    "sha256": "46b9dd98e02d3113beb952e12e07a9178b4a07dfced0bda7449fb39492931db3",
+    "head": "526dd72b78d57b7799fc995af42e0fe925c04379",
+    "bundled_frontend": true,
+    "bytes": 82448076,
+    "verdict": "PASS",
+    "installer_executed": false,
+    "production_published": false,
+    "channel": "test"
+  },
+  "observed_build_bases": {
+    "node:24-bookworm-slim": "sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54",
+    "python:3.12-slim-bookworm": "sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df"
+  },
+  "unresolved": [
+    "No retained Apollo OCI image archive or registry pull reference",
+    "Mongo/nginx resolved image digests not recorded in evidence",
+    "No installed HostGator/AlmaLinux/Virtualmin/Apache/SELinux inventory",
+    "No target capacity or human acceptance evidence"
+  ],
+  "production_approved": false,
+  "github_artifact_metadata_rechecked": true,
+  "runtime_packages_observed_in_container_log": {
+    "annotated-doc": "0.0.6",
+    "annotated-types": "0.8.0",
+    "anyio": "4.16.0",
+    "bcrypt": "4.0.1",
+    "click": "8.5.1",
+    "dnspython": "2.9.2",
+    "email-validator": "2.4.0",
+    "fastapi": "0.141.1",
+    "h11": "0.16.0",
+    "idna": "3.20",
+    "motor": "3.7.1",
+    "pydantic": "2.14.3",
+    "pydantic-core": "2.50.4",
+    "pymongo": "4.18.2",
+    "python-dotenv": "1.2.4",
+    "python-multipart": "0.0.34",
+    "starlette": "1.10.0",
+    "typing-extensions": "4.16.0",
+    "typing-inspection": "0.4.5",
+    "uvicorn": "0.54.0"
+  },
+  "electron_build_log": {
+    "job_id": 133778181891,
+    "electron": "33.4.11",
+    "electron_builder": "25.1.8",
+    "nsis": "3.0.4.1",
+    "excerpt": [
+      "2026-11-17T02:45:08.0619352Z   • electron-builder  version=25.1.8 os=10.0.26100\r",
+      "2026-11-17T02:45:08.1512118Z   • executing @electron/rebuild  electronVersion=33.4.11 arch=x64 buildFromSource=false appDir=./\r",
+      "2026-11-17T02:45:08.4208771Z   • packaging       platform=win32 arch=x64 electron=33.4.11 appOutDir=dist\\win-unpacked\r",
+      "2026-11-17T02:45:11.6096460Z   • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-3.0.4.1/nsis-3.0.4.1.7z size=1.3 MB parts=1\r",
+      "2026-11-17T02:45:11.6926857Z   • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-3.0.4.1/nsis-3.0.4.1.7z duration=303ms\r"
+    ]
+  }
+}

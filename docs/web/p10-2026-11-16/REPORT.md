@@ -97,3 +97,13 @@ Para reproduzir sem VPS, executar os workflows P10 desta branch no Actions; eles
 **Homologação operacional humana completa e publicação HTTPS pública continuam pendentes.** O aplicativo está preparado para a próxima etapa autorizada de homologação isolada; não há liberação de produção, certificação dos equipamentos nem prova de funcionamento na VPS. As limitações acima permanecem bloqueios das respectivas etapas.
 
 **Produção continua bloqueada. Sem merge, deploy, alterações no PR #24, DNS ou acesso/modificações na VPS.**
+
+## P10.3 — preparação final para testes humanos HTTPS
+
+Retomada em `1ea6d5a9377bf0b7a287e1be92478a2e7411add7`, com as correções/versões aprovadas preservadas. [Diagnóstico e recomendação P10.3](P10.3-PREPARATION.md), [manifesto de versões/hashes](P10.3-APPROVED-VERSIONS.json), [inventário somente leitura](P10.3-INFRASTRUCTURE-CHECKLIST.md), [implantação/backup/restore/rollback futuros](P10.3-DEPLOYMENT-PLAN.md), [roteiro humano](P10.3-HUMAN-TESTS.md) e [autorizações](P10.3-AUTHORIZATION.md) preparados.
+
+Confirmados 18 arquivos por Git blob remoto e SHA-256, sete ZIPs por tamanho/SHA-256 e metadados atuais do GitHub; não foram repetidos os ensaios P10.2. Os limites configurados somam 1.152 MiB sem proxy de ensaio ou 1.280 MiB com ele; isso não demonstra folga numa VPS compartilhada de 1 vCPU/2 GB. Recomenda-se host temporário isolado, inicialmente orçado em 2 vCPU/4 GiB, com dimensionamento/custo ainda sujeitos à validação e autorização. Não há preço cotado nem capacidade certificada.
+
+Pendência adicional de distribuição: o ensaio registrou identificador local da imagem Web, sem registry/arquivo OCI recuperável. A imagem final distribuível, seus digests e o procedimento operacional de restauração precisam ser preparados/revalidados em ambiente isolado antes da implantação. O restore HTTP permanece bloqueado; não há CLI pronta de restauração no entrypoint.
+
+**P10.3: PREPARAÇÃO DOCUMENTAL CONCLUÍDA; homologação humana/publicação PENDENTES.** Todos os casos humanos e checkboxes de autorização estão não executados/não concedidos. Nenhuma VPS/painel/SSH foi acessada, nenhum comando remoto executado, DNS/certificado/serviço alterado ou aplicação publicada. A aprovação P10.2 continua restrita ao escopo automatizado; produção bloqueada. HEAD documental desta entrega registrado no PR #25.

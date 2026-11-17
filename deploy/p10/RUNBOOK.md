@@ -1,5 +1,7 @@
 # P10 — preparação de homologação HTTPS isolada
 
+> **P10.3:** antes de qualquer execução futura, seguir o [plano detalhado de implantação](../../docs/web/p10-2026-11-16/P10.3-DEPLOYMENT-PLAN.md), o [inventário de leitura](../../docs/web/p10-2026-11-16/P10.3-INFRASTRUCTURE-CHECKLIST.md) e os [gates de autorização](../../docs/web/p10-2026-11-16/P10.3-AUTHORIZATION.md). Não executar `compose build` na VPS compartilhada. Não há imagem recuperável publicada pelo ensaio: preparar/validar artefato distribuível em builder isolado. Antes da exposição, revisar runtime sem montagem permanente do token de bootstrap e demonstrar restauração local em destino separado. Nenhum comando deste runbook foi executado na VPS.
+
 **Não executar este roteiro na HostGator sem autorização específica.** Nenhum comando abaixo foi aplicado à VPS. Não alterar DNS nem publicar o domínio nesta etapa. O CI usa somente runners e volumes descartáveis; seu certificado é de teste e não autoriza publicação pública.
 
 ## Componentes e limites preparados
