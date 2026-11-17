@@ -101,8 +101,14 @@ if _web and os.path.isdir(_web):
         # Resolve symlinks before checking ancestry; string prefixes also match
         # siblings such as "build-private" and must not be used for containment.
         try:
+            # Hidden build artifacts must never be served or receive SPA fallback.
+            # Check both the request and resolved target to cover symlink aliases.
+            if any(part.startswith(".") for part in Path(path).parts):
+                raise ValueError("Hidden path")
             candidate = (_frontend_root / path).resolve()
-            candidate.relative_to(_frontend_root)
+            relative = candidate.relative_to(_frontend_root)
+            if any(part.startswith(".") for part in relative.parts):
+                raise ValueError("Hidden target")
         except (ValueError, OSError, RuntimeError):
             raise HTTPException(status_code=404, detail="Not found") from None
         return candidate
