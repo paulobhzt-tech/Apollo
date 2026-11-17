@@ -1,3 +1,5 @@
+> **Atualização posterior — preflight real recebido:** o proprietário executou o preflight oficial de cfdb8e5 por SSH autenticado, COMPLETE/5,79 s, sem mutações. Ver [resultado e investigação de perfil](REAL-PREFLIGHT.md) e [plano isolado de restore/rollback](RESTORE-ROLLBACK-PLAN.md). Integridade GZIP/SHA aprovada conforme relato; restauração/rollback ainda não comprovados. O histórico abaixo descreve a execução anterior do Work e não é substituído por alegação de acesso remoto novo.
+
 # P10.8 — HostGator, segurança Web e preparação rs0
 
 17/11/2026. PR #25, branch homolog/p10-operational-web. Base preservada `8dfdabe286d3f1d4be156d153b725036d23c2260`. Não houve merge, deploy ou mudança de serviço na VPS.
