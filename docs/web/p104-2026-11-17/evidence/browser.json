@@ -1,0 +1,12 @@
+{
+  "verdict": "PASS",
+  "final_exported_image": true,
+  "origin_mapped_to_loopback": true,
+  "login": true,
+  "session_reload": true,
+  "product_ui": true,
+  "pdv_ui": true,
+  "logout": true,
+  "browser_cert_exception": "lab self-signed only; HTTP preflight verifies CA",
+  "vps_tested": false
+}

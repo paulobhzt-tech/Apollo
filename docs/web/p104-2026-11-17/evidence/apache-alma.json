@@ -1,0 +1,16 @@
+{
+  "verdict": "PASS",
+  "base": "almalinux@sha256:02df05719ef287ebd0df0a1eedb9172a00bd70703aed7b25660e426b8e0d6047",
+  "apache": "Server version: Apache/2.4.62 (AlmaLinux)\nServer built:   Oct 14 2026 00:00:00",
+  "http": {
+    "permitted": 200,
+    "denied": 403
+  },
+  "tls_verified": true,
+  "syntax_valid": true,
+  "host_unknown_rejected": true,
+  "loopback_only": true,
+  "selinux_enforcing_tested": false,
+  "virtualmin_tested": false,
+  "vps_tested": false
+}

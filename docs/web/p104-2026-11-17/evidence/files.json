@@ -1,0 +1,65 @@
+{
+  "application_head": "e7b11c065d984144a21532989a33477cfeb73eed",
+  "files": {
+    "docs/web/p104-2026-11-17/HOSTGATOR.md": {
+      "sha256": "5bfee56f2e2f507bc313308ecdd90d240c3027df9879e77843b59029cfc70b06",
+      "bytes": 9397
+    },
+    "docs/web/p104-2026-11-17/REPORT.md": {
+      "sha256": "3ade8bafe3367da9fd7cc1f75f4713e9292223c88b6df6ac0e117ab47957ad78",
+      "bytes": 10393
+    },
+    "docs/web/p104-2026-11-17/evidence/CI-final.json": {
+      "sha256": "c6ab873e0524990281c4e0a9f08be9eb55d500e0538ec7c2183a9ed16f6e9a9c",
+      "bytes": 12660
+    },
+    "docs/web/p104-2026-11-17/evidence/apache-alma.json": {
+      "sha256": "8be2bed295db249d5fc38c46b06b9f64b4d3008c373d6a7d5069c716614afb55",
+      "bytes": 467
+    },
+    "docs/web/p104-2026-11-17/evidence/browser.json": {
+      "sha256": "2eafb5fd7ba483993199055015e70ec0875c9e38d41b5c7495dd22efde8d97b1",
+      "bytes": 296
+    },
+    "docs/web/p104-2026-11-17/evidence/images.lock.json": {
+      "sha256": "6ba015e5216df8142f639464c5a9a5e3330404b1e46d0c7e0140395a298b00aa",
+      "bytes": 912
+    },
+    "docs/web/p104-2026-11-17/evidence/local-backend.txt": {
+      "sha256": "ddf63fbd43b0e6d1eb282713c225b61e808722b34c9e653b14842a7e7d8f71f5",
+      "bytes": 1958
+    },
+    "docs/web/p104-2026-11-17/evidence/local-validation.json": {
+      "sha256": "667e84ffe7e0c65c05f2417aba808fbd73fbc52a8f206948fb9a2dfcfa65727b",
+      "bytes": 796
+    },
+    "docs/web/p104-2026-11-17/evidence/manifest.json": {
+      "sha256": "79cdca3cd22f764707f687830a45319e009913cc443369baaf3de5fecbdf0b1c",
+      "bytes": 3733
+    },
+    "docs/web/p104-2026-11-17/evidence/package-review.json": {
+      "sha256": "cfd4bb0a7d08656d6a71746b350bf4bee3c603c9ccd4e4cb996d6b1e466435d9",
+      "bytes": 5620
+    },
+    "docs/web/p104-2026-11-17/evidence/preserved-core.json": {
+      "sha256": "e6779535ac9f42d874e9f7ec4e094a4649fa754220c824aaa48ad567bcc8a107",
+      "bytes": 919
+    },
+    "docs/web/p104-2026-11-17/evidence/previous-failures.json": {
+      "sha256": "af3bda85ad3a8066ec542784f0bc21d8266144659d436403397f953b1df5eb03",
+      "bytes": 1129
+    },
+    "docs/web/p104-2026-11-17/evidence/resources-source.jsonl": {
+      "sha256": "572846bc9c46197f03182aba3f2000f85c9818ff2b3100483d0f9cc66732d7c0",
+      "bytes": 792
+    },
+    "docs/web/p104-2026-11-17/evidence/result.json": {
+      "sha256": "bb01573fdfe6c96867dc4affac88b726bef6fef2c1d1597914504570d07fb534",
+      "bytes": 4524
+    },
+    "docs/web/p104-2026-11-17/evidence/web-review.json": {
+      "sha256": "3dd5db053fc125bfe1c38a6e403bfacf39c503ace397800241f64537a12ecc0b",
+      "bytes": 32658
+    }
+  }
+}

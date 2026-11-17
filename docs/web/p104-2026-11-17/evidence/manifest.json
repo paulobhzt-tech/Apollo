@@ -1,0 +1,99 @@
+{
+  "source_head": "e7b11c065d984144a21532989a33477cfeb73eed",
+  "approved_app_head": "526dd72b78d57b7799fc995af42e0fe925c04379",
+  "source_date_epoch": 1794883388,
+  "oci_manifest_digest": "sha256:96956cbba4f505fe36784a0fe17a494a17de04d22f9e900f5db6eac6b750e31b",
+  "docker_image_id": "sha256:4a681f6c007e7d662b2d284fa5b3be51bb00617f6434c7b796ee5713b740b399",
+  "image": "apollo-p104-web:e7b11c065d984144a21532989a33477cfeb73eed",
+  "reproducibility": {
+    "no_cache_builds": 2,
+    "equal_oci_manifest_digest": true,
+    "tar_byte_identity_claimed": false
+  },
+  "runtime_secret_scan": "PASS: forbidden paths and high-confidence private key/GitHub token signatures; not a universal secret detector",
+  "dist_web_index_sha256": "16a2e888309237b33a10a98a683fed0cd0fe9f379f4d4c975f660286e5bd84f8",
+  "classified_public_base_selftests": [
+    {
+      "path": "usr/lib/x86_64-linux-gnu/libgnutls.so.30.34.3",
+      "file_sha256": "779b25d20249988bea2c1aa6bbeb218f5ae7ea8a9d30ce4f54ea37372965cc4b",
+      "classification": "Exact public upstream self-test vectors and byte-identical pinned base library"
+    }
+  ],
+  "sbom_components": 3412,
+  "registry_pushed": false,
+  "production_approved": false,
+  "files": {
+    "sbom.cdx.json": {
+      "sha256": "22166d210d15e3cad0ad452fadc35a904da271693d191b48d8eb7800af3c0957",
+      "bytes": 1229530
+    },
+    "public-selftest-fixtures.json": {
+      "sha256": "fc906833f36d4065be83df1bb74791a078e71c52ba0a4533fd5127b480ccc629",
+      "bytes": 802
+    },
+    "compose.yml": {
+      "sha256": "4d21393c745480f929eed4b0168648e3dc2b02c8b95cf932337615193bc06e2d",
+      "bytes": 4169
+    },
+    "start-mongo.sh": {
+      "sha256": "605bc1949c55fc0dee26ff781c5e2789626665234add516ccd2481c9db36e37c",
+      "bytes": 301
+    },
+    "mongo.docker.tar": {
+      "sha256": "f6d4417b8a1c190053a065e322c6f60467556abc9128ec40e65092880aa29011",
+      "bytes": 273353728
+    },
+    "verify_package.py": {
+      "sha256": "54d55661b36b36aa29024c2098803bcfa492833ccd6908e9fd731dd78d6cfa9e",
+      "bytes": 1872
+    },
+    "replica-init.js": {
+      "sha256": "dd506cf916917ca629b9989fffb11991af05d0fa3870af99ffcb676e268465ec",
+      "bytes": 339
+    },
+    "nginx.docker.tar": {
+      "sha256": "34ecae282d1bb1a2f40a8db9bc7c33a10fef902eec9b1d01c2105e7b3ce172d1",
+      "bytes": 26901504
+    },
+    "apache-virtualmin.conf.example": {
+      "sha256": "f7128da55836d3a3636b67f285600bd090a41baaa0a9f630f3d783307d8c8b43",
+      "bytes": 929
+    },
+    "requirements.hashed.txt": {
+      "sha256": "cb0ceee2bb8f212ee040d7c12a9bc33a4abd8fd5a520921c75adab4df81f1907",
+      "bytes": 1944
+    },
+    "frontend-lock.json": {
+      "sha256": "1c9371d56ea8e7514f463f6ecbfa1df8b96f03da492cce8aad5a63e21b697e63",
+      "bytes": 180937
+    },
+    "homologation.env.example": {
+      "sha256": "a329d1e9df4fd013715e5c9b35b5a1577a262dce25926ea49c224d9e895c10ed",
+      "bytes": 479
+    },
+    "nginx.conf": {
+      "sha256": "8514f62e8e9a393f1a058dcb8f4db1c90e680410930d57261a01a78299537b0c",
+      "bytes": 868
+    },
+    "apollo-web.oci.tar": {
+      "sha256": "dcca750020d6a9f91020d82c1ee7016f8d004599738577339984e56ab3822e33",
+      "bytes": 56990208
+    },
+    "images.lock.json": {
+      "sha256": "6ba015e5216df8142f639464c5a9a5e3330404b1e46d0c7e0140395a298b00aa",
+      "bytes": 912
+    },
+    "apollo-web.docker.tar": {
+      "sha256": "e530da734a34bb95eb1abb045757d396669be541b2b4c4640e98bca0616afea5",
+      "bytes": 155204608
+    },
+    "generate_secrets.py": {
+      "sha256": "ca0bbc2209e59972897eac707a50f876b25d9ac89cdc848171264a8bccc076b7",
+      "bytes": 1032
+    },
+    "mongo-init.js": {
+      "sha256": "f132fbc21076c1c30003612ff0c4040cdbab9343191643e91900506fe246d6ff",
+      "bytes": 219
+    }
+  }
+}

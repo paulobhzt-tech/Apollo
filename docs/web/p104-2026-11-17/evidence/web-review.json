@@ -1,0 +1,1343 @@
+[
+  {
+    "artifact_id": 14326355242,
+    "bytes": 2212661,
+    "sha256": "e7d511c7d78eb7edbb1b700a8fd06c7bbb3b60c55cc8b78565a80ac97356db11",
+    "crc": "PASS",
+    "results": [
+      {
+        "path": "tests/test-results/p10/results.json",
+        "stats": {
+          "startTime": "2026-11-17T11:50:21.684Z",
+          "duration": 130892.11399999999,
+          "expected": 15,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "axe": [
+          {
+            "name": "accessibility-login.json",
+            "violations": 0,
+            "incomplete": 0
+          },
+          {
+            "name": "accessibility-pdv.json",
+            "violations": 0,
+            "incomplete": 0
+          },
+          {
+            "name": "accessibility-caixa.json",
+            "violations": 0,
+            "incomplete": 0
+          }
+        ],
+        "financial_snapshots": [
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 997,
+            "lot": 997,
+            "orders": 3,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 1,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 2,
+            "markers": 2,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          }
+        ]
+      },
+      {
+        "path": "tests/test-results/p6/results.json",
+        "stats": {
+          "startTime": "2026-11-17T11:47:35.462Z",
+          "duration": 159719.23799999998,
+          "expected": 11,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "axe": [],
+        "financial_snapshots": [
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "artifact_id": 14324857905,
+    "bytes": 2333042,
+    "sha256": "24dd724be1c10678bb2843c72af6e701bf6020bcce435815f09e36fcd6012841",
+    "crc": "PASS",
+    "results": [
+      {
+        "path": "tests/test-results/p10/results.json",
+        "stats": {
+          "startTime": "2026-11-17T11:42:32.799Z",
+          "duration": 135559.919,
+          "expected": 15,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "axe": [
+          {
+            "name": "accessibility-login.json",
+            "violations": 0,
+            "incomplete": 0
+          },
+          {
+            "name": "accessibility-pdv.json",
+            "violations": 0,
+            "incomplete": 0
+          },
+          {
+            "name": "accessibility-caixa.json",
+            "violations": 0,
+            "incomplete": 0
+          }
+        ],
+        "financial_snapshots": [
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 997,
+            "lot": 997,
+            "orders": 3,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 1,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 2,
+            "markers": 2,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          }
+        ]
+      },
+      {
+        "path": "tests/test-results/p6/results.json",
+        "stats": {
+          "startTime": "2026-11-17T11:39:33.262Z",
+          "duration": 172008.8,
+          "expected": 11,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "axe": [],
+        "financial_snapshots": [
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "artifact_id": 14325116940,
+    "bytes": 836617,
+    "sha256": "9a4578403a83cc01c340fb2c81844cca2311cae876bca08c4246dcb051526f6d",
+    "crc": "PASS",
+    "results": [
+      {
+        "path": "tests/test-results/p5/results.json",
+        "stats": {
+          "startTime": "2026-11-17T11:41:29.510Z",
+          "duration": 10823.522,
+          "expected": 12,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "axe": [],
+        "financial_snapshots": []
+      }
+    ],
+    "failover": {
+      "bootstrap_seed_secondary": true,
+      "unauthenticated_denied": true,
+      "initial_primary": "127.0.0.1:27102",
+      "elected_primary": "127.0.0.1:27103",
+      "recovery_seconds": 10.25,
+      "transaction_attempts": 2,
+      "balance": 90,
+      "movements": 1,
+      "members": 3,
+      "authentication": true,
+      "restarted_member": 27102,
+      "restart_preserved_data": true,
+      "restart_kind": "SIGKILL former primary with retained dbpath",
+      "production_touched": false,
+      "scope": "single-host real replica set, generated temporary credentials"
+    }
+  },
+  {
+    "artifact_id": 14325590724,
+    "bytes": 34940,
+    "sha256": "bf866bd27a404ce3f15424bdb43a18cec6a3ca4b4f09e31ff5994f94877bf0dd",
+    "crc": "PASS",
+    "results": []
+  },
+  {
+    "artifact_id": 14325825932,
+    "bytes": 2138760,
+    "sha256": "6bef257f3f303ce1629b10b11bf4c7a0e2834bd3a2968bb7aa4991a799752a71",
+    "crc": "PASS",
+    "results": [
+      {
+        "path": "tests/test-results/p10/results.json",
+        "stats": {
+          "startTime": "2026-11-17T11:42:23.361Z",
+          "duration": 126365.20300000001,
+          "expected": 15,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "axe": [
+          {
+            "name": "accessibility-login.json",
+            "violations": 0,
+            "incomplete": 0
+          },
+          {
+            "name": "accessibility-pdv.json",
+            "violations": 0,
+            "incomplete": 0
+          },
+          {
+            "name": "accessibility-caixa.json",
+            "violations": 0,
+            "incomplete": 0
+          }
+        ],
+        "financial_snapshots": [
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 997,
+            "lot": 997,
+            "orders": 3,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 1,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 2,
+            "markers": 2,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          }
+        ]
+      },
+      {
+        "path": "tests/test-results/p6/results.json",
+        "stats": {
+          "startTime": "2026-11-17T11:39:37.533Z",
+          "duration": 159336.055,
+          "expected": 11,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "axe": [],
+        "financial_snapshots": [
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "artifact_id": 14326265058,
+    "bytes": 1495900,
+    "sha256": "c8414c76e7b05626476fcb523470dc1b589daba3bf9b5e95d3ac38c35ece2085",
+    "crc": "PASS",
+    "results": [
+      {
+        "path": "tests/test-results/p10/results.json",
+        "stats": {
+          "startTime": "2026-11-17T11:43:20.913Z",
+          "duration": 146902.24000000002,
+          "expected": 15,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "axe": [
+          {
+            "name": "accessibility-login.json",
+            "violations": 0,
+            "incomplete": 0
+          },
+          {
+            "name": "accessibility-pdv.json",
+            "violations": 0,
+            "incomplete": 0
+          },
+          {
+            "name": "accessibility-caixa.json",
+            "violations": 0,
+            "incomplete": 0
+          }
+        ],
+        "financial_snapshots": [
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 997,
+            "lot": 997,
+            "orders": 3,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 1,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 2,
+            "markers": 2,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 999,
+            "lot": 999,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          }
+        ]
+      },
+      {
+        "path": "tests/test-results/p6/results.json",
+        "stats": {
+          "startTime": "2026-11-17T11:39:44.935Z",
+          "duration": 208097.012,
+          "expected": 11,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "axe": [],
+        "financial_snapshots": [
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": []
+          },
+          {
+            "stock": 1000,
+            "lot": 1000,
+            "orders": 0,
+            "markers": 0,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          },
+          {
+            "stock": 998,
+            "lot": 998,
+            "orders": 1,
+            "markers": 1,
+            "duplicate_refs": 0,
+            "duplicate_numbers": 0,
+            "cash_differences": [
+              0
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
