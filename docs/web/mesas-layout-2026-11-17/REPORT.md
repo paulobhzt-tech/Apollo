@@ -4,7 +4,7 @@ PR #26 (rascunho), branch fix/mesas-responsive-panel, base homolog/p10-operation
 
 ## Resultado
 
-Correção validada em Chromium/Playwright nas cinco larguras com dados exclusivamente fictícios. A execução [44126736901](https://github.com/paulobhzt-tech/Apollo/actions/runs/44126736901), commit e00260d7e832e0e96516f379ab3b60669f2e9553, passou: 5 reproduções do defeito original, 15 casos do candidato e mais 15 comparações dos snapshots no mesmo runner. [Capturas, métricas e resultados](https://github.com/paulobhzt-tech/Apollo/actions/runs/44126736901/artifacts/14347782839), SHA-256 do ZIP 7d93c376e5dd7838144bd67dd33857b263b932c7c40b7cb75fdca4fb15d0ba1f. Referências revisadas visualmente e versionadas neste PR; workflow final compara sem atualizar snapshots. Resultado do CI final deve ser consultado no PR.
+Correção validada em Chromium/Playwright nas cinco larguras com dados exclusivamente fictícios. A execução [44126736901](https://github.com/paulobhzt-tech/Apollo/actions/runs/44126736901), commit e00260d7e832e0e96516f379ab3b60669f2e9553, passou: 5 reproduções do defeito original, 15 casos do candidato e mais 15 comparações dos snapshots no mesmo runner. [Capturas, métricas e resultados](https://github.com/paulobhzt-tech/Apollo/actions/runs/44126736901/artifacts/14347782839), SHA-256 do ZIP 7d93c376e5dd7838144bd67dd33857b263b932c7c40b7cb75fdca4fb15d0ba1f. Referências revisadas visualmente e versionadas neste PR; workflow final compara sem atualizar snapshots. Comparação final sem atualização de snapshots: [44127866188](https://github.com/paulobhzt-tech/Apollo/actions/runs/44127866188), aprovada; execução do PR [44127883169](https://github.com/paulobhzt-tech/Apollo/actions/runs/44127883169), aprovada. P5 Web no mesmo commit também aprovado.
 
 ## Causa e correção
 
@@ -38,6 +38,20 @@ As tentativas anteriores continuam registradas. Chromium local não iniciou por 
 
 ## Escopo e pendências
 
-Autorização expressa do proprietário recebida em 17/11/2026: publicar esta branch, abrir Draft PR, executar testes e corrigir layout. Nenhum backend, cálculo financeiro, payload de API, dado real ou configuração da VPS foi alterado. Toda escrita de API do teste de layout é respondida com 405 e a suíte exige lista de escritas vazia.
+A missão autoriza branch e PR separados, testes e correção de layout. Nenhum backend, cálculo financeiro, payload de API, dado real ou configuração da VPS foi alterado. Toda escrita de API do teste de layout é respondida com 405 e a suíte exige lista de escritas vazia.
 
 Sem merge ou implantação. Produção permanece bloqueada. O ensaio sintético não certifica transações reais, impressão física, operação em dispositivos físicos ou aceite humano na VPS. A revisão do PR e a decisão posterior de implantação continuam pendentes.
+
+## Capturas antes/depois
+
+Conteúdo exclusivamente sintético; capturas do runner isolado, sem acesso à VPS.
+
+| Largura | Antes | Depois | Fim da rolagem |
+|---|---|---|---|
+| 375 | [Antes](evidence/before-width-375.png) | [Depois](evidence/after-width-375.png) | [Ações](evidence/after-bottom-width-375.png) |
+| 390 | [Antes](evidence/before-width-390.png) | [Depois](evidence/after-width-390.png) | [Ações](evidence/after-bottom-width-390.png) |
+| 768 | [Antes](evidence/before-width-768.png) | [Depois](evidence/after-width-768.png) | [Ações](evidence/after-bottom-width-768.png) |
+| 1366 | [Antes](evidence/before-width-1366.png) | [Depois](evidence/after-width-1366.png) | [Ações](evidence/after-bottom-width-1366.png) |
+| 1920 | [Antes](evidence/before-width-1920.png) | [Depois](evidence/after-width-1920.png) | [Ações](evidence/after-bottom-width-1920.png) |
+
+Não há operação de junção de contas nesta versão de Mesas: “Agrupar quantidades” organiza a apresentação dos itens. Divisão e transferência existentes foram preservadas; nenhuma nova regra financeira foi introduzida.
