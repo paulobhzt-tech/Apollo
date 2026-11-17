@@ -34,11 +34,11 @@ docker compose logs --tail=100 caddy
 Verifique login, autorização por perfil, abertura de caixa, vendas simuladas, mesas, comandas, cozinha e relatórios em ambiente de testes **antes** de colocar a loja em produção.
 
 ## Backup e recuperação
-```bash
-chmod +x backup-mongo.sh
-./backup-mongo.sh
-```
-O script salva backups compactados em `/var/backups/apollo-pdv` e retém os últimos sete dias. Programe-o diariamente no agendador do servidor, e **copie um backup criptografado para armazenamento externo**. Teste a restauração em um banco de testes separado antes de depender dos backups. Backup somente no mesmo disco da VPS não protege contra falha do servidor.
+
+Seguir [P10.5: backup e recuperação](../../docs/web/p105-2026-11-17/BACKUP-RECOVERY.md).
+Os scripts exigem ambiente/banco/container/projeto explícitos e janela sem gravações comprovada.
+Não executar o comando legado sem configuração. Não há exclusão automática de cópias;
+restauração real e cópia externa verificada continuam obrigatórias antes de produção.
 
 ## Acesso Windows
 Após publicar e validar HTTPS, configure a variável GitHub Actions `PDV_SERVER_URL=https://SEU_DOMINIO` e execute o workflow `Instalador Windows`. Não inclua segredos do MongoDB no instalador: ele acessa apenas a API HTTPS.
