@@ -82,7 +82,7 @@ jobs:
           set -o pipefail
           mkdir -p docs/web/p10-2026-11-16/evidence/regression
           python backend/tools/run_replica_tests.py --http -q tests | tee docs/web/p10-2026-11-16/evidence/regression/backend.txt
-          python backend/tools/test_replica_failover.py | tee docs/web/p10-2026-11-16/evidence/regression/failover.txt
+          python backend/tools/test_replica_failover.py docs/web/p10-2026-11-16/evidence/regression/failover.json | tee docs/web/p10-2026-11-16/evidence/regression/failover.txt
       - name: Types lint Web Electron frontend and Node regressions
         run: |
           npm --prefix frontend run typecheck

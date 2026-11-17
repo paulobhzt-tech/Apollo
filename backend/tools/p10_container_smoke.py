@@ -84,8 +84,18 @@ else: raise RuntimeError('Egress guard failed')
         result={'verdict':'PASS','tls_certificate_verified':True,'dist_web_index_verified':True,'mongo_replica_authenticated':True,
           'bootstrap_secret_gated':True,'secure_httpOnly_cookie':True,'hostile_csrf_blocked':True,'external_routes_and_tcp_blocked':True,
           'unsafe_startup_rejected':True,'nonroot_readonly_private_network':True,'image_id':image,'production_deployment':False}
-        (out/'result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+
     finally:
         subprocess.run([*compose,'--profile','tls-test','logs','--no-color'],env=env,cwd=root,stdout=log,stderr=log)
         subprocess.run([*compose,'--profile','tls-test','down','--volumes','--remove-orphans'],env=env,cwd=root,stdout=log,stderr=log)
-        log.close();subprocess.run(['sudo','rm','-rf',str(secrets)],check=True)
+        log.flush()
+        content=(out/'container.log').read_text()
+        leaked=False
+        for file in secrets.glob('*'):
+            value=subprocess.check_output(['sudo','cat',str(file)],text=True).strip()
+            if value and value in content:
+                leaked=True;content=content.replace(value,'[REDACTED GENERATED SECRET]')
+        log.close();(out/'container.log').write_text(content)
+        subprocess.run(['sudo','rm','-rf',str(secrets)],check=True)
+        if leaked:raise RuntimeError('Secret logging regression (redacted)')
+(out/'result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
