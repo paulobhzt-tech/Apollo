@@ -1,4 +1,4 @@
-# Apollo P10 — homologação operacional Web (preparação)
+# Apollo P10.2 — validação operacional em execução
 
 **Estado: NÃO HOMOLOGADA. PRODUÇÃO BLOQUEADA.** Documentação e artefatos neste PR são preparação. Nenhum deploy, acesso à VPS, merge, dados reais ou veredito de aprovação foi executado.
 
@@ -61,3 +61,13 @@ Guardar caso, ambiente, versão/commit, comandos não sensíveis, resultados, lo
 ## Veredito P10
 
 **PENDENTE / NÃO HOMOLOGADA** — código/configuração preparados para revisão; testes com banco real, segurança externa e hardware físico **não executados nesta missão**. Produção bloqueada.
+
+## Retomada P10.2 — implementação e ensaios em andamento
+
+HEAD inicial confirmado: 9cf8b0dcb69101f933c042c2efa71ea7ae200967. Workflows 43996044055 e 43996044059 aprovados; ancestralidade P5/P7/P8/P9 confirmada. Sem alterações no PR #24.
+
+Correções implementadas nesta branch: provisionamento sem admin/admin, segredo montado protegido e marca transacional única; reserva atômica das tentativas de login; limite de 72 bytes para impedir truncamento bcrypt; remoção de entradas sensíveis do erro 422; DTO público de delivery sem custo/receita; diretório de funcionários oculto na homologação. Isolamento com allowlist de URI/banco/replica set, marker sintético, credenciais restritas, bloqueio de integrações e egress TCP, rede Docker interna e banner HOMOLOGAÇÃO. Backup exclui marcadores de segurança para preservar o ambiente e administrador locais na restauração.
+
+Novo workflow p10-operational.yml: regressão backend/financeira, P5/P6, P10 Web compilada HTTPS, cenários de segurança/operacionais, axe, concorrência, reinício de processos, build Docker e teste TLS/rede privada. Execução remota ainda pendente de publicação deste commit; não declarar aprovação. Resultados locais em evidence/local-preflight.json. O Chromium local foi bloqueado por socket(), após preflight TLS real aprovado.
+
+O inventário e o veredito de preparação acima são históricos. O veredito P10.2 permanece INCONCLUSIVO até revisão das evidências remotas; produção bloqueada.

@@ -16,7 +16,7 @@ BACKUP_COLLS = [
 ]
 EXCLUDED = {'sessions':'credentials/sessions','login_attempts':'transient security counters',
             'server_backups':'recursive archives','status_checks':'transient diagnostics'}
-SECRET_SETTINGS = ['drive','selftest_last']
+SECRET_SETTINGS = ['drive','selftest_last','initial-admin','p10-isolation']
 
 
 def digest(data):

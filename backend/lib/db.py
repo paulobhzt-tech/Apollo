@@ -10,6 +10,8 @@ from pymongo import ASCENDING, DESCENDING, IndexModel
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
+from lib.homologation import validate
+validate()
 mongo_url = os.environ["MONGO_URL"]
 from lib.transaction_metrics import listeners
 client = AsyncIOMotorClient(mongo_url, tz_aware=True, event_listeners=listeners())
@@ -65,4 +67,4 @@ async def ensure_indexes() -> None:
             try:
                 await db[collection].create_indexes([model])
             except Exception as exc:  # never block boot on an index; the log line names what to fix
-                logger.error("ensure_indexes(%s.%s): %s", collection, model.document["name"], exc)
+                logger.error("ensure_indexes(%s.%s): %s", collection, model.document["name"], type(exc).__name__)

@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 def _id() -> str:
@@ -22,6 +22,15 @@ Source = Literal["pdv", "mesa", "cardapio", "ifood", "99food", "keeta", "site"]
 
 
 # ---------- auth / employees ----------
+class PasswordBytesPolicy(BaseModel):
+    @field_validator('password', check_fields=False)
+    @classmethod
+    def password_bytes(cls, value):
+        if value is not None and len(value.encode()) > 72:
+            raise ValueError('Senha excede o limite seguro de 72 bytes')
+        return value
+
+
 class Employee(BaseModel):
     id: str = Field(default_factory=_id)
     name: str
@@ -35,7 +44,7 @@ class Employee(BaseModel):
     created_at: datetime = Field(default_factory=_now)
 
 
-class EmployeeIn(BaseModel):
+class EmployeeIn(PasswordBytesPolicy):
     name: str = Field(min_length=2)
     role: Role
     phone: str = ""
@@ -49,7 +58,7 @@ class EmployeeIn(BaseModel):
     active: bool = True
 
 
-class EmployeeUpdate(BaseModel):
+class EmployeeUpdate(PasswordBytesPolicy):
     name: Optional[str] = Field(default=None, min_length=2)
     role: Optional[Role] = None
     phone: Optional[str] = None
@@ -63,10 +72,10 @@ class EmployeeUpdate(BaseModel):
     can_cancel: Optional[bool] = None
 
 
-class LoginIn(BaseModel):
+class LoginIn(PasswordBytesPolicy):
     pin: Optional[str] = Field(default=None, pattern=r"^\d{4,6}$")
-    username: Optional[str] = None
-    password: Optional[str] = None
+    username: Optional[str] = Field(default=None, max_length=40)
+    password: Optional[str] = Field(default=None, max_length=128)
 
 
 class Profile(BaseModel):
@@ -626,12 +635,22 @@ class PublicTable(BaseModel):
     items: list[dict] = []
 
 
+class PublicOrderItem(BaseModel):
+    id: str
+    name: str
+    qty: int
+    unit_price: float
+    options: list[str] = []
+    notes: str = ""
+    cancelled: bool = False
+
+
 class PublicOrderStatus(BaseModel):
     id: str
     number: int
     delivery_status: Optional[str]
     total: float
-    items: list[OrderItem]
+    items: list[PublicOrderItem]
     created_at: datetime
 
 
