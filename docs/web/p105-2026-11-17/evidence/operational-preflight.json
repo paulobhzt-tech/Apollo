@@ -1,0 +1,81 @@
+{
+  "approved_head": "79b71b33badf4266e7e562b73206954fbe33999e",
+  "observation_date_local": "2026-11-17",
+  "repository_clean_at_start": true,
+  "approved_files_match": true,
+  "local_tests": {
+    "unit_tests": 18,
+    "status": "pass",
+    "docker_rclone": "mocked",
+    "bash_syntax": "pass",
+    "python_compile": "pass"
+  },
+  "executor": {
+    "ssh": true,
+    "ssh_agent": false,
+    "ssh_config": false,
+    "known_hosts": false,
+    "docker": false,
+    "mongosh": false,
+    "mongorestore": false,
+    "rclone": true,
+    "apollo_crypt_remote_configured": false
+  },
+  "remote_actions_executed": [],
+  "real_backup": "not_executed",
+  "external_check": "owner_report_only",
+  "real_restore": "not_executed",
+  "rpo": null,
+  "rto": null,
+  "verdict": "BLOQUEADO",
+  "ci": [
+    {
+      "id": 44087209206,
+      "name": "P105 backup script guards",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44087209206",
+      "head_sha": "79b71b33badf4266e7e562b73206954fbe33999e"
+    },
+    {
+      "id": 44087209319,
+      "name": "P5 Web - Browser validation",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44087209319",
+      "head_sha": "79b71b33badf4266e7e562b73206954fbe33999e"
+    },
+    {
+      "id": 44087209170,
+      "name": "Apollo - Bateria de testes",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44087209170",
+      "head_sha": "79b71b33badf4266e7e562b73206954fbe33999e"
+    },
+    {
+      "id": 44087200739,
+      "name": "P105 backup script guards",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44087200739",
+      "head_sha": "79b71b33badf4266e7e562b73206954fbe33999e"
+    },
+    {
+      "id": 44087200477,
+      "name": "Validacao de seguranca e compilacao do Apollo PDV",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44087200477",
+      "head_sha": "79b71b33badf4266e7e562b73206954fbe33999e"
+    },
+    {
+      "id": 44087200337,
+      "name": "Apollo - Bateria de testes",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44087200337",
+      "head_sha": "79b71b33badf4266e7e562b73206954fbe33999e"
+    }
+  ]
+}
