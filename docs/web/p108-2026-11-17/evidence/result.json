@@ -1,0 +1,115 @@
+{
+  "base_head": "8dfdabe286d3f1d4be156d153b725036d23c2260",
+  "date": "2026-11-17",
+  "ssh": {
+    "exit": 255,
+    "result": "Network is unreachable",
+    "strict_host_key_checking": true,
+    "session_established": false
+  },
+  "http_sample": [
+    {
+      "path": "/",
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "sha256": "adbe9ff7a298ff6e0f469c6b675b8f7d6a8897ebbdf520ee7be190cb12b1bf4b",
+      "bytes": 1400,
+      "html": true,
+      "git_config_signature": false,
+      "git_head_signature": false,
+      "headers": {
+        "Strict-Transport-Security": null,
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Content-Security-Policy": null,
+        "Referrer-Policy": "no-referrer"
+      }
+    },
+    {
+      "path": "/index.html",
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "sha256": "adbe9ff7a298ff6e0f469c6b675b8f7d6a8897ebbdf520ee7be190cb12b1bf4b",
+      "bytes": 1400,
+      "html": true,
+      "git_config_signature": false,
+      "git_head_signature": false,
+      "headers": {
+        "Strict-Transport-Security": null,
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Content-Security-Policy": null,
+        "Referrer-Policy": "no-referrer"
+      }
+    },
+    {
+      "path": "/.git/config",
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "sha256": "adbe9ff7a298ff6e0f469c6b675b8f7d6a8897ebbdf520ee7be190cb12b1bf4b",
+      "bytes": 1400,
+      "html": true,
+      "git_config_signature": false,
+      "git_head_signature": false,
+      "headers": {
+        "Strict-Transport-Security": null,
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Content-Security-Policy": null,
+        "Referrer-Policy": "no-referrer"
+      }
+    },
+    {
+      "path": "/.git/HEAD",
+      "status": 200,
+      "type": "text/html; charset=utf-8",
+      "sha256": "adbe9ff7a298ff6e0f469c6b675b8f7d6a8897ebbdf520ee7be190cb12b1bf4b",
+      "bytes": 1400,
+      "html": true,
+      "git_config_signature": false,
+      "git_head_signature": false,
+      "headers": {
+        "Strict-Transport-Security": null,
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Content-Security-Policy": null,
+        "Referrer-Policy": "no-referrer"
+      }
+    }
+  ],
+  "readiness": {
+    "path": "/api/health/ready",
+    "status": 200,
+    "content_type": "text/html; charset=utf-8",
+    "ready": null,
+    "json": false,
+    "certificate_validated_by_default_client": true
+  },
+  "first_http_round": "partial failures URLError; .git/config returned same HTML digest",
+  "owner_evidence": {
+    "file": "Texto colado(20261117-153414).txt",
+    "lines_read": 471,
+    "latest_backup_bytes": 7243,
+    "latest_backup_sha256": "ebbb6988098a5d910bfe65503ba84fd5d7e18ea2b7df7c1da13a844246c4c2cb",
+    "restore_for_latest_backup": "dryRun only; not a real restore",
+    "https_502": "observed immediately after app start; recovered on next owner's read",
+    "production_reported_running": true
+  },
+  "tests": {
+    "frontend_before_new_cases": 11,
+    "frontend_before_result": "all 11 failed against previous implementation",
+    "frontend_after_pass": 29,
+    "rs0_node_mocked_pass": 8,
+    "helpers_pass": 8,
+    "previous_backup_unit_pass": 18,
+    "total": 63,
+    "real_mongo_restore": false,
+    "real_rs0_init": false,
+    "real_compose_merge": false,
+    "real_financial_tests": false
+  },
+  "migration": "not_executed",
+  "new_maintenance_window": false,
+  "production_actions": [],
+  "verdict": "HOMOLOGACAO_BLOQUEADA"
+}

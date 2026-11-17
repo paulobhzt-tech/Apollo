@@ -1,0 +1,16 @@
+✔ requires current window confirmation before connecting (2.97835ms)
+✔ requires restore and rollback proof (1.129514ms)
+✔ rejects expired, oversized and insufficient windows (2.704852ms)
+✔ authentication and wrong server configuration never initialize (3.402272ms)
+✔ NotYetInitialized permits exactly one rs0 initiation (1.148883ms)
+✔ existing expected configuration is unchanged (1.082153ms)
+✔ wrong advertised hostname refuses without reconfigure (1.244615ms)
+✔ mongosh thrown NotYetInitialized is handled, auth errors are refused (2.156845ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 142.098336
