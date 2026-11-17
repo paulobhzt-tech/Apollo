@@ -46,7 +46,9 @@ for key in ['mongo','nginx']:
     run('docker','save','-o',str(bundle/(key+'.docker.tar')),lock[key]['offline_tag'])
 compose['services']['p10-mongo']['image']=lock['mongo']['offline_tag']
 compose['services']['proxy']['image']=lock['nginx']['offline_tag']
-for service in compose['services'].values():service['pull_policy']='never'
+for service in compose['services'].values():
+    service['pull_policy']='never'
+    service['logging']={'driver':'json-file','options':{'max-size':'10m','max-file':'3'}}
 web=compose['services']['web'];web.pop('build');web['image']='${P104_WEB_IMAGE:?Use verified package image}'
 web['environment']['APOLLO_BOOTSTRAP_TOKEN_FILE']=''
 web['volumes']=[v for v in web['volumes'] if '/bootstrap_token:' not in v]
@@ -81,6 +83,9 @@ info=json.loads(run('docker','image','inspect',image,capture_output=True,text=Tr
 assert info['Config']['User']=='10001:10001' and info['Architecture']=='amd64'
 # Scan complete exported runtime files for forbidden secret files and high-confidence key/token patterns.
 cid=run('docker','create',image,capture_output=True,text=True).stdout.strip()
+public_vectors=[]
+fixture_info=json.loads((root/'deploy/p10/package/public-selftest-fixtures.json').read_text())
+basecid=run('docker','create','python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df',capture_output=True,text=True).stdout.strip()
 try:
     filesystem=out/'filesystem.tar';run('docker','export','-o',str(filesystem),cid)
     with tarfile.open(filesystem) as tar:
@@ -91,20 +96,28 @@ try:
             if member.size<8*1024*1024:
                 raw=tar.extractfile(member).read()
                 from p104_secret_scan import unsafe_content
-                assert not unsafe_content(raw),member.name
-finally:run('docker','rm',cid)
+                if unsafe_content(raw):
+                    from p104_secret_scan import public_vectors_only
+                    basefile=out/'base-candidate.bin'
+                    run('docker','cp',basecid+':/'+member.name,str(basefile))
+                    assert public_vectors_only(raw,basefile.read_bytes(),member.name,set(fixture_info['public_fixture_sha256'])),member.name
+                    public_vectors.append({'path':member.name,'file_sha256':hashlib.sha256(raw).hexdigest(),'classification':'Exact public upstream self-test vectors and byte-identical pinned base library'})
+finally:
+    run('docker','rm',cid);run('docker','rm',basecid)
 # SBOM from the retained OCI, with OS/Python packages. Add locked frontend build/bundle inventory separately.
 run('docker','run','--rm','--network','none','-v',str(bundle)+':/data:ro',lock['syft']['reference'],
     'oci-archive:/data/apollo-web.oci.tar','-o','cyclonedx-json',stdout=(bundle/'sbom.cdx.json').open('w'))
 sbom=json.loads((bundle/'sbom.cdx.json').read_text());assert sbom.get('bomFormat')=='CycloneDX' and sbom.get('components')
 frontend=json.loads((root/'frontend/package-lock.json').read_text())
 (bundle/'frontend-lock.json').write_text(json.dumps(frontend,indent=2)+'\n')
+shutil.copy(root/'backend/tools/p104_verify.py',bundle/'verify_package.py')
+shutil.copy(root/'deploy/p10/package/public-selftest-fixtures.json',bundle/'public-selftest-fixtures.json')
 # Source and resolved dependency manifests are retained as build inputs, never secret material.
 manifest={'source_head':head,'approved_app_head':'526dd72b78d57b7799fc995af42e0fe925c04379','source_date_epoch':int(epoch),
  'oci_manifest_digest':metadata[0]['containerimage.digest'],'docker_image_id':info['Id'],'image':image,
  'reproducibility':{'no_cache_builds':2,'equal_oci_manifest_digest':True,'tar_byte_identity_claimed':False},
  'runtime_secret_scan':'PASS: forbidden paths and high-confidence private key/GitHub token signatures; not a universal secret detector',
- 'sbom_components':len(sbom['components']),'registry_pushed':False,'production_approved':False,
+ 'classified_public_base_selftests':public_vectors,'sbom_components':len(sbom['components']),'registry_pushed':False,'production_approved':False,
  'files':{p.name:{'sha256':sha(p),'bytes':p.stat().st_size} for p in bundle.iterdir() if p.is_file()}}
 (bundle/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print(json.dumps({'package_prepared':True,'oci_manifest_digest':manifest['oci_manifest_digest'],'source':head}),flush=True)

@@ -22,6 +22,7 @@ with tempfile.TemporaryDirectory(prefix='p104-rehearsal-') as directory:
     run(['sudo','chown','101:101',str(certs/'test.key')]);run(['sudo','chmod','400',str(certs/'test.key')])
     for archive in ['mongo.docker.tar','nginx.docker.tar','apollo-web.docker.tar']:
         run(['docker','load','-i',str(bundle/archive)])
+    run([sys.executable,str(bundle/'verify_package.py'),str(bundle),'--loaded-images'])
     mark('verified_archive_loaded')
     def create_project(suffix):
         private=tmp/suffix;private.mkdir();secretdir=private/'secrets';recovery=private/'recovery';recovery.mkdir()

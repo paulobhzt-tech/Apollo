@@ -48,3 +48,30 @@ def test_secret_scan_rejects_complete_key_candidate():
     from tools.p104_secret_scan import unsafe_content
     header=b'-----BEGIN '+b'PRIVATE KEY-----\n'
     assert unsafe_content(header+b'A'*64+b'\n-----END '+b'PRIVATE KEY-----')
+
+
+def test_offline_verifier_rejects_changed_file(tmp_path):
+    from tools.p104_verify import verify
+    f=tmp_path/'image.tar';f.write_bytes(b'original')
+    (tmp_path/'manifest.json').write_text(json.dumps({'files':{'image.tar':{'sha256':hashlib.sha256(b'original').hexdigest(),'bytes':8}}}))
+    assert verify(tmp_path)['verified_files']==1
+    f.write_bytes(b'tampered')
+    with pytest.raises(ValueError,match='integrity'):
+        verify(tmp_path)
+
+
+def test_offline_verifier_rejects_traversal(tmp_path):
+    from tools.p104_verify import verify
+    (tmp_path/'manifest.json').write_text(json.dumps({'files':{'../outside':{'sha256':'0'*64,'bytes':0}}}))
+    with pytest.raises(ValueError,match='Unsafe'):
+        verify(tmp_path)
+
+
+def test_public_vector_classification_requires_exact_base_path_and_digest():
+    from tools.p104_secret_scan import public_vectors_only
+    raw=b'-----BEGIN '+b'PRIVATE KEY-----\n'+b'A'*64+b'\n-----END '+b'PRIVATE KEY-----'
+    digest=hashlib.sha256(raw).hexdigest();path='usr/lib/x86_64-linux-gnu/libgnutls.so.30.34.3'
+    assert public_vectors_only(raw,raw,path,{digest})
+    assert not public_vectors_only(raw,raw+b'changed',path,{digest})
+    assert not public_vectors_only(raw,raw,'app/secret.pem',{digest})
+    assert not public_vectors_only(raw,raw,path,set())
