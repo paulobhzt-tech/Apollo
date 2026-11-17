@@ -1,3 +1,5 @@
+> **Atualização — missão P10.5 final, 17/11/2026:** a instrução mais recente autoriza **somente leitura e documentação**. Implantação, mudanças de serviços/DNS, restart, exclusões e produção exigem autorização separada; a autorização geral histórica abaixo não permite essas ações nesta missão. Destino SSH foi informado, mas tentativa segura neste executor retornou `Network is unreachable`; nenhuma sessão remota foi estabelecida. Backups/restore/GPG/Drive foram informados pelo proprietário e ainda não revalidados pelo Work. Ver [auditoria atual](FINAL-AUDIT.md), [comandos assistidos](ASSISTED-AUDIT.md) e [plano de recuperação e prontidão](RECOVERY-READINESS.md). **Homologação humana e produção BLOQUEADAS**; divergência standalone versus replica set transacional requer verificação e plano autorizado.
+
 # P10.5–P10.7 — retomada autorizada e prontidão de produção
 
 Data: 17/11/2026. PR #25, branch `homolog/p10-operational-web`.
