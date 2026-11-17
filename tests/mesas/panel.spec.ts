@@ -80,22 +80,29 @@ test('keyboard trap, close/return focus and nested actions without writes', asyn
   const { panel, mutations, opener } = await fixture(page);
   for (let i = 0; i < 45; i++) {
     await page.keyboard.press('Tab');
-    expect(await panel.evaluate(el => el.contains(document.activeElement))).toBe(true);
+    await expect.poll(() => panel.evaluate(el => el.contains(document.activeElement))).toBe(true);
   }
   await page.getByTestId('close-table-button').focus(); await page.keyboard.press('Enter');
   await expect(page.getByTestId('payment-dialog')).toBeVisible();
+  expect((await geometry(page.getByTestId('payment-dialog'))).overflowing).toEqual([]);
   await page.keyboard.press('Escape'); await expect(page.getByTestId('payment-dialog')).toBeHidden();
   await expect(page.getByTestId('close-table-button')).toBeFocused();
   await page.getByTestId('request-bill-button').click();
   await expect(page.getByTestId('prebill-dialog')).toBeVisible();
+  expect((await geometry(page.getByTestId('prebill-dialog'))).overflowing).toEqual([]);
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Dividir conta por itens', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Divisão da conta por itens' })).toBeVisible();
   await page.keyboard.press('Escape');
   await page.getByTestId('table-qr-button').click();
   await expect(page.getByTestId('qr-dialog')).toBeVisible();
+  expect((await geometry(page.getByTestId('qr-dialog'))).overflowing).toEqual([]);
   await page.keyboard.press('Escape');
   await page.getByTestId('toggle-group-items').click();
+  expect((await geometry(panel)).overflowing).toEqual([]);
+  await page.getByTestId('transfer-select').click();
+  await page.getByRole('option', { name: /FICTÍCIO Destino/ }).click();
+  await expect(page.getByTestId('transfer-button')).toBeEnabled();
   expect((await geometry(panel)).overflowing).toEqual([]);
   await page.getByTestId('add-items-button').click();
   await page.getByTestId('product-card-FIXTURE').click();

@@ -1,0 +1,54 @@
+/* Scoped to Mesas: intrinsic sizing and wrapping, never horizontal clipping. */
+.mesas-sheet[data-side="right"] { width: 100vw; max-width: 46rem; min-width: 0; height: 100dvh; max-height: 100dvh; gap: 0; }
+.mesas-sheet-header { display: flex; flex: none; align-items: flex-start; gap: .75rem; min-width: 0; padding: 1rem 3.5rem 1rem 1rem; border-bottom: 1px solid rgb(255 255 255 / .1); }
+.mesas-sheet-header > div { min-width: 0; }
+.mesas-sheet [data-slot="sheet-close"] { width: 2.75rem; height: 2.75rem; }
+.mesas-sheet-body { flex: 1 1 0%; min-height: 0; min-width: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 0 1rem 1rem; }
+.mesas-sheet-footer { flex: none; min-width: 0; padding: .75rem 1rem max(.75rem, env(safe-area-inset-bottom)); border-top: 1px solid rgb(255 255 255 / .1); background: var(--color-shell, #15151c); }
+.mesas-sheet :where(p, span, h2, h3) { overflow-wrap: anywhere; }
+.mesas-sheet :where(button, input, select) { min-width: 0; max-width: 100%; }
+.mesas-sheet button { white-space: normal; overflow-wrap: anywhere; }
+.mesas-sheet [data-slot="button"] { min-height: 2.75rem; height: auto; padding-block: .5rem; }
+.mesas-sheet [data-testid="table-qr-button"] { flex: none; }
+.mesas-rename { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; }
+.mesas-rename [data-testid="table-delete-button"] { grid-column: 2; }
+.mesas-order-line { display: grid; grid-template-columns: 2rem minmax(0, 1fr) 2.75rem; gap: .5rem; align-items: start; }
+.mesas-line-qty { grid-column: 1; grid-row: 1; }
+.mesas-line-description { grid-column: 2; grid-row: 1; }
+.mesas-line-prices { grid-column: 2; grid-row: 2; display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
+.mesas-line-prices > span { max-width: 100%; }
+.mesas-line-remove { grid-column: 3; grid-row: 1 / span 2; display: grid; place-items: center; min-height: 2.75rem; }
+.mesas-subtotal { display: grid; grid-template-columns: minmax(0, 1fr); gap: .25rem; }
+.mesas-subtotal [data-testid="table-order-total"] { font-size: clamp(1.1rem, 4vw, 1.5rem); }
+.mesas-primary-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; margin-top: .5rem; }
+.mesas-management { display: grid; grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+.mesas-transfer [data-slot="select-trigger"] { width: 100%; height: auto; min-height: 2.75rem; white-space: normal; }
+.mesas-transfer [data-slot="select-value"] { min-width: 0; overflow-wrap: anywhere; -webkit-line-clamp: unset; }
+.mesas-sheet [data-testid="table-customers"] > div > span { min-width: 0; max-width: 100%; }
+.mesas-pending { display: grid; grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem; gap: .5rem; align-items: center; }
+.mesas-pending > span:nth-child(2) { width: auto; text-align: center; }
+.mesas-pending-name, .mesas-pending > select, .mesas-pending > input { grid-column: 1 / -1; width: 100%; min-width: 0; max-width: 100%; }
+.mesas-pending-name { overflow-wrap: anywhere; }
+.mesas-card-summary { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; justify-content: space-between; }
+.mesas-card-total { flex-basis: 100%; min-width: 0; overflow-wrap: anywhere; }
+.mesas-table-card { overflow-wrap: anywhere; }
+@media (min-width: 640px) {
+  .mesas-sheet-header { padding-left: 1.25rem; }
+  .mesas-sheet-body { padding-inline: 1.25rem; }
+  .mesas-sheet-footer { padding-inline: 1.25rem; }
+  .mesas-subtotal { grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .75rem; }
+  .mesas-management { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.mesas-transfer [data-slot="select-value"] { display: block; overflow: visible; }
+.mesas-transfer-options :where(span, [role="option"]) { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.mesas-dialog { min-width: 0; width: min(42rem, calc(100vw - 2rem)); max-width: calc(100vw - 2rem); max-height: calc(100dvh - 2rem); overflow-y: auto; }
+.mesas-dialog.mesas-qr { width: min(24rem, calc(100vw - 2rem)); }
+.mesas-dialog :where(p, span, h2, label, button) { min-width: 0; overflow-wrap: anywhere; }
+.mesas-dialog :where(input, select, button) { min-width: 0; max-width: 100%; }
+.mesas-dialog [data-slot="dialog-title"] { padding-right: 2.5rem; }
+.mesas-dialog [data-slot="button"] { height: auto; min-height: 2.75rem; white-space: normal; padding-block: .5rem; }
+.mesas-dialog [data-slot="dialog-close"] { width: 2.75rem; height: 2.75rem; }
+.mesas-dialog [data-testid="prebill-line"] > span:first-child { min-width: 0; flex: 1; }
+.mesas-dialog [data-testid="prebill-line"] > span:last-child { flex: none; }
+.mesas-partial-item > span { min-width: 0; flex: 1; }
+.mesas-partial-item > input { flex: 0 0 5rem; }

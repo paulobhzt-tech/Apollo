@@ -61,7 +61,7 @@ export default function PreBillDialog({ table, order, open, onClose, onPrinted }
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md border-white/10 bg-shell" data-testid="prebill-dialog">
+      <DialogContent className="mesas-dialog max-w-md border-white/10 bg-shell" data-testid="prebill-dialog">
         <DialogTitle className="font-heading text-xl text-white">Pré-conta · {tableLabel(table)}</DialogTitle>
         <div className="max-h-[45vh] space-y-1.5 overflow-y-auto rounded-xl bg-white p-4 font-mono text-[12px] text-black" data-testid="prebill-preview">
           {groups.map((g) => (
@@ -78,7 +78,7 @@ export default function PreBillDialog({ table, order, open, onClose, onPrinted }
             {n > 1 && <div className="flex justify-between"><span>Por pessoa ({n})</span><span data-testid="prebill-per-person">{brl(r2(total / n))}</span></div>}
           </div>
         </div>
-        <div className="flex items-end gap-4">
+        <div className="flex flex-wrap items-end gap-4">
           <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={service} onCheckedChange={(v) => setService(!!v)} data-testid="prebill-service-checkbox" /> Incluir 10% de serviço</label>
           <div className="w-24"><Label className="text-xs text-zinc-400">Dividir por</Label><Input value={people} onChange={(e) => setPeople(e.target.value)} inputMode="numeric" className="mt-1" data-testid="prebill-people-input" /></div>
         </div>

@@ -20,6 +20,7 @@ const BRANDS: CardBrand[] = ["visa", "mastercard", "elo"];
 const BRAND_COLOR: Record<CardBrand, string> = { visa: "#1A1F71", mastercard: "#EB001B", elo: "#FFCB05" };
 
 interface Props {
+  contentClassName?: string;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   subtotal: number;
@@ -33,7 +34,7 @@ interface Props {
 export default function PaymentDialog(props: Props) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto border-white/10 bg-elevated sm:max-w-2xl" data-testid="payment-dialog">
+      <DialogContent className={cn("max-h-[92vh] overflow-y-auto border-white/10 bg-elevated sm:max-w-2xl", props.contentClassName)} data-testid="payment-dialog">
         {props.open && <PaymentBody {...props} />}
       </DialogContent>
     </Dialog>

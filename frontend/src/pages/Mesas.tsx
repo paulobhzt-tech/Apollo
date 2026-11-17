@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./Mesas.css";
 import { Link, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRightLeft, Bell, Clock, Minus, Pencil, Plus, QrCode, Receipt, Send, Trash2, Users } from "lucide-react";
@@ -135,7 +136,7 @@ export default function Mesas() {
             type="button"
             onClick={() => setSelId(t.id)}
             data-testid={`${t.kind === "comanda" ? "comanda" : "table"}-card-${t.number}`}
-            className={cn("relative rounded-2xl border p-4 text-left transition-transform duration-200 hover:-translate-y-0.5 animate-rise", STATUS[t.status].cls)}
+            className={cn("mesas-table-card relative min-w-0 rounded-2xl border p-4 text-left transition-transform duration-200 hover:-translate-y-0.5 animate-rise", STATUS[t.status].cls)}
           >
             {t.call && (
               <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-white animate-pulse-ring" data-testid={`table-call-${t.number}`}>
@@ -144,13 +145,13 @@ export default function Mesas() {
             )}
             <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">{kindLabel(t.kind)}</p>
             <p className="font-heading text-4xl font-semibold text-white">{String(t.number).padStart(2, "0")}</p>
-            {t.name && <p className="truncate text-sm font-medium text-primary" data-testid={`table-name-${t.number}`}>{t.name}</p>}
+            {t.name && <p className="break-words text-sm font-medium text-primary" data-testid={`table-name-${t.number}`}>{t.name}</p>}
             <p className="mt-1 flex items-center gap-1.5 text-xs text-zinc-300"><span className={cn("size-2 rounded-full", STATUS[t.status].dot)} />{STATUS[t.status].label}</p>
             {t.order_id ? (
-              <div className="mt-3 flex items-center justify-between text-xs text-zinc-400">
+              <div className="mesas-card-summary mt-3 text-xs text-zinc-400">
                 <span className="flex items-center gap-1"><Users className="size-3" />{t.people}</span>
                 <span className="flex items-center gap-1"><Clock className="size-3" />{minutesSince(t.opened_at)}min</span>
-                <span className="font-mono text-sm text-white">{brl(t.total)}</span>
+                <span className="mesas-card-total font-mono text-sm text-white">{brl(t.total)}</span>
               </div>
             ) : (
               <p className="mt-3 text-xs text-zinc-500">{t.customer_name || `${t.seats} lugares`}</p>
@@ -229,7 +230,7 @@ function RenameRow({ table, canDelete, onDeleted }: { table: Table; canDelete: b
     onError: (e) => toast.error(errMsg(e)),
   });
   return (
-    <div className="mt-4 flex gap-2">
+    <div className="mesas-rename mt-4">
       <Input value={name} placeholder={`Nome da ${table.kind} (ex: Varanda, João)`} onChange={(e) => setName(e.target.value)} data-testid="table-rename-input" />
       <Button variant="outline" disabled={name === table.name || save.isPending} onClick={() => save.mutate()} data-testid="table-rename-save"><Pencil className="size-4" /> Salvar</Button>
       {canDelete && !table.order_id && (
@@ -243,7 +244,7 @@ export function QrDialog({ table, onClose }: { table: Table | null; onClose: () 
   const url = table ? `${window.location.origin}/cardapio/${table.id}` : "";
   return (
     <Dialog open={!!table} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="border-white/10 bg-elevated sm:max-w-sm" data-testid="qr-dialog">
+      <DialogContent className="mesas-dialog mesas-qr border-white/10 bg-elevated sm:max-w-sm" data-testid="qr-dialog">
         <DialogHeader><DialogTitle className="font-heading text-white">QR Code · {table ? tableLabel(table) : ""}</DialogTitle></DialogHeader>
         <div className="print-area flex flex-col items-center gap-3 rounded-2xl bg-white p-6 text-black">
           <p className="font-heading text-lg font-semibold">Espeteria Churras Buguer</p>
@@ -351,11 +352,11 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   return (
     <>
       <Sheet open={open} onOpenChange={(v) => { if (!v) { onClose(); setAdding(false); setPending([]); } }}>
-        <SheetContent side="right" className="w-full overflow-y-auto border-white/5 bg-shell p-0 sm:max-w-xl" data-testid="table-sheet">
+        <SheetContent side="right" className="mesas-sheet border-white/5 bg-shell p-0" data-testid="table-sheet">
           {table && (
-            <div className="flex min-h-full flex-col p-5">
-              <div className="flex items-start justify-between pr-8">
-                <div>
+            <>
+              <header className="mesas-sheet-header">
+                <div className="min-w-0 flex-1">
                   <SheetTitle className="font-heading text-2xl text-white" data-testid="table-sheet-title">{tableLabel(table)}</SheetTitle>
                   <p className="text-sm text-zinc-400">
                     {STATUS[table.status].label}
@@ -364,7 +365,8 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                   </p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => onQr(table)} data-testid="table-qr-button"><QrCode className="size-4" /> QR</Button>
-              </div>
+              </header>
+              <div className="mesas-sheet-body" role="region" aria-label="Conteúdo da comanda" tabIndex={0} data-testid="table-sheet-scroll">
               <RenameRow key={table.id + table.name} table={table} canDelete={canDelete} onDeleted={onClose} />
 
               {table.call && (
@@ -392,7 +394,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
               ) : (
                 <>
                   <TableCustomers key={table.id + (table.order_id ?? "")} table={table} />
-                  <div className="mt-5 flex items-center justify-between">
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs uppercase tracking-[0.15em] text-zinc-500">Itens · {items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)} un.</span>
                     <button type="button" onClick={() => setGrouped((g) => !g)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-300 transition-colors duration-150 hover:border-primary/50" data-testid="toggle-group-items">
                       {grouped ? "Ver item a item (cancelar)" : "Agrupar quantidades"}
@@ -401,18 +403,20 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                   {grouped ? (
                     <div className="mt-2 space-y-2" data-testid="table-order-grouped">
                       {groupItems(items).map((g) => (
-                        <div key={g.key} className="flex items-center gap-3 rounded-xl bg-panel px-3 py-2.5 text-sm" data-testid="grouped-line">
-                          <span className="min-w-8 font-mono text-primary" data-testid="grouped-line-qty">{g.qty}x</span>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-white">{g.name}</p>
-                            {g.options.length > 0 && <p className="truncate text-xs text-primary">{g.options.join(" · ")}</p>}
-                            {g.notes.length > 0 && <p className="truncate text-xs text-amber-300">{g.notes.join(" · ")}</p>}
+                        <div key={g.key} className="mesas-order-line rounded-xl bg-panel px-3 py-2.5 text-sm" data-testid="grouped-line">
+                          <span className="mesas-line-qty font-mono text-primary" data-testid="grouped-line-qty">{g.qty}x</span>
+                          <div className="mesas-line-description min-w-0 flex-1">
+                            <p className="text-white">{g.name}</p>
+                            {g.options.length > 0 && <p className="text-xs text-primary">{g.options.join(" · ")}</p>}
+                            {g.notes.length > 0 && <p className="text-xs text-amber-300">{g.notes.join(" · ")}</p>}
                             <p className="text-xs text-zinc-400">Cliente: {g.customer_name || "Mesa inteira"}{g.ordered_by ? ` · Lançado por: ${g.ordered_by}` : ""}</p>
                           </div>
-                          <span className="font-mono text-xs text-zinc-500">{brl(g.unit_price)}</span>
-                          <span className="font-mono text-zinc-200">{brl(g.total)}</span>
+                          <div className="mesas-line-prices font-mono">
+                            <span className="text-xs text-zinc-400">Unitário: {brl(g.unit_price)}</span>
+                            <span className="text-zinc-200">Total: {brl(g.total)}</span>
+                          </div>
                           <button type="button" onClick={() => setRemoving(g)} aria-label={`Apagar ${g.name}`} data-testid={`grouped-remove-${g.lines[0]?.id}`}
-                            className="rounded-lg p-1 text-zinc-500 transition-colors duration-150 hover:bg-red-500/10 hover:text-red-400"><Trash2 className="size-4" /></button>
+                            className="mesas-line-remove rounded-lg p-1 text-zinc-500 transition-colors duration-150 hover:bg-red-500/10 hover:text-red-400"><Trash2 className="size-4" /></button>
                         </div>
                       ))}
                       {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
@@ -420,17 +424,17 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                   ) : (
                   <div className="mt-2 space-y-2" data-testid="table-order-items">
                     {items.map((i) => (
-                      <div key={i.id} className={cn("flex items-center gap-3 rounded-xl bg-panel px-3 py-2.5 text-sm", i.cancelled && "opacity-40 line-through")}>
-                        <span className="font-mono text-zinc-400">{i.qty}x</span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-white">{i.name}</p>
-                          {i.options?.length > 0 && <p className="truncate text-xs text-primary">{i.options.join(" · ")}</p>}
-                          {(i.notes || i.cancel_reason) && <p className="truncate text-xs text-amber-300">{i.cancel_reason || i.notes}</p>}
+                      <div key={i.id} className={cn("mesas-order-line rounded-xl bg-panel px-3 py-2.5 text-sm", i.cancelled && "opacity-40 line-through")}>
+                        <span className="mesas-line-qty font-mono text-zinc-400">{i.qty}x</span>
+                        <div className="mesas-line-description min-w-0 flex-1">
+                          <p className="text-white">{i.name}</p>
+                          {i.options?.length > 0 && <p className="text-xs text-primary">{i.options.join(" · ")}</p>}
+                          {(i.notes || i.cancel_reason) && <p className="text-xs text-amber-300">{i.cancel_reason || i.notes}</p>}
                           <p className="text-xs text-zinc-400">Cliente: {i.customer_name || "Mesa inteira"}{i.ordered_by ? ` · Lançado por: ${i.ordered_by}` : ""}</p>
                         </div>
-                        <span className="font-mono text-zinc-200">{brl(i.qty * i.unit_price)}</span>
+                        <span className="mesas-line-prices font-mono text-zinc-200">{brl(i.qty * i.unit_price)}</span>
                         {!i.cancelled && (
-                          <button type="button" data-testid={`cancel-item-${i.id}`} aria-label={`Apagar ${i.name}`}
+                          <button type="button" className="mesas-line-remove" data-testid={`cancel-item-${i.id}`} aria-label={`Apagar ${i.name}`}
                             onClick={() => setRemoving(groupItems([i])[0] ?? null)}><Trash2 className="size-4 text-zinc-500 hover:text-red-400" /></button>
                         )}
                       </div>
@@ -438,21 +442,18 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                     {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
                   </div>
                   )}
-                  <div className="mt-4 flex items-end justify-between border-t border-white/10 pt-3">
-                    <span className="text-sm text-zinc-400">Subtotal (+10% serviço opcional)</span>
-                    <span className="font-mono text-2xl text-white" data-testid="table-order-total">{brl(o?.total ?? table.total)}</span>
-                  </div>
+
 
                   {adding ? (
                     <div className="mt-4 space-y-3 rounded-2xl border border-primary/20 bg-panel p-3">
                       <ProductGrid products={products.data ?? []} categories={categories.data ?? []} onAdd={addPending} compact />
                       <p className="text-xs text-zinc-400">Selecione quem pediu cada item. O funcionário que lançou o pedido será registrado automaticamente.</p>
                       {pending.map((p, i) => (
-                        <div key={p.key} className="flex items-center gap-2 text-sm" data-testid={`pending-line-${i}`}>
+                        <div key={p.key} className="mesas-pending text-sm" data-testid={`pending-line-${i}`}>
                           <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.flatMap((x, j) => j !== i ? [x] : x.qty <= 1 ? [] : [{ ...x, qty: x.qty - 1 }]))}><Minus /></Button>
                           <span className="w-5 text-center font-mono">{p.qty}</span>
                           <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.map((x, j) => (j === i ? { ...x, qty: x.qty + 1 } : x)))}><Plus /></Button>
-                          <span className="flex-1 truncate">{p.product.name}{p.labels.length > 0 && <span className="block text-xs text-primary">{p.labels.join(" · ")}</span>}</span>
+                          <span className="mesas-pending-name">{p.product.name}{p.labels.length > 0 && <span className="block text-xs text-primary">{p.labels.join(" · ")}</span>}</span>
                           <select aria-label="Cliente responsável pelo item" value={p.customerName} onChange={e => setPending(old => old.map((line, j) => j === i ? { ...line, customerName: e.target.value } : line))}
                             className="max-w-32 rounded-md border border-white/15 bg-panel px-2 py-1 text-xs" data-testid={`pending-customer-${i}`}>
                             <option value="">Mesa inteira</option>
@@ -472,25 +473,20 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                     <Button className="mt-4 h-12" onClick={() => setAdding(true)} data-testid="add-items-button"><Plus className="size-4" /> Adicionar itens</Button>
                   )}
 
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <Button variant="outline" onClick={() => setPreBill(true)} disabled={!items.some((i) => !i.cancelled)} data-testid="request-bill-button">
-                      <Receipt className="size-4" /> Pré-conta
-                    </Button>
-                    <Button variant="secondary" onClick={() => setPayOpen(true)} disabled={!items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "")} data-testid="close-table-button">
-                      Fechar conta
-                    </Button>
-                  </div>
                   {["admin", "caixa"].includes(me?.role ?? "") && <Button className="mt-2 w-full" variant="outline" disabled={!items.some((i) => !i.cancelled)} onClick={() => setPartialOpen(true)}>Dividir conta por itens</Button>}
-                  <div className="mt-3 flex gap-2">
+                  <section className="mesas-transfer mt-4" aria-label="Transferência de mesa">
+                    <h3 className="mb-2 text-sm font-semibold">Transferência de mesa</h3>
+                    <div className="flex min-w-0 gap-2">
                     <Select value={transferTo} onValueChange={(v: string) => setTransferTo(v)}>
-                      <SelectTrigger className="flex-1" data-testid="transfer-select"><SelectValue placeholder="Transferir para…">{(v) => v ? (() => { const x = tables.find((t) => t.id === v); return x ? tableLabel(x) : ""; })() : "Transferir para…"}</SelectValue></SelectTrigger>
-                      <SelectContent>
+                      <SelectTrigger className="min-w-0 flex-1" data-testid="transfer-select"><SelectValue placeholder="Transferir para…">{(v) => v ? (() => { const x = tables.find((t) => t.id === v); return x ? tableLabel(x) : ""; })() : "Transferir para…"}</SelectValue></SelectTrigger>
+                      <SelectContent className="mesas-transfer-options">
                         {tables.filter((t) => t.status === "livre").map((t) => <SelectItem key={t.id} value={t.id}>{tableLabel(t)}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" disabled={!transferTo} onClick={() => transfer.mutate()} data-testid="transfer-button"><ArrowRightLeft className="size-4" /></Button>
-                  </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/5 pt-3">
+                    <Button variant="outline" disabled={!transferTo} onClick={() => transfer.mutate()} aria-label="Transferir para a mesa selecionada" data-testid="transfer-button"><ArrowRightLeft className="size-4" /></Button>
+                    </div>
+                  </section>
+                  <div className="mesas-management mt-3 border-t border-white/5 pt-3" role="group" aria-label="Situação e cancelamento">
                     <Button size="sm" variant="outline" disabled={status.isPending}
                       onClick={() => status.mutate(table.status === "conta" ? "ocupada" : "conta")} data-testid="table-toggle-status-button">
                       {table.status === "conta" ? "Voltar p/ ocupada" : "Marcar conta"}
@@ -507,7 +503,21 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                   </div>
                 </>
               )}
-            </div>
+              </div>
+              {table.order_id && <footer className="mesas-sheet-footer" aria-label="Resumo e fechamento">
+                  <div className="mesas-subtotal">
+                    <span className="text-sm text-zinc-400">Subtotal (+10% serviço opcional)</span>
+                    <span className="font-mono text-2xl text-white" data-testid="table-order-total">{brl(o?.total ?? table.total)}</span>
+                  </div>                  <div className="mesas-primary-actions">
+                    <Button variant="outline" onClick={() => setPreBill(true)} disabled={!items.some((i) => !i.cancelled)} data-testid="request-bill-button">
+                      <Receipt className="size-4" /> Pré-conta
+                    </Button>
+                    <Button variant="secondary" onClick={() => setPayOpen(true)} disabled={!items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "")} data-testid="close-table-button">
+                      Fechar conta
+                    </Button>
+                  </div>
+              </footer>}
+            </>
           )}
         </SheetContent>
       </Sheet>
@@ -517,7 +527,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
           onPrinted={() => { if (table.status !== "conta") status.mutate("conta"); setPreBill(false); }} />
       )}
       {table && <PartialBillDialog tableId={table.id} items={items} open={partialOpen} onClose={() => setPartialOpen(false)} />}
-      <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} defaultService={10}
+      <PaymentDialog contentClassName="mesas-dialog" open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} defaultService={10}
         title={`Fechamento · ${table ? tableLabel(table) : ""}`} pending={pay.isPending} onConfirm={(p) => pay.mutate(p)} />
       <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />
       <OptionsDialog product={optFor} onClose={() => setOptFor(null)} onConfirm={push} />
@@ -581,7 +591,7 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
   return (
     <>
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto border-white/10 bg-elevated sm:max-w-lg">
+      <DialogContent className="mesas-dialog max-h-[85vh] overflow-y-auto border-white/10 bg-elevated sm:max-w-lg">
         <DialogHeader><DialogTitle>Divisão da conta por itens</DialogTitle></DialogHeader>
         <p className="text-sm text-zinc-400">Selecione um cliente para carregar automaticamente os itens dele. Confira os itens compartilhados antes de receber.</p>
         <div className="space-y-1">
@@ -603,7 +613,7 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
         </div>}
         <div className="space-y-2">
           {available.map((item) => (
-            <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-panel p-3">
+            <div key={item.id} className="mesas-partial-item flex items-center justify-between gap-3 rounded-lg bg-panel p-3">
               <span className="text-sm">{item.name} · {brl(item.unit_price)} (até {item.qty})<span className="block text-xs text-zinc-400">{item.customer_name || "Mesa inteira"}</span></span>
               <Input className="w-20" type="number" min={0} max={item.qty} disabled={!!selectedCustomer && !!item.customer_name && item.customer_name !== selectedCustomer} value={quantities[item.id] ?? 0}
                 onChange={(e) => { setQuantities((old) => ({ ...old, [item.id]: Math.max(0, Math.min(item.qty, Number(e.target.value) || 0)) })); setPreview(null); }} />
@@ -620,7 +630,7 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
         </div>}
       </DialogContent>
     </Dialog>
-    <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} defaultService={10} partialMode title="Recebimento parcial (não fiscal)" pending={payment.isPending} onConfirm={(p) => payment.mutate(p)} />
+    <PaymentDialog contentClassName="mesas-dialog" open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} defaultService={10} partialMode title="Recebimento parcial (não fiscal)" pending={payment.isPending} onConfirm={(p) => payment.mutate(p)} />
     </>
   );
 }
