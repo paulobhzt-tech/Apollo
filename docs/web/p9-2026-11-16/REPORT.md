@@ -35,7 +35,7 @@ Quatro integrações reais adicionadas em64777f5: snapshot, legado, misto e snap
 ## Regressões
 Antes da otimização: https://github.com/paulobhzt-tech/Apollo/actions/runs/43981100922, HEADac604e62b6fe4ac7e5bb28dd77bf6dfc23bc138c, 369 backend +3 subtestes,44 P6 reais (11 por resolução),12 P5 e14 Node aprovados; typecheck/lint/builds web/frontend desktop e sintaxe Electron aprovados. Nove avisos lint herdados. Não somar execuções duplicadas como cobertura.
 Uma execução inicial do workflow de regressão (43980964329) falhou por caminho incorreto do script Electron; corrigido para desktop/scripts/build-web.js. Nenhum teste removido.
-Regressão da aplicação otimizada e quatro testes novos em andamento; não confundir a aprovação acima com validação posterior à mudança.
+Regressão da aplicação otimizada concluída: https://github.com/paulobhzt-tech/Apollo/actions/runs/43983196839, HEAD d7043f807394e12d08fe4c9bc740af2d10abf10c. 373 backend + 3 subtestes, 44 P6 reais (11 em cada resolução), 12 P5 e 14 Node aprovados. Typecheck, lint (nove avisos herdados), builds web/frontend desktop e sintaxe Electron aprovados. Quatro novos testes de estoque/lotes com MongoDB real aprovados; nenhum teste financeiro removido ou desabilitado.
 Triggers financeiros/diagnósticos/regressões foram limitados a push com paths relevantes, evitando reexecuções em alterações apenas documentais. Runs anteriores disparados por pull_request podem repetir a mesma aplicação por avaliarem o diff cumulativo; não são novas comparações independentes.
 
 ## Campanha de homologação
