@@ -1,0 +1,49 @@
+name: P10 - Electron test installer build
+on:
+  push:
+    branches: ["homolog/p10-operational-web"]
+    paths: [".github/workflows/p10-electron.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-installer:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      PDV_BUILD_CHANNEL: test
+      PDV_SERVER_URL: http://localhost:18080
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Install test build tools
+        run: |
+          npm install --global yarn@1.22.22
+          npm --prefix desktop install --no-audit --no-fund
+      - name: Package existing Electron application in test channel only
+        working-directory: desktop
+        run: npm run dist
+      - name: Verify test configuration and installer
+        shell: pwsh
+        run: |
+          $cfg = Get-Content desktop/config.default.json | ConvertFrom-Json
+          if (-not $cfg.testBuild -or $cfg.serverUrl -ne 'http://localhost:18080') { throw 'Unsafe installer configuration' }
+          if (-not (Test-Path desktop/web/index.html)) { throw 'Bundled frontend missing' }
+          $exe = 'desktop/dist/Apollo-PDV-Setup.exe'
+          if (-not (Test-Path $exe)) { throw 'Installer missing' }
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          $result = @{ verdict='PASS'; channel='test'; production_published=$false; installer_executed=$false; bundled_frontend=$true; sha256=$hash; bytes=(Get-Item $exe).Length; head=$env:GITHUB_SHA }
+          New-Item -ItemType Directory -Force docs/web/p10-2026-11-16/evidence/electron | Out-Null
+          $result | ConvertTo-Json | Set-Content docs/web/p10-2026-11-16/evidence/electron/result.json
+          Get-Content docs/web/p10-2026-11-16/evidence/electron/result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p10-electron-test-${{ github.sha }}
+          retention-days: 90
+          if-no-files-found: error
+          path: |
+            docs/web/p10-2026-11-16/evidence/electron/result.json
+            desktop/dist/Apollo-PDV-Setup.exe
