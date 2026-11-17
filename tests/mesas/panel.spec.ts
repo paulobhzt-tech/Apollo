@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import fs from 'node:fs';
 import path from 'node:path';
 const evidence = process.env.MESAS_EVIDENCE_DIR || path.resolve('../docs/web/mesas-layout-2026-11-17/evidence');
@@ -142,4 +143,38 @@ test('waiter cannot close the bill', async ({ page }) => {
   await expect(page.getByTestId('close-table-button')).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Dividir conta por itens', exact: true })).toBeHidden();
   expect(mutations).toEqual([]);
+});
+
+
+test('accessibility audit of order panel and nested controls', async ({ page }, info) => {
+  test.skip(process.env.MESAS_CAPTURE === 'before', 'candidate accessibility audit');
+  const { panel, mutations } = await fixture(page);
+  const audits: { state: string; violations: unknown[]; incomplete: unknown[] }[] = [];
+  async function audit(state: string, scope: Locator) {
+    await expect(scope).toBeVisible();
+    await scope.evaluate(el => el.setAttribute('data-review-scope', 'true'));
+    const result = await new AxeBuilder({ page }).include('[data-review-scope="true"]').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+    audits.push({ state, violations: result.violations, incomplete: result.incomplete });
+    await scope.evaluate(el => el.removeAttribute('data-review-scope'));
+  }
+  await audit('panel', panel);
+  await page.getByTestId('add-items-button').click();
+  await page.getByTestId('product-card-FIXTURE').click();
+  await audit('pending-product', panel);
+  await page.getByTestId('close-table-button').click();
+  await audit('payment', page.getByTestId('payment-dialog'));
+  await page.keyboard.press('Escape');
+  await page.getByTestId('request-bill-button').click();
+  await audit('prebill', page.getByTestId('prebill-dialog'));
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Dividir conta por itens', exact: true }).click();
+  const partial = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Divisão da conta por itens', exact: true }) });
+  await audit('partial', partial);
+  await page.keyboard.press('Escape');
+  await page.getByTestId('table-qr-button').click();
+  await audit('qr', page.getByTestId('qr-dialog'));
+  fs.mkdirSync(evidence, { recursive: true });
+  fs.writeFileSync(path.join(evidence, `accessibility-${info.project.name}.json`), JSON.stringify(audits, null, 2));
+  expect(mutations).toEqual([]);
+  expect(audits.flatMap(a => a.violations.map(v => ({ state: a.state, violation: v })))).toEqual([]);
 });
