@@ -29,13 +29,16 @@ with tempfile.TemporaryDirectory(prefix='p104-rehearsal-') as directory:
         run(['sudo',sys.executable,str(bundle/'generate_secrets.py'),str(secretdir),'--container-owners'])
         for name in ['mongo_password','root_password','replica.key','bootstrap_token','mongo_uri']:
             v=subprocess.check_output(['sudo','cat',str(secretdir/name)],text=True).strip();all_secret_values.append(v)
-        owner={'username':'p104-'+suffix,'password':secrets.token_urlsafe(36),'pin':str(secrets.randbelow(800000)+100000),'name':'Fictício '+suffix}
+        pin=str(secrets.randbelow(800000)+100000)
+        while len(set(pin))==1 or pin in ('123456','654321'):pin=str(secrets.randbelow(800000)+100000)
+        owner={'username':'p104-'+suffix,'password':secrets.token_urlsafe(36),'pin':pin,'name':'Fictício '+suffix}
         ownerfile=recovery/'owner.json';ownerfile.write_text(json.dumps(owner));ownerfile.chmod(0o600)
         all_secret_values.extend([owner['password'],owner['pin']])
         recovery.chmod(0o700);run(['sudo','chown','-R','10001:10001',str(recovery)])
         env={**os.environ,'P10_SECRETS_DIR':str(secretdir),'P10_CERTS_DIR':str(certs),
              'P104_RECOVERY_DIR':str(recovery),'APOLLO_RECOVERY_ACK':'SYNTHETIC_RECOVERY_ONLY','P104_WEB_IMAGE':manifest['image']}
-        prefix=['docker','compose','-p','apollo-p104-'+suffix,'-f',str(bundle/'compose.yml')]
+        alias=private/'lab-ports.yml';alias.write_text('services:\n  proxy:\n    ports: ["127.0.0.1:443:8443"]\n')
+        prefix=['docker','compose','-p','apollo-p104-'+suffix,'-f',str(bundle/'compose.yml'),'-f',str(alias)]
         def dc(*args,capture=False,**kw):
             if capture:kw.update(stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
             return run([*prefix,*args],env=env,**kw)
@@ -89,6 +92,12 @@ asyncio.run(main())
         ready(dc);mark('private_replica_and_tls_ready')
         with httpx.Client(trust_env=False,timeout=5,headers={'Host':'homolog.apollo-pdv.com'}) as direct:
             assert direct.get('http://172.31.240.2:10000/api/health/ready').status_code==200
+        cid=dc('ps','-q','web',capture=True).stdout.strip()
+        inspected=json.loads(subprocess.check_output(['docker','inspect',cid],text=True))[0]
+        assert not inspected['HostConfig']['PortBindings']
+        assert inspected['Config']['User']=='10001:10001' and inspected['HostConfig']['ReadonlyRootfs']
+        assert all('private' in n for n in inspected['NetworkSettings']['Networks'])
+        dc('exec','-T','web','python','-c',"from pathlib import Path;assert not Path('/run/secrets/bootstrap_token').exists()")
         mark('host_private_bridge_verified_no_web_port_published')
         run([sys.executable,str(root/'backend/tools/p104_apache_lab.py')],env={**os.environ,'P104_CERTS_DIR':str(certs)})
         mark('almalinux9_apache_tls_and_ip_deny_passed')
@@ -116,6 +125,8 @@ asyncio.run(main())
             api(c,'POST','/orders/'+sale['id']+'/cancel',{'reason':'Cancelamento fictício restante'})
             closed=api(c,'POST','/cash/close',{'counted_amount':100});assert closed['difference']==0
             before=snapshot(dc)
+            assert hashlib.sha256(c.get('/login').content).hexdigest()==manifest['dist_web_index_sha256']
+            run(['node',str(root/'tests/p104-browser-smoke.mjs')],input=json.dumps(owner),text=True,env={**os.environ,'P104_BROWSER_EVIDENCE':str(out)})
             assert c.post('/api/auth/logout',json={}).status_code==200 and c.get('/api/auth/me').status_code==401
         mark('sale_cancel_refund_concurrency_and_reconciliation',snapshot=before)
         backup=json.loads(dc('--profile','recovery','run','--rm','--no-deps','recovery','backup','/recovery/source.json',capture=True).stdout)
@@ -131,7 +142,11 @@ asyncio.run(main())
         mark('encrypted_backup_roundtrip',cipher_sha256=subprocess.check_output(['sudo','sha256sum',str(encrypted)],text=True).split()[0])
         # Snapshot/restart and transient disconnect; only disposable source project.
         dc('stop','web');dc('start','web');ready(dc)
-        dc('stop','p10-mongo');dc('start','p10-mongo');ready(dc)
+        dc('stop','p10-mongo')
+        with httpx.Client(verify=str(certs/'test.crt'),trust_env=False,timeout=45,headers={'Host':'homolog.apollo-pdv.com'}) as unavailable:
+            assert unavailable.get('https://127.0.0.1:18443/api/health/ready').status_code==503
+        mark('mongo_connection_failure_readiness_503_observed')
+        dc('start','p10-mongo');ready(dc)
         assert snapshot(dc)==before
         mark('backend_and_mongo_restart_preserved_state')
         stats=dc('stats','--no-stream','--format','json',capture=True).stdout
@@ -162,7 +177,7 @@ asyncio.run(main())
         result={'verdict':'PASS','source_head':manifest['source_head'],'image_id':manifest['docker_image_id'],
           'loaded_from_retained_archive':True,'tls_lab_verified':True,'bootstrap_secret_not_mounted':True,
           'authenticated_mongo':True,'financial_concurrency':10,'duplicates':0,'financial_divergences':0,
-          'separate_restore':True,'encrypted_backup_roundtrip':True,'checksum_wrong_target_nonempty_refused':True,'restart_preserved':True,
+          'separate_restore':True,'encrypted_backup_roundtrip':True,'checksum_wrong_target_nonempty_refused':True,'restart_preserved':True,'mongo_unavailable_503_observed':True,'final_image_browser_smoke':True,
           'rollback':'First-release withdrawal and original volume recovery; no previous-release code rollback claimed',
           'vps_tested':False,'public_https_tested':False,'human_tested':False,'production_approved':False,'events':events}
     finally:

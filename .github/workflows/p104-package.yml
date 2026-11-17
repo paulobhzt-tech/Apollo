@@ -2,7 +2,7 @@ name: P104 - Offline OCI and authenticated recovery rehearsal
 on:
   push:
     branches: [homolog/p10-operational-web]
-    paths: [deploy/p10/package/**, backend/tools/p104_*.py, backend/tests/test_p104_*.py, .github/workflows/p104-package.yml]
+    paths: [deploy/p10/package/**, backend/tools/p104_*.py, backend/tests/test_p104_*.py, tests/p104-browser-smoke.mjs, .github/workflows/p104-package.yml]
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,12 +15,17 @@ jobs:
         with: {fetch-depth: 0, persist-credentials: false}
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
       - uses: docker/setup-buildx-action@v3
       - name: Disposable runner build dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y skopeo age
           python -m pip install httpx==0.28.1 PyYAML==6.0.3 packaging==25.0
+          npm --prefix tests install --ignore-scripts --package-lock=false --no-audit
+          cd tests
+          npx playwright install --with-deps chromium
       - name: Build locked offline images, reproducibility and SBOM
         run: python backend/tools/p104_package.py
       - name: Rehearse only exported image, authenticated Mongo, recovery and withdrawal

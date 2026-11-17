@@ -52,7 +52,7 @@ for service in compose['services'].values():
 web=compose['services']['web'];web.pop('build');web.pop('ports',None);web['image']='${P104_WEB_IMAGE:?Use verified package image}'
 web['environment']['APOLLO_BOOTSTRAP_TOKEN_FILE']=''
 web['volumes']=[v for v in web['volumes'] if '/bootstrap_token:' not in v]
-recovery=json.loads(json.dumps(web));recovery.pop('ports');recovery.pop('healthcheck');recovery.pop('depends_on')
+recovery=json.loads(json.dumps(web));recovery.pop('ports',None);recovery.pop('healthcheck');recovery.pop('depends_on')
 recovery['profiles']=['recovery'];recovery['networks']={'private':{}}
 recovery['entrypoint']=['python','tools/p104_recovery.py'];recovery['command']=['inspect-target']
 recovery['environment']['APOLLO_RECOVERY_ACK']='${APOLLO_RECOVERY_ACK:?Explicit synthetic recovery acknowledgement}'
@@ -84,7 +84,7 @@ info=json.loads(run('docker','image','inspect',image,capture_output=True,text=Tr
 assert info['Config']['User']=='10001:10001' and info['Architecture']=='amd64'
 # Scan complete exported runtime files for forbidden secret files and high-confidence key/token patterns.
 cid=run('docker','create',image,capture_output=True,text=True).stdout.strip()
-public_vectors=[]
+public_vectors=[];html_sha=None
 fixture_info=json.loads((root/'deploy/p10/package/public-selftest-fixtures.json').read_text())
 basecid=run('docker','create','python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df',capture_output=True,text=True).stdout.strip()
 try:
@@ -96,6 +96,7 @@ try:
             assert name not in ('.env','id_rsa','id_ed25519','credentials.json','replica.key','mongo_uri','bootstrap_token')
             if member.size<8*1024*1024:
                 raw=tar.extractfile(member).read()
+                if member.name=='app/web/index.html':html_sha=hashlib.sha256(raw).hexdigest()
                 from p104_secret_scan import unsafe_content
                 if unsafe_content(raw):
                     from p104_secret_scan import public_vectors_only
@@ -105,6 +106,7 @@ try:
                     public_vectors.append({'path':member.name,'file_sha256':hashlib.sha256(raw).hexdigest(),'classification':'Exact public upstream self-test vectors and byte-identical pinned base library'})
 finally:
     run('docker','rm',cid);run('docker','rm',basecid)
+assert html_sha,'dist-web index absent from final image'
 # SBOM from the retained OCI, with OS/Python packages. Add locked frontend build/bundle inventory separately.
 run('docker','run','--rm','--network','none','-e','SYFT_CHECK_FOR_APP_UPDATE=false','-v',str(bundle)+':/data:ro',lock['syft']['reference'],
     'oci-archive:/data/apollo-web.oci.tar','-o','cyclonedx-json',stdout=(bundle/'sbom.cdx.json').open('w'))
@@ -118,7 +120,7 @@ manifest={'source_head':head,'approved_app_head':'526dd72b78d57b7799fc995af42e0f
  'oci_manifest_digest':metadata[0]['containerimage.digest'],'docker_image_id':info['Id'],'image':image,
  'reproducibility':{'no_cache_builds':2,'equal_oci_manifest_digest':True,'tar_byte_identity_claimed':False},
  'runtime_secret_scan':'PASS: forbidden paths and high-confidence private key/GitHub token signatures; not a universal secret detector',
- 'classified_public_base_selftests':public_vectors,'sbom_components':len(sbom['components']),'registry_pushed':False,'production_approved':False,
+ 'dist_web_index_sha256':html_sha,'classified_public_base_selftests':public_vectors,'sbom_components':len(sbom['components']),'registry_pushed':False,'production_approved':False,
  'files':{p.name:{'sha256':sha(p),'bytes':p.stat().st_size} for p in bundle.iterdir() if p.is_file()}}
 (bundle/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print(json.dumps({'package_prepared':True,'oci_manifest_digest':manifest['oci_manifest_digest'],'source':head}),flush=True)
