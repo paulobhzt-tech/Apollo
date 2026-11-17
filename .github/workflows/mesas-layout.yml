@@ -1,0 +1,76 @@
+name: Mesas responsive panel
+on:
+  push:
+    branches: [fix/mesas-responsive-panel]
+  pull_request:
+    paths: ['frontend/**', 'tests/mesas/**', 'tests/mesas.playwright.config.ts', '.github/workflows/mesas-layout.yml']
+permissions:
+  contents: read
+jobs:
+  layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0, persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - name: Install locked frontend and synthetic browser tests
+        run: |
+          npm --prefix frontend ci --ignore-scripts --no-audit
+          npm --prefix tests install --ignore-scripts --package-lock=false --no-audit
+          cd tests
+          npx playwright install --with-deps chromium
+      - name: Capture unmodified reference at all five widths
+        env:
+          MESAS_EVIDENCE_DIR: ${{ github.workspace }}/docs/web/mesas-layout-2026-11-17/evidence
+        run: |
+          git worktree add --detach ../mesas-baseline 836ea2121297876dd34480f3d736561348d2db61
+          cp tests/mesas.playwright.config.ts ../mesas-baseline/tests/
+          cp -R tests/mesas ../mesas-baseline/tests/
+          ln -s "$GITHUB_WORKSPACE/frontend/node_modules" ../mesas-baseline/frontend/node_modules
+          ln -s "$GITHUB_WORKSPACE/tests/node_modules" ../mesas-baseline/tests/node_modules
+          cd ../mesas-baseline/frontend
+          npx vite --config vite.web.config.ts --port 3018 > /tmp/mesas-before.log 2>&1 &
+          VITE_PID=$!
+          trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3018/mesas >/dev/null; then break; fi
+            sleep 1
+          done
+          cd ../tests
+          MESAS_CAPTURE=before npx playwright test -c mesas.playwright.config.ts -g 'panel geometry'
+          kill "$VITE_PID"
+          wait "$VITE_PID" || true
+          trap - EXIT
+      - name: Types, lint, Electron and Web builds
+        working-directory: frontend
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run build
+          npx vite build --config vite.web.config.ts
+          node --experimental-vm-modules --test tests/offline-queue.test.mjs tests/web-sale-recovery.test.mjs tests/browser-print.test.mjs
+      - name: Responsive, keyboard, permission and visual regression (synthetic API only)
+        env:
+          MESAS_EVIDENCE_DIR: ${{ github.workspace }}/docs/web/mesas-layout-2026-11-17/evidence
+        run: |
+          cd frontend
+          npx vite --config vite.web.config.ts --port 3018 > /tmp/mesas-after.log 2>&1 &
+          VITE_PID=$!
+          trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3018/mesas >/dev/null; then break; fi
+            sleep 1
+          done
+          cd ../tests
+          npx playwright test -c mesas.playwright.config.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mesas-layout-${{ github.sha }}
+          retention-days: 30
+          path: |
+            docs/web/mesas-layout-2026-11-17/evidence
+            tests/test-results/mesas
+            tests/mesas/*snapshots*

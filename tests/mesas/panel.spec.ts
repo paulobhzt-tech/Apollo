@@ -1,0 +1,116 @@
+import { test, expect, type Page, type Locator } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
+const evidence = process.env.MESAS_EVIDENCE_DIR || path.resolve('../docs/web/mesas-layout-2026-11-17/evidence');
+const longName = 'FICTÍCIO Espetinho especial com acompanhamentos e observação sem espaços ' + 'NomeMuitoLongo'.repeat(7);
+const customer = 'FICTÍCIO Cliente ' + 'SobrenomeSemEspacos'.repeat(3);
+const items = Array.from({ length: 12 }, (_, i) => ({ id: `item-${i}`, product_id: `product-${i}`, name: `${longName} ${i + 1}`,
+  qty: 1, unit_price: 99123.45, options: ['FICTÍCIO adicional ' + 'Acompanhamento'.repeat(5)],
+  notes: 'FICTÍCIO observação ' + 'SemSal'.repeat(14), cancelled: false, customer_name: customer, ordered_by: 'Operador fictício' }));
+const total = Math.round(items.reduce((s, x) => s + x.qty * x.unit_price, 0) * 100) / 100;
+const table = { id: 'fixture-table', number: 1, kind: 'mesa', name: 'FICTÍCIO Varanda ' + 'MesaSemEspacos'.repeat(4),
+  status: 'ocupada', order_id: 'fixture-order', seats: 4, people: 2, total, customer_name: customer,
+  customers: [customer], waiter_name: 'FICTÍCIO Garçom ' + 'Atendimento'.repeat(4), opened_at: '2026-01-01T12:00:00Z' };
+const available = { ...table, id: 'fixture-free', number: 2, name: 'FICTÍCIO Destino ' + 'Comprido'.repeat(8), status: 'livre', order_id: null, total: 0 };
+async function fixture(page: Page, role = 'caixa') {
+  const mutations: string[] = [];
+  await page.clock.setFixedTime(new Date('2026-01-01T12:30:00Z'));
+  await page.route('**/api/**', async route => {
+    const request = route.request(); const pathname = new URL(request.url()).pathname;
+    if (request.method() !== 'GET') {
+      mutations.push(`${request.method()} ${pathname}`);
+      await route.fulfill({ status: 405, contentType: 'application/json', body: '{"detail":"Read-only synthetic fixture"}' }); return;
+    }
+    const data: Record<string, unknown> = {
+      '/api/auth/me': { id: 'fixture-operator', name: 'Operador fictício', role, active: true },
+      '/api/demo-status': { demo: true }, '/api/branding': { trade_name: 'Apollo · FICTÍCIO' },
+      '/api/tables': [table, available], '/api/tables/fixture-table/order': { id: 'fixture-order', items, subtotal: total, total, payments: [] },
+      '/api/products': [{ id: 'fixture-product', code: 'FIXTURE', name: longName, price: 99123.45, active: true, options: [] }],
+      '/api/categories': [{ id: 'category', name: 'FICTÍCIO Categoria ' + 'Longa'.repeat(16) }],
+      '/api/settings': { pix_key: '', address: '' },
+    };
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data[pathname] ?? []) });
+  });
+  await page.goto('/mesas');
+  await page.evaluate(() => document.fonts.ready);
+  const opener = page.getByTestId('table-card-1');
+  await opener.focus(); await page.keyboard.press('Enter');
+  const panel = page.getByTestId('table-sheet');
+  await expect(panel).toBeVisible();
+  await expect(page.getByTestId('grouped-line')).toHaveCount(items.length);
+  return { mutations, panel, opener };
+}
+async function geometry(panel: Locator) {
+  return panel.evaluate(el => {
+    const p = el.getBoundingClientRect();
+    const overflowing = [...el.querySelectorAll<HTMLElement>('button,input,select,p,span,[data-testid="grouped-line"]')]
+      .filter(n => n.getClientRects().length && getComputedStyle(n).position !== 'absolute')
+      .filter(n => { const r=n.getBoundingClientRect(); return r.left < p.left - 1 || r.right > p.right + 1 || n.scrollWidth > n.clientWidth + 2; })
+      .map(n => n.dataset.testid || n.tagName).slice(0, 30);
+    return { viewport: innerWidth, panelWidth: p.width, panelScrollWidth: el.scrollWidth, panelClientWidth: el.clientWidth,
+      pageWidth: document.documentElement.scrollWidth, overflowing };
+  });
+}
+
+test('panel geometry, long text, money and all main actions', async ({ page }, info) => {
+  const { mutations, panel } = await fixture(page);
+  const before = process.env.MESAS_CAPTURE === 'before';
+  const metrics = await geometry(panel);
+  fs.mkdirSync(evidence, { recursive: true });
+  fs.writeFileSync(path.join(evidence, `${before ? 'before' : 'after'}-${info.project.name}.json`), JSON.stringify(metrics, null, 2));
+  await page.screenshot({ path: path.join(evidence, `${before ? 'before' : 'after'}-${info.project.name}.png`), animations: 'disabled' });
+  if (before) { expect(metrics.overflowing.length).toBeGreaterThan(0); return; }
+  expect(metrics.pageWidth).toBeLessThanOrEqual(page.viewportSize()!.width);
+  expect(metrics.panelScrollWidth).toBeLessThanOrEqual(metrics.panelClientWidth + 1);
+  expect(metrics.overflowing).toEqual([]);
+  await expect(page.getByTestId('table-order-total')).toHaveText(new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total));
+  await expect(page.getByTestId('close-table-button')).toBeInViewport();
+  await expect(panel.locator('[data-slot="sheet-close"]')).toBeInViewport();
+  await expect(panel).toHaveScreenshot(`panel-${info.project.name}.png`);
+  await page.getByTestId('table-toggle-status-button').scrollIntoViewIfNeeded();
+  await expect(page.getByTestId('table-cancel-button')).toBeInViewport();
+  await expect(page.getByTestId('close-table-button')).toBeInViewport();
+  await expect(panel.locator('[data-slot="sheet-close"]')).toBeInViewport();
+  await page.screenshot({ path: path.join(evidence, `after-bottom-${info.project.name}.png`), animations: 'disabled' });
+  expect(mutations).toEqual([]);
+});
+
+test('keyboard trap, close/return focus and nested actions without writes', async ({ page }) => {
+  test.skip(process.env.MESAS_CAPTURE === 'before', 'baseline capture only');
+  const { panel, mutations, opener } = await fixture(page);
+  for (let i = 0; i < 45; i++) {
+    await page.keyboard.press('Tab');
+    expect(await panel.evaluate(el => el.contains(document.activeElement))).toBe(true);
+  }
+  await page.getByTestId('close-table-button').focus(); await page.keyboard.press('Enter');
+  await expect(page.getByTestId('payment-dialog')).toBeVisible();
+  await page.keyboard.press('Escape'); await expect(page.getByTestId('payment-dialog')).toBeHidden();
+  await expect(page.getByTestId('close-table-button')).toBeFocused();
+  await page.getByTestId('request-bill-button').click();
+  await expect(page.getByTestId('prebill-dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Dividir conta por itens', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Divisão da conta por itens' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByTestId('table-qr-button').click();
+  await expect(page.getByTestId('qr-dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByTestId('toggle-group-items').click();
+  expect((await geometry(panel)).overflowing).toEqual([]);
+  await page.getByTestId('add-items-button').click();
+  await page.getByTestId('product-card-FIXTURE').click();
+  await expect(page.getByTestId('pending-line-0')).toBeVisible();
+  expect((await geometry(panel)).overflowing).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+  await expect(opener).toBeFocused();
+  expect(mutations).toEqual([]);
+});
+
+test('waiter cannot close the bill', async ({ page }) => {
+  test.skip(process.env.MESAS_CAPTURE === 'before', 'baseline capture only');
+  const { mutations } = await fixture(page, 'garcom');
+  await expect(page.getByTestId('close-table-button')).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Dividir conta por itens', exact: true })).toBeHidden();
+  expect(mutations).toEqual([]);
+});
