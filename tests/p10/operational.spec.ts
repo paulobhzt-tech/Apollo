@@ -146,6 +146,8 @@ test('P10-11 keyboard responsive layout and automated WCAG checks on main flows'
   if(url==='/pdv')await login(page);
   await page.goto(url);await expect(page.getByTestId('demo-notice')).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  const toolbar=page.locator('.web-toolbar > span');
+  await expect.poll(()=>toolbar.evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===el;})).toBe(true);
   const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
   await info.attach('accessibility-'+url.replace('/','')+'.json',{body:JSON.stringify(result),contentType:'application/json'});
   expect(result.violations).toEqual([]);

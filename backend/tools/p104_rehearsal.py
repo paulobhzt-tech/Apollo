@@ -151,7 +151,10 @@ asyncio.run(main())
         target,to,tdir,tenv=create_project('restore')
         target('--profile','recovery','run','--rm','--no-deps','recovery','prepare-target','--owner-file','/recovery/owner.json',capture=True)
         token=json.loads(target('--profile','recovery','run','--rm','--no-deps','recovery','inspect-target',capture=True).stdout)['target_id']
-        run(['sudo','cp',str(plain),str(tdir/'source.json')]);run(['sudo','chown','10001:10001',str(tdir/'source.json')])
+        # age may create a 0644 plaintext under the runner's umask. Stage privately
+        # before invoking the strict recovery reader; do not weaken that reader.
+        run(['sudo','install','-m','600','-o','10001','-g','10001',str(plain),str(tdir/'source.json')])
+        assert subprocess.check_output(['sudo','stat','-c','%a:%u:%g',str(tdir/'source.json')],text=True).strip()=='600:10001:10001'
         # Corrupt checksum and target ID must be refused, with no writes.
         for expected_hash,expected_target in [('0'*64,token),(backup['backup_sha256'],'0'*64)]:
             p=subprocess.run(['docker','compose','-p','apollo-p104-restore','-f',str(bundle/'compose.yml'),'--profile','recovery','run','--rm','--no-deps','recovery','restore','/recovery/source.json','--sha256',expected_hash,'--expect-target',expected_target],env=tenv,stdout=log,stderr=log)
