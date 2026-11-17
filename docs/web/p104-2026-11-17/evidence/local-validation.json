@@ -1,0 +1,28 @@
+{
+  "source_head": "e7b11c065d984144a21532989a33477cfeb73eed",
+  "backend": {
+    "command": "MONGOD_BIN=/tmp/mongodb-linux-x86_64-ubuntu2204-7.0.16/bin/mongod python backend/tools/run_replica_tests.py --http -q tests",
+    "mongo": "7.0.16",
+    "passed": 413,
+    "subtests_passed": 3,
+    "seconds": 55.09,
+    "warnings": 1
+  },
+  "targeted_isolated": {
+    "passed": 262,
+    "seconds": 11.4,
+    "warnings": 3
+  },
+  "frontend": {
+    "typecheck": "PASS",
+    "lint": "PASS: 0 errors, 9 inherited warnings",
+    "web_build": "PASS: 2 inherited CSS optimization warnings"
+  },
+  "dns": {
+    "host": "homolog.apollo-pdv.com",
+    "result": "gaierror in local resolver; no authoritative DNS conclusion",
+    "tls": "not verified"
+  },
+  "vps_accessed": false,
+  "production_approved": false
+}

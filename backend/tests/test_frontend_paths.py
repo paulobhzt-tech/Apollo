@@ -132,3 +132,28 @@ async def test_api_route_still_takes_precedence(frontend):
     response = await request(server, "/api/")
     assert response.status_code == 200
     assert response.json() == {"message": "Apollo PDV API"}
+
+
+@pytest.mark.parametrize("path", [
+    "/.git/config", "/.git/HEAD", "/%2egit/config", "/.env", "/assets/.env.local",
+])
+@pytest.mark.parametrize("exists", [False, True])
+async def test_hidden_files_never_fall_back_or_serve(frontend, path, exists):
+    root, _, server = frontend
+    if exists:
+        target = root / path.lstrip('/').replace('%2e', '.')
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text('private fixture must never be served', encoding='utf-8')
+    response = await request(server, path)
+    assert response.status_code == 404
+    assert 'private fixture' not in response.text
+    assert response.text != 'SPA index'
+
+
+async def test_alias_to_hidden_file_is_rejected(frontend):
+    root, _, server = frontend
+    (root / '.env').write_text('private fixture', encoding='utf-8')
+    (root / 'public-name.txt').symlink_to(root / '.env')
+    response = await request(server, '/public-name.txt')
+    assert response.status_code == 404
+    assert 'private fixture' not in response.text

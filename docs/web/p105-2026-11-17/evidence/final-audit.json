@@ -1,0 +1,47 @@
+{
+  "observed_utc": "2026-11-17T14:29:39.074316+00:00",
+  "base_head": "46f0d906bc8a2b3628e8063e51c78db2c3d71d9e",
+  "pr": 25,
+  "source_changes": false,
+  "remote_session_established": false,
+  "ssh_attempts": [
+    {
+      "result": "local_system_config_permissions_error",
+      "exit": 255
+    },
+    {
+      "config": "isolated /dev/null",
+      "strict_host_key_checking": true,
+      "batch_mode": true,
+      "result": "Network is unreachable",
+      "exit": 255
+    }
+  ],
+  "dns_local": {
+    "result": "gaierror",
+    "authoritative_nxdomain_proven": false
+  },
+  "remote_commands_executed": [],
+  "new_real_backup": false,
+  "new_real_restore": false,
+  "owner_reported_restore": {
+    "production": {
+      "collections": 20,
+      "documents": 18
+    },
+    "homologation": {
+      "collections": 29,
+      "documents": 36
+    },
+    "revalidated": false
+  },
+  "owner_reported_gpg_windows_and_drive_hash_check": true,
+  "independent_second_location": "pending",
+  "source_topology_requirement": "replica_set_transactions",
+  "owner_reported_active_topology": "standalone",
+  "assisted_python_syntax": "pass",
+  "powershell_and_gpg_commands_executed": false,
+  "rpo": null,
+  "rto": null,
+  "verdict": "BLOQUEADO"
+}

@@ -1,0 +1,23 @@
+# REVIEW ONLY. Dedicated Virtualmin virtual server; never paste into the existing site's vhost.
+# Requires mod_ssl, mod_headers, mod_proxy, mod_proxy_http. Certificate issued only after DNS authorization.
+<VirtualHost *:443>
+ ServerName homolog.apollo-pdv.com
+ SSLEngine on
+ SSLCertificateFile /APPROVED/P10/fullchain.pem
+ SSLCertificateKeyFile /APPROVED/P10/privkey.pem
+ SSLProtocol -all +TLSv1.2 +TLSv1.3
+ ProxyRequests Off
+ ProxyPreserveHost On
+ RequestHeader unset Forwarded
+ RequestHeader unset X-Forwarded-For
+ RequestHeader set X-Forwarded-Proto "https"
+ Header always set Strict-Transport-Security "max-age=86400"
+ LimitRequestBody 1048576
+ ProxyTimeout 65
+ ProxyPass / http://127.0.0.1:18082/ connectiontimeout=5 timeout=65
+ ProxyPassReverse / http://127.0.0.1:18082/
+ # Configure a restricted IP/VPN perimeter before exposure; no public trial by default.
+ <Location />
+  Require local
+ </Location>
+</VirtualHost>

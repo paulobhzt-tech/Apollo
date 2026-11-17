@@ -1,0 +1,19 @@
+{
+  "mongo": {
+    "reference": "mongo@sha256:c630c59342c1493d50345136df2af14a76b9e827dd5316bfabee07a0880a5f3a",
+    "id": "sha256:c630c59342c1493d50345136df2af14a76b9e827dd5316bfabee07a0880a5f3a",
+    "platform": "linux/amd64",
+    "offline_tag": "apollo-p104-mongo:c630c59342c1493d50345136df2af14a76b9e827dd5316bfabee07a0880a5f3a"
+  },
+  "nginx": {
+    "reference": "nginx@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236",
+    "id": "sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236",
+    "platform": "linux/amd64",
+    "offline_tag": "apollo-p104-nginx:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236"
+  },
+  "syft": {
+    "reference": "anchore/syft@sha256:b46e597614ddc78621e560af3fabf9346e35462ea1c886a38b30bcc7ca601a73",
+    "id": "sha256:b46e597614ddc78621e560af3fabf9346e35462ea1c886a38b30bcc7ca601a73",
+    "platform": "linux/amd64"
+  }
+}

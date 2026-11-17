@@ -1,0 +1,26 @@
+{
+  "backend/lib/auth.py": {
+    "sha256": "7c07d960540255dadc0e82c220a4469252a80b4c11b716e6ef5afd729f49c122",
+    "unchanged_since_p103": true
+  },
+  "backend/lib/backups.py": {
+    "sha256": "817b212af8a09245dce7a02865a5c30065950afd5437bce3b48242f867b156d1",
+    "unchanged_since_p103": true
+  },
+  "backend/lib/transactions.py": {
+    "sha256": "b7c74c471aaf8b2d2b1188559b48ae59a70c206fc95274de9a0816746578c55e",
+    "unchanged_since_p103": true
+  },
+  "backend/routers/finance.py": {
+    "sha256": "0eac9bb1bb951d893aa3b507e1e1de576122c1d1fdd5dfe6979c0ebdea5ecdc2",
+    "unchanged_since_p103": true
+  },
+  "backend/routers/operations.py": {
+    "sha256": "f1d8b1cb62ae55534c4033d8e34ff4e08f72fc3b67a2786128576c1652afc0d3",
+    "unchanged_since_p103": true
+  },
+  "backend/models/schemas.py": {
+    "sha256": "db00d94e9cd563c96e023a78876df0679ea7600cafed87ddb58876653e54a481",
+    "unchanged_since_p103": true
+  }
+}

@@ -37,14 +37,14 @@ function Home() {
 function DemoNotice() {
   const { data } = useQuery({
     queryKey: ["demo-status"],
-    queryFn: () => apiGet<{ demo: boolean }>("/demo-status"),
+    queryFn: () => apiGet<{ demo: boolean; homologation?: boolean }>("/demo-status"),
     retry: false,
     staleTime: 60000,
   });
   if (!data?.demo) return null;
   return (
     <div role="status" className="relative z-50 bg-amber-500 px-4 py-2 text-center text-sm font-semibold text-black" data-testid="demo-notice">
-      DEMONSTRAÇÃO APOLLO — DADOS FICTÍCIOS · NÃO USE PARA VENDAS REAIS
+      {data.homologation ? "HOMOLOGAÇÃO APOLLO" : "DEMONSTRAÇÃO APOLLO"} — DADOS FICTÍCIOS · NÃO USE PARA VENDAS REAIS
     </div>
   );
 }

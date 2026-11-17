@@ -1,0 +1,26 @@
+test_corruption (test_mongo_recovery.RecoveryTests.test_corruption) ... ok
+test_counts_changed_no_publication (test_mongo_recovery.RecoveryTests.test_counts_changed_no_publication) ... ok
+test_crypt_guard (test_mongo_recovery.RecoveryTests.test_crypt_guard) ... ok
+test_database_mismatch (test_mongo_recovery.RecoveryTests.test_database_mismatch) ... ok
+test_dump_failure_cleanup_and_preservation (test_mongo_recovery.RecoveryTests.test_dump_failure_cleanup_and_preservation) ... ok
+test_exclusive (test_mongo_recovery.RecoveryTests.test_exclusive) ... ok
+test_hash_mismatch (test_mongo_recovery.RecoveryTests.test_hash_mismatch) ... ok
+test_image_guard (test_mongo_recovery.RecoveryTests.test_image_guard) ... ok
+test_missing_manifest (test_mongo_recovery.RecoveryTests.test_missing_manifest) ... ok
+test_permissions (test_mongo_recovery.RecoveryTests.test_permissions) ... ok
+test_project_mismatch (test_mongo_recovery.RecoveryTests.test_project_mismatch) ... ok
+test_restore_guard (test_mongo_recovery.RecoveryTests.test_restore_guard) ... ok
+test_settings (test_mongo_recovery.RecoveryTests.test_settings) ... ok
+test_success_and_unique_publication (test_mongo_recovery.RecoveryTests.test_success_and_unique_publication) ... ok
+test_symlink (test_mongo_recovery.RecoveryTests.test_symlink) ... ok
+test_unexpected_bundle_file (test_mongo_recovery.RecoveryTests.test_unexpected_bundle_file) ... ok
+test_upload (test_mongo_recovery.RecoveryTests.test_upload) ... ok
+test_verify (test_mongo_recovery.RecoveryTests.test_verify) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.016s
+
+OK
+BACKUP_VERIFICADO /tmp/tmp130b0prx/homologacao/homologacao-20261117T154804Z-f9fb9659880942edb4a20c6e2f5e4d69
+BACKUP_VERIFICADO /tmp/tmp130b0prx/homologacao/homologacao-20261117T154804Z-d7fe2230a8ae426e91a65075194f62f3
+EXTERNAL_DOWNLOAD_CHECK_PASS

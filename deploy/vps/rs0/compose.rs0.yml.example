@@ -1,0 +1,22 @@
+# REVIEW TEMPLATE ONLY. Needs audited base Compose, resources, backup and rollback.
+# Do not run without an expressly confirmed <=30 minute homologation window.
+services:
+  mongo:
+    # Existing image, auth environment, networks and data volumes MUST remain inherited.
+    command: [mongod, --auth, --bind_ip_all, --replSet, rs0, --keyFile, /run/secrets/rs0.key, --wiredTigerCacheSizeGB, '0.25', --oplogSize, '128']
+    volumes:
+      - type: bind
+        source: ${RS0_KEYFILE:?Specify audited private keyfile path}
+        target: /run/secrets/rs0.key
+        read_only: true
+    mem_limit: ${RS0_MONGO_MEMORY:?Explicit memory budget required}
+    cpus: ${RS0_MONGO_CPUS:?Explicit CPU budget required}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --nodb --quiet --eval 'const c=new Mongo("mongodb://127.0.0.1:27017/?directConnection=true");const a=c.getDB("admin");if(!a.auth(process.env.MONGO_INITDB_ROOT_USERNAME,process.env.MONGO_INITDB_ROOT_PASSWORD))quit(2);const h=a.runCommand({hello:1});if(h.setName!=="rs0"||!h.isWritablePrimary)quit(3)' >/dev/null 2>&1
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s

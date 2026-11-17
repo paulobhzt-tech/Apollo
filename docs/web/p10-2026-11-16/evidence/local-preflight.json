@@ -1,0 +1,12 @@
+{
+  "backend_initial_regression_passed": 398,
+  "backend_subtests_passed": 3,
+  "new_security_final_cases_passed": 29,
+  "web_and_desktop_frontend_builds": true,
+  "typecheck_lint_passed": true,
+  "lint_existing_warnings": 9,
+  "local_browser": "BLOCKED before Chromium opens: socket Operation not permitted; 13 reported failures are environment launch failures, not tested flows",
+  "local_tls_preflight": "passed with real disposable Mongo and built dist-web before browser launch",
+  "docker_local": "not available; remote workflow required",
+  "production_approved": false
+}

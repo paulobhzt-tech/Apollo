@@ -1,0 +1,24 @@
+name: P105 backup script guards
+on:
+  push:
+    branches: [homolog/p10-operational-web]
+    paths: ['deploy/vps/**', '.github/workflows/p105-backup.yml']
+  pull_request:
+    paths: ['deploy/vps/**', '.github/workflows/p105-backup.yml']
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell syntax
+        run: bash -n deploy/vps/backup-mongo.sh deploy/vps/restore-drill.sh deploy/vps/inspect-recovery.sh
+      - name: Python syntax
+        run: python3 -m py_compile deploy/vps/mongo_recovery.py
+      - name: Unit tests (mock Docker/rclone; no real restore)
+        run: python3 -m unittest discover -s deploy/vps/tests -v
+      - name: RS0 preparation helper guards (mocked, no migration)
+        run: python3 -m unittest discover -s deploy/vps/rs0 -p test_helpers.py -v
+      - name: RS0 initialization guard tests (mocked Mongo)
+        run: node --test deploy/vps/rs0/test-init.cjs

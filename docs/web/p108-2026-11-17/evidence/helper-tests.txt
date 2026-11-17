@@ -1,0 +1,13 @@
+test_backup_summary_read_only (test_helpers.HelperTests.test_backup_summary_read_only) ... ok
+test_corrupt_and_symlink_backup (test_helpers.HelperTests.test_corrupt_and_symlink_backup) ... ok
+test_duplicate_and_wrong_options (test_helpers.HelperTests.test_duplicate_and_wrong_options) ... ok
+test_invalid_targets (test_helpers.HelperTests.test_invalid_targets) ... ok
+test_preserves_encoded_credentials_and_adds_rs0 (test_helpers.HelperTests.test_preserves_encoded_credentials_and_adds_rs0) ... ok
+test_private_output_no_overwrite (test_helpers.HelperTests.test_private_output_no_overwrite) ... ok
+test_profile_rejected_before_write (test_helpers.HelperTests.test_profile_rejected_before_write) ... ok
+test_wrong_project_no_write (test_helpers.HelperTests.test_wrong_project_no_write) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.001s
+
+OK

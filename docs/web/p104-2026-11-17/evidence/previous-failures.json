@@ -1,0 +1,28 @@
+{
+  "head": "2fa9e5f6904cf6b255b2fe22e426c73f5cb8bf52",
+  "artifacts": [
+    {
+      "id": 14297923939,
+      "bytes": 151147,
+      "sha256": "105f31e40a4187ea06eef2d3afce0a98a34065ba6ca6aaa753d38da9b3544b90",
+      "crc": "PASS",
+      "failure": "Restore command exit 1; captured stderr not retained in job log; no final tar uploaded."
+    },
+    {
+      "id": 14298238254,
+      "bytes": 4057324,
+      "sha256": "6067b0d86614b93ae0344dad896107e00e6a3ecb0012b27afb01ca6591fd8b71",
+      "crc": "PASS",
+      "failure": "P10-11 incomplete color-contrast bgOverlap on .web-toolbar > span; 14/15 notebook P10 passed, 11/11 P6 passed."
+    }
+  ],
+  "vps_accessed": false,
+  "first_corrected_attempt": {
+    "run": 44075810541,
+    "job": 134013391753,
+    "artifact": 14324432838,
+    "zip_sha256": "22649b47a0e2a2428ca7f65237b3c42f73f2c1179f32f02c37e0d6218852ec56",
+    "failure": "P6 notebook: cash-sales-count absent after 5s, POST /cash/open still pending in trace, backend log includes 200. 1 passed, 1 failed, 9 not run; P10 notebook not started. Cause not established; never counted as pass.",
+    "zip_crc": "PASS"
+  }
+}

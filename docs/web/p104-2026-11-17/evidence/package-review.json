@@ -1,0 +1,176 @@
+{
+  "artifact_id": 14324732733,
+  "run_id": 44075810608,
+  "zip_bytes": 410140098,
+  "zip_sha256": "300a81c65b192475a5a8d97587b8bbdcc05fc6ec92f3bea15e3d91e36bf07e82",
+  "zip_crc": "PASS",
+  "tar_bytes": 513894400,
+  "tar_sha256": "ddc3152583dc0486caf6e7f3ebfb96887ba132bbf7a94c9e17c655b1874e2254",
+  "manifest_files_checked": 18,
+  "all_manifest_hashes_match": true,
+  "image_id": "sha256:4a681f6c007e7d662b2d284fa5b3be51bb00617f6434c7b796ee5713b740b399",
+  "oci_manifest_digest": "sha256:96956cbba4f505fe36784a0fe17a494a17de04d22f9e900f5db6eac6b750e31b",
+  "reproducibility": {
+    "no_cache_builds": 2,
+    "equal_oci_manifest_digest": true,
+    "tar_byte_identity_claimed": false
+  },
+  "source_head": "e7b11c065d984144a21532989a33477cfeb73eed",
+  "result": {
+    "verdict": "PASS",
+    "source_head": "e7b11c065d984144a21532989a33477cfeb73eed",
+    "image_id": "sha256:4a681f6c007e7d662b2d284fa5b3be51bb00617f6434c7b796ee5713b740b399",
+    "loaded_from_retained_archive": true,
+    "tls_lab_verified": true,
+    "bootstrap_secret_not_mounted": true,
+    "authenticated_mongo": true,
+    "financial_concurrency": 10,
+    "duplicates": 0,
+    "financial_divergences": 0,
+    "separate_restore": true,
+    "encrypted_backup_roundtrip": true,
+    "checksum_wrong_target_nonempty_refused": true,
+    "restart_preserved": true,
+    "mongo_unavailable_503_observed": true,
+    "final_image_browser_smoke": true,
+    "rollback": "First-release withdrawal and original volume recovery; no previous-release code rollback claimed",
+    "vps_tested": false,
+    "public_https_tested": false,
+    "human_tested": false,
+    "production_approved": false,
+    "events": [
+      {
+        "stage": "verified_archive_loaded",
+        "elapsed_seconds": 2.081
+      },
+      {
+        "stage": "private_replica_and_tls_ready",
+        "elapsed_seconds": 17.616
+      },
+      {
+        "stage": "host_private_bridge_verified_no_web_port_published",
+        "elapsed_seconds": 17.824
+      },
+      {
+        "stage": "almalinux9_apache_tls_and_ip_deny_passed",
+        "elapsed_seconds": 28.368
+      },
+      {
+        "stage": "sale_cancel_refund_concurrency_and_reconciliation",
+        "elapsed_seconds": 36.454,
+        "snapshot": {
+          "orders": [
+            {
+              "id": "7ad107ff-369c-451d-8282-59740ecf322c",
+              "number": 1,
+              "status": "cancelado",
+              "total": 10.0,
+              "client_ref": "p104-replay"
+            },
+            {
+              "id": "13ee6754-67e8-46ac-b5ca-695d6e368c58",
+              "number": 2,
+              "status": "cancelado",
+              "total": 10.0,
+              "client_ref": "p104-refund"
+            }
+          ],
+          "stock": 100.0,
+          "lots": 100.0,
+          "cash_difference": 0.0,
+          "markers": 2
+        }
+      },
+      {
+        "stage": "encrypted_backup_roundtrip",
+        "elapsed_seconds": 38.137,
+        "cipher_sha256": "c4913591dba704ebebacad14aa68979d6005a0ce026cc9e94c01eb6190e69017"
+      },
+      {
+        "stage": "mongo_connection_failure_readiness_503_observed",
+        "elapsed_seconds": 72.397
+      },
+      {
+        "stage": "backend_and_mongo_restart_preserved_state",
+        "elapsed_seconds": 79.684
+      },
+      {
+        "stage": "separate_authenticated_restore_and_negative_guards",
+        "elapsed_seconds": 108.994,
+        "backup": {
+          "backup_sha256": "22b82b0d543db054760c25258672f25848e3bdf3510cfb0e1eb659b49186ff5c",
+          "bytes": 16061,
+          "counts": {
+            "account_categories": 8,
+            "bills": 0,
+            "cash_sessions": 1,
+            "categories": 1,
+            "counters": 1,
+            "cron_runs": 0,
+            "customer_moves": 0,
+            "employee_time_entries": 0,
+            "employees": 1,
+            "environments": 4,
+            "expenses": 0,
+            "fiado_customers": 0,
+            "financial_operations": 2,
+            "ingredients": 1,
+            "inventory_counts": 0,
+            "invoices": 0,
+            "kitchen_tickets": 2,
+            "lot_consumptions": 2,
+            "orders": 2,
+            "payment_methods": 5,
+            "printers": 0,
+            "production_batches": 0,
+            "products": 1,
+            "purchases": 1,
+            "settings": 0,
+            "stock_moves": 6,
+            "suppliers": 1,
+            "tables": 0
+          }
+        },
+        "restored": {
+          "counts": {
+            "account_categories": 8,
+            "bills": 0,
+            "cash_sessions": 1,
+            "categories": 1,
+            "counters": 1,
+            "cron_runs": 0,
+            "customer_moves": 0,
+            "employee_time_entries": 0,
+            "employees": 1,
+            "environments": 4,
+            "expenses": 0,
+            "fiado_customers": 0,
+            "financial_operations": 2,
+            "ingredients": 1,
+            "inventory_counts": 0,
+            "invoices": 0,
+            "kitchen_tickets": 2,
+            "lot_consumptions": 2,
+            "orders": 2,
+            "payment_methods": 5,
+            "printers": 0,
+            "production_batches": 0,
+            "products": 1,
+            "purchases": 1,
+            "settings": 0,
+            "stock_moves": 6,
+            "suppliers": 1,
+            "tables": 0
+          },
+          "restored": true,
+          "target_id": "10631057d35c8ef70edb7492015cb1e929278ec18c897baebd0f3501de7ecb91"
+        }
+      },
+      {
+        "stage": "withdrawal_rollback_source_recovered_then_stopped",
+        "elapsed_seconds": 122.6
+      }
+    ]
+  },
+  "vps_tested": false
+}

@@ -1,0 +1,22 @@
+{
+  "scope": "Isolated CI operational Web: built dist-web, synthetic data, HTTPS with verified test certificate, MongoDB 7.0.16 real replica sets. No public deployment or physical certification.",
+  "defined_before_final_validation_run": true,
+  "backend_passes_minimum": 402,
+  "backend_subtests_minimum": 3,
+  "p5_browser_passes": 12,
+  "p6_real_browser_passes": 44,
+  "p10_real_browser_passes": 60,
+  "p10_cases_per_project": 15,
+  "projects": ["desktop", "notebook", "tablet", "mobile"],
+  "node_passes": 14,
+  "unexpected_failures": 0,
+  "skipped_or_flaky_tests": 0,
+  "financial_duplicates": 0,
+  "financial_divergences": 0,
+  "inconsistent_stock_movements": 0,
+  "accessibility_violations_main_flows": 0,
+  "container_tls_isolation_smoke": "PASS",
+  "must_pass": ["typecheck", "lint", "web_build", "desktop_frontend_build", "electron_js_syntax", "authenticated_mongo_replica", "strong_secret_bootstrap", "rate_limit_concurrency", "csrf_cors_roles", "session_reload_expiry_logout", "blocked_external_egress", "unsafe_startup_rejection", "real_backup_restore", "backend_restart", "mongo_restart", "three_member_failover"],
+  "production_approved": false,
+  "excluded": ["HostGator access", "DNS changes", "public HTTPS deployment", "physical printing and devices", "Windows installer execution", "external banking/SEFAZ", "multi-host capacity certification", "complete human operational acceptance"]
+}

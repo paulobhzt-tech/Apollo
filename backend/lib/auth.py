@@ -149,19 +149,25 @@ def login_key(request: Request) -> str:
 
 
 async def check_login_limit(request: Request) -> None:
-    record = await db.login_attempts.find_one({"_id": login_key(request)})
-    if record and record.get("attempts", 0) >= LOGIN_LIMIT:
-        raise HTTPException(429, "Muitas tentativas de PIN. Tente novamente mais tarde.")
+    # Reserve before bcrypt: concurrent requests cannot all pass a read-only check.
+    key = login_key(request)
+    request.state.login_reservation = key
+    timestamp = datetime.now(timezone.utc)
+    record = await db.login_attempts.find_one_and_update(
+        {"_id": key}, {"$inc": {"attempts": 1}, "$setOnInsert": {
+            "expires_at": timestamp + timedelta(minutes=30)}},
+        upsert=True, return_document=ReturnDocument.AFTER)
+    if record["attempts"] > LOGIN_LIMIT:
+        raise HTTPException(429, "Muitas tentativas de autenticação. Tente novamente mais tarde.")
 
 
 async def failed_login(request: Request) -> None:
-    await db.login_attempts.update_one(
-        {"_id": login_key(request)},
-        {"$inc": {"attempts": 1}, "$setOnInsert": {
-            "expires_at": datetime.now(timezone.utc) + timedelta(minutes=30)
-        }}, upsert=True,
-    )
+    # Reservation already counted this failure. Never clear concurrent failures.
+    return None
 
 
 async def successful_login(request: Request) -> None:
-    await db.login_attempts.delete_one({"_id": login_key(request)})
+    key = getattr(request.state, 'login_reservation', None)
+    if key:
+        await db.login_attempts.update_one({"_id": key, "attempts": {"$gt": 0}},
+                                          {"$inc": {"attempts": -1}})

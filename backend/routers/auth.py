@@ -1,7 +1,6 @@
 import os
 import bcrypt
 from starlette.concurrency import run_in_threadpool
-import secrets
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
@@ -10,46 +9,41 @@ from lib.auth import (COOKIE, SESSION_HOURS, create_session, current_user, secur
                       find_employee_by_pin, pin_in_use, revoke_session,
                       check_login_limit, failed_login, successful_login)
 from lib.db import db
-from models.schemas import Employee, EmployeeIn, EmployeeUpdate, LoginIn, OkOut, Profile
+from models.schemas import Employee, EmployeeIn, EmployeeUpdate, LoginIn, OkOut, Profile, PasswordBytesPolicy
 
 router = APIRouter()
 
 
 @router.get("/auth/profiles", response_model=list[Profile])
 async def profiles():
+    from lib.homologation import enabled
+    if enabled():
+        return []
     return await db.employees.find({"active": True}, {"_id": 0, "id": 1, "name": 1, "role": 1}).sort("name", 1).to_list(200)
 
 
-class FirstAccessIn(BaseModel):
-    username: str
-    password: str
+class FirstAccessIn(PasswordBytesPolicy):
+    username: str = Field(min_length=3, max_length=40, pattern=r"^[a-zA-Z0-9._-]+$")
+    password: str = Field(min_length=12, max_length=72)
+    pin: str = Field(pattern=r"^\d{6}$")
+    name: str = Field(default="Administrador fictício", min_length=2, max_length=100)
 
 
 @router.post("/auth/first-access", response_model=Employee)
 async def first_access(body: FirstAccessIn, response: Response, request: Request):
-    """One-time local-only bootstrap. Never expose predictable credentials publicly."""
+    from lib.bootstrap import check_bootstrap_token, provision
     if request.client is None or request.client.host not in ("127.0.0.1", "::1"):
-        raise HTTPException(403, "Primeiro acesso permitido apenas no computador servidor")
-    if body.username != "admin" or body.password != "admin":
-        raise HTTPException(401, "Credenciais iniciais inválidas")
-    if await db.employees.count_documents({}, limit=1):
-        raise HTTPException(409, "Administrador inicial já configurado")
-    pin = f"{secrets.randbelow(900000) + 100000:06d}"
-    emp = Employee(name="Administrador", role="admin", can_cancel=True).model_dump()
-    try:
-        await db.employees.insert_one({**emp, "username": "admin",
-            "password_hash": await run_in_threadpool(secure_hash_pin, "admin"), "pin_hash": await run_in_threadpool(secure_hash_pin, pin),
-            "must_change_password": True})
-    except Exception:
-        raise HTTPException(409, "Não foi possível criar o administrador inicial")
-    token = await create_session(emp["id"])
-    response.set_cookie(COOKIE, token, httponly=True,
-        secure=os.environ.get("COOKIE_SECURE", "true").lower() != "false",
-        samesite="lax", max_age=SESSION_HOURS * 3600, path="/")
+        raise HTTPException(403, "Provisionamento permitido apenas no computador servidor")
+    await check_login_limit(request)
+    check_bootstrap_token(request.headers.get('x-apollo-bootstrap'))
+    if len(body.password.encode()) > 72:
+        raise HTTPException(400, "Senha excede o limite seguro em bytes")
+    emp = await provision(db, body)
+    await successful_login(request)
     return emp
 
 
-class FirstPasswordChangeIn(BaseModel):
+class FirstPasswordChangeIn(PasswordBytesPolicy):
     password: str = Field(min_length=12, max_length=128)
 
 

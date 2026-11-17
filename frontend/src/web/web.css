@@ -1,4 +1,4 @@
-.web-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem; padding: .4rem 1rem; background: #17253a; color: #f2f6ff; font-size: .8rem; }
+.web-toolbar { position: relative; z-index: 40; isolation: isolate; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem; padding: .4rem 1rem; background: #17253a; color: #f2f6ff; font-size: .8rem; }
 .web-toolbar button { min-height: 44px; padding: .4rem .8rem; border: 1px solid #8ba0bc; border-radius: .5rem; }
 .web-skip { position: fixed; top: -80px; left: 12px; z-index: 100; background: white; color: black; padding: 12px; }
 .web-skip:focus { top: 8px; }

@@ -1,0 +1,107 @@
+{
+  "date": "2026-11-17",
+  "preflight_source_commit": "cfdb8e5d6c4c4ec9020763b3d08c584ef9aac21a",
+  "provenance": {
+    "executor": "owner",
+    "channel": "authenticated SSH from Windows PowerShell, reported by owner",
+    "original_json_attached": false,
+    "work_remote_session": false
+  },
+  "reported": {
+    "result": "COMPLETE",
+    "elapsed_seconds": 5.79,
+    "mutations_executed": false,
+    "production_running": true,
+    "production_unchanged_before_after": true,
+    "volumes_separate": true,
+    "mongo_version": "7.0.45",
+    "admin_authenticated": true,
+    "replSetConfigure": true,
+    "replica_set": null,
+    "database": "apollo_homologacao",
+    "collections": 29,
+    "documents": 37,
+    "indexes": 69,
+    "data_bytes": 8688,
+    "directory_kib": 357196,
+    "journal_kib": 307204,
+    "backup_bytes": 7243,
+    "backup_sha256_matches_expected": true,
+    "backup_gzip_valid": true,
+    "backup_uncompressed_bytes": 27327,
+    "real_restore_proven": false,
+    "mem_available_mib_approx": 741,
+    "swap_used_gib_approx": 1.4,
+    "disk_available_gb_approx": 23,
+    "app_url_host": "teste.apollo-pdv.com",
+    "public_host": "homologacao.apollo-pdv.com",
+    "APOLLO_ENV_in_exec_process": null,
+    "all_writers_inventoried": false,
+    "transactional_readiness_proven": false,
+    "rollback_rehearsed": false
+  },
+  "derived": {
+    "directory_mib": 348.82,
+    "journal_mib": 300,
+    "journal_directory_percent": 86
+  },
+  "backup_expected_sha256": "ebbb6988098a5d910bfe65503ba84fd5d7e18ea2b7df7c1da13a844246c4c2cb",
+  "work_local_checks": {
+    "csrf_existing_tests_pass": 6,
+    "p10_empty_environment_enabled": false,
+    "p10_empty_environment_validate": null,
+    "same_origin_allowed": true,
+    "sibling_origin_allowed": false
+  },
+  "ci_at_preflight_source": [
+    {
+      "id": 44119108383,
+      "name": "P105 backup script guards",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 44119108494,
+      "name": "P5 Web - Browser validation",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 44119108451,
+      "name": "Apollo - Bateria de testes",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 44119091155,
+      "name": "P105 backup script guards",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 44119091336,
+      "name": "P10 - Isolated operational Web validation",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 44119091316,
+      "name": "Apollo - Bateria de testes",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 44119091206,
+      "name": "Validacao de seguranca e compilacao do Apollo PDV",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "new_maintenance_window": false,
+  "rs0_initiated": false,
+  "containers_restarted": false,
+  "source_code_changes": false,
+  "restore_plan_executed": false,
+  "rollback_plan_executed": false,
+  "verdict": "HOMOLOGACAO_BLOQUEADA"
+}
