@@ -61,9 +61,9 @@ export default function PreBillDialog({ table, order, open, onClose, onPrinted }
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md border-white/10 bg-shell" data-testid="prebill-dialog">
+      <DialogContent className="mesas-dialog max-w-md border-white/10 bg-shell" data-testid="prebill-dialog">
         <DialogTitle className="font-heading text-xl text-white">Pré-conta · {tableLabel(table)}</DialogTitle>
-        <div className="max-h-[45vh] space-y-1.5 overflow-y-auto rounded-xl bg-white p-4 font-mono text-[12px] text-black" data-testid="prebill-preview">
+        <div className="max-h-[45vh] space-y-1.5 overflow-y-auto rounded-xl bg-white p-4 font-mono text-[12px] text-black" role="region" aria-label="Prévia da pré-conta" tabIndex={0} data-testid="prebill-preview">
           {groups.map((g) => (
             <div key={g.key} className="flex justify-between gap-2" data-testid="prebill-line">
               <span><b data-testid="prebill-line-qty">{g.qty}x</b> {g.name}{g.options.length > 0 && <span className="block pl-3 text-[10px] text-zinc-600">{g.options.join(" · ")}</span>}</span>
@@ -78,9 +78,9 @@ export default function PreBillDialog({ table, order, open, onClose, onPrinted }
             {n > 1 && <div className="flex justify-between"><span>Por pessoa ({n})</span><span data-testid="prebill-per-person">{brl(r2(total / n))}</span></div>}
           </div>
         </div>
-        <div className="flex items-end gap-4">
+        <div className="flex flex-wrap items-end gap-4">
           <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={service} onCheckedChange={(v) => setService(!!v)} data-testid="prebill-service-checkbox" /> Incluir 10% de serviço</label>
-          <div className="w-24"><Label className="text-xs text-zinc-400">Dividir por</Label><Input value={people} onChange={(e) => setPeople(e.target.value)} inputMode="numeric" className="mt-1" data-testid="prebill-people-input" /></div>
+          <div className="w-24"><Label className="text-xs text-zinc-400">Dividir por</Label><Input value={people} onChange={(e) => setPeople(e.target.value)} inputMode="numeric" className="mt-1" aria-label="Número de pessoas para dividir a pré-conta" data-testid="prebill-people-input" /></div>
         </div>
         <Button className="h-11" onClick={() => void print()} disabled={!groups.length} data-testid="prebill-print-button"><PrinterIcon className="size-4" /> Imprimir pré-conta</Button>
       </DialogContent>

@@ -34,7 +34,7 @@ export default function ProductGrid({ products, categories, onAdd, compact }: {
           data-testid="product-search-input"
         />
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className={cn("flex gap-2 pb-1", compact ? "min-w-0 flex-wrap" : "overflow-x-auto")}>
         {[{ id: "all", name: "Todos" }, ...categories].map((c) => (
           <button
             key={c.id}
@@ -42,7 +42,7 @@ export default function ProductGrid({ products, categories, onAdd, compact }: {
             onClick={() => setCat(c.id)}
             data-testid={`category-filter-${c.id}`}
             className={cn(
-              "shrink-0 rounded-full border px-4 py-1.5 text-sm transition-colors duration-150",
+              compact ? "min-w-0 max-w-full rounded-full border px-4 py-1.5 text-sm break-words transition-colors duration-150" : "shrink-0 rounded-full border px-4 py-1.5 text-sm transition-colors duration-150",
               cat === c.id ? "border-primary bg-primary text-white" : "border-white/10 text-zinc-300 hover:border-white/25",
             )}
           >
@@ -57,7 +57,7 @@ export default function ProductGrid({ products, categories, onAdd, compact }: {
             type="button"
             onClick={() => onAdd(p)}
             data-testid={`product-card-${p.code || p.id}`}
-            className="group overflow-hidden rounded-2xl border border-white/5 bg-panel text-left transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/40 active:scale-[0.98]"
+            className={cn("group min-w-0 rounded-2xl border border-white/5 bg-panel text-left transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/40 active:scale-[0.98]", !compact && "overflow-hidden")}
           >
             {!compact && (
               <div className="aspect-[16/10] overflow-hidden bg-muted">
@@ -65,10 +65,10 @@ export default function ProductGrid({ products, categories, onAdd, compact }: {
               </div>
             )}
             <div className="p-3">
-              <p className="line-clamp-1 text-sm font-medium text-white">{p.name}</p>
-              <div className="mt-1 flex items-center justify-between">
+              <p className={cn("text-sm font-medium text-white", compact ? "[overflow-wrap:anywhere]" : "line-clamp-1")}>{p.name}</p>
+              <div className="mt-1 flex min-w-0 flex-wrap items-center justify-between gap-1">
                 <span className="font-mono text-sm text-primary">{brl(p.price)}</span>
-                <span className="font-mono text-[10px] text-zinc-500">{p.code}</span>
+                <span className="font-mono text-[10px] text-zinc-500 [overflow-wrap:anywhere]">{p.code}</span>
               </div>
             </div>
           </button>

@@ -1,0 +1,220 @@
+{
+  "overlappingControls": [],
+  "viewport": 1920,
+  "panelWidth": 384,
+  "panelScrollWidth": 848,
+  "panelClientWidth": 383,
+  "pageWidth": 1920,
+  "overflowing": [
+    {
+      "id": "P",
+      "text": "Ocupada · FICTÍCIO Garçom AtendimentoAtendimentoAtendimentoA",
+      "width": 766.734375,
+      "scrollWidth": 767,
+      "clientWidth": 767
+    },
+    {
+      "id": "table-rename-input",
+      "text": "",
+      "width": 251.3125,
+      "scrollWidth": 606,
+      "clientWidth": 249
+    },
+    {
+      "id": "table-rename-save",
+      "text": " Salvar",
+      "width": 83.6875,
+      "scrollWidth": 82,
+      "clientWidth": 82
+    },
+    {
+      "id": "P",
+      "text": " Clientes nesta mesa (1)",
+      "width": 317,
+      "scrollWidth": 317,
+      "clientWidth": 317
+    },
+    {
+      "id": "SPAN",
+      "text": "FICTÍCIO Cliente SobrenomeSemEspacosSobrenomeSemEspacosSobre",
+      "width": 439.234375,
+      "scrollWidth": 437,
+      "clientWidth": 437
+    },
+    {
+      "id": "Remover FICTÍCIO Cliente SobrenomeSemEspacosSobrenomeSemEspacosSobrenomeSemEspacos",
+      "text": "×",
+      "width": 7.015625,
+      "scrollWidth": 7,
+      "clientWidth": 7
+    },
+    {
+      "id": "table-customer-name",
+      "text": "",
+      "width": 228.625,
+      "scrollWidth": 227,
+      "clientWidth": 227
+    },
+    {
+      "id": "BUTTON",
+      "text": "Adicionar",
+      "width": 80.375,
+      "scrollWidth": 78,
+      "clientWidth": 78
+    },
+    {
+      "id": "table-save-customers",
+      "text": "Salvar clientes",
+      "width": 317,
+      "scrollWidth": 315,
+      "clientWidth": 315
+    },
+    {
+      "id": "P",
+      "text": "Todos compartilham a mesma mesa e comanda. A divisão de paga",
+      "width": 317,
+      "scrollWidth": 317,
+      "clientWidth": 317
+    },
+    {
+      "id": "SPAN",
+      "text": "Itens · 12 un.",
+      "width": 108.5625,
+      "scrollWidth": 109,
+      "clientWidth": 109
+    },
+    {
+      "id": "toggle-group-items",
+      "text": "Ver item a item (cancelar)",
+      "width": 162.71875,
+      "scrollWidth": 161,
+      "clientWidth": 161
+    },
+    {
+      "id": "grouped-line",
+      "text": "1xFICTÍCIO Espetinho especial com acompanhamentos e observaç",
+      "width": 343,
+      "scrollWidth": 454,
+      "clientWidth": 343
+    },
+    {
+      "id": "grouped-line-qty",
+      "text": "1x",
+      "width": 32,
+      "scrollWidth": 32,
+      "clientWidth": 32
+    },
+    {
+      "id": "P",
+      "text": "FICTÍCIO Espetinho especial com acompanhamentos e observação",
+      "width": 27.140625,
+      "scrollWidth": 1298,
+      "clientWidth": 27
+    },
+    {
+      "id": "P",
+      "text": "FICTÍCIO adicional AcompanhamentoAcompanhamentoAcompanhament",
+      "width": 27.140625,
+      "scrollWidth": 592,
+      "clientWidth": 27
+    },
+    {
+      "id": "P",
+      "text": "FICTÍCIO observação SemSalSemSalSemSalSemSalSemSalSemSalSemS",
+      "width": 27.140625,
+      "scrollWidth": 708,
+      "clientWidth": 27
+    },
+    {
+      "id": "P",
+      "text": "Cliente: FICTÍCIO Cliente SobrenomeSemEspacosSobrenomeSemEsp",
+      "width": 27.140625,
+      "scrollWidth": 398,
+      "clientWidth": 27
+    },
+    {
+      "id": "SPAN",
+      "text": "R$ 99.123,45",
+      "width": 86.703125,
+      "scrollWidth": 87,
+      "clientWidth": 87
+    },
+    {
+      "id": "SPAN",
+      "text": "R$ 99.123,45",
+      "width": 101.15625,
+      "scrollWidth": 101,
+      "clientWidth": 101
+    },
+    {
+      "id": "grouped-remove-item-0",
+      "text": "",
+      "width": 24,
+      "scrollWidth": 24,
+      "clientWidth": 24
+    },
+    {
+      "id": "grouped-line",
+      "text": "1xFICTÍCIO Espetinho especial com acompanhamentos e observaç",
+      "width": 343,
+      "scrollWidth": 454,
+      "clientWidth": 343
+    },
+    {
+      "id": "grouped-line-qty",
+      "text": "1x",
+      "width": 32,
+      "scrollWidth": 32,
+      "clientWidth": 32
+    },
+    {
+      "id": "P",
+      "text": "FICTÍCIO Espetinho especial com acompanhamentos e observação",
+      "width": 27.140625,
+      "scrollWidth": 1298,
+      "clientWidth": 27
+    },
+    {
+      "id": "P",
+      "text": "FICTÍCIO adicional AcompanhamentoAcompanhamentoAcompanhament",
+      "width": 27.140625,
+      "scrollWidth": 592,
+      "clientWidth": 27
+    },
+    {
+      "id": "P",
+      "text": "FICTÍCIO observação SemSalSemSalSemSalSemSalSemSalSemSalSemS",
+      "width": 27.140625,
+      "scrollWidth": 708,
+      "clientWidth": 27
+    },
+    {
+      "id": "P",
+      "text": "Cliente: FICTÍCIO Cliente SobrenomeSemEspacosSobrenomeSemEsp",
+      "width": 27.140625,
+      "scrollWidth": 398,
+      "clientWidth": 27
+    },
+    {
+      "id": "SPAN",
+      "text": "R$ 99.123,45",
+      "width": 86.703125,
+      "scrollWidth": 87,
+      "clientWidth": 87
+    },
+    {
+      "id": "SPAN",
+      "text": "R$ 99.123,45",
+      "width": 101.15625,
+      "scrollWidth": 101,
+      "clientWidth": 101
+    },
+    {
+      "id": "grouped-remove-item-1",
+      "text": "",
+      "width": 24,
+      "scrollWidth": 24,
+      "clientWidth": 24
+    }
+  ]
+}
