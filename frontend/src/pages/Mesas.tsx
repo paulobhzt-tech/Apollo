@@ -248,13 +248,13 @@ export function QrDialog({ table, onClose }: { table: Table | null; onClose: () 
         <DialogHeader><DialogTitle className="font-heading text-white">QR Code · {table ? tableLabel(table) : ""}</DialogTitle></DialogHeader>
         <div className="print-area flex flex-col items-center gap-3 rounded-2xl bg-white p-6 text-black">
           <p className="font-heading text-lg font-semibold">Espeteria Churras Buguer</p>
-          {table && <QRCodeSVG value={url} size={200} data-testid="qr-code-svg" />}
+          {table && <QRCodeSVG value={url} title={`Cardápio de ${tableLabel(table)}`} size={200} data-testid="qr-code-svg" />}
           <p className="text-sm">{table ? tableLabel(table) : ""} · Aponte a câmera e peça pelo celular</p>
         </div>
         <p className="break-all text-center text-xs text-zinc-500" data-testid="qr-url">{url}</p>
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1" onClick={() => window.print()} data-testid="qr-print-button">Imprimir</Button>
-          <a href={url} target="_blank" rel="noreferrer" className="flex-1"><Button className="w-full" data-testid="qr-open-button">Abrir cardápio</Button></a>
+          <Button nativeButton={false} render={<a href={url} target="_blank" rel="noreferrer" />} className="flex-1" data-testid="qr-open-button">Abrir cardápio</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -451,9 +451,9 @@ function TableSheet({ table, onClose, onQr, tables, canDelete, returnFocus, qrDi
                       <p className="text-xs text-zinc-400">Selecione quem pediu cada item. O funcionário que lançou o pedido será registrado automaticamente.</p>
                       {pending.map((p, i) => (
                         <div key={p.key} className="mesas-pending text-sm" data-testid={`pending-line-${i}`}>
-                          <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.flatMap((x, j) => j !== i ? [x] : x.qty <= 1 ? [] : [{ ...x, qty: x.qty - 1 }]))}><Minus /></Button>
+                          <Button size="icon-xs" variant="outline" aria-label={`Diminuir quantidade de ${p.product.name}`} onClick={() => setPending((c) => c.flatMap((x, j) => j !== i ? [x] : x.qty <= 1 ? [] : [{ ...x, qty: x.qty - 1 }]))}><Minus /></Button>
                           <span className="w-5 text-center font-mono">{p.qty}</span>
-                          <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.map((x, j) => (j === i ? { ...x, qty: x.qty + 1 } : x)))}><Plus /></Button>
+                          <Button size="icon-xs" variant="outline" aria-label={`Aumentar quantidade de ${p.product.name}`} onClick={() => setPending((c) => c.map((x, j) => (j === i ? { ...x, qty: x.qty + 1 } : x)))}><Plus /></Button>
                           <span className="mesas-pending-name">{p.product.name}{p.labels.length > 0 && <span className="block text-xs text-primary">{p.labels.join(" · ")}</span>}</span>
                           <select aria-label="Cliente responsável pelo item" value={p.customerName} onChange={e => setPending(old => old.map((line, j) => j === i ? { ...line, customerName: e.target.value } : line))}
                             className="max-w-32 rounded-md border border-white/15 bg-panel px-2 py-1 text-xs" data-testid={`pending-customer-${i}`}>
@@ -479,7 +479,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete, returnFocus, qrDi
                     <h3 className="mb-2 text-sm font-semibold">Transferência de mesa</h3>
                     <div className="flex min-w-0 gap-2">
                     <Select value={transferTo} onValueChange={(v: string) => setTransferTo(v)}>
-                      <SelectTrigger className="min-w-0 flex-1" data-testid="transfer-select"><SelectValue placeholder="Transferir para…">{(v) => v ? (() => { const x = tables.find((t) => t.id === v); return x ? tableLabel(x) : ""; })() : "Transferir para…"}</SelectValue></SelectTrigger>
+                      <SelectTrigger aria-label="Mesa de destino da transferência" className="min-w-0 flex-1" data-testid="transfer-select"><SelectValue placeholder="Transferir para…">{(v) => v ? (() => { const x = tables.find((t) => t.id === v); return x ? tableLabel(x) : ""; })() : "Transferir para…"}</SelectValue></SelectTrigger>
                       <SelectContent className="mesas-transfer-options">
                         {tables.filter((t) => t.status === "livre").map((t) => <SelectItem key={t.id} value={t.id}>{tableLabel(t)}</SelectItem>)}
                       </SelectContent>
@@ -618,7 +618,7 @@ function PartialBillDialog({ tableId, items, open, onClose }: { tableId: string;
           {available.map((item) => (
             <div key={item.id} className="mesas-partial-item flex items-center justify-between gap-3 rounded-lg bg-panel p-3">
               <span className="text-sm">{item.name} · {brl(item.unit_price)} (até {item.qty})<span className="block text-xs text-zinc-400">{item.customer_name || "Mesa inteira"}</span></span>
-              <Input className="w-20" type="number" min={0} max={item.qty} disabled={!!selectedCustomer && !!item.customer_name && item.customer_name !== selectedCustomer} value={quantities[item.id] ?? 0}
+              <Input aria-label={`Quantidade de ${item.name} para dividir`} className="w-20" type="number" min={0} max={item.qty} disabled={!!selectedCustomer && !!item.customer_name && item.customer_name !== selectedCustomer} value={quantities[item.id] ?? 0}
                 onChange={(e) => { setQuantities((old) => ({ ...old, [item.id]: Math.max(0, Math.min(item.qty, Number(e.target.value) || 0)) })); setPreview(null); }} />
             </div>
           ))}

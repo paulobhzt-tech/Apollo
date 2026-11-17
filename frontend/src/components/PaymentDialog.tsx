@@ -169,7 +169,7 @@ function PaymentBody({ subtotal, title, defaultService = 0, partialMode = false,
                 <span>{payLabel(p.method, p.brand)}</span>
                 <span className="flex items-center gap-2 font-mono">
                   {brl(p.amount)}
-                  <button type="button" onClick={() => setPayments((ps) => ps.filter((_, j) => j !== i))} data-testid={`payment-remove-${i}`}>
+                  <button type="button" onClick={() => setPayments((ps) => ps.filter((_, j) => j !== i))} aria-label={`Remover pagamento ${i + 1}`} data-testid={`payment-remove-${i}`}>
                     <Trash2 className="size-3.5 text-zinc-500 hover:text-red-400" />
                   </button>
                 </span>
@@ -182,11 +182,11 @@ function PaymentBody({ subtotal, title, defaultService = 0, partialMode = false,
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-zinc-400">Desconto (R$)</Label>
-              <Input inputMode="decimal" value={discount} onChange={(e) => setDiscount(e.target.value)} className="mt-1 font-mono" data-testid="payment-discount-input" />
+              <Input inputMode="decimal" value={discount} onChange={(e) => setDiscount(e.target.value)} className="mt-1 font-mono" aria-label="Desconto em reais" data-testid="payment-discount-input" />
             </div>
             <div>
               <Label className="text-xs text-zinc-400">Dividir por</Label>
-              <Input inputMode="numeric" value={splitN} onChange={(e) => setSplitN(e.target.value)} className="mt-1 font-mono" data-testid="payment-split-input" />
+              <Input inputMode="numeric" value={splitN} onChange={(e) => setSplitN(e.target.value)} className="mt-1 font-mono" aria-label="Número de pessoas para dividir o pagamento" data-testid="payment-split-input" />
             </div>
           </div>
           {defaultService > 0 && (

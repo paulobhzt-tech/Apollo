@@ -54,3 +54,7 @@
 .mesas-partial-item > input { flex: 0 0 5rem; }
 .mesas-sheet :where(input:not([aria-hidden="true"]), select) { min-height: 2.75rem; }
 .mesas-sheet [data-testid="table-customers"] > div > span > button { flex: none; width: 2.75rem; min-height: 2.75rem; }
+
+/* Contrast fixes limited to Mesas and its dialogs; orange actions use dark text. */
+.mesas-sheet .bg-primary, .mesas-dialog .bg-primary { color: #171717; }
+.mesas-sheet .text-zinc-500, .mesas-dialog .text-zinc-500 { color: #a1a1aa; }
