@@ -46,8 +46,10 @@ async function geometry(panel: Locator) {
     const p = el.getBoundingClientRect();
     const overflowing = [...el.querySelectorAll<HTMLElement>('button,input,select,p,span,[data-testid="grouped-line"]')]
       .filter(n => n.getClientRects().length && getComputedStyle(n).position !== 'absolute')
+      // Base UI select exposes a clipped, fixed 1px form input at (0,0), outside the popup.
+      .filter(n => !(n.matches('input[aria-hidden=true]') && getComputedStyle(n).clipPath !== 'none' && n.getBoundingClientRect().width <= 1))
       .filter(n => { const r=n.getBoundingClientRect(); return r.left < p.left - 1 || r.right > p.right + 1 || (!n.matches('input,select,[data-slot=checkbox],[data-slot=checkbox-indicator]') && n.scrollWidth > n.clientWidth + 2); })
-      .map(n => n.dataset.testid || n.tagName).slice(0, 30);
+      .map(n => ({ id: n.dataset.testid || n.getAttribute('aria-label') || n.tagName, text: n.textContent?.slice(0, 60), width: n.getBoundingClientRect().width, scrollWidth: n.scrollWidth, clientWidth: n.clientWidth })).slice(0, 30);
     const controls = [...el.querySelectorAll<HTMLElement>('button,input:not([type=hidden]),select,[role=combobox]')].filter(n => {
       const r = n.getBoundingClientRect();
       if (getComputedStyle(n).position === 'absolute' && r.width <= 1) return false;
