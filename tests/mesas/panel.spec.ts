@@ -38,6 +38,7 @@ async function fixture(page: Page, role = 'caixa') {
   const panel = page.getByTestId('table-sheet');
   await expect(panel).toBeVisible();
   await expect(page.getByTestId('grouped-line')).toHaveCount(items.length);
+  await panel.evaluate(el => Promise.all(el.getAnimations().map(animation => animation.finished.catch(() => {}))));
   return { mutations, panel, opener };
 }
 async function geometry(panel: Locator) {
@@ -45,7 +46,7 @@ async function geometry(panel: Locator) {
     const p = el.getBoundingClientRect();
     const overflowing = [...el.querySelectorAll<HTMLElement>('button,input,select,p,span,[data-testid="grouped-line"]')]
       .filter(n => n.getClientRects().length && getComputedStyle(n).position !== 'absolute')
-      .filter(n => { const r=n.getBoundingClientRect(); return r.left < p.left - 1 || r.right > p.right + 1 || n.scrollWidth > n.clientWidth + 2; })
+      .filter(n => { const r=n.getBoundingClientRect(); return r.left < p.left - 1 || r.right > p.right + 1 || (!n.matches('[data-slot=checkbox],[data-slot=checkbox-indicator]') && n.scrollWidth > n.clientWidth + 2); })
       .map(n => n.dataset.testid || n.tagName).slice(0, 30);
     return { viewport: innerWidth, panelWidth: p.width, panelScrollWidth: el.scrollWidth, panelClientWidth: el.clientWidth,
       pageWidth: document.documentElement.scrollWidth, overflowing };

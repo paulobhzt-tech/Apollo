@@ -52,3 +52,4 @@
 .mesas-dialog [data-testid="prebill-line"] > span:last-child { flex: none; }
 .mesas-partial-item > span { min-width: 0; flex: 1; }
 .mesas-partial-item > input { flex: 0 0 5rem; }
+.mesas-sheet :where(input, select) { min-height: 2.75rem; }

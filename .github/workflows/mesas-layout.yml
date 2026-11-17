@@ -31,7 +31,7 @@ jobs:
           ln -s "$GITHUB_WORKSPACE/frontend/node_modules" ../mesas-baseline/frontend/node_modules
           ln -s "$GITHUB_WORKSPACE/tests/node_modules" ../mesas-baseline/tests/node_modules
           cd ../mesas-baseline/frontend
-          npx vite --config vite.web.config.ts --port 3018 > /tmp/mesas-before.log 2>&1 &
+          ./node_modules/.bin/vite --config vite.web.config.ts --port 3018 > /tmp/mesas-before.log 2>&1 &
           VITE_PID=$!
           trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT
           for i in $(seq 1 30); do
@@ -56,15 +56,18 @@ jobs:
           MESAS_EVIDENCE_DIR: ${{ github.workspace }}/docs/web/mesas-layout-2026-11-17/evidence
         run: |
           cd frontend
-          npx vite --config vite.web.config.ts --port 3018 > /tmp/mesas-after.log 2>&1 &
+          ./node_modules/.bin/vite --config vite.web.config.ts --port 3018 > /tmp/mesas-after.log 2>&1 &
           VITE_PID=$!
           trap 'kill "$VITE_PID" 2>/dev/null || true' EXIT
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:3018/mesas >/dev/null; then break; fi
             sleep 1
           done
+          kill -0 "$VITE_PID"
+          curl -fsS http://127.0.0.1:3018/src/pages/Mesas.tsx | grep -q "mesas-sheet"
           cd ../tests
           npx playwright test -c mesas.playwright.config.ts --update-snapshots
+          npx playwright test -c mesas.playwright.config.ts
       - uses: actions/upload-artifact@v4
         if: always()
         with:

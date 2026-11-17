@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState, type RefObject } from "react";
 import "./Mesas.css";
 import { Link, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -58,6 +58,7 @@ export default function Mesas() {
   const ready = (readyTickets.data ?? []).filter(ticket => ticket.status === "pronto");
   const myReady = ready.filter((ticket) => (tables.data ?? []).some((t) => t.order_id === ticket.order_id && t.waiter_id === me?.id));
   const [selId, setSelId] = useState<string | null>(null);
+  const tableOpener = useRef<HTMLButtonElement | null>(null);
   const [mobileSearch, setMobileSearch] = useState("");
   const [mobileFilter, setMobileFilter] = useState<"todas" | "minhas" | "ocupadas" | "livres">("todas");
   const [qrTable, setQrTable] = useState<Table | null>(null);
@@ -134,7 +135,7 @@ export default function Mesas() {
           <button
             key={t.id}
             type="button"
-            onClick={() => setSelId(t.id)}
+            onClick={(event) => { tableOpener.current = event.currentTarget; setSelId(t.id); }}
             data-testid={`${t.kind === "comanda" ? "comanda" : "table"}-card-${t.number}`}
             className={cn("mesas-table-card relative min-w-0 rounded-2xl border p-4 text-left transition-transform duration-200 hover:-translate-y-0.5 animate-rise", STATUS[t.status].cls)}
           >
@@ -165,7 +166,7 @@ export default function Mesas() {
           <Plus className="size-4" /> Adicionar mais {kind === "mesa" ? "mesas" : "comandas"}
         </button>
       )}
-      <TableSheet table={sel} onClose={() => setSelId(null)} onQr={setQrTable} tables={all} canDelete={canCreate} />
+      <TableSheet returnFocus={tableOpener} table={sel} onClose={() => setSelId(null)} onQr={setQrTable} tables={all} canDelete={canCreate} />
       <QrDialog table={qrTable} onClose={() => setQrTable(null)} />
       <NewTableDialog open={creating} kind={kind} existing={all.filter((t) => t.kind === kind)} onClose={() => setCreating(false)} />
     </AppShell>
@@ -263,8 +264,9 @@ export function QrDialog({ table, onClose }: { table: Table | null; onClose: () 
 
 interface Pending { key: string; product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number; customerName: string }
 
-function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table | null; onClose: () => void; onQr: (t: Table) => void; tables: Table[]; canDelete: boolean }) {
+function TableSheet({ table, onClose, onQr, tables, canDelete, returnFocus }: { returnFocus: RefObject<HTMLButtonElement | null>; table: Table | null; onClose: () => void; onQr: (t: Table) => void; tables: Table[]; canDelete: boolean }) {
   const open = !!table;
+  const scrollRegion = useRef<HTMLDivElement | null>(null);
   const { data: me } = useMe();
   const order = useQuery({
     queryKey: ["table-order", table?.id],
@@ -352,7 +354,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
   return (
     <>
       <Sheet open={open} onOpenChange={(v) => { if (!v) { onClose(); setAdding(false); setPending([]); } }}>
-        <SheetContent side="right" className="mesas-sheet border-white/5 bg-shell p-0" data-testid="table-sheet">
+        <SheetContent side="right" initialFocus={scrollRegion} finalFocus={returnFocus} className="mesas-sheet border-white/5 bg-shell p-0" data-testid="table-sheet">
           {table && (
             <>
               <header className="mesas-sheet-header">
@@ -366,7 +368,7 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                 </div>
                 <Button variant="outline" size="sm" onClick={() => onQr(table)} data-testid="table-qr-button"><QrCode className="size-4" /> QR</Button>
               </header>
-              <div className="mesas-sheet-body" role="region" aria-label="Conteúdo da comanda" tabIndex={0} data-testid="table-sheet-scroll">
+              <div ref={scrollRegion} className="mesas-sheet-body" role="region" aria-label="Conteúdo da comanda" tabIndex={0} data-testid="table-sheet-scroll">
               <RenameRow key={table.id + table.name} table={table} canDelete={canDelete} onDeleted={onClose} />
 
               {table.call && (
@@ -508,7 +510,8 @@ function TableSheet({ table, onClose, onQr, tables, canDelete }: { table: Table 
                   <div className="mesas-subtotal">
                     <span className="text-sm text-zinc-400">Subtotal (+10% serviço opcional)</span>
                     <span className="font-mono text-2xl text-white" data-testid="table-order-total">{brl(o?.total ?? table.total)}</span>
-                  </div>                  <div className="mesas-primary-actions">
+                  </div>
+                  <div className="mesas-primary-actions">
                     <Button variant="outline" onClick={() => setPreBill(true)} disabled={!items.some((i) => !i.cancelled)} data-testid="request-bill-button">
                       <Receipt className="size-4" /> Pré-conta
                     </Button>
