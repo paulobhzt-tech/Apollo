@@ -67,6 +67,7 @@ jobs:
           curl -fsS http://127.0.0.1:3018/src/pages/Mesas.tsx -o /tmp/mesas-candidate-module.js
           grep -q "mesas-sheet" /tmp/mesas-candidate-module.js
           cd ../tests
+          rm -f mesas/panel.spec.ts-snapshots/*.png
           npx playwright test -c mesas.playwright.config.ts --update-snapshots
       - uses: actions/upload-artifact@v4
         if: always()

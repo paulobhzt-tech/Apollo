@@ -88,6 +88,7 @@ test('panel geometry, long text, money and all main actions', async ({ page }, i
   await expect(panel).toHaveScreenshot(`panel-${info.project.name}.png`);
   await page.getByTestId('table-toggle-status-button').scrollIntoViewIfNeeded();
   await expect(page.getByTestId('table-cancel-button')).toBeInViewport();
+  expect(await page.getByTestId('table-sheet-scroll').evaluate(el => el.scrollTop)).toBeGreaterThan(0);
   await expect(page.getByTestId('close-table-button')).toBeInViewport();
   await expect(panel.locator('[data-slot="sheet-close"]')).toBeInViewport();
   await page.screenshot({ path: path.join(evidence, `after-bottom-${info.project.name}.png`), animations: 'disabled' });
@@ -99,6 +100,10 @@ test('keyboard trap, close/return focus and nested actions without writes', asyn
   const { panel, mutations, opener } = await fixture(page);
   for (let i = 0; i < 45; i++) {
     await page.keyboard.press('Tab');
+    await expect.poll(() => panel.evaluate(el => el.contains(document.activeElement))).toBe(true);
+  }
+  for (let i = 0; i < 10; i++) {
+    await page.keyboard.press('Shift+Tab');
     await expect.poll(() => panel.evaluate(el => el.contains(document.activeElement))).toBe(true);
   }
   await page.getByTestId('close-table-button').focus(); await page.keyboard.press('Enter');
@@ -152,6 +157,7 @@ test('accessibility audit of order panel and nested controls', async ({ page }, 
   const audits: { state: string; violations: unknown[]; incomplete: unknown[] }[] = [];
   async function audit(state: string, scope: Locator) {
     await expect(scope).toBeVisible();
+    await scope.evaluate(el => Promise.all(el.getAnimations({ subtree: true }).map(a => a.finished.catch(() => {}))));
     await scope.evaluate(el => el.setAttribute('data-review-scope', 'true'));
     const result = await new AxeBuilder({ page }).include('[data-review-scope="true"]').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     audits.push({ state, violations: result.violations, incomplete: result.incomplete });
@@ -163,9 +169,24 @@ test('accessibility audit of order panel and nested controls', async ({ page }, 
   await audit('pending-product', panel);
   await page.getByTestId('close-table-button').click();
   await audit('payment', page.getByTestId('payment-dialog'));
+  // Local dialog state only: never submit a payment to the API.
+  const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  await page.getByTestId('payment-discount-input').fill('10,00');
+  await expect(page.getByTestId('payment-total')).toHaveText(money(Math.round((total * 1.1 - 10) * 100) / 100));
+  await page.getByTestId('payment-service-checkbox').click();
+  await expect(page.getByTestId('payment-total')).toHaveText(money(total - 10));
+  await page.getByTestId(`cash-quick-${Math.round(total - 10)}`).click();
+  await expect(page.getByTestId('payment-confirm-button')).toBeEnabled();
+  await expect(page.getByTestId('payment-remaining')).toHaveText(money(0));
+  await audit('payment-draft', page.getByTestId('payment-dialog'));
+  await page.getByRole('button', { name: 'Remover pagamento 1', exact: true }).click();
+  await expect(page.getByTestId('payment-confirm-button')).toBeDisabled();
   await page.keyboard.press('Escape');
   await page.getByTestId('request-bill-button').click();
   await audit('prebill', page.getByTestId('prebill-dialog'));
+  const preview = page.getByTestId('prebill-preview');
+  await preview.focus(); await page.keyboard.press('ArrowDown');
+  await expect.poll(() => preview.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Dividir conta por itens', exact: true }).click();
   const partial = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Divisão da conta por itens', exact: true }) });
