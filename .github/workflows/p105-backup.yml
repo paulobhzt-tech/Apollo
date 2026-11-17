@@ -18,3 +18,7 @@ jobs:
         run: python3 -m py_compile deploy/vps/mongo_recovery.py
       - name: Unit tests (mock Docker/rclone; no real restore)
         run: python3 -m unittest discover -s deploy/vps/tests -v
+      - name: RS0 preparation helper guards (mocked, no migration)
+        run: python3 -m unittest discover -s deploy/vps/rs0 -p test_helpers.py -v
+      - name: RS0 initialization guard tests (mocked Mongo)
+        run: node --test deploy/vps/rs0/test-init.cjs
