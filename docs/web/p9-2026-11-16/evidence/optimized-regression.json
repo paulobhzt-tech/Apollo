@@ -1,0 +1,33 @@
+{
+  "run_id": 43983196839,
+  "tested_head": "d7043f807394e12d08fe4c9bc740af2d10abf10c",
+  "backend_passed": 373,
+  "subtests_passed": 3,
+  "p6_passed": 44,
+  "p5_passed": 12,
+  "node_passed": 14,
+  "jobs": [
+    {
+      "id": 133704620511,
+      "name": "real-web (tablet)",
+      "conclusion": "success"
+    },
+    {
+      "id": 133704620872,
+      "name": "real-web (notebook)",
+      "conclusion": "success"
+    },
+    {
+      "id": 133704620914,
+      "name": "real-web (desktop)",
+      "conclusion": "success"
+    },
+    {
+      "id": 133704620979,
+      "name": "real-web (mobile)",
+      "conclusion": "success"
+    }
+  ],
+  "electron_scope": "frontend desktop build and JavaScript syntax, not native installer/hardware",
+  "performance_approval": false
+}
