@@ -1,0 +1,44 @@
+name: P104 - Offline OCI and authenticated recovery rehearsal
+on:
+  push:
+    branches: [homolog/p10-operational-web]
+    paths: [deploy/p10/package/**, backend/tools/p104_*.py, backend/tests/test_p104_*.py, .github/workflows/p104-package.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0, persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: docker/setup-buildx-action@v3
+      - name: Disposable runner build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y skopeo
+          python -m pip install httpx==0.28.1 PyYAML==6.0.3 packaging==25.0
+      - name: Build locked offline images, reproducibility and SBOM
+        run: python backend/tools/p104_package.py
+      - name: Rehearse only exported image, authenticated Mongo, recovery and withdrawal
+        run: python backend/tools/p104_rehearsal.py
+      - name: Bundle final retained inputs and evidence
+        run: |
+          python -c "import json,pathlib; d=json.loads(pathlib.Path('p104-output/rehearsal/result.json').read_text()); assert d['verdict']=='PASS'"
+          tar -cf p104-output/apollo-p104-offline.tar -C p104-output/bundle .
+          cd p104-output
+          sha256sum apollo-p104-offline.tar > apollo-p104-offline.tar.sha256
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p104-offline-${{ github.sha }}
+          retention-days: 90
+          if-no-files-found: error
+          path: |
+            p104-output/apollo-p104-offline.tar
+            p104-output/apollo-p104-offline.tar.sha256
+            p104-output/rehearsal
+            p104-output/build-*.json
