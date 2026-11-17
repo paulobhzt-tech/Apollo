@@ -86,6 +86,8 @@ asyncio.run(main())
         dc,owner,recovery,env=create_project('source')
         prep=json.loads(dc('--profile','recovery','run','--rm','--no-deps','recovery','prepare-target','--owner-file','/recovery/owner.json',capture=True).stdout)
         ready(dc);mark('private_replica_and_tls_ready')
+        run([sys.executable,str(root/'backend/tools/p104_apache_lab.py')],env={**os.environ,'P104_CERTS_DIR':str(certs)})
+        mark('almalinux9_apache_tls_and_ip_deny_passed')
         with client(owner) as c:
             assert c.get('/login').status_code==200 and c.get('/api/auth/me').status_code==200
             assert c.get('/api/drive/connect').status_code==403 and c.post('/api/backup/restore',json={}).status_code==403
@@ -113,6 +115,16 @@ asyncio.run(main())
             assert c.post('/api/auth/logout',json={}).status_code==200 and c.get('/api/auth/me').status_code==401
         mark('sale_cancel_refund_concurrency_and_reconciliation',snapshot=before)
         backup=json.loads(dc('--profile','recovery','run','--rm','--no-deps','recovery','backup','/recovery/source.json',capture=True).stdout)
+        # Authenticated encrypted transport of the fictitious backup, key never uploaded.
+        agekey=tmp/'age.key';run(['age-keygen','-o',str(agekey)])
+        recipient=subprocess.check_output(['age-keygen','-y',str(agekey)],text=True).strip()
+        all_secret_values.append(agekey.read_text().splitlines()[-1])
+        encrypted=tmp/'source.json.age';plain=tmp/'source-recovered.json'
+        run(['sudo','age','-r',recipient,'-o',str(encrypted),str(recovery/'source.json')])
+        run(['sudo','age','-d','-i',str(agekey),'-o',str(plain),str(encrypted)])
+        recovered_hash=subprocess.check_output(['sudo','sha256sum',str(plain)],text=True).split()[0]
+        assert recovered_hash==backup['backup_sha256']
+        mark('encrypted_backup_roundtrip',cipher_sha256=subprocess.check_output(['sudo','sha256sum',str(encrypted)],text=True).split()[0])
         # Snapshot/restart and transient disconnect; only disposable source project.
         dc('stop','web');dc('start','web');ready(dc)
         dc('stop','p10-mongo');dc('start','p10-mongo');ready(dc)
@@ -124,7 +136,7 @@ asyncio.run(main())
         target,to,tdir,tenv=create_project('restore')
         target('--profile','recovery','run','--rm','--no-deps','recovery','prepare-target','--owner-file','/recovery/owner.json',capture=True)
         token=json.loads(target('--profile','recovery','run','--rm','--no-deps','recovery','inspect-target',capture=True).stdout)['target_id']
-        run(['sudo','cp',str(recovery/'source.json'),str(tdir/'source.json')]);run(['sudo','chown','10001:10001',str(tdir/'source.json')])
+        run(['sudo','cp',str(plain),str(tdir/'source.json')]);run(['sudo','chown','10001:10001',str(tdir/'source.json')])
         # Corrupt checksum and target ID must be refused, with no writes.
         for expected_hash,expected_target in [('0'*64,token),(backup['backup_sha256'],'0'*64)]:
             p=subprocess.run(['docker','compose','-p','apollo-p104-restore','-f',str(bundle/'compose.yml'),'--profile','recovery','run','--rm','--no-deps','recovery','restore','/recovery/source.json','--sha256',expected_hash,'--expect-target',expected_target],env=tenv,stdout=log,stderr=log)
@@ -146,7 +158,7 @@ asyncio.run(main())
         result={'verdict':'PASS','source_head':manifest['source_head'],'image_id':manifest['docker_image_id'],
           'loaded_from_retained_archive':True,'tls_lab_verified':True,'bootstrap_secret_not_mounted':True,
           'authenticated_mongo':True,'financial_concurrency':10,'duplicates':0,'financial_divergences':0,
-          'separate_restore':True,'checksum_wrong_target_nonempty_refused':True,'restart_preserved':True,
+          'separate_restore':True,'encrypted_backup_roundtrip':True,'checksum_wrong_target_nonempty_refused':True,'restart_preserved':True,
           'rollback':'First-release withdrawal and original volume recovery; no previous-release code rollback claimed',
           'vps_tested':False,'public_https_tested':False,'human_tested':False,'production_approved':False,'events':events}
     finally:

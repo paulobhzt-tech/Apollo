@@ -37,3 +37,14 @@ def test_recovery_rejects_corrupt_manifest(tmp_path,monkeypatch):
     f=tmp_path/'backup';f.write_text(json.dumps({'data':{},'manifest':{},'format_version':2}));f.chmod(0o600)
     with pytest.raises(HTTPException):
         read_backup(f,hashlib.sha256(f.read_bytes()).hexdigest())
+
+
+def test_secret_scan_parser_marker_is_not_a_complete_key():
+    from tools.p104_secret_scan import unsafe_content
+    assert not unsafe_content(b'parser: -----BEGIN PRIVATE KEY-----\x00read input')
+
+
+def test_secret_scan_rejects_complete_key_candidate():
+    from tools.p104_secret_scan import unsafe_content
+    header=b'-----BEGIN '+b'PRIVATE KEY-----\n'
+    assert unsafe_content(header+b'A'*64+b'\n-----END '+b'PRIVATE KEY-----')

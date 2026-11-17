@@ -90,7 +90,8 @@ try:
             assert name not in ('.env','id_rsa','id_ed25519','credentials.json','replica.key','mongo_uri','bootstrap_token')
             if member.size<8*1024*1024:
                 raw=tar.extractfile(member).read()
-                assert not re.search(rb'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|ghp_[A-Za-z0-9]{36}',raw),member.name
+                from p104_secret_scan import unsafe_content
+                assert not unsafe_content(raw),member.name
 finally:run('docker','rm',cid)
 # SBOM from the retained OCI, with OS/Python packages. Add locked frontend build/bundle inventory separately.
 run('docker','run','--rm','--network','none','-v',str(bundle)+':/data:ro',lock['syft']['reference'],

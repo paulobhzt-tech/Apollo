@@ -19,7 +19,7 @@ jobs:
       - name: Disposable runner build dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y skopeo
+          sudo apt-get install -y skopeo age
           python -m pip install httpx==0.28.1 PyYAML==6.0.3 packaging==25.0
       - name: Build locked offline images, reproducibility and SBOM
         run: python backend/tools/p104_package.py
@@ -42,3 +42,6 @@ jobs:
             p104-output/apollo-p104-offline.tar.sha256
             p104-output/rehearsal
             p104-output/build-*.json
+            p104-output/bundle/manifest.json
+            p104-output/bundle/images.lock.json
+            p104-output/bundle/requirements.hashed.txt
