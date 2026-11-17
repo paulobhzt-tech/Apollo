@@ -1,0 +1,472 @@
+{
+  "scope": "Diagnostic, not acceptance; unchanged financial application",
+  "run_id": 43980582669,
+  "tested_head": "94040beb5a27c1bdb02b776e924e7c710013ab53",
+  "rows": [
+    {
+      "version": "control",
+      "rows": [
+        {
+          "sessions": 5,
+          "duration_s": 31.164,
+          "traffic_duration_s": 30.832,
+          "completed_pairs": 1313,
+          "requests": 2626,
+          "operations": {
+            "sale": {
+              "count": 1313,
+              "p50_ms": 54.47,
+              "p95_ms": 76.94,
+              "p99_ms": 278.57
+            },
+            "cancel": {
+              "count": 1313,
+              "p50_ms": 49.55,
+              "p95_ms": 72.44,
+              "p99_ms": 218.7
+            }
+          },
+          "p50_ms": 51.75,
+          "p95_ms": 75.15,
+          "p99_ms": 266.86,
+          "request_throughput_s": 84.26,
+          "error_rate": 0,
+          "errors": {},
+          "unique_attempted": 1313,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 42.58,
+          "pair_p50_ms": 102.26,
+          "pair_p95_ms": 141.05,
+          "pair_p99_ms": 449.84,
+          "unique_completed_operations_s": 84.26
+        },
+        {
+          "sessions": 10,
+          "duration_s": 30.66,
+          "traffic_duration_s": 30.094,
+          "completed_pairs": 1440,
+          "requests": 2880,
+          "operations": {
+            "sale": {
+              "count": 1440,
+              "p50_ms": 106.14,
+              "p95_ms": 137.88,
+              "p99_ms": 152.87
+            },
+            "cancel": {
+              "count": 1440,
+              "p50_ms": 101.12,
+              "p95_ms": 131.72,
+              "p99_ms": 143.84
+            }
+          },
+          "p50_ms": 103.83,
+          "p95_ms": 134.96,
+          "p99_ms": 148.3,
+          "request_throughput_s": 93.93,
+          "error_rate": 0,
+          "errors": {},
+          "unique_attempted": 1440,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 47.85,
+          "pair_p50_ms": 204.15,
+          "pair_p95_ms": 240.04,
+          "pair_p99_ms": 253.34,
+          "unique_completed_operations_s": 93.93
+        },
+        {
+          "sessions": 20,
+          "duration_s": 31.434,
+          "traffic_duration_s": 30.312,
+          "completed_pairs": 1373,
+          "requests": 2746,
+          "operations": {
+            "sale": {
+              "count": 1373,
+              "p50_ms": 223.01,
+              "p95_ms": 276.4,
+              "p99_ms": 294.13
+            },
+            "cancel": {
+              "count": 1373,
+              "p50_ms": 216.65,
+              "p95_ms": 269.52,
+              "p99_ms": 286.85
+            }
+          },
+          "p50_ms": 219.96,
+          "p95_ms": 273.25,
+          "p99_ms": 290.4,
+          "request_throughput_s": 87.36,
+          "error_rate": 0,
+          "errors": {},
+          "unique_attempted": 1373,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 45.29,
+          "pair_p50_ms": 441.45,
+          "pair_p95_ms": 477.93,
+          "pair_p99_ms": 490.3,
+          "unique_completed_operations_s": 87.36
+        },
+        {
+          "sessions": 30,
+          "duration_s": 32.108,
+          "traffic_duration_s": 30.528,
+          "completed_pairs": 1380,
+          "requests": 2760,
+          "operations": {
+            "sale": {
+              "count": 1380,
+              "p50_ms": 332.73,
+              "p95_ms": 412.66,
+              "p99_ms": 437.46
+            },
+            "cancel": {
+              "count": 1380,
+              "p50_ms": 330.55,
+              "p95_ms": 407.12,
+              "p99_ms": 432.12
+            }
+          },
+          "p50_ms": 331.71,
+          "p95_ms": 410.23,
+          "p99_ms": 434.55,
+          "request_throughput_s": 85.96,
+          "error_rate": 0,
+          "errors": {},
+          "unique_attempted": 1380,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 45.2,
+          "pair_p50_ms": 663.63,
+          "pair_p95_ms": 725.59,
+          "pair_p99_ms": 741.67,
+          "unique_completed_operations_s": 85.96
+        },
+        {
+          "sessions": 50,
+          "duration_s": 33.994,
+          "traffic_duration_s": 31.216,
+          "completed_pairs": 1350,
+          "requests": 2700,
+          "operations": {
+            "sale": {
+              "count": 1350,
+              "p50_ms": 573.14,
+              "p95_ms": 713.45,
+              "p99_ms": 749.95
+            },
+            "cancel": {
+              "count": 1350,
+              "p50_ms": 573.42,
+              "p95_ms": 705.32,
+              "p99_ms": 742.53
+            }
+          },
+          "p50_ms": 573.37,
+          "p95_ms": 710.33,
+          "p99_ms": 745.43,
+          "request_throughput_s": 79.43,
+          "error_rate": 0,
+          "errors": {},
+          "unique_attempted": 1350,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 43.25,
+          "pair_p50_ms": 1148.94,
+          "pair_p95_ms": 1250.36,
+          "pair_p99_ms": 1272.14,
+          "unique_completed_operations_s": 79.43
+        }
+      ]
+    },
+    {
+      "version": "profiled",
+      "rows": [
+        {
+          "sessions": 5,
+          "duration_s": 30.45,
+          "traffic_duration_s": 30.079,
+          "completed_pairs": 806,
+          "requests": 1612,
+          "operations": {
+            "sale": {
+              "count": 806,
+              "p50_ms": 95.06,
+              "p95_ms": 118.16,
+              "p99_ms": 182.23
+            },
+            "cancel": {
+              "count": 806,
+              "p50_ms": 87.06,
+              "p95_ms": 110.44,
+              "p99_ms": 185.81
+            }
+          },
+          "p50_ms": 91.08,
+          "p95_ms": 116.26,
+          "p99_ms": 185.81,
+          "request_throughput_s": 52.94,
+          "error_rate": 0,
+          "errors": {},
+          "unique_attempted": 806,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 26.8,
+          "pair_p50_ms": 180.95,
+          "pair_p95_ms": 216.24,
+          "pair_p99_ms": 332.79,
+          "unique_completed_operations_s": 52.94
+        },
+        {
+          "sessions": 10,
+          "duration_s": 30.822,
+          "traffic_duration_s": 30.248,
+          "completed_pairs": 850,
+          "requests": 1700,
+          "operations": {
+            "sale": {
+              "count": 850,
+              "p50_ms": 181.29,
+              "p95_ms": 220.16,
+              "p99_ms": 251.42
+            },
+            "cancel": {
+              "count": 850,
+              "p50_ms": 172.6,
+              "p95_ms": 212.82,
+              "p99_ms": 247.43
+            }
+          },
+          "p50_ms": 176.98,
+          "p95_ms": 217.92,
+          "p99_ms": 247.43,
+          "request_throughput_s": 55.16,
+          "error_rate": 0,
+          "errors": {},
+          "unique_attempted": 850,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 28.1,
+          "pair_p50_ms": 354.43,
+          "pair_p95_ms": 385.64,
+          "pair_p99_ms": 422.22,
+          "unique_completed_operations_s": 55.16
+        },
+        {
+          "sessions": 20,
+          "duration_s": 31.447,
+          "traffic_duration_s": 30.37,
+          "completed_pairs": 960,
+          "requests": 1920,
+          "operations": {
+            "sale": {
+              "count": 960,
+              "p50_ms": 316.64,
+              "p95_ms": 387.88,
+              "p99_ms": 414.64
+            },
+            "cancel": {
+              "count": 960,
+              "p50_ms": 313.33,
+              "p95_ms": 382.56,
+              "p99_ms": 415.62
+            }
+          },
+          "p50_ms": 315.49,
+          "p95_ms": 385.89,
+          "p99_ms": 414.64,
+          "request_throughput_s": 61.05,
+          "error_rate": 0,
+          "errors": {},
+          "unique_attempted": 960,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 31.61,
+          "pair_p50_ms": 627.81,
+          "pair_p95_ms": 671.11,
+          "pair_p99_ms": 690.97,
+          "unique_completed_operations_s": 61.05
+        },
+        {
+          "sessions": 30,
+          "duration_s": 32.105,
+          "traffic_duration_s": 30.479,
+          "completed_pairs": 939,
+          "requests": 1878,
+          "operations": {
+            "sale": {
+              "count": 939,
+              "p50_ms": 488.16,
+              "p95_ms": 599.96,
+              "p99_ms": 636.41
+            },
+            "cancel": {
+              "count": 939,
+              "p50_ms": 479.85,
+              "p95_ms": 590.3,
+              "p99_ms": 622.96
+            }
+          },
+          "p50_ms": 483.57,
+          "p95_ms": 594.89,
+          "p99_ms": 633.11,
+          "request_throughput_s": 58.49,
+          "error_rate": 0,
+          "errors": {},
+          "unique_attempted": 939,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 30.81,
+          "pair_p50_ms": 973.12,
+          "pair_p95_ms": 1040.26,
+          "pair_p99_ms": 1047.2,
+          "unique_completed_operations_s": 58.49
+        },
+        {
+          "sessions": 50,
+          "duration_s": 33.698,
+          "traffic_duration_s": 30.899,
+          "completed_pairs": 950,
+          "requests": 1900,
+          "operations": {
+            "sale": {
+              "count": 950,
+              "p50_ms": 815.34,
+              "p95_ms": 995.47,
+              "p99_ms": 1039.08
+            },
+            "cancel": {
+              "count": 950,
+              "p50_ms": 805.85,
+              "p95_ms": 988.87,
+              "p99_ms": 1025.81
+            }
+          },
+          "p50_ms": 811.62,
+          "p95_ms": 993.01,
+          "p99_ms": 1030.45,
+          "request_throughput_s": 56.38,
+          "error_rate": 0,
+          "errors": {},
+          "unique_attempted": 950,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 30.75,
+          "pair_p50_ms": 1624.33,
+          "pair_p95_ms": 1722.42,
+          "pair_p99_ms": 1776.06,
+          "unique_completed_operations_s": 56.38
+        }
+      ]
+    }
+  ],
+  "integrity": [
+    {
+      "version": "control",
+      "actual": {
+        "historical_fixture_orders": 0,
+        "duplicate_numbers": 0,
+        "number_range": [
+          {
+            "_id": null,
+            "minimum": 1,
+            "maximum": 6856
+          }
+        ],
+        "counter": 6856,
+        "stock": 1000,
+        "paid_orders": 0,
+        "duplicate_refs": 0,
+        "orders": 6856,
+        "markers": 6856,
+        "stock_moves": 13712,
+        "cash_version": 13712,
+        "order_audit": {
+          "checked_new_orders": 6856,
+          "historical_fixture_orders": 0,
+          "partial_confirmations": 0,
+          "financial_divergences": 0,
+          "orphan_markers": 0,
+          "unexpected_stock_moves": 0,
+          "duplicate_marker_orders": 0
+        },
+        "audit_started_at": 1794872320.8565688,
+        "post_load_audit_s": 0.14502882957458496
+      }
+    },
+    {
+      "version": "profiled",
+      "actual": {
+        "historical_fixture_orders": 0,
+        "duplicate_numbers": 0,
+        "number_range": [
+          {
+            "_id": null,
+            "minimum": 1,
+            "maximum": 4505
+          }
+        ],
+        "counter": 4505,
+        "stock": 1000,
+        "paid_orders": 0,
+        "duplicate_refs": 0,
+        "orders": 4505,
+        "markers": 4505,
+        "stock_moves": 9010,
+        "cash_version": 9010,
+        "order_audit": {
+          "checked_new_orders": 4505,
+          "historical_fixture_orders": 0,
+          "partial_confirmations": 0,
+          "financial_divergences": 0,
+          "orphan_markers": 0,
+          "unexpected_stock_moves": 0,
+          "duplicate_marker_orders": 0
+        },
+        "audit_started_at": 1794872482.8871138,
+        "post_load_audit_s": 0.07670402526855469
+      }
+    }
+  ],
+  "event_loop_ms": {
+    "samples": 3127,
+    "p50": 0.6745809999415542,
+    "p95": 1.6590859999610075,
+    "p99": 4.857914000012897,
+    "max": 115.62161900002366
+  },
+  "cpu_profile_available": false,
+  "artifact": {
+    "id": 14283148282,
+    "bytes": 6098013,
+    "sha256": "d0b074b2a4578fd3fafb75481141082a570345ac6323eeb83709885d437873bd"
+  },
+  "regression": {
+    "run_id": 43981100922,
+    "tested_head": "ac604e62b6fe4ac7e5bb28dd77bf6dfc23bc138c",
+    "backend_passed": 369,
+    "subtests_passed": 3,
+    "p6_passed": 44,
+    "p5_passed": 12,
+    "node_passed": 14,
+    "job_conclusions": [
+      {
+        "id": 133697464505,
+        "name": "real-web (tablet)",
+        "conclusion": "success"
+      },
+      {
+        "id": 133697464892,
+        "name": "real-web (desktop)",
+        "conclusion": "success"
+      },
+      {
+        "id": 133697464962,
+        "name": "real-web (mobile)",
+        "conclusion": "success"
+      },
+      {
+        "id": 133697465026,
+        "name": "real-web (notebook)",
+        "conclusion": "success"
+      }
+    ],
+    "notes": "typecheck, lint, frontend web/desktop builds and Electron JS syntax passed; no physical Windows or printer certification."
+  },
+  "verdict": "INCONCLUSIVA",
+  "production_approved": false
+}

@@ -1,0 +1,63 @@
+name: P9 - Financial causal diagnostic
+on:
+  push:
+    branches: ["perf/p9-financial-latency"]
+    paths:
+      - ".github/workflows/p9-financial-diagnostic.yml"
+      - "backend/tools/p9_remote_diagnostic.py"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: p9-diagnostic-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      MONGOD_BIN: /tmp/mongodb-linux-x86_64-ubuntu2204-7.0.16/bin/mongod
+      P8_BASELINE_ROOT: ${{ github.workspace }}/.p9-baseline
+      NO_PROXY: 127.0.0.1,localhost
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: e670c5e24321cc6bc1de69348da3d55bc7730887
+          path: .p9-baseline
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Identical P8 runtime and frozen criteria
+        run: |
+          python -m pip install fastapi==0.141.1 uvicorn==0.54.0 motor==3.7.1 pymongo==4.18.2 bcrypt==4.0.1 httpx==0.28.1 pytest==9.2.0 python-dotenv pytest-xdist pytest-asyncio pytest-subtests python-multipart email-validator google-api-python-client google-auth-oauthlib requests pandas
+          curl -fL https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-7.0.16.tgz -o /tmp/p9-mongo.tgz
+          tar -xzf /tmp/p9-mongo.tgz -C /tmp
+          mkdir -p docs/web/p9-2026-11-16/evidence
+          python -m pip freeze > docs/web/p9-2026-11-16/evidence/runtime-packages.txt
+          git rev-parse HEAD > docs/web/p9-2026-11-16/evidence/tested-head.txt
+          cmp docs/web/p9-2026-11-16/ACCEPTANCE.json .p9-baseline/docs/web/p8-2026-11-16/ACCEPTANCE.json
+          git diff --exit-code e670c5e24321cc6bc1de69348da3d55bc7730887 HEAD -- backend/lib backend/routers frontend desktop
+          python -m py_compile backend/tools/p9_remote_diagnostic.py
+      - name: Diagnostic control then CPU profile - not acceptance
+        run: |
+          set -o pipefail
+          python backend/tools/p9_remote_diagnostic.py | tee docs/web/p9-2026-11-16/evidence/diagnostic.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p9-diagnostic-${{ github.sha }}
+          retention-days: 90
+          path: |
+            docs/web/p9-2026-11-16
+            docs/web/p8-2026-11-16/evidence/load-control*
+            docs/web/p8-2026-11-16/evidence/load-profiled*
+            docs/web/p8-2026-11-16/evidence/driver-control.jsonl
+            docs/web/p8-2026-11-16/evidence/driver-profiled.jsonl
+            docs/web/p8-2026-11-16/evidence/indexes-control.json
+            docs/web/p8-2026-11-16/evidence/indexes-profiled.json
+            docs/web/p8-2026-11-16/evidence/execution-timeline.jsonl

@@ -1,0 +1,527 @@
+{
+  "run_id": 43981924464,
+  "tested_head": "336a62c70563e7c995c03ec9f59b58eadcb7368d",
+  "scope": "50 operators, 30 seconds; intrusive profile, not acceptance",
+  "components": {
+    "components_ms": {
+      "gate_held_ms": {
+        "n": 1176,
+        "p50": 22.38556400000391,
+        "p95": 76.1110709999997,
+        "p99": 182.7987360000023
+      },
+      "sale:db_outside_transaction": {
+        "n": 588,
+        "p50": 1.198,
+        "p95": 14.951,
+        "p99": 28.083999999999996
+      },
+      "sale:admission_wait": {
+        "n": 588,
+        "p50": 1167.810118999995,
+        "p95": 1992.770183999994,
+        "p99": 2818.6095909999976
+      },
+      "sale:session_create": {
+        "n": 588,
+        "p50": 0.7612399999885611,
+        "p95": 0.8995999999967808,
+        "p99": 1.096310000008316
+      },
+      "sale:transaction_start_local": {
+        "n": 588,
+        "p50": 0.016433999988407777,
+        "p95": 0.02566800000636249,
+        "p99": 0.03602299999272418
+      },
+      "sale:db_read": {
+        "n": 588,
+        "p50": 3.3420000000000005,
+        "p95": 5.705000000000001,
+        "p99": 6.577
+      },
+      "sale:snapshot_first_command": {
+        "n": 588,
+        "p50": 0.287,
+        "p95": 0.423,
+        "p99": 0.5609999999999999
+      },
+      "sale:db_write": {
+        "n": 588,
+        "p50": 3.0770000000000004,
+        "p95": 3.5200000000000005,
+        "p99": 5.413000000000001
+      },
+      "sale:callback": {
+        "n": 588,
+        "p50": 20.251970000003894,
+        "p95": 21.632392000000777,
+        "p99": 24.145832000002088
+      },
+      "sale:db_commit": {
+        "n": 588,
+        "p50": 1.353,
+        "p95": 48.275999999999996,
+        "p99": 161.953
+      },
+      "sale:commit": {
+        "n": 588,
+        "p50": 1.7871410000083188,
+        "p95": 48.79556900000637,
+        "p99": 162.51161999999653
+      },
+      "sale:before_response_start": {
+        "n": 588,
+        "p50": 1200.9788820000012,
+        "p95": 2037.003683000009,
+        "p99": 2846.7552920000117
+      },
+      "sale:response_send": {
+        "n": 588,
+        "p50": 0.41268799999727435,
+        "p95": 0.4696749999908434,
+        "p99": 0.5138590000086651
+      },
+      "sale:http_app_total": {
+        "n": 588,
+        "p50": 1202.0507659999994,
+        "p95": 2037.8688020000054,
+        "p99": 2847.803318000004
+      },
+      "cancel:db_outside_transaction": {
+        "n": 588,
+        "p50": 1.2069999999999999,
+        "p95": 1.633,
+        "p99": 3.906
+      },
+      "cancel:admission_wait": {
+        "n": 588,
+        "p50": 1156.3723450000084,
+        "p95": 2927.8916629999967,
+        "p99": 3480.979653999995
+      },
+      "cancel:session_create": {
+        "n": 588,
+        "p50": 0.7337239999998246,
+        "p95": 0.9031740000011723,
+        "p99": 1.040048000007232
+      },
+      "cancel:transaction_start_local": {
+        "n": 588,
+        "p50": 0.015533000009781972,
+        "p95": 0.029393000005484282,
+        "p99": 0.034751000001165266
+      },
+      "cancel:db_read": {
+        "n": 588,
+        "p50": 1.536,
+        "p95": 2.077,
+        "p99": 4.385
+      },
+      "cancel:snapshot_first_command": {
+        "n": 588,
+        "p50": 0.354,
+        "p95": 0.594,
+        "p99": 3.3409999999999997
+      },
+      "cancel:db_write": {
+        "n": 588,
+        "p50": 2.062,
+        "p95": 3.9690000000000003,
+        "p99": 4.825999999999999
+      },
+      "cancel:callback": {
+        "n": 588,
+        "p50": 11.608503000005044,
+        "p95": 12.710039999994649,
+        "p99": 14.653206000005525
+      },
+      "cancel:db_commit": {
+        "n": 588,
+        "p50": 1.239,
+        "p95": 67.647,
+        "p99": 170.276
+      },
+      "cancel:commit": {
+        "n": 588,
+        "p50": 1.6732230000116033,
+        "p95": 68.17360099999803,
+        "p99": 170.95476800000142
+      },
+      "cancel:before_response_start": {
+        "n": 588,
+        "p50": 1181.5640769999902,
+        "p95": 2987.335434000002,
+        "p99": 3509.588139000002
+      },
+      "cancel:response_send": {
+        "n": 588,
+        "p50": 0.3992790000069135,
+        "p95": 0.4712249999982987,
+        "p99": 0.5631490000013173
+      },
+      "cancel:http_app_total": {
+        "n": 588,
+        "p50": 1182.5592479999898,
+        "p95": 2988.155814999999,
+        "p99": 3510.418033999997
+      }
+    },
+    "commands": {
+      "sale:find:sessions": {
+        "count": 588,
+        "seconds": 0.7220729999999993
+      },
+      "sale:find:employees": {
+        "count": 588,
+        "seconds": 0.7908479999999996
+      },
+      "sale:find:financial_operations": {
+        "count": 588,
+        "seconds": 0.18855799999999992
+      },
+      "sale:find:orders:client_ref": {
+        "count": 588,
+        "seconds": 0.507607
+      },
+      "sale:insert:financial_operations": {
+        "count": 588,
+        "seconds": 0.355109
+      },
+      "sale:find:products": {
+        "count": 1176,
+        "seconds": 0.47741300000000003
+      },
+      "sale:find:categories": {
+        "count": 588,
+        "seconds": 0.1491270000000003
+      },
+      "sale:find:ingredients": {
+        "count": 1176,
+        "seconds": 0.2871329999999996
+      },
+      "sale:findAndModify:counters": {
+        "count": 588,
+        "seconds": 0.24437299999999937
+      },
+      "sale:insert:orders": {
+        "count": 588,
+        "seconds": 0.16034400000000015
+      },
+      "sale:update:orders": {
+        "count": 1176,
+        "seconds": 0.3920569999999999
+      },
+      "sale:find:cash_sessions": {
+        "count": 588,
+        "seconds": 0.1623800000000001
+      },
+      "sale:update:cash_sessions": {
+        "count": 588,
+        "seconds": 0.1794040000000002
+      },
+      "sale:find:payment_methods": {
+        "count": 588,
+        "seconds": 0.1484320000000001
+      },
+      "sale:find:orders:id": {
+        "count": 588,
+        "seconds": 0.1685429999999998
+      },
+      "sale:insert:kitchen_tickets": {
+        "count": 588,
+        "seconds": 0.14545599999999992
+      },
+      "sale:find:purchases": {
+        "count": 588,
+        "seconds": 0.12781799999999982
+      },
+      "sale:update:ingredients": {
+        "count": 588,
+        "seconds": 0.18140900000000018
+      },
+      "sale:insert:stock_moves": {
+        "count": 588,
+        "seconds": 0.1348979999999999
+      },
+      "sale:update:financial_operations": {
+        "count": 588,
+        "seconds": 0.1507639999999998
+      },
+      "sale:commitTransaction:other": {
+        "count": 588,
+        "seconds": 5.1737
+      },
+      "cancel:find:sessions": {
+        "count": 588,
+        "seconds": 0.36615800000000026
+      },
+      "cancel:find:employees": {
+        "count": 588,
+        "seconds": 0.394119
+      },
+      "cancel:find:orders:id": {
+        "count": 1176,
+        "seconds": 0.4705830000000003
+      },
+      "cancel:update:cash_sessions": {
+        "count": 588,
+        "seconds": 0.6274610000000005
+      },
+      "cancel:update:orders": {
+        "count": 588,
+        "seconds": 0.36106099999999997
+      },
+      "cancel:find:products": {
+        "count": 588,
+        "seconds": 0.259369
+      },
+      "cancel:find:ingredients": {
+        "count": 588,
+        "seconds": 0.14885299999999996
+      },
+      "cancel:find:lot_consumptions": {
+        "count": 588,
+        "seconds": 0.1283099999999999
+      },
+      "cancel:update:ingredients": {
+        "count": 588,
+        "seconds": 0.17506599999999997
+      },
+      "cancel:insert:stock_moves": {
+        "count": 588,
+        "seconds": 0.13732799999999973
+      },
+      "cancel:update:kitchen_tickets": {
+        "count": 588,
+        "seconds": 0.17888500000000007
+      },
+      "cancel:commitTransaction:other": {
+        "count": 588,
+        "seconds": 5.538282
+      }
+    },
+    "last_driver": {
+      "kind": "driver",
+      "at": 1794873054.7364125,
+      "counters": {
+        "pool_checkout_count": 22012,
+        "pool_wait_us": 1376152,
+        "pool_max_checked_out": 20,
+        "find:other:count": 597,
+        "find:other:us": 153190,
+        "createIndexes:other:count": 6,
+        "createIndexes:other:us": 3159,
+        "createIndexes:employees:count": 2,
+        "createIndexes:employees:us": 24758,
+        "createIndexes:sessions:count": 3,
+        "createIndexes:sessions:us": 952,
+        "createIndexes:login_attempts:count": 1,
+        "createIndexes:login_attempts:us": 1462,
+        "insert:other:count": 10,
+        "insert:other:us": 160289,
+        "createIndexes:categories:count": 1,
+        "createIndexes:categories:us": 832,
+        "createIndexes:products:count": 2,
+        "createIndexes:products:us": 1664,
+        "createIndexes:ingredients:count": 1,
+        "createIndexes:ingredients:us": 336,
+        "createIndexes:stock_moves:count": 1,
+        "createIndexes:stock_moves:us": 552,
+        "createIndexes:orders:count": 7,
+        "createIndexes:orders:us": 116553,
+        "createIndexes:kitchen_tickets:count": 3,
+        "createIndexes:kitchen_tickets:us": 1837,
+        "createIndexes:invoices:count": 2,
+        "createIndexes:invoices:us": 991,
+        "createIndexes:cash_sessions:count": 3,
+        "createIndexes:cash_sessions:us": 2055,
+        "createIndexes:fiado_customers:count": 1,
+        "createIndexes:fiado_customers:us": 883,
+        "aggregate:other:count": 1,
+        "aggregate:other:us": 574,
+        "createIndexes:customer_moves:count": 2,
+        "createIndexes:customer_moves:us": 639,
+        "find:login_attempts:count": 50,
+        "find:login_attempts:us": 187860,
+        "find:employees:count": 1226,
+        "find:employees:us": 1508635,
+        "delete:login_attempts:count": 50,
+        "delete:login_attempts:us": 5268462,
+        "insert:sessions:count": 50,
+        "insert:sessions:us": 2452697,
+        "find:sessions:count": 1176,
+        "find:sessions:us": 1088231,
+        "find:financial_operations:count": 588,
+        "find:financial_operations:us": 188558,
+        "find:orders:count": 2352,
+        "find:orders:us": 1146733,
+        "insert:financial_operations:count": 588,
+        "insert:financial_operations:us": 355109,
+        "find:products:count": 1764,
+        "find:products:us": 736782,
+        "find:categories:count": 588,
+        "find:categories:us": 149127,
+        "find:ingredients:count": 1764,
+        "find:ingredients:us": 435986,
+        "findAndModify:counters:count": 588,
+        "findAndModify:counters:us": 244373,
+        "insert:orders:count": 588,
+        "insert:orders:us": 160344,
+        "update:orders:count": 1764,
+        "update:orders:us": 753118,
+        "find:cash_sessions:count": 588,
+        "find:cash_sessions:us": 162380,
+        "update:cash_sessions:count": 1176,
+        "update:cash_sessions:us": 806865,
+        "insert:kitchen_tickets:count": 588,
+        "insert:kitchen_tickets:us": 145456,
+        "find:purchases:count": 588,
+        "find:purchases:us": 127818,
+        "update:ingredients:count": 1176,
+        "update:ingredients:us": 356475,
+        "insert:stock_moves:count": 1176,
+        "insert:stock_moves:us": 272226,
+        "update:financial_operations:count": 588,
+        "update:financial_operations:us": 150764,
+        "commitTransaction:other:count": 1176,
+        "commitTransaction:other:us": 10711982,
+        "find:lot_consumptions:count": 588,
+        "find:lot_consumptions:us": 128310,
+        "update:kitchen_tickets:count": 588,
+        "update:kitchen_tickets:us": 178885,
+        "endSessions:other:count": 1,
+        "endSessions:other:us": 329
+      }
+    },
+    "mongo_last_sample": {
+      "at": 1794873054.3399248,
+      "backend": {
+        "cpu_seconds": 33.07,
+        "rss_kib": 87180
+      },
+      "mongo": {
+        "cpu_seconds": 5.1,
+        "rss_kib": 193976
+      },
+      "connections": {
+        "current": 28,
+        "available": 52400,
+        "totalCreated": 28,
+        "rejected": 0,
+        "active": 4,
+        "threaded": 28,
+        "exhaustIsMaster": 0,
+        "exhaustHello": 3,
+        "awaitingTopologyChanges": 3
+      },
+      "mongo_memory": {
+        "bits": 64,
+        "resident": 189,
+        "virtual": 1443,
+        "supported": true
+      },
+      "write_conflicts": 0,
+      "locks": {
+        "ParallelBatchWriterMode": {
+          "acquireCount": {
+            "r": 2017
+          }
+        },
+        "FeatureCompatibilityVersion": {
+          "acquireCount": {
+            "r": 4623,
+            "w": 1639
+          }
+        },
+        "ReplicationStateTransition": {
+          "acquireCount": {
+            "w": 46389,
+            "W": 2
+          },
+          "acquireWaitCount": {
+            "w": 1,
+            "W": 1
+          },
+          "timeAcquiringMicros": {
+            "w": 4370,
+            "W": 1
+          }
+        },
+        "Global": {
+          "acquireCount": {
+            "r": 6031,
+            "w": 4333,
+            "W": 8
+          }
+        },
+        "Database": {
+          "acquireCount": {
+            "r": 175,
+            "w": 5459,
+            "R": 1,
+            "W": 1
+          }
+        },
+        "Collection": {
+          "acquireCount": {
+            "r": 175,
+            "w": 14840,
+            "W": 8
+          }
+        },
+        "Mutex": {
+          "acquireCount": {
+            "r": 101
+          }
+        },
+        "oplog": {
+          "acquireCount": {
+            "w": 2
+          }
+        }
+      },
+      "globalLock": {
+        "totalTime": 39094000,
+        "currentQueue": {
+          "total": 0,
+          "readers": 0,
+          "writers": 0
+        },
+        "activeClients": {
+          "total": 0,
+          "readers": 0,
+          "writers": 0
+        }
+      },
+      "transactions": {
+        "retriedCommandsCount": 0,
+        "retriedStatementsCount": 0,
+        "transactionsCollectionWriteCount": 1233,
+        "currentActive": 0,
+        "currentInactive": 1,
+        "currentOpen": 1,
+        "totalAborted": 0,
+        "totalCommitted": 1173,
+        "totalStarted": 1174,
+        "totalPrepared": 0,
+        "totalPreparedThenCommitted": 0,
+        "totalPreparedThenAborted": 0,
+        "currentPrepared": 0,
+        "lastCommittedTransaction": {
+          "operationCount": 5,
+          "oplogOperationBytes": 2453,
+          "writeConcern": {
+            "w": "majority",
+            "j": true,
+            "wtimeout": 0,
+            "provenance": "clientSupplied"
+          }
+        }
+      },
+      "queues": {}
+    }
+  },
+  "artifact_id": 14283617410,
+  "artifact_sha256": "5b20088e8c2b776fa2b39076a06d7cbf20a75f5e7dbdf4aebc37b5378ce1b4ec"
+}

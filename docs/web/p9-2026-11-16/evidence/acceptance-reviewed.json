@@ -1,0 +1,3605 @@
+{
+  "verdict": "APROVADA",
+  "production_approved": false,
+  "all_41_files_read": true,
+  "artifact_sha256": "f5fa43a363e6ad80ed79c14e887fcbdb8b94ffd88c63335c3bbd819ef2a7e7c7",
+  "criteria_sha256": "29942733b82407d0771454fed42507b183ea31e699ed41b41f6750d7115eb992",
+  "candidate_head": "dd10ded324ee8ea378349705e9bbeb81ef410ed8",
+  "baseline_head": "e670c5e24321cc6bc1de69348da3d55bc7730887",
+  "new_orders_audited": 193873,
+  "indices_identical": true,
+  "timeline": [
+    {
+      "label": "p9h1",
+      "version": "before",
+      "source_head": "e670c5e24321cc6bc1de69348da3d55bc7730887",
+      "started_at": 1794873318.9255705,
+      "finished_at": 1794873353.44291,
+      "elapsed_s": 34.51734127300001,
+      "exit_code": 0,
+      "sessions": "50",
+      "active_stage_seconds": 30.0,
+      "history": 60000
+    },
+    {
+      "label": "p9h2",
+      "version": "after",
+      "source_head": "dd10ded324ee8ea378349705e9bbeb81ef410ed8",
+      "started_at": 1794873358.035043,
+      "finished_at": 1794873392.3863542,
+      "elapsed_s": 34.35131369599999,
+      "exit_code": 0,
+      "sessions": "50",
+      "active_stage_seconds": 30.0,
+      "history": 60000
+    },
+    {
+      "label": "p9a1",
+      "version": "before",
+      "source_head": "e670c5e24321cc6bc1de69348da3d55bc7730887",
+      "started_at": 1794873395.1067069,
+      "finished_at": 1794873478.5110507,
+      "elapsed_s": 83.40434524000001,
+      "exit_code": 0,
+      "sessions": "5,10,20,30,50",
+      "active_stage_seconds": 15.0,
+      "history": 0
+    },
+    {
+      "label": "p9b1",
+      "version": "after",
+      "source_head": "dd10ded324ee8ea378349705e9bbeb81ef410ed8",
+      "started_at": 1794873480.7881587,
+      "finished_at": 1794873564.218709,
+      "elapsed_s": 83.43055122799998,
+      "exit_code": 0,
+      "sessions": "5,10,20,30,50",
+      "active_stage_seconds": 15.0,
+      "history": 0
+    },
+    {
+      "label": "p9b2",
+      "version": "after",
+      "source_head": "dd10ded324ee8ea378349705e9bbeb81ef410ed8",
+      "started_at": 1794873566.592095,
+      "finished_at": 1794873649.973492,
+      "elapsed_s": 83.38139855600002,
+      "exit_code": 0,
+      "sessions": "5,10,20,30,50",
+      "active_stage_seconds": 15.0,
+      "history": 0
+    },
+    {
+      "label": "p9a2",
+      "version": "before",
+      "source_head": "e670c5e24321cc6bc1de69348da3d55bc7730887",
+      "started_at": 1794873652.4012158,
+      "finished_at": 1794873735.7805493,
+      "elapsed_s": 83.37933474599998,
+      "exit_code": 0,
+      "sessions": "5,10,20,30,50",
+      "active_stage_seconds": 15.0,
+      "history": 0
+    },
+    {
+      "label": "p9base",
+      "version": "before",
+      "source_head": "e670c5e24321cc6bc1de69348da3d55bc7730887",
+      "started_at": 1794873738.9129863,
+      "finished_at": 1794875545.4127362,
+      "elapsed_s": 1806.4997515619998,
+      "exit_code": 0,
+      "sessions": "50",
+      "active_stage_seconds": 1800.0,
+      "history": 0
+    },
+    {
+      "label": "p9candidate",
+      "version": "after",
+      "source_head": "dd10ded324ee8ea378349705e9bbeb81ef410ed8",
+      "started_at": 1794875550.3748422,
+      "finished_at": 1794877356.4736927,
+      "elapsed_s": 1806.0988522109997,
+      "exit_code": 0,
+      "sessions": "50",
+      "active_stage_seconds": 1800.0,
+      "history": 0
+    }
+  ],
+  "rounds": {
+    "p9h1": {
+      "version": "P8",
+      "new_orders": 1250,
+      "rows": [
+        {
+          "sessions": 50,
+          "duration_s": 33.321,
+          "traffic_duration_s": 30.513,
+          "completed_pairs": 1250,
+          "requests": 2500,
+          "operations": {
+            "sale": {
+              "count": 1250,
+              "p50_ms": 559.37,
+              "p95_ms": 731.15,
+              "p99_ms": 2331.45
+            },
+            "cancel": {
+              "count": 1250,
+              "p50_ms": 552.45,
+              "p95_ms": 696.55,
+              "p99_ms": 3256.02
+            }
+          },
+          "p50_ms": 555.95,
+          "p95_ms": 711.37,
+          "p99_ms": 3167.46,
+          "request_throughput_s": 75.03,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 1250,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 40.97,
+          "pair_p50_ms": 1101.9,
+          "pair_p95_ms": 1270.97,
+          "pair_p99_ms": 3763.42,
+          "unique_completed_operations_s": 75.03
+        }
+      ],
+      "integrity": {
+        "historical_fixture_orders": 60000,
+        "duplicate_numbers": 0,
+        "number_range": [
+          {
+            "_id": null,
+            "minimum": 1,
+            "maximum": 61250
+          }
+        ],
+        "counter": 61250,
+        "stock": 1000.0,
+        "paid_orders": 0,
+        "duplicate_refs": 0,
+        "orders": 61250,
+        "markers": 1250,
+        "stock_moves": 2500,
+        "cash_version": 2500,
+        "order_audit": {
+          "checked_new_orders": 1250,
+          "historical_fixture_orders": 60000,
+          "partial_confirmations": 0,
+          "financial_divergences": 0,
+          "orphan_markers": 0,
+          "unexpected_stock_moves": 0,
+          "duplicate_marker_orders": 0
+        },
+        "audit_started_at": 1794873352.8488064,
+        "post_load_audit_s": 0.02268671989440918
+      },
+      "row_checks_recomputed": [
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": false,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        }
+      ],
+      "driver_records": {
+        "driver": 34,
+        "transaction": 2500,
+        "p8_request": 2500
+      },
+      "outcomes": {
+        "committed": 2500
+      },
+      "attempts": {
+        "1": 2500
+      },
+      "status": {
+        "200": 2500
+      },
+      "error_counters": {
+        "exhausted_transactions": 0,
+        "callback_retries": 0,
+        "request_command_errors": 0
+      },
+      "transaction_log_records": 2500,
+      "components_ms": {
+        "sale:db_outside_transaction": {
+          "n": 1250,
+          "0.5": 0.778,
+          "0.95": 1.224,
+          "0.99": 9.459
+        },
+        "sale:admission_wait": {
+          "n": 1250,
+          "0.5": 539.8046329999956,
+          "0.95": 696.2830260000032,
+          "0.99": 2197.303770000005
+        },
+        "sale:session_create": {
+          "n": 1250,
+          "0.5": 0.39356299999582234,
+          "0.95": 0.4843100000044842,
+          "0.99": 0.5650809999906414
+        },
+        "sale:transaction_start_local": {
+          "n": 1250,
+          "0.5": 0.008672999996406361,
+          "0.95": 0.01172800000404095,
+          "0.99": 0.018838000002574518
+        },
+        "sale:db_read": {
+          "n": 1250,
+          "0.5": 2.4909999999999997,
+          "0.95": 3.5330000000000004,
+          "0.99": 3.98
+        },
+        "sale:snapshot_first_command": {
+          "n": 1250,
+          "0.5": 0.22599999999999998,
+          "0.95": 0.27599999999999997,
+          "0.99": 0.49200000000000005
+        },
+        "sale:db_write": {
+          "n": 1250,
+          "0.5": 2.9580000000000006,
+          "0.95": 3.712,
+          "0.99": 6.753
+        },
+        "sale:callback": {
+          "n": 1250,
+          "0.5": 10.807776000007152,
+          "0.95": 12.075388000013731,
+          "0.99": 14.739052000003028
+        },
+        "sale:db_commit": {
+          "n": 1250,
+          "0.5": 1.253,
+          "0.95": 8.225,
+          "0.99": 96.845
+        },
+        "sale:commit": {
+          "n": 1250,
+          "0.5": 1.4498239999909401,
+          "0.95": 8.46215699999675,
+          "0.99": 97.20833699999787
+        },
+        "sale:before_response_start": {
+          "n": 1250,
+          "0.5": 557.1890120000021,
+          "0.95": 719.081248000009,
+          "0.99": 2328.898814000013
+        },
+        "sale:response_send": {
+          "n": 1250,
+          "0.5": 0.2261610000005021,
+          "0.95": 0.27752799999802846,
+          "0.99": 0.3133510000026263
+        },
+        "sale:http_app_total": {
+          "n": 1250,
+          "0.5": 557.5845279999996,
+          "0.95": 719.5680820000092,
+          "0.99": 2330.0194220000067
+        },
+        "cancel:db_outside_transaction": {
+          "n": 1250,
+          "0.5": 0.7509999999999999,
+          "0.95": 0.987,
+          "0.99": 1.3359999999999999
+        },
+        "cancel:admission_wait": {
+          "n": 1250,
+          "0.5": 539.5384879999981,
+          "0.95": 683.2572489999933,
+          "0.99": 3242.9895209999986
+        },
+        "cancel:session_create": {
+          "n": 1250,
+          "0.5": 0.36772400000018024,
+          "0.95": 0.43966200000511435,
+          "0.99": 0.5199630000021216
+        },
+        "cancel:transaction_start_local": {
+          "n": 1250,
+          "0.5": 0.007371000009470663,
+          "0.95": 0.010465000002568559,
+          "0.99": 0.011788000009005373
+        },
+        "cancel:db_read": {
+          "n": 1250,
+          "0.5": 1.2830000000000001,
+          "0.95": 1.5170000000000001,
+          "0.99": 2.301
+        },
+        "cancel:snapshot_first_command": {
+          "n": 1250,
+          "0.5": 0.29500000000000004,
+          "0.95": 0.33399999999999996,
+          "0.99": 0.46900000000000003
+        },
+        "cancel:db_write": {
+          "n": 1250,
+          "0.5": 1.692,
+          "0.95": 2.6119999999999997,
+          "0.99": 5.009
+        },
+        "cancel:callback": {
+          "n": 1250,
+          "0.5": 6.041906000007202,
+          "0.95": 7.031376000000478,
+          "0.99": 9.918670000004681
+        },
+        "cancel:db_commit": {
+          "n": 1250,
+          "0.5": 1.167,
+          "0.95": 3.029,
+          "0.99": 9.599
+        },
+        "cancel:commit": {
+          "n": 1250,
+          "0.5": 1.356934000000365,
+          "0.95": 3.2549029999984214,
+          "0.99": 9.814112000000819
+        },
+        "cancel:before_response_start": {
+          "n": 1250,
+          "0.5": 550.717737999996,
+          "0.95": 694.6675709999965,
+          "0.99": 3254.265265000001
+        },
+        "cancel:response_send": {
+          "n": 1250,
+          "0.5": 0.2082140000041477,
+          "0.95": 0.25355199998955413,
+          "0.99": 0.29046699998502845
+        },
+        "cancel:http_app_total": {
+          "n": 1250,
+          "0.5": 551.0995140000006,
+          "0.95": 695.1329709999925,
+          "0.99": 3254.7341209999986
+        }
+      },
+      "commands": {
+        "sale:find:sessions": 1250.0,
+        "sale:find:employees": 1250.0,
+        "sale:find:financial_operations": 1250.0,
+        "sale:find:orders:client_ref": 1250.0,
+        "sale:insert:financial_operations": 1250.0,
+        "sale:find:products": 2500.0,
+        "sale:find:categories": 1250.0,
+        "sale:find:ingredients": 2500.0,
+        "sale:findAndModify:counters": 1250.0,
+        "sale:insert:orders": 1250.0,
+        "sale:update:orders": 2500.0,
+        "sale:find:cash_sessions": 1250.0,
+        "sale:update:cash_sessions": 1250.0,
+        "sale:find:payment_methods": 1250.0,
+        "sale:find:orders:id": 1250.0,
+        "sale:insert:kitchen_tickets": 1250.0,
+        "sale:find:purchases": 1250.0,
+        "sale:update:ingredients": 1250.0,
+        "sale:insert:stock_moves": 1250.0,
+        "sale:update:financial_operations": 1250.0,
+        "sale:commitTransaction:other": 1250.0,
+        "cancel:find:sessions": 1250.0,
+        "cancel:find:employees": 1250.0,
+        "cancel:find:orders:id": 2500.0,
+        "cancel:update:cash_sessions": 1250.0,
+        "cancel:update:orders": 1250.0,
+        "cancel:find:products": 1250.0,
+        "cancel:find:ingredients": 1250.0,
+        "cancel:find:lot_consumptions": 1250.0,
+        "cancel:update:ingredients": 1250.0,
+        "cancel:insert:stock_moves": 1250.0,
+        "cancel:update:kitchen_tickets": 1250.0,
+        "cancel:commitTransaction:other": 1250.0
+      },
+      "command_seconds": {
+        "sale:find:sessions": 0.681175000000002,
+        "sale:find:employees": 0.679859000000001,
+        "sale:find:financial_operations": 0.29643400000000003,
+        "sale:find:orders:client_ref": 0.3284189999999994,
+        "sale:insert:financial_operations": 1.133469999999999,
+        "sale:find:products": 0.761999999999999,
+        "sale:find:categories": 0.36491500000000027,
+        "sale:find:ingredients": 0.4946869999999997,
+        "sale:findAndModify:counters": 0.2656139999999998,
+        "sale:insert:orders": 0.28257799999999994,
+        "sale:update:orders": 0.6922160000000004,
+        "sale:find:cash_sessions": 0.2769249999999994,
+        "sale:update:cash_sessions": 0.32119399999999987,
+        "sale:find:payment_methods": 0.2401030000000005,
+        "sale:find:orders:id": 0.28644499999999934,
+        "sale:insert:kitchen_tickets": 0.24983699999999978,
+        "sale:find:purchases": 0.18972699999999995,
+        "sale:update:ingredients": 0.3087809999999996,
+        "sale:insert:stock_moves": 0.2253449999999992,
+        "sale:update:financial_operations": 0.23646200000000034,
+        "sale:commitTransaction:other": 4.677835000000004,
+        "cancel:find:sessions": 0.5776399999999996,
+        "cancel:find:employees": 0.4460640000000003,
+        "cancel:find:orders:id": 0.6665260000000003,
+        "cancel:update:cash_sessions": 0.6302210000000007,
+        "cancel:update:orders": 0.8451330000000004,
+        "cancel:find:products": 0.42149900000000057,
+        "cancel:find:ingredients": 0.3404490000000001,
+        "cancel:find:lot_consumptions": 0.1987339999999997,
+        "cancel:update:ingredients": 0.30103800000000047,
+        "cancel:insert:stock_moves": 0.22177699999999995,
+        "cancel:update:kitchen_tickets": 0.3113049999999993,
+        "cancel:commitTransaction:other": 1.903749999999999
+      },
+      "resource_samples": 7
+    },
+    "p9h2": {
+      "version": "P9",
+      "new_orders": 1400,
+      "rows": [
+        {
+          "sessions": 50,
+          "duration_s": 33.556,
+          "traffic_duration_s": 30.775,
+          "completed_pairs": 1400,
+          "requests": 2800,
+          "operations": {
+            "sale": {
+              "count": 1400,
+              "p50_ms": 549.36,
+              "p95_ms": 678.08,
+              "p99_ms": 737.83
+            },
+            "cancel": {
+              "count": 1400,
+              "p50_ms": 544.91,
+              "p95_ms": 665.27,
+              "p99_ms": 723.77
+            }
+          },
+          "p50_ms": 547.35,
+          "p95_ms": 672.57,
+          "p99_ms": 730.62,
+          "request_throughput_s": 83.44,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 1400,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 45.49,
+          "pair_p50_ms": 1092.71,
+          "pair_p95_ms": 1161.11,
+          "pair_p99_ms": 1180.51,
+          "unique_completed_operations_s": 83.44
+        }
+      ],
+      "integrity": {
+        "historical_fixture_orders": 60000,
+        "duplicate_numbers": 0,
+        "number_range": [
+          {
+            "_id": null,
+            "minimum": 1,
+            "maximum": 61400
+          }
+        ],
+        "counter": 61400,
+        "stock": 1000.0,
+        "paid_orders": 0,
+        "duplicate_refs": 0,
+        "orders": 61400,
+        "markers": 1400,
+        "stock_moves": 2800,
+        "cash_version": 2800,
+        "order_audit": {
+          "checked_new_orders": 1400,
+          "historical_fixture_orders": 60000,
+          "partial_confirmations": 0,
+          "financial_divergences": 0,
+          "orphan_markers": 0,
+          "unexpected_stock_moves": 0,
+          "duplicate_marker_orders": 0
+        },
+        "audit_started_at": 1794873392.0347216,
+        "post_load_audit_s": 0.023358583450317383
+      },
+      "row_checks_recomputed": [
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        }
+      ],
+      "driver_records": {
+        "driver": 34,
+        "transaction": 2800,
+        "p8_request": 2800
+      },
+      "outcomes": {
+        "committed": 2800
+      },
+      "attempts": {
+        "1": 2800
+      },
+      "status": {
+        "200": 2800
+      },
+      "error_counters": {
+        "exhausted_transactions": 0,
+        "callback_retries": 0,
+        "request_command_errors": 0
+      },
+      "transaction_log_records": 2800,
+      "components_ms": {
+        "sale:db_outside_transaction": {
+          "n": 1400,
+          "0.5": 0.834,
+          "0.95": 1.295,
+          "0.99": 9.834
+        },
+        "sale:admission_wait": {
+          "n": 1400,
+          "0.5": 528.9599680000094,
+          "0.95": 653.8630699999999,
+          "0.99": 706.1619919999913
+        },
+        "sale:session_create": {
+          "n": 1400,
+          "0.5": 0.43795999999929336,
+          "0.95": 0.501866000007567,
+          "0.99": 0.5616759999895748
+        },
+        "sale:transaction_start_local": {
+          "n": 1400,
+          "0.5": 0.009202999990520766,
+          "0.95": 0.012328000011052609,
+          "0.99": 0.02614000000278338
+        },
+        "sale:db_read": {
+          "n": 1400,
+          "0.5": 2.455,
+          "0.95": 3.687,
+          "0.99": 5.241
+        },
+        "sale:snapshot_first_command": {
+          "n": 1400,
+          "0.5": 0.232,
+          "0.95": 0.25999999999999995,
+          "0.99": 0.335
+        },
+        "sale:db_write": {
+          "n": 1400,
+          "0.5": 2.3819999999999997,
+          "0.95": 3.739,
+          "0.99": 6.039
+        },
+        "sale:callback": {
+          "n": 1400,
+          "0.5": 10.883861000010597,
+          "0.95": 11.92951900000594,
+          "0.99": 15.601848999992285
+        },
+        "sale:db_commit": {
+          "n": 1400,
+          "0.5": 1.282,
+          "0.95": 1.841,
+          "0.99": 2.431
+        },
+        "sale:commit": {
+          "n": 1400,
+          "0.5": 1.480068999995865,
+          "0.95": 2.0348660000024665,
+          "0.99": 2.6196559999931424
+        },
+        "sale:before_response_start": {
+          "n": 1400,
+          "0.5": 546.0352010000094,
+          "0.95": 673.0272469999932,
+          "0.99": 725.3800849999976
+        },
+        "sale:response_send": {
+          "n": 1400,
+          "0.5": 0.2566669999879423,
+          "0.95": 0.29116899997916335,
+          "0.99": 0.31219000001669883
+        },
+        "sale:http_app_total": {
+          "n": 1400,
+          "0.5": 546.520863000012,
+          "0.95": 673.5024030000005,
+          "0.99": 725.8519960000029
+        },
+        "cancel:db_outside_transaction": {
+          "n": 1400,
+          "0.5": 0.794,
+          "0.95": 1.006,
+          "0.99": 1.5170000000000001
+        },
+        "cancel:admission_wait": {
+          "n": 1400,
+          "0.5": 532.0412200000106,
+          "0.95": 652.1653289999989,
+          "0.99": 711.3386449999979
+        },
+        "cancel:session_create": {
+          "n": 1400,
+          "0.5": 0.4001829999964457,
+          "0.95": 0.4527119999977458,
+          "0.99": 0.5116510000107155
+        },
+        "cancel:transaction_start_local": {
+          "n": 1400,
+          "0.5": 0.008553000000688371,
+          "0.95": 0.011266999990766635,
+          "0.99": 0.012429000008751245
+        },
+        "cancel:db_read": {
+          "n": 1400,
+          "0.5": 1.199,
+          "0.95": 1.393,
+          "0.99": 1.9439999999999997
+        },
+        "cancel:snapshot_first_command": {
+          "n": 1400,
+          "0.5": 0.306,
+          "0.95": 0.34,
+          "0.99": 0.393
+        },
+        "cancel:db_write": {
+          "n": 1400,
+          "0.5": 2.092,
+          "0.95": 2.738,
+          "0.99": 5.878000000000001
+        },
+        "cancel:callback": {
+          "n": 1400,
+          "0.5": 6.012568000002716,
+          "0.95": 6.802327000002606,
+          "0.99": 10.618544000010388
+        },
+        "cancel:db_commit": {
+          "n": 1400,
+          "0.5": 1.135,
+          "0.95": 1.655,
+          "0.99": 1.9680000000000002
+        },
+        "cancel:commit": {
+          "n": 1400,
+          "0.5": 1.3316159999874344,
+          "0.95": 1.8634270000035258,
+          "0.99": 2.2846410000028072
+        },
+        "cancel:before_response_start": {
+          "n": 1400,
+          "0.5": 542.7782940000014,
+          "0.95": 663.1819440000015,
+          "0.99": 721.8738899999977
+        },
+        "cancel:response_send": {
+          "n": 1400,
+          "0.5": 0.23482299999955103,
+          "0.95": 0.26725300000407515,
+          "0.99": 0.28846400002180417
+        },
+        "cancel:http_app_total": {
+          "n": 1400,
+          "0.5": 543.2581870000064,
+          "0.95": 663.6663840000097,
+          "0.99": 722.3797719999965
+        }
+      },
+      "commands": {
+        "sale:find:sessions": 1400.0,
+        "sale:find:employees": 1400.0,
+        "sale:find:financial_operations": 1400.0,
+        "sale:find:orders:client_ref": 1400.0,
+        "sale:insert:financial_operations": 1400.0,
+        "sale:find:products": 1400.0,
+        "sale:find:categories": 1400.0,
+        "sale:find:ingredients": 2800.0,
+        "sale:findAndModify:counters": 1400.0,
+        "sale:insert:orders": 1400.0,
+        "sale:update:orders": 2800.0,
+        "sale:find:cash_sessions": 1400.0,
+        "sale:update:cash_sessions": 1400.0,
+        "sale:find:payment_methods": 1400.0,
+        "sale:find:orders:id": 1400.0,
+        "sale:insert:kitchen_tickets": 1400.0,
+        "sale:find:purchases": 1400.0,
+        "sale:update:ingredients": 1400.0,
+        "sale:insert:stock_moves": 1400.0,
+        "sale:update:financial_operations": 1400.0,
+        "sale:commitTransaction:other": 1400.0,
+        "cancel:find:sessions": 1400.0,
+        "cancel:find:employees": 1400.0,
+        "cancel:find:orders:id": 2800.0,
+        "cancel:update:cash_sessions": 1400.0,
+        "cancel:update:orders": 1400.0,
+        "cancel:find:ingredients": 1400.0,
+        "cancel:find:lot_consumptions": 1400.0,
+        "cancel:update:ingredients": 1400.0,
+        "cancel:insert:stock_moves": 1400.0,
+        "cancel:update:kitchen_tickets": 1400.0,
+        "cancel:commitTransaction:other": 1400.0
+      },
+      "command_seconds": {
+        "sale:find:sessions": 0.8484590000000017,
+        "sale:find:employees": 0.7637769999999978,
+        "sale:find:financial_operations": 0.33293399999999884,
+        "sale:find:orders:client_ref": 0.3644559999999991,
+        "sale:insert:financial_operations": 0.8544670000000012,
+        "sale:find:products": 0.8377940000000008,
+        "sale:find:categories": 0.45178000000000007,
+        "sale:find:ingredients": 0.6522879999999998,
+        "sale:findAndModify:counters": 0.3209990000000003,
+        "sale:insert:orders": 0.3451360000000001,
+        "sale:update:orders": 0.8067689999999997,
+        "sale:find:cash_sessions": 0.32181099999999996,
+        "sale:update:cash_sessions": 0.3720019999999997,
+        "sale:find:payment_methods": 0.2791580000000004,
+        "sale:find:orders:id": 0.329733,
+        "sale:insert:kitchen_tickets": 0.28016800000000003,
+        "sale:find:purchases": 0.22132400000000046,
+        "sale:update:ingredients": 0.36893799999999977,
+        "sale:insert:stock_moves": 0.24752099999999946,
+        "sale:update:financial_operations": 0.275128,
+        "sale:commitTransaction:other": 1.9551370000000003,
+        "cancel:find:sessions": 0.6339889999999992,
+        "cancel:find:employees": 0.5227420000000003,
+        "cancel:find:orders:id": 0.7669440000000012,
+        "cancel:update:cash_sessions": 0.482008,
+        "cancel:update:orders": 1.3810440000000004,
+        "cancel:find:ingredients": 0.47201300000000057,
+        "cancel:find:lot_consumptions": 0.5117390000000005,
+        "cancel:update:ingredients": 0.3681419999999994,
+        "cancel:insert:stock_moves": 0.2725790000000005,
+        "cancel:update:kitchen_tickets": 0.3696089999999996,
+        "cancel:commitTransaction:other": 1.6509989999999977
+      },
+      "resource_samples": 7
+    },
+    "p9a1": {
+      "version": "P8",
+      "new_orders": 3493,
+      "rows": [
+        {
+          "sessions": 5,
+          "duration_s": 15.368,
+          "traffic_duration_s": 15.034,
+          "completed_pairs": 685,
+          "requests": 1370,
+          "operations": {
+            "sale": {
+              "count": 685,
+              "p50_ms": 55.74,
+              "p95_ms": 69.36,
+              "p99_ms": 108.18
+            },
+            "cancel": {
+              "count": 685,
+              "p50_ms": 50.88,
+              "p95_ms": 63.42,
+              "p99_ms": 109.77
+            }
+          },
+          "p50_ms": 53.69,
+          "p95_ms": 67.28,
+          "p99_ms": 108.18,
+          "request_throughput_s": 89.15,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 685,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 45.56,
+          "pair_p50_ms": 106.26,
+          "pair_p95_ms": 134.75,
+          "pair_p99_ms": 186.58,
+          "unique_completed_operations_s": 89.15
+        },
+        {
+          "sessions": 10,
+          "duration_s": 15.76,
+          "traffic_duration_s": 15.179,
+          "completed_pairs": 690,
+          "requests": 1380,
+          "operations": {
+            "sale": {
+              "count": 690,
+              "p50_ms": 111.85,
+              "p95_ms": 137.33,
+              "p99_ms": 148.59
+            },
+            "cancel": {
+              "count": 690,
+              "p50_ms": 106.79,
+              "p95_ms": 133.12,
+              "p99_ms": 151.76
+            }
+          },
+          "p50_ms": 109.83,
+          "p95_ms": 135.85,
+          "p99_ms": 150.55,
+          "request_throughput_s": 87.56,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 690,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 45.46,
+          "pair_p50_ms": 217.07,
+          "pair_p95_ms": 238.25,
+          "pair_p99_ms": 274.19,
+          "unique_completed_operations_s": 87.56
+        },
+        {
+          "sessions": 20,
+          "duration_s": 16.337,
+          "traffic_duration_s": 15.294,
+          "completed_pairs": 700,
+          "requests": 1400,
+          "operations": {
+            "sale": {
+              "count": 700,
+              "p50_ms": 220.41,
+              "p95_ms": 270.52,
+              "p99_ms": 293.72
+            },
+            "cancel": {
+              "count": 700,
+              "p50_ms": 213.9,
+              "p95_ms": 260.81,
+              "p99_ms": 279.67
+            }
+          },
+          "p50_ms": 217.54,
+          "p95_ms": 265.3,
+          "p99_ms": 289.45,
+          "request_throughput_s": 85.69,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 700,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 45.77,
+          "pair_p50_ms": 431.99,
+          "pair_p95_ms": 465.87,
+          "pair_p99_ms": 470.94,
+          "unique_completed_operations_s": 85.69
+        },
+        {
+          "sessions": 30,
+          "duration_s": 17.124,
+          "traffic_duration_s": 15.566,
+          "completed_pairs": 716,
+          "requests": 1432,
+          "operations": {
+            "sale": {
+              "count": 716,
+              "p50_ms": 322.74,
+              "p95_ms": 400.26,
+              "p99_ms": 434.46
+            },
+            "cancel": {
+              "count": 716,
+              "p50_ms": 323.48,
+              "p95_ms": 395.36,
+              "p99_ms": 433.69
+            }
+          },
+          "p50_ms": 323.35,
+          "p95_ms": 398.18,
+          "p99_ms": 434.46,
+          "request_throughput_s": 83.63,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 716,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 46.0,
+          "pair_p50_ms": 644.84,
+          "pair_p95_ms": 694.57,
+          "pair_p99_ms": 710.1,
+          "unique_completed_operations_s": 83.63
+        },
+        {
+          "sessions": 50,
+          "duration_s": 18.054,
+          "traffic_duration_s": 15.351,
+          "completed_pairs": 702,
+          "requests": 1404,
+          "operations": {
+            "sale": {
+              "count": 702,
+              "p50_ms": 546.67,
+              "p95_ms": 661.3,
+              "p99_ms": 695.26
+            },
+            "cancel": {
+              "count": 702,
+              "p50_ms": 539.78,
+              "p95_ms": 657.7,
+              "p99_ms": 684.57
+            }
+          },
+          "p50_ms": 543.56,
+          "p95_ms": 660.04,
+          "p99_ms": 690.08,
+          "request_throughput_s": 77.77,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 702,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 45.73,
+          "pair_p50_ms": 1084.14,
+          "pair_p95_ms": 1152.07,
+          "pair_p99_ms": 1157.05,
+          "unique_completed_operations_s": 77.77
+        }
+      ],
+      "integrity": {
+        "historical_fixture_orders": 0,
+        "duplicate_numbers": 0,
+        "number_range": [
+          {
+            "_id": null,
+            "minimum": 1,
+            "maximum": 3493
+          }
+        ],
+        "counter": 3493,
+        "stock": 1000.0,
+        "paid_orders": 0,
+        "duplicate_refs": 0,
+        "orders": 3493,
+        "markers": 3493,
+        "stock_moves": 6986,
+        "cash_version": 6986,
+        "order_audit": {
+          "checked_new_orders": 3493,
+          "historical_fixture_orders": 0,
+          "partial_confirmations": 0,
+          "financial_divergences": 0,
+          "orphan_markers": 0,
+          "unexpected_stock_moves": 0,
+          "duplicate_marker_orders": 0
+        },
+        "audit_started_at": 1794873478.0344183,
+        "post_load_audit_s": 0.1396195888519287
+      },
+      "row_checks_recomputed": [
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        }
+      ],
+      "driver_records": {
+        "driver": 82,
+        "transaction": 6986,
+        "p8_request": 6986
+      },
+      "outcomes": {
+        "committed": 6986
+      },
+      "attempts": {
+        "1": 6986
+      },
+      "status": {
+        "200": 6986
+      },
+      "error_counters": {
+        "exhausted_transactions": 0,
+        "callback_retries": 0,
+        "request_command_errors": 0
+      },
+      "transaction_log_records": 6986,
+      "components_ms": {
+        "sale:db_outside_transaction": {
+          "n": 3493,
+          "0.5": 0.799,
+          "0.95": 1.189,
+          "0.99": 6.765000000000001
+        },
+        "sale:admission_wait": {
+          "n": 3493,
+          "0.5": 201.3084479999918,
+          "0.95": 590.8700690000046,
+          "0.99": 642.577813999992
+        },
+        "sale:session_create": {
+          "n": 3493,
+          "0.5": 0.4178590000094573,
+          "0.95": 0.47858099998165926,
+          "0.99": 0.5492370000013125
+        },
+        "sale:transaction_start_local": {
+          "n": 3493,
+          "0.5": 0.008142000012867356,
+          "0.95": 0.010676000016474063,
+          "0.99": 0.011848000013969795
+        },
+        "sale:db_read": {
+          "n": 3493,
+          "0.5": 2.55,
+          "0.95": 3.734,
+          "0.99": 4.281999999999999
+        },
+        "sale:snapshot_first_command": {
+          "n": 3493,
+          "0.5": 0.22699999999999998,
+          "0.95": 0.248,
+          "0.99": 0.28400000000000003
+        },
+        "sale:db_write": {
+          "n": 3493,
+          "0.5": 2.6060000000000003,
+          "0.95": 3.695,
+          "0.99": 5.168000000000001
+        },
+        "sale:callback": {
+          "n": 3493,
+          "0.5": 10.969760999984146,
+          "0.95": 12.067980000011858,
+          "0.99": 14.814395999991348
+        },
+        "sale:db_commit": {
+          "n": 3493,
+          "0.5": 1.24,
+          "0.95": 1.752,
+          "0.99": 1.88
+        },
+        "sale:commit": {
+          "n": 3493,
+          "0.5": 1.4404400000103124,
+          "0.95": 1.9580299999972794,
+          "0.99": 2.0795829999826765
+        },
+        "sale:before_response_start": {
+          "n": 3493,
+          "0.5": 217.52164800000173,
+          "0.95": 609.2819630000008,
+          "0.99": 659.2394179999985
+        },
+        "sale:response_send": {
+          "n": 3493,
+          "0.5": 0.24623199996653966,
+          "0.95": 0.28220600000850027,
+          "0.99": 0.3072530000167717
+        },
+        "sale:http_app_total": {
+          "n": 3493,
+          "0.5": 217.97683400001233,
+          "0.95": 609.7311000000047,
+          "0.99": 659.7606939999991
+        },
+        "cancel:db_outside_transaction": {
+          "n": 3493,
+          "0.5": 0.765,
+          "0.95": 0.9600000000000001,
+          "0.99": 1.2599999999999998
+        },
+        "cancel:admission_wait": {
+          "n": 3493,
+          "0.5": 203.67190100000698,
+          "0.95": 593.6600839999926,
+          "0.99": 644.7185849999926
+        },
+        "cancel:session_create": {
+          "n": 3493,
+          "0.5": 0.3901880000114488,
+          "0.95": 0.44945800001983116,
+          "0.99": 0.49552600000879465
+        },
+        "cancel:transaction_start_local": {
+          "n": 3493,
+          "0.5": 0.0077809999936562235,
+          "0.95": 0.010295999999243577,
+          "0.99": 0.01121699997952419
+        },
+        "cancel:db_read": {
+          "n": 3493,
+          "0.5": 1.3419999999999999,
+          "0.95": 1.567,
+          "0.99": 2.3469999999999995
+        },
+        "cancel:snapshot_first_command": {
+          "n": 3493,
+          "0.5": 0.296,
+          "0.95": 0.322,
+          "0.99": 0.34400000000000003
+        },
+        "cancel:db_write": {
+          "n": 3493,
+          "0.5": 1.915,
+          "0.95": 2.5680000000000005,
+          "0.99": 3.5199999999999996
+        },
+        "cancel:callback": {
+          "n": 3493,
+          "0.5": 6.219378999986702,
+          "0.95": 6.912593000009792,
+          "0.99": 8.607175999998162
+        },
+        "cancel:db_commit": {
+          "n": 3493,
+          "0.5": 1.0970000000000002,
+          "0.95": 1.589,
+          "0.99": 1.774
+        },
+        "cancel:commit": {
+          "n": 3493,
+          "0.5": 1.290724999989834,
+          "0.95": 1.7910580000091159,
+          "0.99": 1.9927220000113266
+        },
+        "cancel:before_response_start": {
+          "n": 3493,
+          "0.5": 214.4057400000179,
+          "0.95": 603.8251829999979,
+          "0.99": 656.0580260000108
+        },
+        "cancel:response_send": {
+          "n": 3493,
+          "0.5": 0.2273219999722187,
+          "0.95": 0.2610539999921002,
+          "0.99": 0.28216500001576605
+        },
+        "cancel:http_app_total": {
+          "n": 3493,
+          "0.5": 214.88817600001653,
+          "0.95": 604.277680999985,
+          "0.99": 656.5426960000025
+        }
+      },
+      "commands": {
+        "sale:find:sessions": 3493.0,
+        "sale:find:employees": 3493.0,
+        "sale:find:financial_operations": 3493.0,
+        "sale:find:orders:client_ref": 3493.0,
+        "sale:insert:financial_operations": 3493.0,
+        "sale:find:products": 6986.0,
+        "sale:find:categories": 3493.0,
+        "sale:find:ingredients": 6986.0,
+        "sale:findAndModify:counters": 3493.0,
+        "sale:insert:orders": 3493.0,
+        "sale:update:orders": 6986.0,
+        "sale:find:cash_sessions": 3493.0,
+        "sale:update:cash_sessions": 3493.0,
+        "sale:find:payment_methods": 3493.0,
+        "sale:find:orders:id": 3493.0,
+        "sale:insert:kitchen_tickets": 3493.0,
+        "sale:find:purchases": 3493.0,
+        "sale:update:ingredients": 3493.0,
+        "sale:insert:stock_moves": 3493.0,
+        "sale:update:financial_operations": 3493.0,
+        "sale:commitTransaction:other": 3493.0,
+        "cancel:find:sessions": 3493.0,
+        "cancel:find:employees": 3493.0,
+        "cancel:find:orders:id": 6986.0,
+        "cancel:update:cash_sessions": 3493.0,
+        "cancel:update:orders": 3493.0,
+        "cancel:find:products": 3493.0,
+        "cancel:find:ingredients": 3493.0,
+        "cancel:find:lot_consumptions": 3493.0,
+        "cancel:update:ingredients": 3493.0,
+        "cancel:insert:stock_moves": 3493.0,
+        "cancel:update:kitchen_tickets": 3493.0,
+        "cancel:commitTransaction:other": 3493.0
+      },
+      "command_seconds": {
+        "sale:find:sessions": 1.8232370000000013,
+        "sale:find:employees": 1.5894679999999974,
+        "sale:find:financial_operations": 0.8034830000000013,
+        "sale:find:orders:client_ref": 0.8525460000000018,
+        "sale:insert:financial_operations": 2.5922530000000052,
+        "sale:find:products": 2.564297999999999,
+        "sale:find:categories": 1.0972459999999988,
+        "sale:find:ingredients": 1.4946169999999996,
+        "sale:findAndModify:counters": 0.7675680000000004,
+        "sale:insert:orders": 0.7941929999999998,
+        "sale:update:orders": 1.9383760000000057,
+        "sale:find:cash_sessions": 0.7781299999999979,
+        "sale:update:cash_sessions": 0.911465000000001,
+        "sale:find:payment_methods": 0.6753589999999968,
+        "sale:find:orders:id": 0.8021430000000019,
+        "sale:insert:kitchen_tickets": 0.6947690000000015,
+        "sale:find:purchases": 0.5412720000000016,
+        "sale:update:ingredients": 0.8860869999999985,
+        "sale:insert:stock_moves": 0.6800400000000018,
+        "sale:update:financial_operations": 0.6781099999999973,
+        "sale:commitTransaction:other": 4.35502299999999,
+        "cancel:find:sessions": 1.5218099999999968,
+        "cancel:find:employees": 1.2517690000000006,
+        "cancel:find:orders:id": 1.8473710000000025,
+        "cancel:update:cash_sessions": 1.1476430000000002,
+        "cancel:update:orders": 3.1822650000000006,
+        "cancel:find:products": 1.2324299999999968,
+        "cancel:find:ingredients": 1.089380000000001,
+        "cancel:find:lot_consumptions": 0.5789169999999999,
+        "cancel:update:ingredients": 0.8542870000000015,
+        "cancel:insert:stock_moves": 0.6357879999999996,
+        "cancel:update:kitchen_tickets": 0.9013659999999994,
+        "cancel:commitTransaction:other": 3.996863000000001
+      },
+      "resource_samples": 17
+    },
+    "p9b1": {
+      "version": "P9",
+      "new_orders": 3653,
+      "rows": [
+        {
+          "sessions": 5,
+          "duration_s": 15.42,
+          "traffic_duration_s": 15.082,
+          "completed_pairs": 740,
+          "requests": 1480,
+          "operations": {
+            "sale": {
+              "count": 740,
+              "p50_ms": 52.59,
+              "p95_ms": 64.09,
+              "p99_ms": 82.1
+            },
+            "cancel": {
+              "count": 740,
+              "p50_ms": 47.96,
+              "p95_ms": 59.41,
+              "p99_ms": 83.82
+            }
+          },
+          "p50_ms": 50.39,
+          "p95_ms": 63.22,
+          "p99_ms": 83.82,
+          "request_throughput_s": 95.98,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 740,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 49.06,
+          "pair_p50_ms": 100.8,
+          "pair_p95_ms": 105.59,
+          "pair_p99_ms": 140.98,
+          "unique_completed_operations_s": 95.98
+        },
+        {
+          "sessions": 10,
+          "duration_s": 15.696,
+          "traffic_duration_s": 15.159,
+          "completed_pairs": 738,
+          "requests": 1476,
+          "operations": {
+            "sale": {
+              "count": 738,
+              "p50_ms": 105.09,
+              "p95_ms": 129.2,
+              "p99_ms": 149.21
+            },
+            "cancel": {
+              "count": 738,
+              "p50_ms": 98.69,
+              "p95_ms": 122.34,
+              "p99_ms": 136.98
+            }
+          },
+          "p50_ms": 101.82,
+          "p95_ms": 126.62,
+          "p99_ms": 145.12,
+          "request_throughput_s": 94.04,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 738,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 48.68,
+          "pair_p50_ms": 203.24,
+          "pair_p95_ms": 227.61,
+          "pair_p99_ms": 251.64,
+          "unique_completed_operations_s": 94.04
+        },
+        {
+          "sessions": 20,
+          "duration_s": 16.292,
+          "traffic_duration_s": 15.252,
+          "completed_pairs": 740,
+          "requests": 1480,
+          "operations": {
+            "sale": {
+              "count": 740,
+              "p50_ms": 208.67,
+              "p95_ms": 253.18,
+              "p99_ms": 263.27
+            },
+            "cancel": {
+              "count": 740,
+              "p50_ms": 202.63,
+              "p95_ms": 248.46,
+              "p99_ms": 258.48
+            }
+          },
+          "p50_ms": 206.21,
+          "p95_ms": 251.69,
+          "p99_ms": 259.74,
+          "request_throughput_s": 90.84,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 740,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 48.52,
+          "pair_p50_ms": 412.45,
+          "pair_p95_ms": 445.71,
+          "pair_p99_ms": 465.8,
+          "unique_completed_operations_s": 90.84
+        },
+        {
+          "sessions": 30,
+          "duration_s": 17.047,
+          "traffic_duration_s": 15.379,
+          "completed_pairs": 735,
+          "requests": 1470,
+          "operations": {
+            "sale": {
+              "count": 735,
+              "p50_ms": 311.05,
+              "p95_ms": 388.54,
+              "p99_ms": 423.98
+            },
+            "cancel": {
+              "count": 735,
+              "p50_ms": 310.17,
+              "p95_ms": 384.35,
+              "p99_ms": 418.91
+            }
+          },
+          "p50_ms": 310.43,
+          "p95_ms": 386.16,
+          "p99_ms": 422.01,
+          "request_throughput_s": 86.23,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 735,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 47.79,
+          "pair_p50_ms": 619.94,
+          "pair_p95_ms": 679.13,
+          "pair_p99_ms": 692.24,
+          "unique_completed_operations_s": 86.23
+        },
+        {
+          "sessions": 50,
+          "duration_s": 18.049,
+          "traffic_duration_s": 15.424,
+          "completed_pairs": 700,
+          "requests": 1400,
+          "operations": {
+            "sale": {
+              "count": 700,
+              "p50_ms": 537.02,
+              "p95_ms": 808.94,
+              "p99_ms": 859.21
+            },
+            "cancel": {
+              "count": 700,
+              "p50_ms": 542.93,
+              "p95_ms": 726.71,
+              "p99_ms": 839.23
+            }
+          },
+          "p50_ms": 539.52,
+          "p95_ms": 781.7,
+          "p99_ms": 851.88,
+          "request_throughput_s": 77.57,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 700,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 45.38,
+          "pair_p50_ms": 1072.0,
+          "pair_p95_ms": 1298.1,
+          "pair_p99_ms": 1418.34,
+          "unique_completed_operations_s": 77.57
+        }
+      ],
+      "integrity": {
+        "historical_fixture_orders": 0,
+        "duplicate_numbers": 0,
+        "number_range": [
+          {
+            "_id": null,
+            "minimum": 1,
+            "maximum": 3653
+          }
+        ],
+        "counter": 3653,
+        "stock": 1000.0,
+        "paid_orders": 0,
+        "duplicate_refs": 0,
+        "orders": 3653,
+        "markers": 3653,
+        "stock_moves": 7306,
+        "cash_version": 7306,
+        "order_audit": {
+          "checked_new_orders": 3653,
+          "historical_fixture_orders": 0,
+          "partial_confirmations": 0,
+          "financial_divergences": 0,
+          "orphan_markers": 0,
+          "unexpected_stock_moves": 0,
+          "duplicate_marker_orders": 0
+        },
+        "audit_started_at": 1794873563.5767326,
+        "post_load_audit_s": 0.14119863510131836
+      },
+      "row_checks_recomputed": [
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        }
+      ],
+      "driver_records": {
+        "driver": 81,
+        "transaction": 7306,
+        "p8_request": 7306
+      },
+      "outcomes": {
+        "committed": 7306
+      },
+      "attempts": {
+        "1": 7306
+      },
+      "status": {
+        "200": 7306
+      },
+      "error_counters": {
+        "exhausted_transactions": 0,
+        "callback_retries": 0,
+        "request_command_errors": 0
+      },
+      "transaction_log_records": 7306,
+      "components_ms": {
+        "sale:db_outside_transaction": {
+          "n": 3653,
+          "0.5": 0.798,
+          "0.95": 1.191,
+          "0.99": 7.8340000000000005
+        },
+        "sale:admission_wait": {
+          "n": 3653,
+          "0.5": 184.47343200000432,
+          "0.95": 593.3705720000262,
+          "0.99": 786.220180999976
+        },
+        "sale:session_create": {
+          "n": 3653,
+          "0.5": 0.40852600000107486,
+          "0.95": 0.47358300000155396,
+          "0.99": 0.8508219999896482
+        },
+        "sale:transaction_start_local": {
+          "n": 3653,
+          "0.5": 0.008333000039328908,
+          "0.95": 0.010846000009223644,
+          "0.99": 0.015373000024965222
+        },
+        "sale:db_read": {
+          "n": 3653,
+          "0.5": 2.3499999999999996,
+          "0.95": 3.619,
+          "0.99": 4.896000000000001
+        },
+        "sale:snapshot_first_command": {
+          "n": 3653,
+          "0.5": 0.224,
+          "0.95": 0.24600000000000002,
+          "0.99": 0.34299999999999997
+        },
+        "sale:db_write": {
+          "n": 3653,
+          "0.5": 2.373,
+          "0.95": 3.5869999999999997,
+          "0.99": 5.319
+        },
+        "sale:callback": {
+          "n": 3653,
+          "0.5": 10.397812999997313,
+          "0.95": 11.517466000043441,
+          "0.99": 15.390523999997185
+        },
+        "sale:db_commit": {
+          "n": 3653,
+          "0.5": 1.2349999999999999,
+          "0.95": 1.7799999999999998,
+          "0.99": 2.196
+        },
+        "sale:commit": {
+          "n": 3653,
+          "0.5": 1.4298939999832783,
+          "0.95": 1.9842789999984234,
+          "0.99": 2.7477689999955146
+        },
+        "sale:before_response_start": {
+          "n": 3653,
+          "0.5": 201.31107199998155,
+          "0.95": 614.0674389999958,
+          "0.99": 806.7371930000036
+        },
+        "sale:response_send": {
+          "n": 3653,
+          "0.5": 0.24111400000492722,
+          "0.95": 0.27973100009148766,
+          "0.99": 0.4518200000234174
+        },
+        "sale:http_app_total": {
+          "n": 3653,
+          "0.5": 201.7557909999823,
+          "0.95": 614.5539919999692,
+          "0.99": 807.2953679999841
+        },
+        "cancel:db_outside_transaction": {
+          "n": 3653,
+          "0.5": 0.757,
+          "0.95": 0.959,
+          "0.99": 1.811
+        },
+        "cancel:admission_wait": {
+          "n": 3653,
+          "0.5": 185.95771300002184,
+          "0.95": 587.1498160000215,
+          "0.99": 713.1881029999931
+        },
+        "cancel:session_create": {
+          "n": 3653,
+          "0.5": 0.37898099998301404,
+          "0.95": 0.4345350000107828,
+          "0.99": 0.48146500000711967
+        },
+        "cancel:transaction_start_local": {
+          "n": 3653,
+          "0.5": 0.0078420000022561,
+          "0.95": 0.010374999988016498,
+          "0.99": 0.011007000011886703
+        },
+        "cancel:db_read": {
+          "n": 3653,
+          "0.5": 1.147,
+          "0.95": 1.35,
+          "0.99": 1.9789999999999999
+        },
+        "cancel:snapshot_first_command": {
+          "n": 3653,
+          "0.5": 0.292,
+          "0.95": 0.317,
+          "0.99": 0.345
+        },
+        "cancel:db_write": {
+          "n": 3653,
+          "0.5": 1.934,
+          "0.95": 2.557,
+          "0.99": 3.6049999999999995
+        },
+        "cancel:callback": {
+          "n": 3653,
+          "0.5": 5.729666000007683,
+          "0.95": 6.413747000010517,
+          "0.99": 8.532217999999148
+        },
+        "cancel:db_commit": {
+          "n": 3653,
+          "0.5": 1.141,
+          "0.95": 1.65,
+          "0.99": 1.803
+        },
+        "cancel:commit": {
+          "n": 3653,
+          "0.5": 1.3304339999820058,
+          "0.95": 1.8491659999995136,
+          "0.99": 2.0173890000023675
+        },
+        "cancel:before_response_start": {
+          "n": 3653,
+          "0.5": 196.29588600000147,
+          "0.95": 597.6593620000017,
+          "0.99": 723.4160610000231
+        },
+        "cancel:response_send": {
+          "n": 3653,
+          "0.5": 0.22063199998001437,
+          "0.95": 0.25247600001421233,
+          "0.99": 0.2760360000024775
+        },
+        "cancel:http_app_total": {
+          "n": 3653,
+          "0.5": 196.77009100001897,
+          "0.95": 598.1096260000527,
+          "0.99": 723.8461190000294
+        }
+      },
+      "commands": {
+        "sale:find:sessions": 3653.0,
+        "sale:find:employees": 3653.0,
+        "sale:find:financial_operations": 3653.0,
+        "sale:find:orders:client_ref": 3653.0,
+        "sale:insert:financial_operations": 3653.0,
+        "sale:find:products": 3653.0,
+        "sale:find:categories": 3653.0,
+        "sale:find:ingredients": 7306.0,
+        "sale:findAndModify:counters": 3653.0,
+        "sale:insert:orders": 3653.0,
+        "sale:update:orders": 7306.0,
+        "sale:find:cash_sessions": 3653.0,
+        "sale:update:cash_sessions": 3653.0,
+        "sale:find:payment_methods": 3653.0,
+        "sale:find:orders:id": 3653.0,
+        "sale:insert:kitchen_tickets": 3653.0,
+        "sale:find:purchases": 3653.0,
+        "sale:update:ingredients": 3653.0,
+        "sale:insert:stock_moves": 3653.0,
+        "sale:update:financial_operations": 3653.0,
+        "sale:commitTransaction:other": 3653.0,
+        "cancel:find:sessions": 3653.0,
+        "cancel:find:employees": 3653.0,
+        "cancel:find:orders:id": 7306.0,
+        "cancel:update:cash_sessions": 3653.0,
+        "cancel:update:orders": 3653.0,
+        "cancel:find:ingredients": 3653.0,
+        "cancel:find:lot_consumptions": 3653.0,
+        "cancel:update:ingredients": 3653.0,
+        "cancel:insert:stock_moves": 3653.0,
+        "cancel:update:kitchen_tickets": 3653.0,
+        "cancel:commitTransaction:other": 3653.0
+      },
+      "command_seconds": {
+        "sale:find:sessions": 2.021964000000002,
+        "sale:find:employees": 1.7336710000000009,
+        "sale:find:financial_operations": 0.8404100000000032,
+        "sale:find:orders:client_ref": 0.8826659999999996,
+        "sale:insert:financial_operations": 2.3539930000000013,
+        "sale:find:products": 2.2364800000000016,
+        "sale:find:categories": 1.1598460000000024,
+        "sale:find:ingredients": 1.5940009999999976,
+        "sale:findAndModify:counters": 0.7967740000000002,
+        "sale:insert:orders": 0.8213099999999993,
+        "sale:update:orders": 2.0291799999999998,
+        "sale:find:cash_sessions": 0.8113659999999957,
+        "sale:update:cash_sessions": 0.9600240000000013,
+        "sale:find:payment_methods": 0.7099639999999985,
+        "sale:find:orders:id": 0.835974,
+        "sale:insert:kitchen_tickets": 0.7207870000000015,
+        "sale:find:purchases": 0.5696250000000012,
+        "sale:update:ingredients": 0.9368230000000016,
+        "sale:insert:stock_moves": 0.6337600000000013,
+        "sale:update:financial_operations": 0.7026999999999984,
+        "sale:commitTransaction:other": 4.5975759999999966,
+        "cancel:find:sessions": 1.688279999999996,
+        "cancel:find:employees": 1.3239530000000015,
+        "cancel:find:orders:id": 1.923460000000004,
+        "cancel:update:cash_sessions": 1.2141260000000003,
+        "cancel:update:orders": 3.272789000000001,
+        "cancel:find:ingredients": 1.2199339999999987,
+        "cancel:find:lot_consumptions": 1.103096,
+        "cancel:update:ingredients": 0.9162350000000008,
+        "cancel:insert:stock_moves": 0.7110300000000006,
+        "cancel:update:kitchen_tickets": 0.9308979999999976,
+        "cancel:commitTransaction:other": 4.134174999999997
+      },
+      "resource_samples": 17
+    },
+    "p9b2": {
+      "version": "P9",
+      "new_orders": 3854,
+      "rows": [
+        {
+          "sessions": 5,
+          "duration_s": 15.412,
+          "traffic_duration_s": 15.077,
+          "completed_pairs": 735,
+          "requests": 1470,
+          "operations": {
+            "sale": {
+              "count": 735,
+              "p50_ms": 53.03,
+              "p95_ms": 65.44,
+              "p99_ms": 100.78
+            },
+            "cancel": {
+              "count": 735,
+              "p50_ms": 47.74,
+              "p95_ms": 59.31,
+              "p99_ms": 86.37
+            }
+          },
+          "p50_ms": 50.38,
+          "p95_ms": 63.58,
+          "p99_ms": 96.33,
+          "request_throughput_s": 95.38,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 735,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 48.75,
+          "pair_p50_ms": 100.52,
+          "pair_p95_ms": 117.11,
+          "pair_p99_ms": 151.93,
+          "unique_completed_operations_s": 95.38
+        },
+        {
+          "sessions": 10,
+          "duration_s": 15.624,
+          "traffic_duration_s": 15.08,
+          "completed_pairs": 762,
+          "requests": 1524,
+          "operations": {
+            "sale": {
+              "count": 762,
+              "p50_ms": 100.4,
+              "p95_ms": 125.23,
+              "p99_ms": 158.17
+            },
+            "cancel": {
+              "count": 762,
+              "p50_ms": 95.65,
+              "p95_ms": 118.55,
+              "p99_ms": 150.52
+            }
+          },
+          "p50_ms": 97.95,
+          "p95_ms": 122.58,
+          "p99_ms": 154.89,
+          "request_throughput_s": 97.54,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 762,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 50.53,
+          "pair_p50_ms": 195.88,
+          "pair_p95_ms": 234.94,
+          "pair_p99_ms": 244.1,
+          "unique_completed_operations_s": 97.54
+        },
+        {
+          "sessions": 20,
+          "duration_s": 16.348,
+          "traffic_duration_s": 15.296,
+          "completed_pairs": 780,
+          "requests": 1560,
+          "operations": {
+            "sale": {
+              "count": 780,
+              "p50_ms": 196.57,
+              "p95_ms": 243.34,
+              "p99_ms": 263.45
+            },
+            "cancel": {
+              "count": 780,
+              "p50_ms": 193.89,
+              "p95_ms": 239.77,
+              "p99_ms": 272.21
+            }
+          },
+          "p50_ms": 195.41,
+          "p95_ms": 241.72,
+          "p99_ms": 266.36,
+          "request_throughput_s": 95.42,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 780,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 50.99,
+          "pair_p50_ms": 385.89,
+          "pair_p95_ms": 440.29,
+          "pair_p99_ms": 450.08,
+          "unique_completed_operations_s": 95.42
+        },
+        {
+          "sessions": 30,
+          "duration_s": 16.914,
+          "traffic_duration_s": 15.358,
+          "completed_pairs": 780,
+          "requests": 1560,
+          "operations": {
+            "sale": {
+              "count": 780,
+              "p50_ms": 295.22,
+              "p95_ms": 362.29,
+              "p99_ms": 399.93
+            },
+            "cancel": {
+              "count": 780,
+              "p50_ms": 293.6,
+              "p95_ms": 361.85,
+              "p99_ms": 394.73
+            }
+          },
+          "p50_ms": 294.49,
+          "p95_ms": 362.2,
+          "p99_ms": 395.09,
+          "request_throughput_s": 92.23,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 780,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 50.79,
+          "pair_p50_ms": 580.8,
+          "pair_p95_ms": 633.75,
+          "pair_p99_ms": 644.75,
+          "unique_completed_operations_s": 92.23
+        },
+        {
+          "sessions": 50,
+          "duration_s": 18.511,
+          "traffic_duration_s": 15.872,
+          "completed_pairs": 797,
+          "requests": 1594,
+          "operations": {
+            "sale": {
+              "count": 797,
+              "p50_ms": 498.37,
+              "p95_ms": 611.37,
+              "p99_ms": 677.06
+            },
+            "cancel": {
+              "count": 797,
+              "p50_ms": 493.4,
+              "p95_ms": 613.95,
+              "p99_ms": 680.83
+            }
+          },
+          "p50_ms": 495.27,
+          "p95_ms": 612.11,
+          "p99_ms": 677.77,
+          "request_throughput_s": 86.11,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 797,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 50.21,
+          "pair_p50_ms": 984.91,
+          "pair_p95_ms": 1078.68,
+          "pair_p99_ms": 1099.92,
+          "unique_completed_operations_s": 86.11
+        }
+      ],
+      "integrity": {
+        "historical_fixture_orders": 0,
+        "duplicate_numbers": 0,
+        "number_range": [
+          {
+            "_id": null,
+            "minimum": 1,
+            "maximum": 3854
+          }
+        ],
+        "counter": 3854,
+        "stock": 1000.0,
+        "paid_orders": 0,
+        "duplicate_refs": 0,
+        "orders": 3854,
+        "markers": 3854,
+        "stock_moves": 7708,
+        "cash_version": 7708,
+        "order_audit": {
+          "checked_new_orders": 3854,
+          "historical_fixture_orders": 0,
+          "partial_confirmations": 0,
+          "financial_divergences": 0,
+          "orphan_markers": 0,
+          "unexpected_stock_moves": 0,
+          "duplicate_marker_orders": 0
+        },
+        "audit_started_at": 1794873649.6802027,
+        "post_load_audit_s": 0.1318526268005371
+      },
+      "row_checks_recomputed": [
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        }
+      ],
+      "driver_records": {
+        "driver": 82,
+        "transaction": 7708,
+        "p8_request": 7708
+      },
+      "outcomes": {
+        "committed": 7708
+      },
+      "attempts": {
+        "1": 7708
+      },
+      "status": {
+        "200": 7708
+      },
+      "error_counters": {
+        "exhausted_transactions": 0,
+        "callback_retries": 0,
+        "request_command_errors": 0
+      },
+      "transaction_log_records": 7708,
+      "components_ms": {
+        "sale:db_outside_transaction": {
+          "n": 3854,
+          "0.5": 0.773,
+          "0.95": 1.1340000000000001,
+          "0.99": 6.8950000000000005
+        },
+        "sale:admission_wait": {
+          "n": 3854,
+          "0.5": 181.80811000001995,
+          "0.95": 542.2769030000154,
+          "0.99": 592.8882360000216
+        },
+        "sale:session_create": {
+          "n": 3854,
+          "0.5": 0.3709490000005644,
+          "0.95": 0.43964200000345954,
+          "0.99": 0.562387000002218
+        },
+        "sale:transaction_start_local": {
+          "n": 3854,
+          "0.5": 0.0073709999810489535,
+          "0.95": 0.010094999993270903,
+          "0.99": 0.011256999982833804
+        },
+        "sale:db_read": {
+          "n": 3854,
+          "0.5": 2.2300000000000004,
+          "0.95": 3.2729999999999997,
+          "0.99": 3.876
+        },
+        "sale:snapshot_first_command": {
+          "n": 3854,
+          "0.5": 0.221,
+          "0.95": 0.243,
+          "0.99": 0.29500000000000004
+        },
+        "sale:db_write": {
+          "n": 3854,
+          "0.5": 2.9229999999999996,
+          "0.95": 3.5050000000000003,
+          "0.99": 5.2620000000000005
+        },
+        "sale:callback": {
+          "n": 3854,
+          "0.5": 10.050111999987621,
+          "0.95": 11.07155900001544,
+          "0.99": 14.86899000002495
+        },
+        "sale:db_commit": {
+          "n": 3854,
+          "0.5": 1.201,
+          "0.95": 1.699,
+          "0.99": 1.861
+        },
+        "sale:commit": {
+          "n": 3854,
+          "0.5": 1.3914159999899312,
+          "0.95": 1.8966169999998783,
+          "0.99": 2.0723810000049525
+        },
+        "sale:before_response_start": {
+          "n": 3854,
+          "0.5": 196.85791000000563,
+          "0.95": 558.4994660000007,
+          "0.99": 609.4387240000287
+        },
+        "sale:response_send": {
+          "n": 3854,
+          "0.5": 0.2152950000322562,
+          "0.95": 0.2595310000401696,
+          "0.99": 0.3018049999354844
+        },
+        "sale:http_app_total": {
+          "n": 3854,
+          "0.5": 197.33807400001524,
+          "0.95": 558.9524480000136,
+          "0.99": 609.8882310000135
+        },
+        "cancel:db_outside_transaction": {
+          "n": 3854,
+          "0.5": 0.728,
+          "0.95": 0.923,
+          "0.99": 1.398
+        },
+        "cancel:admission_wait": {
+          "n": 3854,
+          "0.5": 187.51607400002968,
+          "0.95": 544.9875170000382,
+          "0.99": 603.9572619999944
+        },
+        "cancel:session_create": {
+          "n": 3854,
+          "0.5": 0.3550840000343669,
+          "0.95": 0.4120599999737351,
+          "0.99": 0.46500100000912425
+        },
+        "cancel:transaction_start_local": {
+          "n": 3854,
+          "0.5": 0.006660000053670956,
+          "0.95": 0.009594000005108683,
+          "0.99": 0.010637000002589048
+        },
+        "cancel:db_read": {
+          "n": 3854,
+          "0.5": 1.087,
+          "0.95": 1.298,
+          "0.99": 1.9420000000000002
+        },
+        "cancel:snapshot_first_command": {
+          "n": 3854,
+          "0.5": 0.28400000000000003,
+          "0.95": 0.311,
+          "0.99": 0.34099999999999997
+        },
+        "cancel:db_write": {
+          "n": 3854,
+          "0.5": 1.6940000000000002,
+          "0.95": 2.44,
+          "0.99": 3.15
+        },
+        "cancel:callback": {
+          "n": 3854,
+          "0.5": 5.507751999971333,
+          "0.95": 6.204357000001437,
+          "0.99": 7.576489000030051
+        },
+        "cancel:db_commit": {
+          "n": 3854,
+          "0.5": 0.9790000000000001,
+          "0.95": 1.534,
+          "0.99": 1.729
+        },
+        "cancel:commit": {
+          "n": 3854,
+          "0.5": 1.165415999992092,
+          "0.95": 1.7389999999863903,
+          "0.99": 1.9353459999820188
+        },
+        "cancel:before_response_start": {
+          "n": 3854,
+          "0.5": 196.7137160000334,
+          "0.95": 554.9000390000174,
+          "0.99": 612.9104739999889
+        },
+        "cancel:response_send": {
+          "n": 3854,
+          "0.5": 0.20095299998956762,
+          "0.95": 0.23778799999263356,
+          "0.99": 0.2606529999980012
+        },
+        "cancel:http_app_total": {
+          "n": 3854,
+          "0.5": 197.10336699995423,
+          "0.95": 555.2851589999932,
+          "0.99": 613.337027
+        }
+      },
+      "commands": {
+        "sale:find:sessions": 3854.0,
+        "sale:find:employees": 3854.0,
+        "sale:find:financial_operations": 3854.0,
+        "sale:find:orders:client_ref": 3854.0,
+        "sale:insert:financial_operations": 3854.0,
+        "sale:find:products": 3854.0,
+        "sale:find:categories": 3854.0,
+        "sale:find:ingredients": 7708.0,
+        "sale:findAndModify:counters": 3854.0,
+        "sale:insert:orders": 3854.0,
+        "sale:update:orders": 7708.0,
+        "sale:find:cash_sessions": 3854.0,
+        "sale:update:cash_sessions": 3854.0,
+        "sale:find:payment_methods": 3854.0,
+        "sale:find:orders:id": 3854.0,
+        "sale:insert:kitchen_tickets": 3854.0,
+        "sale:find:purchases": 3854.0,
+        "sale:update:ingredients": 3854.0,
+        "sale:insert:stock_moves": 3854.0,
+        "sale:update:financial_operations": 3854.0,
+        "sale:commitTransaction:other": 3854.0,
+        "cancel:find:sessions": 3854.0,
+        "cancel:find:employees": 3854.0,
+        "cancel:find:orders:id": 7708.0,
+        "cancel:update:cash_sessions": 3854.0,
+        "cancel:update:orders": 3854.0,
+        "cancel:find:ingredients": 3854.0,
+        "cancel:find:lot_consumptions": 3854.0,
+        "cancel:update:ingredients": 3854.0,
+        "cancel:insert:stock_moves": 3854.0,
+        "cancel:update:kitchen_tickets": 3854.0,
+        "cancel:commitTransaction:other": 3854.0
+      },
+      "command_seconds": {
+        "sale:find:sessions": 1.9610970000000036,
+        "sale:find:employees": 1.690341999999999,
+        "sale:find:financial_operations": 0.8705000000000005,
+        "sale:find:orders:client_ref": 0.9047370000000013,
+        "sale:insert:financial_operations": 3.322506999999992,
+        "sale:find:products": 1.7227809999999943,
+        "sale:find:categories": 1.1212750000000002,
+        "sale:find:ingredients": 1.4990899999999978,
+        "sale:findAndModify:counters": 0.7928799999999997,
+        "sale:insert:orders": 0.832998,
+        "sale:update:orders": 2.108149000000002,
+        "sale:find:cash_sessions": 0.8359010000000038,
+        "sale:update:cash_sessions": 0.9979469999999991,
+        "sale:find:payment_methods": 0.7392699999999981,
+        "sale:find:orders:id": 0.8710559999999979,
+        "sale:insert:kitchen_tickets": 0.7413499999999967,
+        "sale:find:purchases": 0.5896400000000014,
+        "sale:update:ingredients": 0.963225999999997,
+        "sale:insert:stock_moves": 0.6962959999999977,
+        "sale:update:financial_operations": 0.7268649999999955,
+        "sale:commitTransaction:other": 4.710035,
+        "cancel:find:sessions": 1.671855999999994,
+        "cancel:find:employees": 1.346503,
+        "cancel:find:orders:id": 1.9795559999999992,
+        "cancel:update:cash_sessions": 1.7692850000000038,
+        "cancel:update:orders": 2.504203000000007,
+        "cancel:find:ingredients": 1.225795999999997,
+        "cancel:find:lot_consumptions": 1.0215459999999985,
+        "cancel:update:ingredients": 0.9352890000000011,
+        "cancel:insert:stock_moves": 0.6814839999999954,
+        "cancel:update:kitchen_tickets": 0.956587000000001,
+        "cancel:commitTransaction:other": 3.912178000000002
+      },
+      "resource_samples": 17
+    },
+    "p9a2": {
+      "version": "P8",
+      "new_orders": 3622,
+      "rows": [
+        {
+          "sessions": 5,
+          "duration_s": 15.379,
+          "traffic_duration_s": 15.029,
+          "completed_pairs": 720,
+          "requests": 1440,
+          "operations": {
+            "sale": {
+              "count": 720,
+              "p50_ms": 54.09,
+              "p95_ms": 65.2,
+              "p99_ms": 94.43
+            },
+            "cancel": {
+              "count": 720,
+              "p50_ms": 49.07,
+              "p95_ms": 60.44,
+              "p99_ms": 93.57
+            }
+          },
+          "p50_ms": 51.37,
+          "p95_ms": 64.4,
+          "p99_ms": 93.91,
+          "request_throughput_s": 93.63,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 720,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 47.91,
+          "pair_p50_ms": 102.95,
+          "pair_p95_ms": 110.99,
+          "pair_p99_ms": 162.28,
+          "unique_completed_operations_s": 93.63
+        },
+        {
+          "sessions": 10,
+          "duration_s": 15.757,
+          "traffic_duration_s": 15.2,
+          "completed_pairs": 720,
+          "requests": 1440,
+          "operations": {
+            "sale": {
+              "count": 720,
+              "p50_ms": 106.98,
+              "p95_ms": 134.5,
+              "p99_ms": 157.56
+            },
+            "cancel": {
+              "count": 720,
+              "p50_ms": 102.44,
+              "p95_ms": 127.75,
+              "p99_ms": 152.55
+            }
+          },
+          "p50_ms": 104.81,
+          "p95_ms": 131.53,
+          "p99_ms": 154.3,
+          "request_throughput_s": 91.39,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 720,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 47.37,
+          "pair_p50_ms": 208.85,
+          "pair_p95_ms": 243.31,
+          "pair_p99_ms": 250.67,
+          "unique_completed_operations_s": 91.39
+        },
+        {
+          "sessions": 20,
+          "duration_s": 16.261,
+          "traffic_duration_s": 15.132,
+          "completed_pairs": 700,
+          "requests": 1400,
+          "operations": {
+            "sale": {
+              "count": 700,
+              "p50_ms": 214.59,
+              "p95_ms": 267.32,
+              "p99_ms": 321.51
+            },
+            "cancel": {
+              "count": 700,
+              "p50_ms": 211.99,
+              "p95_ms": 277.25,
+              "p99_ms": 324.52
+            }
+          },
+          "p50_ms": 213.23,
+          "p95_ms": 271.93,
+          "p99_ms": 324.52,
+          "request_throughput_s": 86.1,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 700,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 46.26,
+          "pair_p50_ms": 425.53,
+          "pair_p95_ms": 501.93,
+          "pair_p99_ms": 509.31,
+          "unique_completed_operations_s": 86.1
+        },
+        {
+          "sessions": 30,
+          "duration_s": 17.117,
+          "traffic_duration_s": 15.448,
+          "completed_pairs": 720,
+          "requests": 1440,
+          "operations": {
+            "sale": {
+              "count": 720,
+              "p50_ms": 317.26,
+              "p95_ms": 422.61,
+              "p99_ms": 660.27
+            },
+            "cancel": {
+              "count": 720,
+              "p50_ms": 310.66,
+              "p95_ms": 390.07,
+              "p99_ms": 658.81
+            }
+          },
+          "p50_ms": 313.72,
+          "p95_ms": 404.77,
+          "p99_ms": 660.27,
+          "request_throughput_s": 84.13,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 720,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 46.61,
+          "pair_p50_ms": 636.52,
+          "pair_p95_ms": 751.77,
+          "pair_p99_ms": 930.93,
+          "unique_completed_operations_s": 84.13
+        },
+        {
+          "sessions": 50,
+          "duration_s": 18.082,
+          "traffic_duration_s": 15.443,
+          "completed_pairs": 762,
+          "requests": 1524,
+          "operations": {
+            "sale": {
+              "count": 762,
+              "p50_ms": 492.27,
+              "p95_ms": 607.1,
+              "p99_ms": 743.66
+            },
+            "cancel": {
+              "count": 762,
+              "p50_ms": 499.88,
+              "p95_ms": 699.16,
+              "p99_ms": 926.14
+            }
+          },
+          "p50_ms": 495.98,
+          "p95_ms": 621.04,
+          "p99_ms": 884.43,
+          "request_throughput_s": 84.28,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 762,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 49.34,
+          "pair_p50_ms": 989.96,
+          "pair_p95_ms": 1336.73,
+          "pair_p99_ms": 1355.29,
+          "unique_completed_operations_s": 84.28
+        }
+      ],
+      "integrity": {
+        "historical_fixture_orders": 0,
+        "duplicate_numbers": 0,
+        "number_range": [
+          {
+            "_id": null,
+            "minimum": 1,
+            "maximum": 3622
+          }
+        ],
+        "counter": 3622,
+        "stock": 1000.0,
+        "paid_orders": 0,
+        "duplicate_refs": 0,
+        "orders": 3622,
+        "markers": 3622,
+        "stock_moves": 7244,
+        "cash_version": 7244,
+        "order_audit": {
+          "checked_new_orders": 3622,
+          "historical_fixture_orders": 0,
+          "partial_confirmations": 0,
+          "financial_divergences": 0,
+          "orphan_markers": 0,
+          "unexpected_stock_moves": 0,
+          "duplicate_marker_orders": 0
+        },
+        "audit_started_at": 1794873735.2782018,
+        "post_load_audit_s": 0.11825203895568848
+      },
+      "row_checks_recomputed": [
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        },
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true
+        }
+      ],
+      "driver_records": {
+        "driver": 83,
+        "transaction": 7244,
+        "p8_request": 7244
+      },
+      "outcomes": {
+        "committed": 7244
+      },
+      "attempts": {
+        "1": 7244
+      },
+      "status": {
+        "200": 7244
+      },
+      "error_counters": {
+        "exhausted_transactions": 0,
+        "callback_retries": 0,
+        "request_command_errors": 0
+      },
+      "transaction_log_records": 7244,
+      "components_ms": {
+        "sale:db_outside_transaction": {
+          "n": 3622,
+          "0.5": 0.7689999999999999,
+          "0.95": 1.153,
+          "0.99": 7.476
+        },
+        "sale:admission_wait": {
+          "n": 3622,
+          "0.5": 195.71373299999095,
+          "0.95": 543.7037690000466,
+          "0.99": 605.5160050000268
+        },
+        "sale:session_create": {
+          "n": 3622,
+          "0.5": 0.35794899997654284,
+          "0.95": 0.4357669999990321,
+          "0.99": 0.5460630000015954
+        },
+        "sale:transaction_start_local": {
+          "n": 3622,
+          "0.5": 0.00651900001003014,
+          "0.95": 0.009615000010398944,
+          "0.99": 0.01098699999602104
+        },
+        "sale:db_read": {
+          "n": 3622,
+          "0.5": 2.48,
+          "0.95": 3.245,
+          "0.99": 4.244000000000001
+        },
+        "sale:snapshot_first_command": {
+          "n": 3622,
+          "0.5": 0.22599999999999998,
+          "0.95": 0.253,
+          "0.99": 0.414
+        },
+        "sale:db_write": {
+          "n": 3622,
+          "0.5": 2.7680000000000002,
+          "0.95": 3.5580000000000003,
+          "0.99": 4.4990000000000006
+        },
+        "sale:callback": {
+          "n": 3622,
+          "0.5": 10.57958299998063,
+          "0.95": 11.796961000015926,
+          "0.99": 17.635773999984394
+        },
+        "sale:db_commit": {
+          "n": 3622,
+          "0.5": 1.195,
+          "0.95": 1.7260000000000002,
+          "0.99": 2.232
+        },
+        "sale:commit": {
+          "n": 3622,
+          "0.5": 1.3922269999966375,
+          "0.95": 1.930628999957662,
+          "0.99": 2.675360000012006
+        },
+        "sale:before_response_start": {
+          "n": 3622,
+          "0.5": 211.69932700001937,
+          "0.95": 559.6594730000106,
+          "0.99": 625.9955369999943
+        },
+        "sale:response_send": {
+          "n": 3622,
+          "0.5": 0.20564999999805877,
+          "0.95": 0.2525499999137537,
+          "0.99": 0.30515899999272733
+        },
+        "sale:http_app_total": {
+          "n": 3622,
+          "0.5": 212.10393699999486,
+          "0.95": 559.9830110000426,
+          "0.99": 626.4225310000029
+        },
+        "cancel:db_outside_transaction": {
+          "n": 3622,
+          "0.5": 0.737,
+          "0.95": 0.969,
+          "0.99": 1.398
+        },
+        "cancel:admission_wait": {
+          "n": 3622,
+          "0.5": 200.295972000049,
+          "0.95": 557.584611999971,
+          "0.99": 695.1325259999521
+        },
+        "cancel:session_create": {
+          "n": 3622,
+          "0.5": 0.34684199999901466,
+          "0.95": 0.41194099998165257,
+          "0.99": 0.5958269999837285
+        },
+        "cancel:transaction_start_local": {
+          "n": 3622,
+          "0.5": 0.0057579999861445685,
+          "0.95": 0.008744000012939068,
+          "0.99": 0.010226000028978888
+        },
+        "cancel:db_read": {
+          "n": 3622,
+          "0.5": 1.2309999999999999,
+          "0.95": 1.508,
+          "0.99": 2.2790000000000004
+        },
+        "cancel:snapshot_first_command": {
+          "n": 3622,
+          "0.5": 0.289,
+          "0.95": 0.323,
+          "0.99": 0.398
+        },
+        "cancel:db_write": {
+          "n": 3622,
+          "0.5": 1.899,
+          "0.95": 2.5110000000000006,
+          "0.99": 3.651
+        },
+        "cancel:callback": {
+          "n": 3622,
+          "0.5": 5.937243999994735,
+          "0.95": 6.730834999984836,
+          "0.99": 9.465599000009206
+        },
+        "cancel:db_commit": {
+          "n": 3622,
+          "0.5": 1.053,
+          "0.95": 1.6019999999999999,
+          "0.99": 1.925
+        },
+        "cancel:commit": {
+          "n": 3622,
+          "0.5": 1.2462070000083258,
+          "0.95": 1.8069620000460418,
+          "0.99": 2.2676959999898827
+        },
+        "cancel:before_response_start": {
+          "n": 3622,
+          "0.5": 210.8253080000395,
+          "0.95": 568.5301529999833,
+          "0.99": 705.7401719999916
+        },
+        "cancel:response_send": {
+          "n": 3622,
+          "0.5": 0.19563400007882592,
+          "0.95": 0.23482400001739734,
+          "0.99": 0.3204239999377023
+        },
+        "cancel:http_app_total": {
+          "n": 3622,
+          "0.5": 211.25751199997467,
+          "0.95": 568.8789980000024,
+          "0.99": 706.1472959999833
+        }
+      },
+      "commands": {
+        "sale:find:sessions": 3622.0,
+        "sale:find:employees": 3622.0,
+        "sale:find:financial_operations": 3622.0,
+        "sale:find:orders:client_ref": 3622.0,
+        "sale:insert:financial_operations": 3622.0,
+        "sale:find:products": 7244.0,
+        "sale:find:categories": 3622.0,
+        "sale:find:ingredients": 7244.0,
+        "sale:findAndModify:counters": 3622.0,
+        "sale:insert:orders": 3622.0,
+        "sale:update:orders": 7244.0,
+        "sale:find:cash_sessions": 3622.0,
+        "sale:update:cash_sessions": 3622.0,
+        "sale:find:payment_methods": 3622.0,
+        "sale:find:orders:id": 3622.0,
+        "sale:insert:kitchen_tickets": 3622.0,
+        "sale:find:purchases": 3622.0,
+        "sale:update:ingredients": 3622.0,
+        "sale:insert:stock_moves": 3622.0,
+        "sale:update:financial_operations": 3622.0,
+        "sale:commitTransaction:other": 3622.0,
+        "cancel:find:sessions": 3622.0,
+        "cancel:find:employees": 3622.0,
+        "cancel:find:orders:id": 7244.0,
+        "cancel:update:cash_sessions": 3622.0,
+        "cancel:update:orders": 3622.0,
+        "cancel:find:products": 3622.0,
+        "cancel:find:ingredients": 3622.0,
+        "cancel:find:lot_consumptions": 3622.0,
+        "cancel:update:ingredients": 3622.0,
+        "cancel:insert:stock_moves": 3622.0,
+        "cancel:update:kitchen_tickets": 3622.0,
+        "cancel:commitTransaction:other": 3622.0
+      },
+      "command_seconds": {
+        "sale:find:sessions": 1.7896369999999948,
+        "sale:find:employees": 1.7098179999999992,
+        "sale:find:financial_operations": 0.842523999999999,
+        "sale:find:orders:client_ref": 1.012336000000001,
+        "sale:insert:financial_operations": 2.7589670000000077,
+        "sale:find:products": 2.202042999999997,
+        "sale:find:categories": 1.0070929999999987,
+        "sale:find:ingredients": 1.3826239999999992,
+        "sale:findAndModify:counters": 0.7873579999999971,
+        "sale:insert:orders": 0.7677559999999988,
+        "sale:update:orders": 1.9484600000000059,
+        "sale:find:cash_sessions": 0.7969850000000022,
+        "sale:update:cash_sessions": 0.923869000000001,
+        "sale:find:payment_methods": 0.7070629999999989,
+        "sale:find:orders:id": 0.8362069999999987,
+        "sale:insert:kitchen_tickets": 0.7035010000000015,
+        "sale:find:purchases": 0.5653180000000002,
+        "sale:update:ingredients": 0.922671000000004,
+        "sale:insert:stock_moves": 0.6362129999999986,
+        "sale:update:financial_operations": 0.6976499999999977,
+        "sale:commitTransaction:other": 4.976449999999994,
+        "cancel:find:sessions": 1.5868160000000018,
+        "cancel:find:employees": 1.2965510000000011,
+        "cancel:find:orders:id": 1.9126400000000043,
+        "cancel:update:cash_sessions": 2.423263999999996,
+        "cancel:update:orders": 1.9669870000000034,
+        "cancel:find:products": 1.1922579999999998,
+        "cancel:find:ingredients": 0.9054750000000007,
+        "cancel:find:lot_consumptions": 0.5862499999999974,
+        "cancel:update:ingredients": 0.8776860000000004,
+        "cancel:insert:stock_moves": 0.6340090000000005,
+        "cancel:update:kitchen_tickets": 0.9069389999999999,
+        "cancel:commitTransaction:other": 3.969404999999998
+      },
+      "resource_samples": 17
+    },
+    "p9base": {
+      "version": "P8",
+      "new_orders": 87400,
+      "rows": [
+        {
+          "sessions": 50,
+          "duration_s": 1803.117,
+          "traffic_duration_s": 1800.373,
+          "completed_pairs": 87400,
+          "requests": 174800,
+          "operations": {
+            "sale": {
+              "count": 87400,
+              "p50_ms": 515.89,
+              "p95_ms": 641.47,
+              "p99_ms": 688.04
+            },
+            "cancel": {
+              "count": 87400,
+              "p50_ms": 511.22,
+              "p95_ms": 635.15,
+              "p99_ms": 680.82
+            }
+          },
+          "p50_ms": 513.63,
+          "p95_ms": 638.33,
+          "p99_ms": 684.45,
+          "request_throughput_s": 96.94,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 87400,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 48.54,
+          "pair_p50_ms": 1024.87,
+          "pair_p95_ms": 1135.32,
+          "pair_p99_ms": 1188.29,
+          "unique_completed_operations_s": 96.94
+        }
+      ],
+      "integrity": {
+        "historical_fixture_orders": 0,
+        "duplicate_numbers": 0,
+        "number_range": [
+          {
+            "_id": null,
+            "minimum": 1,
+            "maximum": 87400
+          }
+        ],
+        "counter": 87400,
+        "stock": 1000.0,
+        "paid_orders": 0,
+        "duplicate_refs": 0,
+        "orders": 87400,
+        "markers": 87400,
+        "stock_moves": 174800,
+        "cash_version": 174800,
+        "order_audit": {
+          "checked_new_orders": 87400,
+          "historical_fixture_orders": 0,
+          "partial_confirmations": 0,
+          "financial_divergences": 0,
+          "orphan_markers": 0,
+          "unexpected_stock_moves": 0,
+          "duplicate_marker_orders": 0
+        },
+        "audit_started_at": 1794875542.759575,
+        "post_load_audit_s": 2.103020429611206
+      },
+      "row_checks_recomputed": [
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true,
+          "active_traffic_seconds_minimum": true
+        }
+      ],
+      "driver_records": {
+        "driver": 1803,
+        "transaction": 174800,
+        "p8_request": 174800
+      },
+      "outcomes": {
+        "committed": 174800
+      },
+      "attempts": {
+        "1": 174800
+      },
+      "status": {
+        "200": 174800
+      },
+      "error_counters": {
+        "exhausted_transactions": 0,
+        "callback_retries": 0,
+        "request_command_errors": 0
+      },
+      "transaction_log_records": 174800,
+      "components_ms": {
+        "sale:db_outside_transaction": {
+          "n": 87400,
+          "0.5": 0.748,
+          "0.95": 0.969,
+          "0.99": 1.2329999999999999
+        },
+        "sale:admission_wait": {
+          "n": 87400,
+          "0.5": 499.2086780000591,
+          "0.95": 623.8663500000712,
+          "0.99": 669.5461650001562
+        },
+        "sale:session_create": {
+          "n": 87400,
+          "0.5": 0.34773399988807796,
+          "0.95": 0.44012300008944294,
+          "0.99": 0.5217959999299637
+        },
+        "sale:transaction_start_local": {
+          "n": 87400,
+          "0.5": 0.005707999889636994,
+          "0.95": 0.009794999868972809,
+          "0.99": 0.011396999980206601
+        },
+        "sale:db_read": {
+          "n": 87400,
+          "0.5": 2.4619999999999997,
+          "0.95": 3.2189999999999994,
+          "0.99": 3.9979999999999998
+        },
+        "sale:snapshot_first_command": {
+          "n": 87400,
+          "0.5": 0.225,
+          "0.95": 0.252,
+          "0.99": 0.28400000000000003
+        },
+        "sale:db_write": {
+          "n": 87400,
+          "0.5": 2.3569999999999998,
+          "0.95": 3.576,
+          "0.99": 5.293
+        },
+        "sale:callback": {
+          "n": 87400,
+          "0.5": 10.40687800013984,
+          "0.95": 11.97073299999829,
+          "0.99": 14.703545999964263
+        },
+        "sale:db_commit": {
+          "n": 87400,
+          "0.5": 1.17,
+          "0.95": 1.688,
+          "0.99": 1.891
+        },
+        "sale:commit": {
+          "n": 87400,
+          "0.5": 1.362342999982502,
+          "0.95": 1.8921609998869826,
+          "0.99": 2.1071139999548905
+        },
+        "sale:before_response_start": {
+          "n": 87400,
+          "0.5": 514.1790810000657,
+          "0.95": 639.6107370001118,
+          "0.99": 686.1569420000251
+        },
+        "sale:response_send": {
+          "n": 87400,
+          "0.5": 0.196365000078913,
+          "0.95": 0.2580289999514207,
+          "0.99": 0.3016660002685967
+        },
+        "sale:http_app_total": {
+          "n": 87400,
+          "0.5": 514.6139929997844,
+          "0.95": 640.0898109999389,
+          "0.99": 686.6678159999537
+        },
+        "cancel:db_outside_transaction": {
+          "n": 87400,
+          "0.5": 0.732,
+          "0.95": 0.985,
+          "0.99": 1.608
+        },
+        "cancel:admission_wait": {
+          "n": 87400,
+          "0.5": 499.5398309997654,
+          "0.95": 622.6055749998523,
+          "0.99": 667.2090039999148
+        },
+        "cancel:session_create": {
+          "n": 87400,
+          "0.5": 0.342956999929811,
+          "0.95": 0.4120810001495556,
+          "0.99": 0.4961880001701502
+        },
+        "cancel:transaction_start_local": {
+          "n": 87400,
+          "0.5": 0.005347999831428751,
+          "0.95": 0.008884000067155284,
+          "0.99": 0.010676000101739191
+        },
+        "cancel:db_read": {
+          "n": 87400,
+          "0.5": 1.186,
+          "0.95": 1.498,
+          "0.99": 2.226
+        },
+        "cancel:snapshot_first_command": {
+          "n": 87400,
+          "0.5": 0.287,
+          "0.95": 0.321,
+          "0.99": 0.36000000000000004
+        },
+        "cancel:db_write": {
+          "n": 87400,
+          "0.5": 1.9720000000000002,
+          "0.95": 2.496,
+          "0.99": 4.574
+        },
+        "cancel:callback": {
+          "n": 87400,
+          "0.5": 5.838995999965846,
+          "0.95": 6.833429999915097,
+          "0.99": 9.287351000011768
+        },
+        "cancel:db_commit": {
+          "n": 87400,
+          "0.5": 1.057,
+          "0.95": 1.593,
+          "0.99": 1.7830000000000001
+        },
+        "cancel:commit": {
+          "n": 87400,
+          "0.5": 1.2467079998259578,
+          "0.95": 1.795043999891277,
+          "0.99": 2.003718999958437
+        },
+        "cancel:before_response_start": {
+          "n": 87400,
+          "0.5": 509.5495809998738,
+          "0.95": 633.3380359997136,
+          "0.99": 678.8921100001062
+        },
+        "cancel:response_send": {
+          "n": 87400,
+          "0.5": 0.19256999985373113,
+          "0.95": 0.23944999986724724,
+          "0.99": 0.2775770003609068
+        },
+        "cancel:http_app_total": {
+          "n": 87400,
+          "0.5": 509.94500400008747,
+          "0.95": 633.731723999972,
+          "0.99": 679.3025610002132
+        }
+      },
+      "commands": {
+        "sale:find:sessions": 87400.0,
+        "sale:find:employees": 87400.0,
+        "sale:find:financial_operations": 87400.0,
+        "sale:find:orders:client_ref": 87400.0,
+        "sale:insert:financial_operations": 87400.0,
+        "sale:find:products": 174800.0,
+        "sale:find:categories": 87400.0,
+        "sale:find:ingredients": 174800.0,
+        "sale:findAndModify:counters": 87400.0,
+        "sale:insert:orders": 87400.0,
+        "sale:update:orders": 174800.0,
+        "sale:find:cash_sessions": 87400.0,
+        "sale:update:cash_sessions": 87400.0,
+        "sale:find:payment_methods": 87400.0,
+        "sale:find:orders:id": 87400.0,
+        "sale:insert:kitchen_tickets": 87400.0,
+        "sale:find:purchases": 87400.0,
+        "sale:update:ingredients": 87400.0,
+        "sale:insert:stock_moves": 87400.0,
+        "sale:update:financial_operations": 87400.0,
+        "sale:commitTransaction:other": 87400.0,
+        "cancel:find:sessions": 87400.0,
+        "cancel:find:employees": 87400.0,
+        "cancel:find:orders:id": 174800.0,
+        "cancel:update:cash_sessions": 87400.0,
+        "cancel:update:orders": 87400.0,
+        "cancel:find:products": 87400.0,
+        "cancel:find:ingredients": 87400.0,
+        "cancel:find:lot_consumptions": 87400.0,
+        "cancel:update:ingredients": 87400.0,
+        "cancel:insert:stock_moves": 87400.0,
+        "cancel:update:kitchen_tickets": 87400.0,
+        "cancel:commitTransaction:other": 87400.0
+      },
+      "command_seconds": {
+        "sale:find:sessions": 35.352068999999844,
+        "sale:find:employees": 32.52787800000032,
+        "sale:find:financial_operations": 19.8864989999999,
+        "sale:find:orders:client_ref": 28.676322999999517,
+        "sale:insert:financial_operations": 53.61904600000004,
+        "sale:find:products": 51.63281899999989,
+        "sale:find:categories": 23.50634100000011,
+        "sale:find:ingredients": 32.49326099999957,
+        "sale:findAndModify:counters": 17.54987499999987,
+        "sale:insert:orders": 19.22536699999937,
+        "sale:update:orders": 47.25495699999967,
+        "sale:find:cash_sessions": 18.995556999999312,
+        "sale:update:cash_sessions": 22.583294999999946,
+        "sale:find:payment_methods": 16.74805200000019,
+        "sale:find:orders:id": 20.005943999999626,
+        "sale:insert:kitchen_tickets": 17.313230000000114,
+        "sale:find:purchases": 13.402133000000946,
+        "sale:update:ingredients": 22.00670400000028,
+        "sale:insert:stock_moves": 15.163412000000925,
+        "sale:update:financial_operations": 16.68444500000044,
+        "sale:commitTransaction:other": 105.7761119999996,
+        "cancel:find:sessions": 39.55078700000022,
+        "cancel:find:employees": 31.243962000000067,
+        "cancel:find:orders:id": 45.76441500000042,
+        "cancel:update:cash_sessions": 70.74664900000147,
+        "cancel:update:orders": 43.48109199999962,
+        "cancel:find:products": 28.244484999999713,
+        "cancel:find:ingredients": 20.230725999999393,
+        "cancel:find:lot_consumptions": 13.918182000001128,
+        "cancel:update:ingredients": 20.951015999999438,
+        "cancel:insert:stock_moves": 15.2018920000011,
+        "cancel:update:kitchen_tickets": 21.849075999999645,
+        "cancel:commitTransaction:other": 95.24153300000093
+      },
+      "resource_samples": 361
+    },
+    "p9candidate": {
+      "version": "P9",
+      "new_orders": 89201,
+      "rows": [
+        {
+          "sessions": 50,
+          "duration_s": 1802.926,
+          "traffic_duration_s": 1800.326,
+          "completed_pairs": 89201,
+          "requests": 178402,
+          "operations": {
+            "sale": {
+              "count": 89201,
+              "p50_ms": 503.31,
+              "p95_ms": 648.57,
+              "p99_ms": 711.18
+            },
+            "cancel": {
+              "count": 89201,
+              "p50_ms": 498.83,
+              "p95_ms": 644.08,
+              "p99_ms": 706.0
+            }
+          },
+          "p50_ms": 501.14,
+          "p95_ms": 646.38,
+          "p99_ms": 708.64,
+          "request_throughput_s": 98.95,
+          "error_rate": 0.0,
+          "errors": {},
+          "unique_attempted": 89201,
+          "exhausted_operations": 0,
+          "financial_pairs_s": 49.54,
+          "pair_p50_ms": 987.01,
+          "pair_p95_ms": 1176.65,
+          "pair_p99_ms": 1265.41,
+          "unique_completed_operations_s": 98.95
+        }
+      ],
+      "integrity": {
+        "historical_fixture_orders": 0,
+        "duplicate_numbers": 0,
+        "number_range": [
+          {
+            "_id": null,
+            "minimum": 1,
+            "maximum": 89201
+          }
+        ],
+        "counter": 89201,
+        "stock": 1000.0,
+        "paid_orders": 0,
+        "duplicate_refs": 0,
+        "orders": 89201,
+        "markers": 89201,
+        "stock_moves": 178402,
+        "cash_version": 178402,
+        "order_audit": {
+          "checked_new_orders": 89201,
+          "historical_fixture_orders": 0,
+          "partial_confirmations": 0,
+          "financial_divergences": 0,
+          "orphan_markers": 0,
+          "unexpected_stock_moves": 0,
+          "duplicate_marker_orders": 0
+        },
+        "audit_started_at": 1794877353.9915695,
+        "post_load_audit_s": 2.291640281677246
+      },
+      "row_checks_recomputed": [
+        {
+          "http_503_maximum": true,
+          "other_http_or_transport_errors_maximum": true,
+          "exhausted_operations_maximum": true,
+          "request_p95_ms_maximum": true,
+          "request_p99_ms_maximum": true,
+          "sale_cancel_pair_p95_ms_maximum": true,
+          "sale_cancel_pair_p99_ms_maximum": true,
+          "active_traffic_seconds_minimum": true
+        }
+      ],
+      "driver_records": {
+        "driver": 1803,
+        "transaction": 178402,
+        "p8_request": 178402
+      },
+      "outcomes": {
+        "committed": 178402
+      },
+      "attempts": {
+        "1": 178402
+      },
+      "status": {
+        "200": 178402
+      },
+      "error_counters": {
+        "exhausted_transactions": 0,
+        "callback_retries": 0,
+        "request_command_errors": 0
+      },
+      "transaction_log_records": 178402,
+      "components_ms": {
+        "sale:db_outside_transaction": {
+          "n": 89201,
+          "0.5": 0.7689999999999999,
+          "0.95": 1.008,
+          "0.99": 1.349
+        },
+        "sale:admission_wait": {
+          "n": 89201,
+          "0.5": 486.9643540000652,
+          "0.95": 630.0036030002047,
+          "0.99": 690.7283400000779
+        },
+        "sale:session_create": {
+          "n": 89201,
+          "0.5": 0.35570699992604204,
+          "0.95": 0.49764999994295067,
+          "0.99": 0.5707999998776359
+        },
+        "sale:transaction_start_local": {
+          "n": 89201,
+          "0.5": 0.006199999916134402,
+          "0.95": 0.011377000191714615,
+          "0.99": 0.01331999965259456
+        },
+        "sale:db_read": {
+          "n": 89201,
+          "0.5": 2.2700000000000005,
+          "0.95": 3.3080000000000003,
+          "0.99": 4.059
+        },
+        "sale:snapshot_first_command": {
+          "n": 89201,
+          "0.5": 0.228,
+          "0.95": 0.27599999999999997,
+          "0.99": 0.35
+        },
+        "sale:db_write": {
+          "n": 89201,
+          "0.5": 2.369,
+          "0.95": 3.7959999999999994,
+          "0.99": 4.985
+        },
+        "sale:callback": {
+          "n": 89201,
+          "0.5": 10.066516999813757,
+          "0.95": 12.160064999989117,
+          "0.99": 14.764769000066735
+        },
+        "sale:db_commit": {
+          "n": 89201,
+          "0.5": 1.184,
+          "0.95": 1.724,
+          "0.99": 1.931
+        },
+        "sale:commit": {
+          "n": 89201,
+          "0.5": 1.3751219998994202,
+          "0.95": 1.9294859998808533,
+          "0.99": 2.151031000266812
+        },
+        "sale:before_response_start": {
+          "n": 89201,
+          "0.5": 501.655688000028,
+          "0.95": 646.4238050002677,
+          "0.99": 708.7245630000325
+        },
+        "sale:response_send": {
+          "n": 89201,
+          "0.5": 0.2016840003307152,
+          "0.95": 0.2897370000027877,
+          "0.99": 0.3300380003565806
+        },
+        "sale:http_app_total": {
+          "n": 89201,
+          "0.5": 502.06120100028784,
+          "0.95": 646.9133919999877,
+          "0.99": 709.2613220002022
+        },
+        "cancel:db_outside_transaction": {
+          "n": 89201,
+          "0.5": 0.736,
+          "0.95": 0.975,
+          "0.99": 1.41
+        },
+        "cancel:admission_wait": {
+          "n": 89201,
+          "0.5": 487.2010770000088,
+          "0.95": 630.8281700003135,
+          "0.99": 691.6916019999917
+        },
+        "cancel:session_create": {
+          "n": 89201,
+          "0.5": 0.34892600024249987,
+          "0.95": 0.46125500011839904,
+          "0.99": 0.5478660000335367
+        },
+        "cancel:transaction_start_local": {
+          "n": 89201,
+          "0.5": 0.005618999693979276,
+          "0.95": 0.010785999620566145,
+          "0.99": 0.012328000138950301
+        },
+        "cancel:db_read": {
+          "n": 89201,
+          "0.5": 1.016,
+          "0.95": 1.397,
+          "0.99": 1.8940000000000001
+        },
+        "cancel:snapshot_first_command": {
+          "n": 89201,
+          "0.5": 0.29100000000000004,
+          "0.95": 0.348,
+          "0.99": 0.457
+        },
+        "cancel:db_write": {
+          "n": 89201,
+          "0.5": 2.016,
+          "0.95": 2.6870000000000003,
+          "0.99": 4.654
+        },
+        "cancel:callback": {
+          "n": 89201,
+          "0.5": 5.499712000073487,
+          "0.95": 6.942189000255894,
+          "0.99": 9.364830999857077
+        },
+        "cancel:db_commit": {
+          "n": 89201,
+          "0.5": 1.08,
+          "0.95": 1.595,
+          "0.99": 1.833
+        },
+        "cancel:commit": {
+          "n": 89201,
+          "0.5": 1.2690130001828948,
+          "0.95": 1.798322000013286,
+          "0.99": 2.053413999874465
+        },
+        "cancel:before_response_start": {
+          "n": 89201,
+          "0.5": 497.13979799980734,
+          "0.95": 642.055148000054,
+          "0.99": 703.6774700000024
+        },
+        "cancel:response_send": {
+          "n": 89201,
+          "0.5": 0.19676600004459033,
+          "0.95": 0.2686049997464579,
+          "0.99": 0.31235999949785764
+        },
+        "cancel:http_app_total": {
+          "n": 89201,
+          "0.5": 497.5366620001296,
+          "0.95": 642.5141780000558,
+          "0.99": 704.2774950000421
+        }
+      },
+      "commands": {
+        "sale:find:sessions": 89201.0,
+        "sale:find:employees": 89201.0,
+        "sale:find:financial_operations": 89201.0,
+        "sale:find:orders:client_ref": 89201.0,
+        "sale:insert:financial_operations": 89201.0,
+        "sale:find:products": 89201.0,
+        "sale:find:categories": 89201.0,
+        "sale:find:ingredients": 178402.0,
+        "sale:findAndModify:counters": 89201.0,
+        "sale:insert:orders": 89201.0,
+        "sale:update:orders": 178402.0,
+        "sale:find:cash_sessions": 89201.0,
+        "sale:update:cash_sessions": 89201.0,
+        "sale:find:payment_methods": 89201.0,
+        "sale:find:orders:id": 89201.0,
+        "sale:insert:kitchen_tickets": 89201.0,
+        "sale:find:purchases": 89201.0,
+        "sale:update:ingredients": 89201.0,
+        "sale:insert:stock_moves": 89201.0,
+        "sale:update:financial_operations": 89201.0,
+        "sale:commitTransaction:other": 89201.0,
+        "cancel:find:sessions": 89201.0,
+        "cancel:find:employees": 89201.0,
+        "cancel:find:orders:id": 178402.0,
+        "cancel:update:cash_sessions": 89201.0,
+        "cancel:update:orders": 89201.0,
+        "cancel:find:ingredients": 89201.0,
+        "cancel:find:lot_consumptions": 89201.0,
+        "cancel:update:ingredients": 89201.0,
+        "cancel:insert:stock_moves": 89201.0,
+        "cancel:update:kitchen_tickets": 89201.0,
+        "cancel:commitTransaction:other": 89201.0
+      },
+      "command_seconds": {
+        "sale:find:sessions": 38.54279700000062,
+        "sale:find:employees": 33.74367000000064,
+        "sale:find:financial_operations": 20.866427000000055,
+        "sale:find:orders:client_ref": 29.197944000000593,
+        "sale:insert:financial_operations": 54.02596800000035,
+        "sale:find:products": 38.640871999999995,
+        "sale:find:categories": 24.397628999999927,
+        "sale:find:ingredients": 34.330709999999904,
+        "sale:findAndModify:counters": 18.47550799999949,
+        "sale:insert:orders": 20.178451999999545,
+        "sale:update:orders": 48.91054799999995,
+        "sale:find:cash_sessions": 19.45984199999976,
+        "sale:update:cash_sessions": 23.4039309999995,
+        "sale:find:payment_methods": 17.088665000000123,
+        "sale:find:orders:id": 20.358020000000067,
+        "sale:insert:kitchen_tickets": 17.74278499999987,
+        "sale:find:purchases": 13.75539900000085,
+        "sale:update:ingredients": 22.76759699999936,
+        "sale:insert:stock_moves": 15.216872000000746,
+        "sale:update:financial_operations": 17.03784000000018,
+        "sale:commitTransaction:other": 109.18347600000102,
+        "cancel:find:sessions": 40.36738400000015,
+        "cancel:find:employees": 31.968856000000212,
+        "cancel:find:orders:id": 47.35759200000041,
+        "cancel:update:cash_sessions": 66.4365140000007,
+        "cancel:update:orders": 54.25750199999962,
+        "cancel:find:ingredients": 27.986885999999934,
+        "cancel:find:lot_consumptions": 20.66628400000029,
+        "cancel:update:ingredients": 22.226390999999236,
+        "cancel:insert:stock_moves": 16.18992900000051,
+        "cancel:update:kitchen_tickets": 22.670194999999318,
+        "cancel:commitTransaction:other": 98.91011999999907
+      },
+      "resource_samples": 361
+    }
+  },
+  "file_manifest": {
+    "p8-2026-11-16/evidence/driver-p9a1.jsonl": {
+      "bytes": 12710872,
+      "sha256": "330e1d0d556d313ca31d1f2f5c4262888c74116393ed8b75deeab3a4b303a498"
+    },
+    "p8-2026-11-16/evidence/driver-p9a2.jsonl": {
+      "bytes": 13174137,
+      "sha256": "72da0ae48d97ab16f4b1e69647d293fcd8aa3a482cc16304ef50242e47296ce5"
+    },
+    "p8-2026-11-16/evidence/driver-p9b1.jsonl": {
+      "bytes": 13085642,
+      "sha256": "c37b521e4626a55138b655040f2274a9197f226368bad40c48ff83cd265b0105"
+    },
+    "p8-2026-11-16/evidence/driver-p9b2.jsonl": {
+      "bytes": 13800899,
+      "sha256": "90aa37f98f8121d60c8504bdc38b81748662c1a056bc06407fe91b2dbc5ad9f7"
+    },
+    "p8-2026-11-16/evidence/driver-p9base.jsonl": {
+      "bytes": 317028209,
+      "sha256": "b0c62055b82e93b579e69004eaa8f3823648358567f0823f6a94bc951346309e"
+    },
+    "p8-2026-11-16/evidence/driver-p9candidate.jsonl": {
+      "bytes": 318849027,
+      "sha256": "5aeb0f378c9fca5b1f3cc831c597da87e732d8176737ddff7566bc899a3f6c33"
+    },
+    "p8-2026-11-16/evidence/driver-p9h1.jsonl": {
+      "bytes": 4548758,
+      "sha256": "d7949738625eeb948445bc19e91eda3fa8c6d6e10b6d5215c5c1d68f33351a0b"
+    },
+    "p8-2026-11-16/evidence/driver-p9h2.jsonl": {
+      "bytes": 5011241,
+      "sha256": "3b3ed5b303decfeabae90176a12f9afaf165f2966fb9467b35fdd7e41dd12941"
+    },
+    "p8-2026-11-16/evidence/execution-timeline.jsonl": {
+      "bytes": 2273,
+      "sha256": "e897867604232b77cb1728b9791b3c28415681910a97a8d24a203cc34256b1e9"
+    },
+    "p8-2026-11-16/evidence/indexes-p9a1.json": {
+      "bytes": 7209,
+      "sha256": "b4faf96b1d9a5e8d2769044f19c6434126789122d53eb0bb11ed3f89904d2f3a"
+    },
+    "p8-2026-11-16/evidence/indexes-p9a2.json": {
+      "bytes": 7209,
+      "sha256": "b4faf96b1d9a5e8d2769044f19c6434126789122d53eb0bb11ed3f89904d2f3a"
+    },
+    "p8-2026-11-16/evidence/indexes-p9b1.json": {
+      "bytes": 7209,
+      "sha256": "b4faf96b1d9a5e8d2769044f19c6434126789122d53eb0bb11ed3f89904d2f3a"
+    },
+    "p8-2026-11-16/evidence/indexes-p9b2.json": {
+      "bytes": 7209,
+      "sha256": "b4faf96b1d9a5e8d2769044f19c6434126789122d53eb0bb11ed3f89904d2f3a"
+    },
+    "p8-2026-11-16/evidence/indexes-p9base.json": {
+      "bytes": 7209,
+      "sha256": "b4faf96b1d9a5e8d2769044f19c6434126789122d53eb0bb11ed3f89904d2f3a"
+    },
+    "p8-2026-11-16/evidence/indexes-p9candidate.json": {
+      "bytes": 7209,
+      "sha256": "b4faf96b1d9a5e8d2769044f19c6434126789122d53eb0bb11ed3f89904d2f3a"
+    },
+    "p8-2026-11-16/evidence/indexes-p9h1.json": {
+      "bytes": 7209,
+      "sha256": "b4faf96b1d9a5e8d2769044f19c6434126789122d53eb0bb11ed3f89904d2f3a"
+    },
+    "p8-2026-11-16/evidence/indexes-p9h2.json": {
+      "bytes": 7209,
+      "sha256": "b4faf96b1d9a5e8d2769044f19c6434126789122d53eb0bb11ed3f89904d2f3a"
+    },
+    "p8-2026-11-16/evidence/load-p9a1.json": {
+      "bytes": 28746,
+      "sha256": "2d0d829d636c2700926e3359214016d20746afd5e327f1ac0a9b0b69ae3613d1"
+    },
+    "p8-2026-11-16/evidence/load-p9a1.log": {
+      "bytes": 2836780,
+      "sha256": "76b4d0ee6f4640e920a034603d8bf9d86bad05571240359e8bae43f510910f5b"
+    },
+    "p8-2026-11-16/evidence/load-p9a2.json": {
+      "bytes": 28740,
+      "sha256": "877ec020613698869329f2abf38020a47259633f21b82d27d50a79d63d4fa958"
+    },
+    "p8-2026-11-16/evidence/load-p9a2.log": {
+      "bytes": 2940556,
+      "sha256": "2f067e403e4efd8ba523f5f96eb08d7e5cf5350e969c8e8107659da895b5868c"
+    },
+    "p8-2026-11-16/evidence/load-p9b1.json": {
+      "bytes": 28735,
+      "sha256": "1e39acd92b116932ee44365afb94595c2912d8ced77583d46274e34c95cad15b"
+    },
+    "p8-2026-11-16/evidence/load-p9b1.log": {
+      "bytes": 2956418,
+      "sha256": "b4c19a5effa36f12c9bc0de2d9215073ae515d99fec2180288daad2ad9b11456"
+    },
+    "p8-2026-11-16/evidence/load-p9b2.json": {
+      "bytes": 28731,
+      "sha256": "3569dc6941b8f9faa4fe182528aa967a078f98804390f097ed2adb3bbde52eb4"
+    },
+    "p8-2026-11-16/evidence/load-p9b2.log": {
+      "bytes": 3108628,
+      "sha256": "c138fbc10a07685df09aa2583a037a0b623dbd1cf0acb0d00996d526a990e226"
+    },
+    "p8-2026-11-16/evidence/load-p9base.json": {
+      "bytes": 510953,
+      "sha256": "e2c6a8a6dd2ceaeed6fa35e931b4d1f59aa5ae6820148a4c52660960b4576cc9"
+    },
+    "p8-2026-11-16/evidence/load-p9base.log": {
+      "bytes": 66957824,
+      "sha256": "87062d03b013577874e07cd81eec61cbf0fcd32188ad887a2b725f99689166e5"
+    },
+    "p8-2026-11-16/evidence/load-p9candidate.json": {
+      "bytes": 511048,
+      "sha256": "f6a3fe2d13854ad325d03e41a44a73dc083269d7870a15ede195dfb6dcb702e5"
+    },
+    "p8-2026-11-16/evidence/load-p9candidate.log": {
+      "bytes": 68310624,
+      "sha256": "71371c3627319dff8f7fe8bdb593d238f4a90bf9b640647d5d808a3cd156335a"
+    },
+    "p8-2026-11-16/evidence/load-p9h1.json": {
+      "bytes": 11354,
+      "sha256": "fcb22437682f624e6288d85988cc2f8889d1f43cea99eb87781b9abf5cf55418"
+    },
+    "p8-2026-11-16/evidence/load-p9h1.log": {
+      "bytes": 1136796,
+      "sha256": "892c99438dda1c8d1fc1ff8255ccf552e0302019a49d19a77684a27705da300c"
+    },
+    "p8-2026-11-16/evidence/load-p9h2.json": {
+      "bytes": 11356,
+      "sha256": "c42629bbda3b3c0748c2e7acf0a585b8f94ab5ff518aa3846b50284ffc280843"
+    },
+    "p8-2026-11-16/evidence/load-p9h2.log": {
+      "bytes": 1235783,
+      "sha256": "291071ca841b221276ec217c31e66d3282315dfe63d43e78b06697c6d6f7a32f"
+    },
+    "p9-2026-11-16/ACCEPTANCE.json": {
+      "bytes": 887,
+      "sha256": "29942733b82407d0771454fed42507b183ea31e699ed41b41f6750d7115eb992"
+    },
+    "p9-2026-11-16/REPORT.md": {
+      "bytes": 7713,
+      "sha256": "e62115a078037334b27129f4e89166297029f9655db15199579f3978ed2df93c"
+    },
+    "p9-2026-11-16/evidence/acceptance-result.json": {
+      "bytes": 84394,
+      "sha256": "09a31edc0f74a06cc7bf1b4e7c9d2bb2eb322f36be031f3be7c736d114fb9fa7"
+    },
+    "p9-2026-11-16/evidence/acceptance.log": {
+      "bytes": 60756,
+      "sha256": "f4baa3fa8fd1895778e4ddf36dfec5b52430d929a8f199b9f1027c6dc19dbf0d"
+    },
+    "p9-2026-11-16/evidence/comparison.json": {
+      "bytes": 79032,
+      "sha256": "34ee07703fd51394ce5a0b910b47e66c82f568c5cb85b3cf45fce6d43a713334"
+    },
+    "p9-2026-11-16/evidence/environment.json": {
+      "bytes": 508,
+      "sha256": "530bc1d32710a6287437c57cde782dccc80eca2d7dcd12877b63ae801594e320"
+    },
+    "p9-2026-11-16/evidence/progress.json": {
+      "bytes": 185,
+      "sha256": "c87e86d5a536ec98498a5e010b262d162517ece4bd2680504b4509335b548d72"
+    },
+    "p9-2026-11-16/evidence/remote-diagnostic-first.json": {
+      "bytes": 13133,
+      "sha256": "d54e73baa7f2828891c929f8ac434261d4860f79fa58dfced68f5f6fb2f1ec8a"
+    }
+  },
+  "limitation": "HTTP/financial-pair individual latency samples were not archived by the inherited harness; thresholds independently recomputed from its recorded quantiles. All provided driver events and logs were parsed.",
+  "artifact_id": 14287487902,
+  "run_id": 43983212080,
+  "artifact_bytes": 101870347,
+  "zip_crc_verified": true,
+  "artifact_digest_matches_github_api": true
+}
