@@ -75,3 +75,13 @@ def test_public_vector_classification_requires_exact_base_path_and_digest():
     assert not public_vectors_only(raw,raw+b'changed',path,{digest})
     assert not public_vectors_only(raw,raw,'app/secret.pem',{digest})
     assert not public_vectors_only(raw,raw,path,set())
+
+
+def test_authenticated_client_context_is_opened_once_and_closed():
+    import httpx
+    from tools.p104_http import authenticated_client
+    def handler(request):
+        return httpx.Response(200,json={'ok':True},headers={'set-cookie':'pdv_session=synthetic; Secure; HttpOnly; SameSite=Lax; Path=/'})
+    with authenticated_client({'username':'synthetic','password':'synthetic-only'},verify=True,transport=httpx.MockTransport(handler)) as client:
+        assert client.get('/api/auth/me').status_code==200 and not client.is_closed
+    assert client.is_closed

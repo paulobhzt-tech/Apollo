@@ -59,12 +59,8 @@ with tempfile.TemporaryDirectory(prefix='p104-rehearsal-') as directory:
             except httpx.TransportError:pass
             time.sleep(1)
         raise RuntimeError('TLS readiness timeout')
-    def client(owner):
-        c=httpx.Client(base_url='https://127.0.0.1:18443',verify=str(certs/'test.crt'),trust_env=False,timeout=45,
-            headers={'Host':'homolog.apollo-pdv.com','Origin':'https://homolog.apollo-pdv.com'})
-        r=c.post('/api/auth/login',json={'username':owner['username'],'password':owner['password']});assert r.status_code==200
-        assert all(s in r.headers['set-cookie'].lower() for s in ['secure','httponly','samesite=lax'])
-        return c
+    from p104_http import authenticated_client
+    def client(owner):return authenticated_client(owner,verify=str(certs/'test.crt'))
     def api(c,method,path,data=None,status=200):
         r=c.request(method,'/api'+path,json=data);assert r.status_code==status,(path,r.status_code,r.text[:200])
         return r.json()
