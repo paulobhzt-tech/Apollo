@@ -6,7 +6,7 @@ import { endSession } from '@/lib/session';
 export function WebToolbar() {
   const { pathname } = useLocation();
   return <><a className="web-skip" href="#web-content">Ir para o conteúdo</a>
-    <div className="web-toolbar" aria-label="Estado da versão web">
+    <div className="web-toolbar" role="region" aria-label="Estado da versão web">
       <span>Apollo Web · Homologação · Operação online</span>
       {pathname !== '/login' && !pathname.startsWith('/cardapio/') && pathname !== '/pedir' &&
         <button type="button" onClick={() => void endSession()}>Trocar operador</button>}

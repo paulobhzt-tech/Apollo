@@ -149,6 +149,7 @@ test('P10-11 keyboard responsive layout and automated WCAG checks on main flows'
   const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
   await info.attach('accessibility-'+url.replace('/','')+'.json',{body:JSON.stringify(result),contentType:'application/json'});
   expect(result.violations).toEqual([]);
+  expect(result.incomplete).toEqual([]);
  }
 });
 

@@ -2,7 +2,7 @@ name: P10 - Electron test installer build
 on:
   push:
     branches: ["homolog/p10-operational-web"]
-    paths: [".github/workflows/p10-electron.yml"]
+    paths: [".github/workflows/p10-electron.yml", "frontend/**", "desktop/**"]
   workflow_dispatch:
 permissions:
   contents: read
