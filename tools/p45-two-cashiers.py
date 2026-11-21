@@ -91,7 +91,32 @@ try:
     ha,hb=call(a,"/cash/history"),call(b,"/cash/history")
     assert all(x["opened_by_id"]=="p40caixa1" for x in ha)
     assert all(x["opened_by_id"]=="p40caixa2" for x in hb)
-    result={"unique_sales":10,"sale_replays":10,"waiter_orders":1,"stock_delta":11,
+    # A new sale racing a reviewed closing is either rolled back or forces a recount.
+    race_cash=call(a,"/cash/open",{"opening_amount":0})
+    race_stock=db.ingredients.find_one({"id":"p40ing"})["stock"]
+    race_payload={"client_ref":prefix+"-close-race","items":[{"product_id":"p40product","qty":1}],
+        "payments":[{"method":"dinheiro","amount":10}],"emit_invoice":False,"send_to_kitchen":False}
+    with futures.ThreadPoolExecutor(2) as pool:
+        sale_future=pool.submit(a.post,"/api/pdv/sale",json=race_payload)
+        close_future=pool.submit(a.post,"/api/cash/close",json={"counted_amount":0,
+            "expected_session_id":race_cash["id"],"expected_financial_revision":0})
+        race_sale,race_close=sale_future.result(),close_future.result()
+    assert race_sale.status_code in (200,400),race_sale.text
+    assert race_close.status_code in (200,409),race_close.text
+    if race_sale.status_code==200:
+        assert race_close.status_code==409,race_close.text
+        reviewed=call(a,"/cash/current")
+        race_closed=call(a,"/cash/close",{"counted_amount":10,"expected_session_id":race_cash["id"],
+            "expected_financial_revision":reviewed["financial_revision"]})
+        assert db.ingredients.find_one({"id":"p40ing"})["stock"]==race_stock-1
+    else:
+        assert race_close.status_code==200,race_close.text
+        race_closed=race_close.json()
+        assert db.ingredients.find_one({"id":"p40ing"})["stock"]==race_stock
+        assert db.orders.count_documents({"client_ref":race_payload["client_ref"]})==0
+    assert race_closed["difference"]==0
+    result={"close_race":{"sale_status":race_sale.status_code,"close_status":race_close.status_code,
+        "difference":race_closed["difference"]},"unique_sales":10,"sale_replays":10,"waiter_orders":1,"stock_delta":11,
         "cash_a":{"id":ca["id"],"expected":140,"difference":closed_a["difference"]},
         "cash_b":{"id":cb["id"],"expected":90,"difference":closed_b["difference"]},
         "cross_register_movement_status":cross.status_code,"changed_replay_status":changed.status_code,
