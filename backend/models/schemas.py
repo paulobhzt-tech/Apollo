@@ -533,6 +533,8 @@ class EmitInvoiceIn(BaseModel):
 
 # ---------- cash ----------
 class CashMovement(BaseModel):
+    client_ref: Optional[str] = None
+    request_fingerprint: Optional[str] = None
     type: Literal["sangria", "suprimento"]
     amount: float
     note: str = ""
@@ -568,6 +570,7 @@ class CashOpenIn(BaseModel):
 
 
 class CashMoveIn(BaseModel):
+    client_ref: Optional[str] = Field(default=None, min_length=1, max_length=128)
     type: Literal["sangria", "suprimento"]
     amount: float = Field(gt=0, allow_inf_nan=False)
     note: str = ""
