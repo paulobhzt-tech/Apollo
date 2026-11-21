@@ -27,6 +27,8 @@ router = APIRouter()
 def sale_fingerprint(body: QuickSaleIn) -> str:
     """Bind the idempotency reference to the validated request, without storing PII twice."""
     payload = body.model_dump(mode="json", exclude={"client_ref", "sync_context"})
+    if payload.get("expected_cash_session_id") is None:
+        payload.pop("expected_cash_session_id", None)
     # Preserve the reference fingerprint for queues created before payment details existed.
     if not payload["discount_reason"]:
         payload.pop("discount_reason")
@@ -79,8 +81,13 @@ async def with_order_transaction(operation):
 
 async def record_counter_sale(body: QuickSaleIn, user: dict, *, session=None):
     options = {"session": session} if session is not None else {}
-    if not await current_cash(**cash_scope(user), **options):
+    cash = await current_cash(**cash_scope(user), **options)
+    if not cash:
         raise HTTPException(400, "Caixa fechado. Abra o caixa para receber pagamentos.")
+    if body.expected_cash_session_id is not None and body.expected_cash_session_id != cash["id"]:
+        raise HTTPException(409, "O turno original da venda mudou. Confira a fila; nenhuma cobrança registrada.")
+    if independent_cash() and body.sync_context is not None and body.expected_cash_session_id is None:
+        raise HTTPException(422, "Fila antiga sem identificação de turno. Solicite revisão administrativa antes de receber.")
     items = await build_items(body.items, channel="caixa")
     order = await new_order(channel="balcao", source="pdv", items=[i.model_dump() for i in items],
                             client_ref=body.client_ref, request_fingerprint=sale_fingerprint(body),
@@ -151,7 +158,7 @@ async def record_refund_adjustment(order, cash_id, amounts, key, user, reason, *
         "source_cash_session_id": order["cash_session_id"], "order_id": order["id"],
         "operator_id": user["id"], "by_name": user["name"], "at": now(), "reason": reason,
         "totals_by_method": {method: -round(amount, 2) for method, amount in amounts.items()},
-        "audit_events": [audit_event("closed_shift_refund", user, reason=reason, values=amounts)],
+        "audit_events": [audit_event("closed_shift_refund", user, reason=reason, correlation=order["id"] + ":" + key, values={"amount": -round(sum(amounts.values()), 2)})],
     }, session=session)
 
 
