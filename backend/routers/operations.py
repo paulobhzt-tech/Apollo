@@ -246,6 +246,7 @@ async def apply_refund_item(id: str, item_id: str, body: CancelIn, user: dict, a
         {"$set": upd, "$push": {"refunds": refund, "audit_events": event}, "$inc": {"refunded_total": amount}}, **options)
     if not result.modified_count:
         raise HTTPException(409, "O pedido mudou. Atualize antes de estornar o item.")
+    await record_refund_adjustment(o, refund_cash_id, {pay_key(main): amount}, "item:" + item_id, user, body.reason, session=session)
     await move_stock([OrderItem(**item)], user["name"], f"Estorno #{o['number']}: {body.reason}", sign=1, historical_order_id=id, **options)
     if not live and o.get("invoice_id"):
         await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}}, **options)
@@ -540,7 +541,7 @@ async def apply_cash_close(body: CashCloseIn, user: dict, *, session=None):
     await claim_cash(s, session=session)
     s["counted_amount"] = body.counted_amount
     s = await cash_summary(s, **options)
-    upd = {k: s[k] for k in ("totals_by_method", "sales_count", "sales_total", "expected_cash", "difference", "counted_amount")}
+    upd = {k: s[k] for k in ("totals_by_method", "sales_count", "sales_total", "expected_cash", "difference", "counted_amount", "refund_adjustments")}
     upd.update(status="fechado", closed_at=now(), closed_by_name=user["name"])
     result = await db.cash_sessions.update_one(
         {"id": s["id"], "status": "aberto",
