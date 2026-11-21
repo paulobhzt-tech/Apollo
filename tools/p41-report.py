@@ -29,6 +29,8 @@ inseridos pelo ensaio no armazenamento do navegador; não prova lançamento offl
 pela tela. real-screens.log registra navegação por 26 telas em cada perfil, exceções e 5xx;\nusa capturas sem certificar todos os botões, regras ou layouts. Mobile é emulação Chromium, não aparelho Android/iPhone físico.
 
 ## Correções e preparação
+- Consulta individual de nota fiscal passa a exigir a mesma permissão de caixa da listagem.
+- Compra sem referência persistente é rejeitada com HTTP 422 antes de acessar o banco; integrações legadas precisam enviar client_ref. A tela atual já envia a referência.
 - Chamadas HTTP autenticadas enviam a origem correta sem remover CSRF/CORS.
 - Mocks comerciais substituem o handle do banco e verificam a autorização de plataforma.
 - Réplica, standalone, restauração, transações e testes HTTP usam bancos separados.
