@@ -30,6 +30,7 @@ test('real admin screens render without browser exceptions or server errors', as
       results.push({route,overflow,errors:errors.slice(before)});
     }
     await info.attach('real-screen-matrix',{body:JSON.stringify(results,null,2),contentType:'application/json'});
+    expect(results.filter((x:any)=>x.overflow),'Routes with horizontal overflow').toEqual([]);
     expect(errors,'Uncaught browser errors or backend 5xx').toEqual([]);
   }finally{await context.close();}
 });

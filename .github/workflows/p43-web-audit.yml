@@ -1,4 +1,4 @@
-name: P43 isolated Web PWA baseline
+name: P43 isolated Web PWA acceptance
 on:
   push:
     branches: [audit/p43-desbloqueio-homologacao-web]
@@ -100,8 +100,7 @@ jobs:
         working-directory: frontend
         run: |
           set -o pipefail
-          npm pkg delete 'devDependencies.@emergentbase/overlay' 'devDependencies.@emergentbase/visual-edits'
-          npm install --no-audit --no-fund --legacy-peer-deps
+          npm ci --no-audit --no-fund --legacy-peer-deps
           npx vitest run 2>&1 | tee ../evidence/vitest.log
           cp package-lock.json ../evidence/frontend-package-lock.json
           npm run typecheck 2>&1 | tee ../evidence/typecheck.log
@@ -121,7 +120,7 @@ jobs:
         working-directory: frontend
         run: |
           audit_status=0
-          npm audit --audit-level=high --json > ../evidence/npm-audit.json || audit_status=$?
+          npm audit --audit-level=moderate --json > ../evidence/npm-audit.json || audit_status=$?
           cat ../evidence/npm-audit.json
           exit "$audit_status"
       - name: Chromium interface baseline (existing tests may mock API)
@@ -129,7 +128,7 @@ jobs:
         run: |
           set -o pipefail
           cd tests
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
           cd ../frontend
           npm run preview -- --host 127.0.0.1 --port 3000 > ../evidence/preview.log 2>&1 &
@@ -163,6 +162,19 @@ jobs:
           npx playwright test p40-real-api.spec.ts --output=test-results/real-api --project=desktop --project=mobile 2>&1 | tee ../evidence/real-playwright.log
           npx playwright test p41-queue-recovery.spec.ts --output=test-results/queue --project=desktop --project=mobile 2>&1 | tee ../evidence/queue-playwright.log
           npx playwright test p41-real-screens.spec.ts --output=test-results/screens --project=desktop --project=mobile 2>&1 | tee ../evidence/real-screens.log
+      - name: P43 complete UI and genuine offline entry
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          cd tests
+          npx playwright test p43-operational-ui.spec.ts --output=test-results/p43-ui --trace=on --project=desktop --project=mobile 2>&1 | tee ../evidence/p43-ui.log
+      - name: P43 sustained 50-session and concurrent financial load
+        if: ${{ !cancelled() }}
+        env:
+          DB_NAME: apollo_p40_browser_fictitious
+        run: |
+          set -o pipefail
+          python tools/p43-load.py 2>&1 | tee evidence/p43-load.log
       - name: Controlled restart and read concurrency
         if: ${{ !cancelled() }}
         env:
@@ -173,18 +185,18 @@ jobs:
       - name: Record scope and checksums
         if: always()
         run: |
-          echo 'P41 experimental. P32 binary recovery remains unverified. All mandatory steps propagate failures; read individual logs/XML. No store authorization. See the report for persisted queue recovery, process rollback evidence and destination-infrastructure limitations.' > evidence/SCOPE.txt
+          echo 'P43 experimental; mandatory P43 UI/load and moderate vulnerability gate added. P32 binary recovery remains unverified. All mandatory steps propagate failures; read individual logs/XML. No store authorization. See the report for persisted queue recovery, process rollback evidence and destination-infrastructure limitations.' > evidence/SCOPE.txt
           if test -d frontend/dist; then
             find frontend/dist -type f -print0 | sort -z | xargs -0 sha256sum > evidence/web-SHA256SUMS.txt
           fi
           python tools/p41-report.py
-          git archive --format=zip -o evidence/Apollo-P41-source.zip HEAD
-          git bundle create evidence/Apollo-P41-history.bundle HEAD
+          git archive --format=zip -o evidence/Apollo-P43-source.zip HEAD
+          git bundle create evidence/Apollo-P43-history.bundle HEAD
           find evidence -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Apollo-P43-baseline-evidence
+          name: Apollo-P43-experimental-evidence
           path: |
             evidence/
             frontend/dist/
