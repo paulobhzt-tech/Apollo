@@ -18,7 +18,7 @@ import { cacheMenu, cachedMenu, enqueue, newClientRef, useOffline } from "@/lib/
 import { useMe } from "@/lib/auth";
 import { useOperatorDraft } from "@/lib/operator-draft";
 import { queryClient } from "@/lib/queryClient";
-import type { Category, ChosenOption, Invoice, PayIn, Product, QuickSaleIn, SaleResult } from "@/lib/types";
+import type { CashSession, Category, ChosenOption, Invoice, PayIn, Product, QuickSaleIn, SaleResult } from "@/lib/types";
 
 interface CartLine { key: string; product: Product; qty: number; notes: string; options: ChosenOption[]; labels: string[]; extra: number }
 
@@ -28,6 +28,7 @@ export default function Pdv() {
   const draftKey = `apollo-pdv-draft:${me?.id}`;
   const { offline, queue, context } = useOffline();
   const products = useQuery({ queryKey: ["products"], queryFn: () => apiGet<Product[]>("/products") });
+  const cash = useQuery({ queryKey: ["cash", "current"], queryFn: () => apiGet<CashSession | null>("/cash/current"), enabled: Boolean(me) });
   const categories = useQuery({ queryKey: ["categories"], queryFn: () => apiGet<Category[]>("/categories") });
   const [cart, setCart] = useOperatorDraft<CartLine[]>(`${draftKey}:items`, []);
   const [customer, setCustomer] = useOperatorDraft(`${draftKey}:customer`, "");
@@ -91,10 +92,11 @@ export default function Pdv() {
 
   const confirm = (pay: PayIn) => {
     if (!cart.length || sale.isPending) return;
+    if (!cash.data?.id) { toast.error("Abra seu caixa e carregue o PDV antes de registrar vendas."); return; }
     const reference = (saleRef.current ??= newClientRef());
     setClientRef(reference);
     const payload: QuickSaleIn = {
-      ...pay, sync_context: context ?? undefined, client_ref: reference, customer_name: customer, send_to_kitchen: kitchen,
+      ...pay, expected_cash_session_id: cash.data.id, sync_context: context ?? undefined, client_ref: reference, customer_name: customer, send_to_kitchen: kitchen,
       items: cart.map((l) => ({ product_id: l.product.id, qty: l.qty, notes: l.notes, options: l.options })),
     };
     if (offline) {
