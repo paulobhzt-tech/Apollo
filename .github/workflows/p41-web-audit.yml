@@ -73,7 +73,8 @@ jobs:
       - name: Backend regression with disposable replica set
         run: |
           set -o pipefail
-          python -m pip install pytest pytest-xdist pytest-asyncio pytest-subtests httpx fastapi starlette motor pymongo python-dotenv 'bcrypt==4.0.1' cryptography uvicorn python-multipart requests google-api-python-client google-auth-oauthlib
+          python -m pip install --upgrade 'setuptools>=84.1.0'
+          python -m pip install -r backend/requirements.txt pytest-subtests --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
           python tools/p41-backend-groups.py
       - name: Legacy HTTP tests with running backend and fictitious fixtures
         if: ${{ !cancelled() }}
@@ -102,6 +103,7 @@ jobs:
           npm pkg delete 'devDependencies.@emergentbase/overlay' 'devDependencies.@emergentbase/visual-edits'
           npm install --no-audit --no-fund --legacy-peer-deps
           npx vitest run 2>&1 | tee ../evidence/vitest.log
+          cp package-lock.json ../evidence/frontend-package-lock.json
           npm run typecheck 2>&1 | tee ../evidence/typecheck.log
           npm run build 2>&1 | tee ../evidence/build.log
       - name: Dependency vulnerability audit
@@ -174,6 +176,7 @@ jobs:
           if test -d frontend/dist; then
             find frontend/dist -type f -print0 | sort -z | xargs -0 sha256sum > evidence/web-SHA256SUMS.txt
           fi
+          python tools/p41-report.py
           git archive --format=zip -o evidence/Apollo-P41-source.zip HEAD
           git bundle create evidence/Apollo-P41-history.bundle HEAD
           find evidence -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS.txt

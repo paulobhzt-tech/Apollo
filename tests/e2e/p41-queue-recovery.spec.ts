@@ -37,6 +37,15 @@ test('persisted offline queue recovers after browser context restart and does no
     context = await browser.newContext({...info.project.use,baseURL:base,ignoreHTTPSErrors:true,storageState:state});
     page = await context.newPage();
     await page.goto(base);
+    // A fresh tab intentionally locks the restored cookie. Preserve the queue and
+    // reauthenticate the same operator before allowing the application to replay it.
+    expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)||'[]').length,key)).toBe(1);
+    await page.getByLabel('Usuário', {exact:true}).fill(username);
+    await page.getByLabel('Senha', {exact:true}).fill('P40-Fictitious-Password!');
+    const restoredLogin = page.waitForResponse(r=>r.url().endsWith('/api/auth/login') && r.request().method()==='POST');
+    await page.getByRole('button',{name:'Entrar',exact:true}).click();
+    expect((await restoredLogin).status()).toBe(200);
+    await expect(page.getByTestId('apollo-ribbon')).toBeVisible();
     await expect.poll(()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)||'[]').length,key),{timeout:30000}).toBe(0);
     const paid = await call('POST','/pdv/sale',payload);
     expect(paid.order.status).toBe('pago');
