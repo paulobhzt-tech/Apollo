@@ -18,14 +18,14 @@ test('real API: two cashiers and waiter, shared table, mixed payments and replay
     return { context, page };
   }
   async function call(actor: Awaited<ReturnType<typeof login>>, method: string, path: string, data?: unknown) {
-    const r = await actor.context.request.fetch(base + '/api' + path, {method, data});
+    const r = await actor.context.request.fetch(base + '/api' + path, {method, data, headers: {Origin: base}});
     expect(r.ok(), method + ' ' + path + ': ' + await r.text()).toBeTruthy();
     return r.json();
   }
   try {
     const admin = await login('p40admin');
     const [c1,c2,w] = await Promise.all([login('p40caixa1'),login('p40caixa2'),login('p40garcom')]);
-    const denied = await w.context.request.post(base+'/api/cash/open',{data:{opening_amount:0}});
+    const denied = await w.context.request.post(base+'/api/cash/open',{data:{opening_amount:0},headers:{Origin:base}});
     expect(denied.status()).toBe(403);
     const cash = await call(c1,'POST','/cash/open',{opening_amount:100,note:'P40 ficticio'});
     const suffix = info.project.name;
