@@ -3,7 +3,10 @@ import os
 from fastapi import HTTPException
 
 def independent_cash():
-    return os.environ.get("APOLLO_CASH_MODE", "shared") == "operator"
+    mode = os.environ.get("APOLLO_CASH_MODE", "operator")
+    if mode not in ("shared", "operator"):
+        raise RuntimeError("APOLLO_CASH_MODE deve ser operator ou shared.")
+    return mode == "operator"
 
 def cash_scope(user):
     if not independent_cash():
