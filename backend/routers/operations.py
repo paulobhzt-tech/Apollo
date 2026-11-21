@@ -493,6 +493,9 @@ async def apply_cash_close(body: CashCloseIn, user: dict, *, session=None):
         raise HTTPException(400, "Nenhum caixa aberto")
     if body.expected_session_id is not None and body.expected_session_id != s["id"]:
         raise HTTPException(409, "O turno do caixa mudou. Atualize antes de tentar novamente.")
+    if (body.expected_financial_revision is not None
+            and body.expected_financial_revision != s.get("financial_revision", 0)):
+        raise HTTPException(409, "Houve recebimentos durante a conferência. Atualize e confira o dinheiro novamente.")
     await claim_cash(s, session=session)
     s["counted_amount"] = body.counted_amount
     s = await cash_summary(s, **options)
