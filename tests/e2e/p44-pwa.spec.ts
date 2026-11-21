@@ -1,15 +1,13 @@
 import { test, expect } from '@playwright/test';
 const base = 'https://127.0.0.1:8001';
 test('public offline notice survives navigation; private API and authenticated HTML stay uncached', async ({browser}, info) => {
-  const context = await browser.newContext({ignoreHTTPSErrors:true});
+  const context = await browser.newContext({ignoreHTTPSErrors:false});
   try {
     const page = await context.newPage();
     await page.goto(base);
-    await page.evaluate(async () => {
-      await navigator.serviceWorker.ready;
-      if (!navigator.serviceWorker.controller)
-        await new Promise<void>(resolve => navigator.serviceWorker.addEventListener('controllerchange',()=>resolve(),{once:true}));
-    });
+    await expect.poll(()=>page.evaluate(()=>Boolean(navigator.serviceWorker.controller)), {
+      timeout:15000, message:'Production service worker must control the page with trusted test TLS'
+    }).toBe(true);
     const cached = await page.evaluate(async () => {
       const result:string[]=[];
       for (const name of await caches.keys()) {
@@ -32,7 +30,7 @@ test('public offline notice survives navigation; private API and authenticated H
   } finally { await context.close(); }
 });
 test('first ever opening without network has no installed application or fake sale UI',async({browser})=>{
-  const context=await browser.newContext({ignoreHTTPSErrors:true,offline:true});
+  const context=await browser.newContext({ignoreHTTPSErrors:false,offline:true});
   try {
     const page=await context.newPage();
     let failed=false;

@@ -157,6 +157,12 @@ jobs:
         run: |
           set -o pipefail
           python local-server/gerar-certificado.py /tmp/apollo-p41-tls 127.0.0.1
+          sudo apt-get update -qq
+          sudo apt-get install -y libnss3-tools
+          mkdir -p "$HOME/.pki/nssdb"
+          certutil -N -d "sql:$HOME/.pki/nssdb" --empty-password
+          certutil -A -d "sql:$HOME/.pki/nssdb" -n Apollo-P44-disposable-CA -t "C,," -i /tmp/apollo-p41-tls/apollo-local-ca.crt
+          certutil -L -d "sql:$HOME/.pki/nssdb" > evidence/browser-test-ca.txt
           cd backend
           python p40_seed_ci.py
           python -m uvicorn server:app --host 127.0.0.1 --port 8001 --ssl-keyfile /tmp/apollo-p41-tls/server.key --ssl-certfile /tmp/apollo-p41-tls/server.crt > ../evidence/real-backend.log 2>&1 &
