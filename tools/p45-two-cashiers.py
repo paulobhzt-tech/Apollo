@@ -94,6 +94,20 @@ try:
     closed_refund=admin.post("/api/orders/"+ids[0]+"/cancel",json={"reason":"P45 must reject closed-shift refund"})
     assert closed_refund.status_code==409,closed_refund.text
     assert db.orders.find_one({"id":ids[0]})["status"]=="pago"
+    # Devolutions from closed shifts use the receiving operator's active cash ledger.
+    refund_cash=call(admin,"/cash/open",{"opening_amount":100})
+    call(admin,"/orders/"+ids[0]+"/cancel",{"reason":"P45 devolucao de turno anterior"})
+    historical=db.orders.find_one({"id":ids[1]})
+    call(admin,"/orders/"+ids[1]+"/items/"+historical["items"][0]["id"]+"/refund",
+        {"reason":"P45 estorno de item de turno anterior"})
+    refund_summary=call(admin,"/cash/current")
+    assert refund_summary["expected_cash"]==84,refund_summary
+    assert len(refund_summary["refund_adjustments"])==2,refund_summary
+    assert db.cash_sessions.find_one({"id":ca["id"]})["expected_cash"]==140
+    assert db.cash_sessions.find_one({"id":cb["id"]})["expected_cash"]==90
+    refund_closed=call(admin,"/cash/close",{"counted_amount":84,"expected_session_id":refund_cash["id"],
+        "expected_financial_revision":refund_summary["financial_revision"]})
+    assert refund_closed["difference"]==0
     # A new sale racing a reviewed closing is either rolled back or forces a recount.
     race_cash=call(a,"/cash/open",{"opening_amount":0})
     race_stock=db.ingredients.find_one({"id":"p40ing"})["stock"]
@@ -122,7 +136,8 @@ try:
         "difference":race_closed["difference"]},"unique_sales":10,"sale_replays":10,"waiter_orders":1,"stock_delta":11,
         "cash_a":{"id":ca["id"],"expected":140,"difference":closed_a["difference"]},
         "cash_b":{"id":cb["id"],"expected":90,"difference":closed_b["difference"]},
-        "closed_shift_refund_status":closed_refund.status_code,"cross_register_movement_status":cross.status_code,"changed_replay_status":changed.status_code,
+        "closed_shift_refund_without_open_cash_status":closed_refund.status_code,
+        "historical_refunds":2,"historical_refund_cash_difference":refund_closed["difference"],"cross_register_movement_status":cross.status_code,"changed_replay_status":changed.status_code,
         "cross_register_sale_replay_status":other.status_code,"fiado_receipts":2,"fiado_replays":1,"mode":"operator","physical_devices":False}
     Path("evidence/p45-two-cashiers.json").write_text(json.dumps(result,indent=2))
     print(json.dumps(result),flush=True)
