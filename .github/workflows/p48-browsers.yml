@@ -79,6 +79,12 @@ jobs:
           done
           curl --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS https://127.0.0.1:8001/api/ >/dev/null
           npx playwright test --config=p47.config.ts p43-operational-ui.spec.ts p47-browser.spec.ts 2>&1 | tee ../evidence/browser.log
+      - name: Real server interruption diagnostic (separate from emulated offline)
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          cd tests
+          npx playwright test --config=p47.config.ts p48-offline-interruption.spec.ts --output=test-results/p48-interruption 2>&1 | tee ../evidence/interruption.log
       - name: Record scope
         if: always()
         run: |
@@ -91,4 +97,5 @@ jobs:
           path: |
             evidence/
             tests/test-results/p47/
+            tests/test-results/p48-interruption/
           retention-days: 14
