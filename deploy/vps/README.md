@@ -2,6 +2,10 @@
 
 Os arquivos deste diretório preparam **o deployment**, sem acessar sua VPS e sem migrar automaticamente dados da Emergent. O serviço usa 3 contêineres: Apollo (FastAPI + React), MongoDB privado e Caddy (HTTPS automático).
 
+## Compatibilidade P46 — BLOQUEADO para caixas independentes
+
+O `compose.yaml` deste diretório inicia MongoDB standalone. O Apollo P45/P46 usa `APOLLO_CASH_MODE=operator` por padrão e exige réplica MongoDB com transações; a inicialização recusará esse banco. A validação sintática do Compose não comprova compatibilidade operacional. Não execute esta receita para homologar P46 nem altere para `shared` para contornar o bloqueio. Prepare uma réplica dedicada, autenticada, com banco, credenciais, volumes, diretório e serviços exclusivos de homologação. Valide backup/restauração, HTTPS e isolamento antes de publicar. Nenhum servidor de destino foi validado por este documento.
+
 ## Antes de instalar
 - Confirme o status **Ativo** da VPS, o IP público e a distribuição Linux. Este procedimento foi planejado para Ubuntu/Debian com Docker Compose v2.
 - Configure um domínio DNS próprio (registro A para o IPv4 da VPS). **Não use o hostname provisório se ele ainda não resolve**. O Caddy precisa que o domínio resolva e que as portas TCP 80/443 estejam acessíveis para emitir certificado.
