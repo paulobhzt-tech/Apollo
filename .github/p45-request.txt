@@ -1,1 +1,1 @@
-Final P45 full acceptance: configurable multi-day sessions with expiration/revocation, original-shift offline binding, independent registers, refunds, actual backup restore, recovery, browser UI, security and measured performance.
+P45 complete final acceptance with legacy fingerprint compatibility, original-shift offline binding, seven-day session policy, independent cashier reconciliation, actual ledger restore, Web/PWA, dependency audits, sustained load and rollback.
