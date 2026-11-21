@@ -21,12 +21,12 @@ Commit executado: """ + commit + """
 """ + "\n".join(rows) + """
 
 Consulte vitest.log, typecheck.log, build.log, playwright.log, real-playwright.log e
-queue-playwright.log para os resultados específicos. Os 32 testes de interface usam
+queue-playwright.log e real-screens.log para os resultados específicos. Os 32 testes de interface usam
 API simulada. real-playwright.log usa backend e Chromium reais; ações comerciais são
 HTTP autenticado e o login é pela UI. queue-playwright.log verifica recuperação da
 fila persistida pelo código da aplicação após reautenticação, com dados de fila
 inseridos pelo ensaio no armazenamento do navegador; não prova lançamento offline
-pela tela. Mobile é emulação Chromium, não aparelho Android/iPhone físico.
+pela tela. real-screens.log registra navegação por 26 telas em cada perfil, exceções e 5xx;\nusa capturas sem certificar todos os botões, regras ou layouts. Mobile é emulação Chromium, não aparelho Android/iPhone físico.
 
 ## Correções e preparação
 - Chamadas HTTP autenticadas enviam a origem correta sem remover CSRF/CORS.
@@ -44,7 +44,7 @@ Critério pré-definido: nenhuma resposta HTTP falha e p95 <= 2 s.
 Isso não é teste sustentado de vendas nem qualificação da capacidade da loja.
 restart-integrity.json compara contagens e hashes de oito coleções antes/depois de
 reiniciar o backend e o MongoDB descartáveis. A sessão é conferida após o reinício.
-Não confundir esse ensaio com rollback entre versões nem recuperação de fila durante
+rollback-integrity.json registra o ensaio por processos P41 → referência → P41 quando concluído.\nNão confundir esses ensaios com rollback da infraestrutura de destino nem recuperação de fila durante
 reinício simultâneo de todos os dispositivos.
 
 ## Segurança
@@ -67,7 +67,7 @@ em remote-comparison.json; código divergente não foi incorporado automaticamen
 - Recuperar e verificar os bytes, SHA-256 e ancestralidade do bundle P32 localizado.
 - Concluir comparação funcional e reconciliação com os artefatos históricos P10–P40.
 - Validar a infraestrutura de destino e seu isolamento sem modificar serviços existentes.
-- Ensaio de rollback entre versões com operações e preservação de dados.
+- Rollback na infraestrutura de destino (o ensaio por processos está em rollback-integrity.json).
 - Operação integral pela UI, lançamento offline pela UI, falhas de rede no pagamento,
   reconciliação após reinício conjunto e matriz completa de telas/zoom/temas/dispositivos.
 - Tratar qualquer falha ou vulnerabilidade que conste nos relatórios desta execução.

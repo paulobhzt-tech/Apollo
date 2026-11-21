@@ -162,6 +162,7 @@ jobs:
           curl --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS https://127.0.0.1:8001/api/ > ../evidence/real-api-health.json
           npx playwright test p40-real-api.spec.ts --project=desktop --project=mobile 2>&1 | tee ../evidence/real-playwright.log
           npx playwright test p41-queue-recovery.spec.ts --project=desktop --project=mobile 2>&1 | tee ../evidence/queue-playwright.log
+          npx playwright test p41-real-screens.spec.ts --project=desktop --project=mobile 2>&1 | tee ../evidence/real-screens.log
       - name: Controlled restart and read concurrency
         if: ${{ !cancelled() }}
         env:
