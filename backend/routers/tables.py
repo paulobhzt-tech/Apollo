@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from lib.audit import audit_event
+from lib.cash_scope import cash_scope
 from lib.auth import cancel_authorizer, current_user, require
 from lib.db import client, db
 from lib.orders import (build_items, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods, validate_payment_details,
@@ -515,7 +516,7 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
     await validate_methods([p.method for p in body.payment.payments])
     if any(p.method in ("credito", "debito") and not p.brand for p in body.payment.payments):
         raise HTTPException(400, "Informe a bandeira do cartão")
-    cash = await current_cash()
+    cash = await current_cash(**cash_scope(user))
     if not cash:
         raise HTTPException(400, "Abra o caixa para receber pagamentos")
     request_data = body.model_dump(mode="json", exclude={"client_ref"})
