@@ -1,0 +1,44 @@
+name: P45 read-only historical load comparison
+on:
+  push:
+    branches: [audit/p45-liberacao-operacional-web-pwa]
+    paths: [.github/workflows/p45-comparison.yml]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Record read-only evidence execution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import os,json,urllib.request,base64
+          branch='audit/p45-liberacao-operacional-web-pwa'
+          assert os.environ['GITHUB_REF']=='refs/heads/'+branch
+          data={'run_id':os.environ['GITHUB_RUN_ID'],'candidate_sha':'d8aff0cc41f5ac960c2306935a08ef7782abd34e'}
+          request=urllib.request.Request('https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']+'/contents/.github/p45-comparison-latest.json',
+              headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'},
+              data=json.dumps({'branch':branch,'message':'ci(p45): record read-only comparison run',
+                  'content':base64.b64encode(json.dumps(data).encode()).decode()}).encode(),method='PUT')
+          urllib.request.urlopen(request).read()
+          print('Comparison execution',data['run_id'])
+          PY
+      - name: Compare immutable P44 and P45 artifacts with safe redirects
+        env:
+          GH_TOKEN: ${{ github.token }}
+          P45_EVIDENCE_RUN: '44915308907'
+        run: python tools/p45-baseline.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Apollo-P45-P44-comparison
+          path: evidence/
+          retention-days: 14
