@@ -161,6 +161,7 @@ export interface PayIn {
   fiado_customer_id?: string | null;
 }
 export interface QuickSaleIn extends PayIn {
+  expected_cash_session_id?: string;
   sync_context?: { establishment_id: string; server_id: string; operator_id: string };
   client_ref: string;
   items: OrderItemIn[];
