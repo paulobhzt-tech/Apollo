@@ -221,6 +221,7 @@ export interface Invoice {
 
 export interface CashMovement { type: "sangria" | "suprimento"; amount: number; note: string; by_name: string; at: string }
 export interface CashSession {
+  refund_adjustments?: Array<{ id: string; order_id: string; source_cash_session_id: string; by_name: string; at: string; reason: string; totals_by_method: Record<string, number> }>;
   opened_by_id?: string | null;
   financial_revision?: number;
   id: string;
