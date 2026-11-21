@@ -100,6 +100,15 @@ jobs:
           done
           curl -fsS http://127.0.0.1:8002/api/ >/dev/null
           python -m pytest -q -ra -n 0 tests/test_tscheck_autoteste.py tests/test_tscheck_delivery_simulate.py tests/test_tscheck_nfce_invoice.py --junitxml=../evidence/legacy.xml 2>&1 | tee ../evidence/legacy.log
+      - name: P45 process-kill recovery equivalent to recovered P32 requirement
+        if: ${{ !cancelled() }}
+        env:
+          DB_NAME: apollo_p40_browser_p45_recovery
+          APOLLO_CASH_MODE: operator
+        run: |
+          set -o pipefail
+          python backend/p40_seed_ci.py
+          python tools/p45-recovery.py 2>&1 | tee evidence/p45-p32-equivalent.log
       - name: Build and offline unit baseline
         if: ${{ !cancelled() }}
         working-directory: frontend
@@ -217,6 +226,11 @@ jobs:
         run: |
           set -o pipefail
           python tools/p44-load.py 2>&1 | tee evidence/p43-load.log
+      - name: Compare sustained load against historical P44 evidence
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/p45-baseline.py
       - name: Controlled restart and read concurrency
         if: ${{ !cancelled() }}
         env:
@@ -226,12 +240,14 @@ jobs:
         run: python tools/p41-persistence.py
       - name: Record scope and checksums
         if: always()
+        env:
+          P45_JOB_STATUS: ${{ job.status }}
         run: |
-          echo 'P45 experimental; mandatory P45 UI/load and moderate vulnerability gate added. P32 binary recovery remains unverified. All mandatory steps propagate failures; read individual logs/XML. No store authorization. See the report for persisted queue recovery, process rollback evidence and destination-infrastructure limitations.' > evidence/SCOPE.txt
+          echo 'P45 experimental; read the P45 report, individual logs and job result. No operational approval or production deployment.' > evidence/SCOPE.txt
           if test -d frontend/dist; then
             find frontend/dist -type f -print0 | sort -z | xargs -0 sha256sum > evidence/web-SHA256SUMS.txt
           fi
-          python tools/p44-report.py
+          python tools/p45-report.py
           git archive --format=zip -o evidence/Apollo-P45-source.zip HEAD
           git bundle create evidence/Apollo-P45-history.bundle HEAD
           find evidence -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS.txt
