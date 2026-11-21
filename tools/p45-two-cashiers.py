@@ -91,6 +91,9 @@ try:
     ha,hb=call(a,"/cash/history"),call(b,"/cash/history")
     assert all(x["opened_by_id"]=="p40caixa1" for x in ha)
     assert all(x["opened_by_id"]=="p40caixa2" for x in hb)
+    closed_refund=admin.post("/api/orders/"+ids[0]+"/cancel",json={"reason":"P45 must reject closed-shift refund"})
+    assert closed_refund.status_code==409,closed_refund.text
+    assert db.orders.find_one({"id":ids[0]})["status"]=="pago"
     # A new sale racing a reviewed closing is either rolled back or forces a recount.
     race_cash=call(a,"/cash/open",{"opening_amount":0})
     race_stock=db.ingredients.find_one({"id":"p40ing"})["stock"]
@@ -119,7 +122,7 @@ try:
         "difference":race_closed["difference"]},"unique_sales":10,"sale_replays":10,"waiter_orders":1,"stock_delta":11,
         "cash_a":{"id":ca["id"],"expected":140,"difference":closed_a["difference"]},
         "cash_b":{"id":cb["id"],"expected":90,"difference":closed_b["difference"]},
-        "cross_register_movement_status":cross.status_code,"changed_replay_status":changed.status_code,
+        "closed_shift_refund_status":closed_refund.status_code,"cross_register_movement_status":cross.status_code,"changed_replay_status":changed.status_code,
         "cross_register_sale_replay_status":other.status_code,"fiado_receipts":2,"fiado_replays":1,"mode":"operator","physical_devices":False}
     Path("evidence/p45-two-cashiers.json").write_text(json.dumps(result,indent=2))
     print(json.dumps(result),flush=True)
