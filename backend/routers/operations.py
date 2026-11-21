@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pymongo.errors import DuplicateKeyError
 
+from lib.counter_sale_gate import counter_sale_gate
 from lib.audit_alerts import summarize_audit_alerts
 from lib.audit import audit_event, verify_event
 from lib.cash_scope import cash_scope, independent_cash, claim_cash, prepare_cash_mode
@@ -42,6 +43,11 @@ def sale_fingerprint(body: QuickSaleIn) -> str:
 async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
     """Atomic create+pay for counter sales. Idempotent on client_ref (offline queue replays)."""
     await validate_sync_context(body.sync_context, user)
+    async with counter_sale_gate(user["id"]):
+        return await apply_quick_sale(body, user)
+
+
+async def apply_quick_sale(body: QuickSaleIn, user: dict):
     existing = await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0})
     if existing:
         return await counter_sale_replay(existing, body, user)
