@@ -29,7 +29,7 @@ lines += ["## Alterações e auditoria funcional",
 "Sessões novas duram 168 horas por padrão, configuráveis por APOLLO_SESSION_HOURS entre 1 e 720 horas. Expiração, logout, bloqueio/troca de operador e revogação por alteração de credencial continuam ativos. Nova aba permanece bloqueada conforme a política de terminal existente. Dispositivos móveis emulados; impressão simulada.",
 "## Recuperação P32",
 "Bundle de 2.301.923 bytes localizado no arquivo preservado. SHA-256 original, git bundle verify, fsck e ancestralidade do binário NÃO executados: executor local indisponível e sem canal privado configurável de transferência ao runner. Nenhum hash original foi inventado.",
-"Patch e relatório atuais P32 (versão 5) lidos. São alterações de teste, sem correção de produção declarada. p46-p32-equivalent.json comprova ou deixa ausente o ensaio equivalente direto na P46: processo morto após gravações transacionais, recuperação limitada a 100 segundos, mesma referência, uma venda, uma baixa e um lote.",
+"Patch e relatório atuais P32 (versão 5) lidos. São alterações de teste, sem correção de produção declarada. p45-p32-equivalent.json comprova ou deixa ausente o ensaio equivalente direto na P46: processo morto após gravações transacionais, recuperação limitada a 100 segundos, mesma referência, uma venda, uma baixa e um lote.",
 "Não se afirma equivalência de todo o histórico P19/P32 desconhecido. Lacunas fora do patch recuperado exigem comparação binária futura, sem impedir a execução das demais verificações.",
 "## Pendências externas e limites",
 "- Infraestrutura de destino: acesso/isolamento/HTTPS/volumes/backup e rollback não comprovados nesta sessão; nenhum deploy.",
@@ -42,7 +42,7 @@ lines += ["## Alterações e auditoria funcional",
 "Para dois caixas independentes definir APOLLO_CASH_MODE=operator antes da primeira abertura, MONGO_URL de réplica dedicada, DB_NAME exclusivo, CORS_ORIGINS exato e HTTPS. Na ausência da variável, usa operator; shared precisa ser escolhido explicitamente para compatibilidade legada.",
 "Antes de futura atualização: encerrar todos os turnos, suspender lançamentos e preservar backup consistente do banco/configuração e build anterior. Restaurar primeiro em banco separado. Nunca ativar versão anterior para escrever enquanto houver caixas independentes abertos.",
 "Rollback automatizado desta execução é por processos em banco descartável; não comprova infraestrutura de destino."]
-for name in ["p45-two-cashiers.json","p45-ledger-restore.json","p45-p32-equivalent.json","p45-load-comparison.json","p44-sustained-10.json","p44-sustained-30.json","p44-sustained-50.json","p43-financial-load.json","restart-integrity.json","rollback-integrity.json"]:
+for name in ["p46-financial-paired.json","p45-two-cashiers.json","p45-ledger-restore.json","p45-p32-equivalent.json","p45-load-comparison.json","p44-sustained-10.json","p44-sustained-30.json","p44-sustained-50.json","p43-financial-load.json","restart-integrity.json","rollback-integrity.json"]:
     path=out/name
     if not path.exists():
         lines.append("**Evidência ausente:** "+name)
