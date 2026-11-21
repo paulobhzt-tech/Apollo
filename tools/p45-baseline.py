@@ -56,7 +56,7 @@ print(json.dumps(result),flush=True)
 
 if result["status"]=="compared":
     lines=["# Apollo P45 — comparação complementar com P44",
-        "Candidata testada: d8aff0cc41f5ac960c2306935a08ef7782abd34e.",
+        "Candidata testada: "+(out/"commit.txt").read_text().strip() if (out/"commit.txt").exists() else "Consulte o commit da execução coletada.",
         "Este complemento substitui a indicação de comparação indisponível do primeiro relatório P45. Aplicação e build permanecem os mesmos do ensaio completo; esta execução somente lê artefatos.",
         "| Sessões | Requisições P44 | Requisições P45 | p95 P44 (ms) | p95 P45 (ms) | Variação |",
         "|---|---:|---:|---:|---:|---:|"]
@@ -64,8 +64,8 @@ if result["status"]=="compared":
         a,b=row["P44"],row["P45"]
         lines.append("| %s | %s | %s | %.2f | %.2f | %+.2f%% |"%(row["sessions"],a["requests"],b["requests"],1000*a["p95_seconds"],1000*b["p95_seconds"],100*(row["p95_ratio"]-1)))
     lines += ["Ambos os ensaios: 30 segundos por cenário, zero erros HTTP de leitura.",
-        "A variação de cerca de 1% com 50 sessões, junto de resultados melhores nos demais cenários, não demonstra regressão consistente. Não se trata de teste estatístico repetido.",
-        "P45: pagamentos concorrentes (50 requisições, 25 vendas únicas) tiveram p95 de 6,63 s, sem duplicação e com diferença financeira zero. P44 não registrou p95 financeiro; não há comparação numérica equivalente para essa métrica.",
+        "Consulte as variações medidas na tabela. Cada cenário de leitura foi executado uma vez; não se presume equivalência entre runners nem significância estatística.",
+        "O p95 financeiro da execução corrente está em p43-financial-load.json. P44 não registrou p95 financeiro comparável.",
         "P44: "+result["run_url"],"P45: "+result.get("candidate_run_url","execução principal")]
     (out/"Apollo-P45-Comparacao-P44.md").write_text("\n\n".join(lines))
 else:
