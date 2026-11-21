@@ -43,6 +43,9 @@ export default function Impressao() {
     const pr = printerFor(station);
     if (!pr) throw new Error(`Cadastre uma impressora ativa para ${envName(envs.data, station)}`);
     if (isDesktop() && !pr.device_name) throw new Error(`Selecione a impressora Windows para ${envName(envs.data, station)}`);
+    if (t.printed.includes(station)) {
+      await apiPost(`/kds/tickets/${t.id}/reprint-authorization`, { station });
+    }
     await printHtml(ticketHtml(t, station, envName(envs.data, station), pr?.paper), pr?.copies ?? 1, pr);
     if (!isDesktop() && !window.confirm("O ticket saiu corretamente na impressora? Confirme somente após conferir o papel.")) {
       throw new Error("Impressão não confirmada. O ticket permanece pendente; confira antes de tentar novamente.");

@@ -95,3 +95,19 @@ async def mark_printed(id: str, body: TicketPrintedIn, _: dict = Depends(current
     if not t:
         raise HTTPException(404, "Ticket não encontrado")
     return t
+
+
+@router.post("/kds/tickets/{id}/reprint-authorization", response_model=OkOut)
+async def authorize_reprint(id: str, body: TicketPrintedIn, user: dict = Depends(require())):
+    """Only administrators may authorize a new physical copy of an existing ticket."""
+    ticket = await db.kitchen_tickets.find_one({"id": id}, {"_id": 0})
+    if not ticket:
+        raise HTTPException(404, "Ticket não encontrado")
+    if not any(item.get("station") == body.station and item.get("print_ticket") is not False
+               for item in ticket.get("items", [])):
+        raise HTTPException(422, "Setor sem itens imprimíveis")
+    await db.print_audit.insert_one({
+        "action": "reprint_authorized", "ticket_id": id, "station": body.station,
+        "actor_id": user["id"], "actor_name": user.get("name", ""), "at": now(),
+    })
+    return OkOut()
