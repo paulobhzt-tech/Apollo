@@ -1,0 +1,25 @@
+{
+  "reviewed_commit": "931156f0434ec79d272e35a4a9f23791201aef69",
+  "source_files_reviewed": 64,
+  "matching_references": [],
+  "failures": [],
+  "removed_direct_requirements": [
+    "emergentintegrations==0.2.2",
+    "python-jose>=3.3.0"
+  ],
+  "removed_code_or_features": [],
+  "retained_integrations": "assistant_openai.py uses urllib directly; authentication uses bcrypt and cookie sessions; signature helpers retained",
+  "pymongo_fix": "4.18.2 -> 4.18.3",
+  "frontend_updates": {
+    "vite": "8.3.8",
+    "vitest": "4.1.12",
+    "shadcn": "4.23.0"
+  },
+  "historical_comparison": {
+    "p10": "diverged",
+    "ahead_of_reference": 110,
+    "behind_reference": 444,
+    "automatic_merge": false
+  },
+  "scope": "Source review plus full regression required; no claim that all dependency scanners detect every vulnerability."
+}

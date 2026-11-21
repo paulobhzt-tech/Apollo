@@ -160,9 +160,9 @@ jobs:
             sleep 1
           done
           curl --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS https://127.0.0.1:8001/api/ > ../evidence/real-api-health.json
-          npx playwright test p40-real-api.spec.ts --project=desktop --project=mobile 2>&1 | tee ../evidence/real-playwright.log
-          npx playwright test p41-queue-recovery.spec.ts --project=desktop --project=mobile 2>&1 | tee ../evidence/queue-playwright.log
-          npx playwright test p41-real-screens.spec.ts --project=desktop --project=mobile 2>&1 | tee ../evidence/real-screens.log
+          npx playwright test p40-real-api.spec.ts --output=test-results/real-api --project=desktop --project=mobile 2>&1 | tee ../evidence/real-playwright.log
+          npx playwright test p41-queue-recovery.spec.ts --output=test-results/queue --project=desktop --project=mobile 2>&1 | tee ../evidence/queue-playwright.log
+          npx playwright test p41-real-screens.spec.ts --output=test-results/screens --project=desktop --project=mobile 2>&1 | tee ../evidence/real-screens.log
       - name: Controlled restart and read concurrency
         if: ${{ !cancelled() }}
         env:
@@ -173,7 +173,7 @@ jobs:
       - name: Record scope and checksums
         if: always()
         run: |
-          echo 'P41 experimental. P32 binary recovery remains unverified. All mandatory steps propagate failures; read individual logs/XML. No store authorization. Offline replay after restart and rollback require additional validation.' > evidence/SCOPE.txt
+          echo 'P41 experimental. P32 binary recovery remains unverified. All mandatory steps propagate failures; read individual logs/XML. No store authorization. See the report for persisted queue recovery, process rollback evidence and destination-infrastructure limitations.' > evidence/SCOPE.txt
           if test -d frontend/dist; then
             find frontend/dist -type f -print0 | sort -z | xargs -0 sha256sum > evidence/web-SHA256SUMS.txt
           fi

@@ -44,6 +44,7 @@ with httpx.Client(base_url=base, headers={"Origin": base}, verify=ssl.create_def
         loads.append({"workers": workers, "requests": 100, "p95_seconds": p95, "maximum_seconds": max(latencies)})
         assert p95 <= 2, loads[-1]
     (out / "read-load.json").write_text(json.dumps(loads, indent=2))
+    print(json.dumps({"read_load": loads}, sort_keys=True), flush=True)
     pid = int((out / "backend.pid").read_text())
     assert b"uvicorn" in Path(f"/proc/{pid}/cmdline").read_bytes()
     os.kill(pid, signal.SIGTERM)

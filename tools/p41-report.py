@@ -90,5 +90,20 @@ Apollo-P41-history.bundle: histórico Git da candidata, não recuperação do bu
 SHA256SUMS.txt e web-SHA256SUMS.txt: integridade dos arquivos.
 Logs, XMLs e test-results: evidências de execução. Não contêm autorização de produção.
 """
+for name in ("python-audit.json", "npm-audit.json", "read-load.json", "restart-integrity.json", "rollback-integrity.json"):
+    path = out / name
+    if not path.exists():
+        text += "\\nResultado ausente: " + name + "\\n"
+        continue
+    data = json.loads(path.read_text())
+    if name == "python-audit.json":
+        data = [{"package": d["name"], "version": d["version"],
+                 "advisories": sorted({v["id"] for v in d.get("vulns", [])})}
+                for d in data.get("dependencies", []) if d.get("vulns")]
+    elif name == "npm-audit.json":
+        data = data.get("metadata", data)
+    elif name == "restart-integrity.json":
+        data = {"same": data.get("same"), "collections": list(data.get("before", {}))}
+    text += "\\n### " + name + "\\n\\n" + json.dumps(data, indent=2, ensure_ascii=False) + "\\n"
 (out / "Apollo-P41-Auditoria.md").write_text(text)
 print("Audit report generated for", commit)
