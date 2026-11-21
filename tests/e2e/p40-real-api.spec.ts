@@ -41,13 +41,15 @@ test('real API: two cashiers and waiter, shared table, mixed payments and replay
     await call(w,'PUT','/tables/'+t1.id+'/customers',{customers:['Ana ficticia','Bia ficticia']});
     const batch = {order_id:opened.order_id,client_ref:'p40-table-'+suffix,items:[
       {product_id:'p40product',qty:2,customer_name:'Ana ficticia'},
-      {product_id:'p40product',qty:2,customer_name:'Bia ficticia'}]};
+      {product_id:'p40product',qty:2,customer_name:'Bia ficticia'},
+      {product_id:'p41drink',qty:1,customer_name:'Ana ficticia'},
+      {product_id:'p41portion',qty:1,customer_name:'Bia ficticia'}]};
     const first = await call(w,'POST','/tables/'+t1.id+'/items',batch);
     const replay = await call(w,'POST','/tables/'+t1.id+'/items',batch);
     expect(replay.items).toEqual(first.items);
-    expect(replay.total).toBe(40);
+    expect(replay.total).toBe(60);
     const sale = {client_ref:'p40-sale-'+suffix,items:[{product_id:'p40product',qty:1}],
-      payments:[{method:'pix',amount:5},{method:'dinheiro',amount:5}],emit_invoice:false};
+      payments:[{method:'pix',amount:3},{method:'credito',brand:'visa',amount:2},{method:'dinheiro',amount:5}],emit_invoice:false};
     const [paid, moved] = await Promise.all([
       call(c2,'POST','/pdv/sale',sale),
       call(c1,'POST','/tables/'+t1.id+'/transfer',{target_table_id:t2.id})
@@ -62,8 +64,8 @@ test('real API: two cashiers and waiter, shared table, mixed payments and replay
     const partialReplay = await call(c1,'POST','/tables/'+t2.id+'/partial-bill/pay',partial);
     expect(partialReplay.order.id).toBe(partialPaid.order.id);
     const remaining = await call(c2,'GET','/tables/'+t2.id+'/order');
-    expect(remaining.total).toBe(30);
-    await call(c2,'POST','/tables/'+t2.id+'/pay',{payments:[{method:'pix',amount:30}],emit_invoice:false});
+    expect(remaining.total).toBe(50);
+    await call(c2,'POST','/tables/'+t2.id+'/pay',{payments:[{method:'pix',amount:50}],emit_invoice:false});
     await call(admin,'POST','/orders/'+paid.order.id+'/cancel',{reason:'P40 estorno ficticio'});
     const tables = await call(c1,'GET','/tables');
     expect(tables.find((t:any)=>t.id===t2.id).status).toBe('livre');

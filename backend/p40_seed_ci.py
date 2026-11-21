@@ -18,6 +18,16 @@ async def main():
         recipe=[dict(ingredient_id="p40ing",qty=1)],station="cozinha").model_dump())
     await db.purchases.insert_one(dict(id="p40lot",ingredient_id="p40ing",remaining_qty=100,qty=100,
         unit_cost=4,expiry_date="2099-12-31",created_at=datetime.now(timezone.utc)))
+    for key, name, station, unit, recipe_qty, price, cost in [
+        ("drink", "Bebida P41", "bar", "un", 1, 5, 2),
+        ("portion", "Porcao P41", "cozinha", "kg", 0.4, 15, 10),
+    ]:
+        await db.categories.insert_one(dict(id="p41cat"+key,name=name,station=station,sort=1))
+        await db.ingredients.insert_one(Ingredient(id="p41ing"+key,name=name,unit=unit,stock=100,cost_per_unit=cost).model_dump())
+        await db.products.insert_one(Product(id="p41"+key,name=name,category_id="p41cat"+key,price=price,
+            recipe=[dict(ingredient_id="p41ing"+key,qty=recipe_qty)],station=station).model_dump())
+        await db.purchases.insert_one(dict(id="p41lot"+key,ingredient_id="p41ing"+key,remaining_qty=100,qty=100,
+            unit_cost=cost,expiry_date="2099-12-31",created_at=datetime.now(timezone.utc)))
     for number in [401,402]:
         await db.tables.insert_one(Table(id=f"p40table{number}",number=number).model_dump())
     print("P40 fictitious seed ready")
