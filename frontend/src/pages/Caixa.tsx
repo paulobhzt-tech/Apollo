@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowDownToLine, ArrowUpFromLine, LockKeyhole, LockKeyholeOpen, Printer } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -39,9 +39,17 @@ export default function Caixa() {
   const countedAmount = cashAmount(counted);
 
   const open = useMutation({ mutationFn: () => apiPost<CashSession>("/cash/open", { opening_amount: openingAmount, note: openingNote.trim() }), onSuccess: () => { toast.success("Caixa aberto"); setOpeningNote(""); inv(); }, onError: onErr });
+  const moveReference = useRef<{ fingerprint: string; reference: string } | null>(null);
   const move = useMutation({
-    mutationFn: () => apiPost<CashSession>("/cash/movement", { type: moveType, amount: movementAmount, note: moveNote.trim(), expected_session_id: s?.id }),
-    onSuccess: () => { toast.success(moveType === "sangria" ? "Sangria registrada" : "Suprimento registrado"); setMoveAmt(""); setMoveNote(""); inv(); },
+    mutationFn: () => {
+      const payload = { type: moveType, amount: movementAmount, note: moveNote.trim(), expected_session_id: s?.id };
+      const fingerprint = JSON.stringify(payload);
+      if (moveReference.current?.fingerprint !== fingerprint) {
+        moveReference.current = { fingerprint, reference: crypto.randomUUID() };
+      }
+      return apiPost<CashSession>("/cash/movement", { ...payload, client_ref: moveReference.current.reference });
+    },
+    onSuccess: () => { moveReference.current = null; toast.success(moveType === "sangria" ? "Sangria registrada" : "Suprimento registrado"); setMoveAmt(""); setMoveNote(""); inv(); },
     onError: onErr,
   });
   const close = useMutation({
