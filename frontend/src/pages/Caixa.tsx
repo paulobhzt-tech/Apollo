@@ -90,6 +90,10 @@ export default function Caixa() {
                 ))}
                 {Object.keys(s.totals_by_method).length === 0 && <p className="text-sm text-zinc-500">Sem vendas neste turno.</p>}
               </ul>
+              {(s.refund_adjustments?.length ?? 0) > 0 && <div className="mt-3 border-t border-white/10 pt-3" data-testid="cash-refund-adjustments">
+                <p className="text-xs font-semibold text-amber-300">Devoluções de turnos anteriores</p>
+                {s.refund_adjustments?.map((entry) => <p key={entry.id} className="mt-1 break-words text-xs text-zinc-400">{fmtDateTime(entry.at)} · {entry.by_name} · {entry.reason} · {blind ? "••••" : brl(Object.values(entry.totals_by_method).reduce((a, b) => a + b, 0))}</p>)}
+              </div>}
               <Button size="sm" variant="ghost" className="mt-3" onClick={() => setBlind(!blind)} data-testid="cash-toggle-blind">{blind ? "Revelar valores" : "Ocultar valores"}</Button>
             </Panel>
             <Panel title="Sangria / Suprimento">
@@ -166,6 +170,10 @@ function ClosingReport({ s }: { s: CashSession }) {
       {s.counted_amount != null && <div className="flex justify-between"><span>Contado</span><span>{brl(s.counted_amount)}</span></div>}
       {s.counted_amount != null && <div className="flex justify-between font-bold"><span>Diferença</span><span>{brl(s.difference)}</span></div>}
       <p className="mt-2">Vendas: {s.sales_count} · Total {brl(s.sales_total)}</p>
+      {(s.refund_adjustments?.length ?? 0) > 0 && <div className="mt-2 border-t border-dashed border-black pt-1">
+        <p className="font-bold">DEVOLUÇÕES DE TURNOS ANTERIORES</p>
+        {s.refund_adjustments?.map((entry) => <p key={entry.id} className="break-words">{fmtDateTime(entry.at)} · {entry.by_name} · {entry.reason} · {brl(Object.values(entry.totals_by_method).reduce((a, b) => a + b, 0))}</p>)}
+      </div>}
       <p className="mt-6 text-center">_______________________<br />Assinatura do operador</p>
     </div>
   );
