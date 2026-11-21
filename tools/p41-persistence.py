@@ -33,9 +33,8 @@ with httpx.Client(base_url=base, headers={"Origin": base}) as client:
     # Acceptance thresholds declared before the load: no failed HTTP requests and p95 <= 2 seconds.
     def request(index):
         start = time.monotonic()
-        with httpx.Client(base_url=base, cookies=cookies, timeout=10) as reader:
-            r = reader.get("/api/tables" if index % 2 else "/api/products")
-            r.raise_for_status()
+        r = client.get("/api/tables" if index % 2 else "/api/products", timeout=10)
+        r.raise_for_status()
         return time.monotonic() - start
     loads = []
     for workers in (10, 30):
