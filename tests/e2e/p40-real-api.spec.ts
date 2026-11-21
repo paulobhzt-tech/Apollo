@@ -34,6 +34,8 @@ test('real API: two cashiers and waiter, shared table, mixed payments and replay
     const hostileOrigin = await c1.context.request.post(base+'/api/cash/open',{data:{opening_amount:0},headers:{Origin:'https://hostile.invalid'}});
     expect(hostileOrigin.status()).toBe(403);
     const cash = await call(c1,'POST','/cash/open',{opening_amount:100,note:'P40 ficticio'});
+    const cash2 = await call(c2,'POST','/cash/open',{opening_amount:20,note:'P45 segundo caixa independente'});
+    expect(cash2.id).not.toBe(cash.id);
     const suffix = info.project.name;
     const t1 = await call(c1,'POST','/tables',{number:suffix==='desktop'?9401:9403});
     const t2 = await call(c2,'POST','/tables',{number:suffix==='desktop'?9402:9404});
@@ -76,6 +78,11 @@ test('real API: two cashiers and waiter, shared table, mixed payments and replay
     const summary = await call(c1,'GET','/cash/current');
     expect(summary.expected_cash).toBe(110);
     await call(c1,'POST','/cash/close',{counted_amount:110,expected_session_id:cash.id,note:'P40 encerramento ficticio'});
+    const summary2 = await call(c2,'GET','/cash/current');
+    expect(summary2.expected_cash).toBe(20);
+    expect(summary2.totals_by_method.pix).toBe(50);
+    const closed2 = await call(c2,'POST','/cash/close',{counted_amount:20,expected_session_id:cash2.id,note:'P45 segundo caixa conciliado'});
+    expect(closed2.difference).toBe(0);
     await info.attach('real-api-scope',{body:JSON.stringify({cash:cash.id,order:opened.order_id,partial:partialPaid.order.id,
       replay:again.order.id,scope:'Real HTTP operations; UI login only; offline transport recovery, not queued offline sale'},null,2),contentType:'application/json'});
   } finally { for (const c of contexts) await c.close(); }
