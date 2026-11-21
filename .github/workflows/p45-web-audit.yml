@@ -17,6 +17,7 @@ jobs:
     env:
       MONGO_URL: mongodb://127.0.0.1:27017/?replicaSet=rs0
       DB_NAME: apollo_restore_test_p40_ci
+      APOLLO_CASH_MODE: shared
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,6 +35,13 @@ jobs:
           python --version | tee evidence/python.txt
           node --version | tee evidence/node.txt
           git rev-parse HEAD > evidence/commit.txt
+          git diff --check fbdd7aed9716fe18d1cc3f6f8990a0d62b566827 HEAD
+          git grep -n "current_cash(" -- backend > evidence/p45-cash-call-sites.txt
+          git grep -n "db.cash_sessions" -- backend > evidence/p45-cash-db-sites.txt
+          cat evidence/p45-cash-call-sites.txt
+          cat evidence/p45-cash-db-sites.txt
+          git ls-files AGENTS.md "*/AGENTS.md" > evidence/instructions-files.txt
+          cat evidence/instructions-files.txt
           git merge-base --is-ancestor 28ea95ce50863c7c3ce8368b91e8d98a6a5b99ec HEAD
           git log --oneline -10 > evidence/history.txt
           git diff --stat 28ea95ce50863c7c3ce8368b91e8d98a6a5b99ec origin/homolog/p10-operational-web > evidence/p10-comparison.txt
@@ -295,7 +303,10 @@ jobs:
               old=request(path+'?ref='+branch)
           except urllib.error.HTTPError as error:
               if error.code!=404: raise
-          else: data['sha']=old['sha']
+          else:
+              if int(json.loads(base64.b64decode(old['content']))['run_id']) > int(os.environ['RUN_ID']):
+                  raise SystemExit('Newer P45 execution already recorded')
+              data['sha']=old['sha']
           request(path,data)
           print('P45 execution receipt saved',receipt['run_id'],receipt['result'])
           PY
