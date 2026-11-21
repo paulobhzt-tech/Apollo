@@ -1,0 +1,64 @@
+name: P46 P45 source and artifact integrity
+on:
+  push:
+    branches: [audit/p46-homologacao-operacional-real]
+    paths: ['.github/workflows/p46-integrity.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  integrity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 72b47cbe67ab78f3ff3b5c2ecc5f830cdd0a1e98
+          fetch-depth: 0
+      - name: Verify Git objects ancestry and historical P45 artifact bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o pipefail
+          mkdir -p evidence
+          git fsck --full 2>&1 | tee evidence/git-fsck.log
+          git merge-base --is-ancestor 7f24b70282bc08851732976dcad435dd5f5a36fc HEAD
+          python - <<'PY'
+          import hashlib,io,json,os,urllib.request,zipfile
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          class SafeRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,headers,url):
+                  redirected=super().redirect_request(req,fp,code,msg,headers,url)
+                  if redirected is not None and urlsplit(req.full_url).netloc!=urlsplit(url).netloc:
+                      redirected.remove_header("Authorization")
+                  return redirected
+          opener=urllib.request.build_opener(SafeRedirect())
+          url="https://api.github.com/repos/"+os.environ["GITHUB_REPOSITORY"]+"/actions/artifacts/14711701725/zip"
+          req=urllib.request.Request(url,headers={"Authorization":"Bearer "+os.environ["GH_TOKEN"],"Accept":"application/vnd.github+json"})
+          with opener.open(req,timeout=60) as response:
+              data=response.read()
+          digest=hashlib.sha256(data).hexdigest()
+          assert digest=="deaf91d2d3bc04ba621986b5d9b8d5e195e43a457083e7f0b6cf3afe976e736b"
+          archive=zipfile.ZipFile(io.BytesIO(data))
+          assert archive.testzip() is None
+          names=archive.namelist()
+          manifest=next(n for n in names if n.endswith("/SHA256SUMS.txt") or n=="SHA256SUMS.txt")
+          verified=[]
+          for line in archive.read(manifest).decode().splitlines():
+              expected,path=line.split("  ",1)
+              matches=[n for n in names if n==path or n.endswith("/"+path) or path=="evidence/"+n]
+              assert len(matches)==1,(path,matches)
+              assert hashlib.sha256(archive.read(matches[0])).hexdigest()==expected,path
+              verified.append(path)
+          assert verified
+          report={"P45_artifact_id":14711701725,"sha256":digest,"verified_manifest_files":len(verified),"zip_crc":"passed","git_ancestry":"passed","candidate":"72b47cbe67ab78f3ff3b5c2ecc5f830cdd0a1e98"}
+          Path("evidence/P46-P45-integrity.json").write_text(json.dumps(report,indent=2))
+          print(json.dumps(report))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Apollo-P46-source-integrity
+          path: evidence/
