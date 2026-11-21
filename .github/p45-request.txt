@@ -1,1 +1,1 @@
-Run full P45 acceptance after cashier isolation, idempotent movements, reviewed closing and P32-equivalent recovery.
+Run P45 acceptance for operator-default registers, cash revisions, idempotent movements, debt receipts, safe refund gating and bounded P32-equivalent recovery.
