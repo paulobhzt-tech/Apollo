@@ -541,6 +541,8 @@ class CashMovement(BaseModel):
 
 
 class CashSession(BaseModel):
+    opened_by_id: Optional[str] = None
+    financial_revision: int = 0
     audit_events: list[dict] = Field(default_factory=list)
     id: str = Field(default_factory=_id)
     opened_by_name: str
