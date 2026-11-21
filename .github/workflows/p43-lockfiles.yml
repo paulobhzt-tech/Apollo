@@ -21,12 +21,18 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p evidence
+          if git grep -nE '(from|require).*["\x27]shadcn' -- frontend/src; then
+            echo 'Runtime import of shadcn detected; refusing automatic CLI removal'
+            exit 1
+          fi
           cd frontend
+          npm pkg delete dependencies.shadcn
           npm pkg delete 'devDependencies.@emergentbase/overlay' 'devDependencies.@emergentbase/visual-edits'
           npm install --package-lock-only --ignore-scripts --legacy-peer-deps --no-audit
           npm audit --json > ../evidence/npm-before.json || true
           npm audit fix --package-lock-only --ignore-scripts --legacy-peer-deps > ../evidence/npm-fix.txt 2>&1 || true
           npm audit --json > ../evidence/npm-after.json || true
+          cat ../evidence/npm-after.json
           npm ci --ignore-scripts --legacy-peer-deps --no-audit
           cd ../tests
           npm install --package-lock-only --ignore-scripts --no-audit
