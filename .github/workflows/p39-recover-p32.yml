@@ -1,0 +1,38 @@
+name: P39 recover P32 bundle
+on:
+  push:
+    branches: [audit/p39-recuperacao-executor-web]
+    paths: ['recovery/Apollo-P32-Base-Recuperada.bundle']
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify bundle and inspect recovered history without incorporation
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          bundle="$GITHUB_WORKSPACE/recovery/Apollo-P32-Base-Recuperada.bundle"
+          test "$(stat -c %s "$bundle")" = 2301923
+          sha256sum "$bundle" | tee evidence/P32-SHA256.txt
+          git bundle verify "$bundle" 2>&1 | tee evidence/bundle-verify.log
+          git bundle list-heads "$bundle" | tee evidence/bundle-heads.txt
+          git clone --mirror "$bundle" "$RUNNER_TEMP/p32.git"
+          git --git-dir="$RUNNER_TEMP/p32.git" fsck --full 2>&1 | tee evidence/fsck.log
+          git --git-dir="$RUNNER_TEMP/p32.git" cat-file -e cda5ed5a36210524f2f5fe5f255867210cb35be8^{commit}
+          git --git-dir="$RUNNER_TEMP/p32.git" log --all --format=fuller -30 > evidence/recovered-history.txt
+          git --git-dir="$RUNNER_TEMP/p32.git" fetch "$GITHUB_WORKSPACE" HEAD:refs/heads/p39-reference
+          git --git-dir="$RUNNER_TEMP/p32.git" merge-base cda5ed5a36210524f2f5fe5f255867210cb35be8 28ea95ce50863c7c3ce8368b91e8d98a6a5b99ec > evidence/merge-base.txt
+          git --git-dir="$RUNNER_TEMP/p32.git" rev-list --left-right --count 28ea95ce50863c7c3ce8368b91e8d98a6a5b99ec...cda5ed5a36210524f2f5fe5f255867210cb35be8 > evidence/divergence.txt
+          git --git-dir="$RUNNER_TEMP/p32.git" diff --stat 28ea95ce50863c7c3ce8368b91e8d98a6a5b99ec cda5ed5a36210524f2f5fe5f255867210cb35be8 > evidence/recovered-diff-stat.txt
+          echo 'SHA256 calculated from uploaded bytes; compare against an independently trusted manifest. No code incorporated; no production certification.' > evidence/SCOPE.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Apollo-P39-P32-recovery
+          path: evidence/
