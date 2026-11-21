@@ -1,0 +1,115 @@
+name: P47 artifact integrity and public read-only comparison
+on:
+  push:
+    branches: [audit/p47-validacao-vps-web-pwa]
+    paths: ['.github/workflows/p47-integrity.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  integrity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify Git and unchanged application source
+        run: |
+          set -o pipefail
+          mkdir -p evidence
+          git fsck --full 2>&1 | tee evidence/git-fsck.log
+          git merge-base --is-ancestor 72b47cbe67ab78f3ff3b5c2ecc5f830cdd0a1e98 HEAD
+          git diff --exit-code 72b47cbe67ab78f3ff3b5c2ecc5f830cdd0a1e98 HEAD -- backend frontend tests local-server desktop
+          git rev-parse HEAD > evidence/p47-integrity-commit.txt
+      - name: Verify P46 archive bytes and compare public frontend
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: python
+        run: |
+          import hashlib,io,json,os,urllib.request,urllib.error,zipfile
+          from pathlib import Path
+          from urllib.parse import urlsplit,urljoin
+          from html.parser import HTMLParser
+          class SafeRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,headers,url):
+                  redirected=super().redirect_request(req,fp,code,msg,headers,url)
+                  if redirected is not None and urlsplit(req.full_url).netloc!=urlsplit(url).netloc:
+                      redirected.remove_header("Authorization")
+                  return redirected
+          opener=urllib.request.build_opener(SafeRedirect())
+          req=urllib.request.Request("https://api.github.com/repos/"+os.environ["GITHUB_REPOSITORY"]+"/actions/artifacts/14713121325/zip",headers={"Authorization":"Bearer "+os.environ["GH_TOKEN"],"Accept":"application/vnd.github+json"})
+          with opener.open(req,timeout=60) as response:
+              data=response.read()
+          digest=hashlib.sha256(data).hexdigest()
+          assert digest=="8c846f931c1ac037aa5e751e61feac2c3e10cbdd1d12bbb042cd3873f0c8b17d"
+          archive=zipfile.ZipFile(io.BytesIO(data))
+          assert archive.testzip() is None
+          names=archive.namelist()
+          def resolve(path):
+              matches=[n for n in names if n==path or n.endswith("/"+path) or path=="evidence/"+n]
+              assert len(matches)==1,(path,matches)
+              return matches[0]
+          manifest=resolve("SHA256SUMS.txt")
+          count=0
+          for line in archive.read(manifest).decode().splitlines():
+              expected,path=line.split("  ",1)
+              assert hashlib.sha256(archive.read(resolve(path))).hexdigest()==expected,path
+              count+=1
+          assert count>0
+          candidate=archive.read(resolve("commit.txt")).decode().strip()
+          assert candidate=="72b47cbe67ab78f3ff3b5c2ecc5f830cdd0a1e98"
+          build={}
+          for line in archive.read(resolve("web-SHA256SUMS.txt")).decode().splitlines():
+              expected,path=line.split("  ",1)
+              relative=path.split("frontend/dist/",1)[1]
+              assert hashlib.sha256(archive.read(resolve("frontend/dist/"+relative))).hexdigest()==expected,relative
+              build["/"+relative]=expected
+          report={"candidate":candidate,"artifact_sha256":digest,"verified_manifest_files":count,"verified_web_files":len(build),"git_fsck":"passed","application_source_unchanged":True,"public":[],"vps_commit":"NOT PROVEN","vps_isolation":"NOT PROVEN","physical_tests":"NOT EXECUTED"}
+          class Links(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.paths=[]
+              def handle_starttag(self,tag,attrs):
+                  attrs=dict(attrs)
+                  if tag=="script" and attrs.get("src"): self.paths.append(attrs["src"])
+                  if tag=="link" and attrs.get("href") and any(x in attrs.get("rel","") for x in ("stylesheet","manifest","modulepreload")): self.paths.append(attrs["href"])
+          for host in ("homologacao.apollo-pdv.com","teste.apollo-pdv.com"):
+              base="https://"+host
+              paths=["/","/api/","/openapi.json"]
+              visited=set()
+              while paths and len(visited)<16:
+                  path=paths.pop(0)
+                  url=urljoin(base,path)
+                  if urlsplit(url).netloc!=host or url in visited: continue
+                  visited.add(url)
+                  record={"url":url}
+                  try:
+                      with urllib.request.urlopen(urllib.request.Request(url,headers={"User-Agent":"Apollo-P47-readonly-validation"}),timeout=15) as response:
+                          body=response.read(5000000)
+                          record.update(status=response.status,final_url=response.url,content_type=response.headers.get("Content-Type"),sha256=hashlib.sha256(body).hexdigest(),bytes=len(body))
+                      key=urlsplit(url).path
+                      expected=build.get("/index.html" if key=="/" else key)
+                      record["present_in_P46_build"]=expected is not None
+                      if expected: record["matches_P46_build"]=record["sha256"]==expected
+                      if key=="/":
+                          parser=Links();parser.feed(body.decode("utf-8",errors="replace"));paths.extend(parser.paths)
+                      if key=="/api/":
+                          try: record["health"]=json.loads(body)
+                          except ValueError: record["health"]="not JSON"
+                      if key=="/openapi.json":
+                          try:
+                              schema=json.loads(body);record["api_operations"]=sum(k in ("get","post","put","patch","delete","head","options") for item in schema.get("paths",{}).values() for k in item)
+                          except (ValueError,AttributeError): record["schema"]="not OpenAPI JSON"
+                  except Exception as error:
+                      record.update(error=type(error).__name__,detail=str(error))
+                  report["public"].append(record)
+                  print(json.dumps(record,ensure_ascii=False),flush=True)
+          Path("evidence/P47-integrity-public.json").write_text(json.dumps(report,indent=2))
+          print(json.dumps({k:v for k,v in report.items() if k!="public"}))
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Apollo-P47-integrity-public-readonly
+          path: evidence/
+          retention-days: 14
