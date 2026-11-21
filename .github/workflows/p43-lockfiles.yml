@@ -1,0 +1,54 @@
+name: P43 reproducible dependency locks
+on:
+  push:
+    branches: [audit/p43-desbloqueio-homologacao-web]
+    paths: [.github/workflows/p43-lockfiles.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  locks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit/p43-desbloqueio-homologacao-web
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve public packages and safe compatible remediation
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          cd frontend
+          npm pkg delete 'devDependencies.@emergentbase/overlay' 'devDependencies.@emergentbase/visual-edits'
+          npm install --package-lock-only --ignore-scripts --legacy-peer-deps --no-audit
+          npm audit --json > ../evidence/npm-before.json || true
+          npm audit fix --package-lock-only --ignore-scripts --legacy-peer-deps > ../evidence/npm-fix.txt 2>&1 || true
+          npm audit --json > ../evidence/npm-after.json || true
+          npm ci --ignore-scripts --legacy-peer-deps --no-audit
+          cd ../tests
+          npm install --package-lock-only --ignore-scripts --no-audit
+          npm ci --ignore-scripts --no-audit
+      - name: Persist locks only on experimental branch
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = audit/p43-desbloqueio-homologacao-web
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package.json frontend/package-lock.json tests/package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "build(p43): version reproducible dependency locks and safe audit fixes"
+            git pull --rebase origin audit/p43-desbloqueio-homologacao-web
+            git push origin HEAD:refs/heads/audit/p43-desbloqueio-homologacao-web
+          fi
+          git rev-parse HEAD > evidence/lock-commit.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Apollo-P43-dependency-resolution
+          path: |
+            evidence/
+            frontend/package-lock.json
+            tests/package-lock.json
