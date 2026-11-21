@@ -1,82 +1,36 @@
-name: P43 reproducible dependency locks
+name: P43 locked installation verification
 on:
   push:
     branches: [audit/p43-desbloqueio-homologacao-web]
-    paths: [.github/workflows/p43-lockfiles.yml]
+    paths:
+      - .github/workflows/p43-lockfiles.yml
+      - frontend/package.json
+      - frontend/package-lock.json
+      - tests/package.json
+      - tests/package-lock.json
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 jobs:
-  locks:
+  locked-installation:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: audit/p43-desbloqueio-homologacao-web
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Resolve public packages and safe compatible remediation
+      - name: Install immutable frontend graph, audit and build
+        working-directory: frontend
         run: |
           set -euo pipefail
-          mkdir -p evidence
-          if git grep -nE '(from|require).*["\x27]shadcn' -- frontend/src; then
-            echo 'Runtime import of shadcn detected; refusing automatic CLI removal'
-            exit 1
-          fi
-          npm pack shadcn@4.23.0 --ignore-scripts --pack-destination /tmp
-          python - <<'PY'
-          import hashlib, tarfile
-          from pathlib import Path
-          archive=Path('/tmp/shadcn-4.23.0.tgz')
-          target=Path('frontend/src/styles/vendor/shadcn')
-          target.mkdir(parents=True,exist_ok=True)
-          with tarfile.open(archive) as tar:
-              css=[m for m in tar.getmembers() if m.isfile() and m.name.endswith('/tailwind.css')]
-              assert len(css)==1,[m.name for m in css]
-              (target/'tailwind.css').write_bytes(tar.extractfile(css[0]).read())
-              licenses=[m for m in tar.getmembers() if m.isfile() and m.name.split('/')[-1].lower() in ('license','license.md','license.txt')]
-              assert licenses
-              (target/'LICENSE').write_bytes(tar.extractfile(licenses[0]).read())
-          (target/'PROVENANCE.txt').write_text('shadcn npm 4.23.0; CSS preserved without CLI dependencies.\\nArchive SHA256: '+hashlib.sha256(archive.read_bytes()).hexdigest()+'\\n')
-          index=Path('frontend/src/index.css')
-          text=index.read_text()
-          assert 'shadcn/tailwind.css' in text
-          index.write_text(text.replace('shadcn/tailwind.css','./styles/vendor/shadcn/tailwind.css'))
-          PY
-          cd frontend
-          npm pkg delete dependencies.shadcn
-          npm pkg delete 'devDependencies.@emergentbase/overlay' 'devDependencies.@emergentbase/visual-edits'
-          npm install --package-lock-only --ignore-scripts --legacy-peer-deps --no-audit
-          npm audit --json > ../evidence/npm-before.json || true
-          npm audit fix --package-lock-only --ignore-scripts --legacy-peer-deps > ../evidence/npm-fix.txt 2>&1 || true
-          npm audit --json > ../evidence/npm-after.json || true
-          cat ../evidence/npm-after.json
-          npm ci --ignore-scripts --legacy-peer-deps --no-audit
+          npm ci --legacy-peer-deps --no-audit --no-fund
+          npm audit --audit-level=moderate
           npm run typecheck
           npm run build
-          cd ../tests
-          npm install --package-lock-only --ignore-scripts --no-audit
-          npm ci --ignore-scripts --no-audit
-      - name: Persist locks only on experimental branch
+      - name: Install immutable browser test graph
+        working-directory: tests
+        run: npm ci --no-audit --no-fund
+      - name: Ensure installation did not rewrite manifests or locks
         run: |
-          set -euo pipefail
-          test "$(git branch --show-current)" = audit/p43-desbloqueio-homologacao-web
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/package.json frontend/package-lock.json tests/package-lock.json frontend/src/index.css frontend/src/styles/vendor/shadcn
-          if ! git diff --cached --quiet; then
-            git commit -m "build(p43): version reproducible dependency locks and safe audit fixes"
-            git pull --rebase origin audit/p43-desbloqueio-homologacao-web
-            git push origin HEAD:refs/heads/audit/p43-desbloqueio-homologacao-web
-          fi
-          git rev-parse HEAD > evidence/lock-commit.txt
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: Apollo-P43-dependency-resolution
-          path: |
-            evidence/
-            frontend/package-lock.json
-            tests/package-lock.json
+          git diff --exit-code -- frontend/package.json frontend/package-lock.json tests/package.json tests/package-lock.json

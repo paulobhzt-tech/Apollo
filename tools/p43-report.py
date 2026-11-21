@@ -32,7 +32,7 @@ A ausência de um arquivo não é aprovação. Uma falha no teste exige correç�
 Os lockfiles frontend/package-lock.json e tests/package-lock.json estão versionados.
 Use Node 22 e npm ci --legacy-peer-deps no frontend; npm ci em tests.
 Os pacotes privados de edição visual são opcionais e foram retirados do manifesto da candidata.
-O CLI shadcn, sem importação no código frontend, foi retirado por trazer a cadeia minimatch → @ts-morph/common → ts-morph responsável pelos quatro alertas moderados.
+O CSS original do shadcn 4.23.0 e sua licença estão preservados em frontend/src/styles/vendor/shadcn. O CLI foi retirado por trazer a cadeia minimatch → @ts-morph/common → ts-morph responsável pelos quatro alertas moderados.
 O gate npm reprova alertas moderados, altos e críticos. Veja npm-audit.json.
 Python usa backend/requirements.txt; as versões efetivamente instaladas estão em python-installed.txt. Isso ainda não é um lock Python com hashes.
 """,
