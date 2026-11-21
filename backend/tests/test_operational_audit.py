@@ -55,7 +55,7 @@ async def test_cancel_claim_is_conditional_and_audited_before_stock(monkeypatch)
 @pytest.mark.asyncio
 async def test_cash_move_audit_is_part_of_same_write(monkeypatch):
     cash = SimpleNamespace(update_one=AsyncMock(return_value=SimpleNamespace(modified_count=1)),
-                           find_one=AsyncMock(return_value={"id": "c1"}))
+                           find_one=AsyncMock(return_value={"id": "c1", "status": "aberto"}))
     monkeypatch.setattr(operations, "db", SimpleNamespace(cash_sessions=cash))
     monkeypatch.setattr(operations, "current_cash", AsyncMock(return_value={"id": "c1"}))
     monkeypatch.setattr(operations, "cash_summary", AsyncMock(side_effect=lambda s: s))
@@ -83,7 +83,7 @@ async def test_audit_endpoint_returns_only_projected_events_and_bounded_limit(mo
     def collection():
         cursor = SimpleNamespace(to_list=AsyncMock(return_value=[{"id": "record", "audit_events": event}]))
         return SimpleNamespace(aggregate=Mock(return_value=cursor))
-    collections = {name: collection() for name in ("orders", "cash_sessions", "kitchen_tickets")}
+    collections = {name: collection() for name in ("orders", "cash_sessions", "cash_adjustments", "kitchen_tickets")}
     monkeypatch.setattr(operations, "db", collections)
     app = FastAPI()
     app.include_router(operations.router)
@@ -105,7 +105,7 @@ async def test_audit_merges_legacy_datetime_and_iso_events_chronologically(monke
     legacy = {"id": "old-schema", "action": "counter_sale_created", "at": datetime(2026, 11, 10, 20, tzinfo=timezone.utc)}
     modern = {"id": "modern", "action": "payment_recorded", "at": "2026-11-10T19:00:00+00:00"}
     collections = {}
-    for name in ("orders", "cash_sessions", "kitchen_tickets"):
+    for name in ("orders", "cash_sessions", "cash_adjustments", "kitchen_tickets"):
         rows = [{"id": "r1", "audit_events": modern}, {"id": "r2", "audit_events": legacy}] if name == "orders" else []
         collections[name] = SimpleNamespace(aggregate=Mock(return_value=SimpleNamespace(to_list=AsyncMock(return_value=rows))))
     monkeypatch.setattr(operations, "db", collections)
@@ -141,7 +141,7 @@ async def test_alert_endpoint_is_bounded_and_does_not_enforce_actions(monkeypatc
 @pytest.mark.asyncio
 async def test_simultaneous_withdrawals_cannot_both_use_stale_movement_balance(monkeypatch):
     import asyncio
-    snapshot = {"id": "c1", "movements": []}
+    snapshot = {"id": "c1", "status": "aberto", "movements": []}
     arrived = 0
     barrier = asyncio.Event()
     async def current():
