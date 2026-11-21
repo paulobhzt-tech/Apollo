@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from pymongo import ReturnDocument
 
 from lib.audit import audit_event
-from lib.cash_scope import cash_scope, claim_cash
+from lib.cash_scope import cash_scope, claim_cash, independent_cash
 from lib.db import db
 from models.schemas import Invoice, InvoiceItem, KitchenItem, KitchenTicket, OrderItem, OrderItemIn, PayIn, PRODUCT_CHANNELS, ProductChannel, StockMove
 
@@ -292,6 +292,8 @@ async def refresh_totals(order_id: str, *, session=None) -> dict:
 
 
 async def current_cash(*, session=None, operator_id=None) -> dict | None:
+    if independent_cash() and not operator_id:
+        raise HTTPException(403, "Operador identificado obrigatório para selecionar o caixa.")
     query = {"status": "aberto"}
     if operator_id is not None:
         query["opened_by_id"] = operator_id
