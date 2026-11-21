@@ -543,6 +543,7 @@ class CashMovement(BaseModel):
 
 
 class CashSession(BaseModel):
+    refund_adjustments: list[dict] = Field(default_factory=list)
     opened_by_id: Optional[str] = None
     financial_revision: int = 0
     audit_events: list[dict] = Field(default_factory=list)
