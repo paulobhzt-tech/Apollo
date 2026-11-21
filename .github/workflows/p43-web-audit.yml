@@ -3,6 +3,9 @@ on:
   push:
     branches: [audit/p43-desbloqueio-homologacao-web]
   workflow_dispatch:
+concurrency:
+  group: apollo-p43-acceptance
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -164,10 +167,12 @@ jobs:
           npx playwright test p41-real-screens.spec.ts --output=test-results/screens --project=desktop --project=mobile 2>&1 | tee ../evidence/real-screens.log
       - name: P43 complete UI and genuine offline entry
         if: ${{ !cancelled() }}
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_FILE: ${{ github.workspace }}/evidence/p43-ui.xml
         run: |
           set -o pipefail
           cd tests
-          npx playwright test p43-operational-ui.spec.ts --output=test-results/p43-ui --trace=on --project=desktop --project=mobile 2>&1 | tee ../evidence/p43-ui.log
+          npx playwright test p43-operational-ui.spec.ts --reporter=list,junit --output=test-results/p43-ui --trace=on --project=desktop --project=mobile 2>&1 | tee ../evidence/p43-ui.log
       - name: P43 sustained 50-session and concurrent financial load
         if: ${{ !cancelled() }}
         env:
@@ -189,7 +194,7 @@ jobs:
           if test -d frontend/dist; then
             find frontend/dist -type f -print0 | sort -z | xargs -0 sha256sum > evidence/web-SHA256SUMS.txt
           fi
-          python tools/p41-report.py
+          python tools/p43-report.py
           git archive --format=zip -o evidence/Apollo-P43-source.zip HEAD
           git bundle create evidence/Apollo-P43-history.bundle HEAD
           find evidence -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS.txt

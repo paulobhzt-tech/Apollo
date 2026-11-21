@@ -37,6 +37,7 @@ test('UI operational shift: tables, shared customers, transfer, comanda, mixed p
   test.setTimeout(240000);
   const context=await browser.newContext({...info.project.use,baseURL:base,ignoreHTTPSErrors:true});
   const page=await context.newPage();
+  page.setDefaultTimeout(15000);
   page.on('dialog',d=>d.accept());
   try {
     await login(page);
@@ -116,6 +117,7 @@ test('UI offline sale persists after browser restart, reconnects once and reconc
   test.setTimeout(180000);
   let context=await browser.newContext({...info.project.use,baseURL:base,ignoreHTTPSErrors:true});
   let page=await context.newPage();
+  page.setDefaultTimeout(15000);
   page.on('dialog',d=>d.accept());
   async function read(path:string) {
     const r=await context.request.get(base+'/api'+path);
@@ -145,7 +147,8 @@ test('UI offline sale persists after browser restart, reconnects once and reconc
     await context.close();
     context=await browser.newContext({...info.project.use,baseURL:base,ignoreHTTPSErrors:true,storageState:state});
     page=await context.newPage();
-    page.on('dialog',d=>d.accept());
+    page.setDefaultTimeout(15000);
+  page.on('dialog',d=>d.accept());
     await page.goto(base);
     expect(await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('pdv_offline_queue:v3:'))
       .flatMap(k=>JSON.parse(localStorage.getItem(k)||'[]')).length)).toBe(1);
