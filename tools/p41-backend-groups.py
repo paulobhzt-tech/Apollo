@@ -8,16 +8,17 @@ os.chdir(root / "backend")
 evidence = root / "evidence"
 evidence.mkdir(exist_ok=True)
 files = sorted(Path("tests").glob("test_*.py"))
-special = {"test_catalog_standalone.py", "test_restore_disposable_integration.py",
+special = {"test_partial_payment_integration.py", "test_catalog_standalone.py", "test_restore_disposable_integration.py",
            "test_tscheck_autoteste.py", "test_tscheck_delivery_simulate.py", "test_tscheck_nfce_invoice.py"}
 groups = [
     ("replica", [str(p) for p in files if p.name not in special], os.environ["MONGO_URL"]),
+    ("transactions", ["tests/test_partial_payment_integration.py"], os.environ["MONGO_URL"]),
     ("standalone", ["tests/test_catalog_standalone.py"], "mongodb://127.0.0.1:27018"),
     ("restore", ["tests/test_restore_disposable_integration.py"], os.environ["MONGO_URL"]),
 ]
 failed = False
 for name, paths, mongo in groups:
-    env = dict(os.environ, MONGO_URL=mongo, DB_NAME="apollo_restore_test_p41_" + name,
+    env = dict(os.environ, MONGO_URL=mongo, DB_NAME=("apollo_partial_payment_ci" if name == "transactions" else "apollo_restore_test_p41_" + name),
                APOLLO_ALLOW_DISPOSABLE_RESTORE="1")
     args = ["python", "-m", "pytest", "-q", "-ra", "-n", "0",
             "--junitxml=" + str(evidence / (name + ".xml")), *paths]

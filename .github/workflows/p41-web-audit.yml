@@ -104,6 +104,15 @@ jobs:
           npx vitest run 2>&1 | tee ../evidence/vitest.log
           npm run typecheck 2>&1 | tee ../evidence/typecheck.log
           npm run build 2>&1 | tee ../evidence/build.log
+      - name: Dependency vulnerability audit
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python -m pip freeze > evidence/python-installed.txt
+          python -m pip install pip-audit
+          python -m pip_audit --format json --output evidence/python-audit.json
+          cd frontend
+          npm audit --audit-level=high --json > ../evidence/npm-audit.json
       - name: Chromium interface baseline (existing tests may mock API)
         if: ${{ !cancelled() }}
         run: |
@@ -140,6 +149,13 @@ jobs:
           done
           curl -fsS http://127.0.0.1:8001/api/ > ../evidence/real-api-health.json
           npx playwright test p40-real-api.spec.ts --project=desktop --project=mobile 2>&1 | tee ../evidence/real-playwright.log
+      - name: Controlled restart and read concurrency
+        if: ${{ !cancelled() }}
+        env:
+          DB_NAME: apollo_p40_browser_fictitious
+          COOKIE_SECURE: 'false'
+          SERVE_FRONTEND_DIR: ${{ github.workspace }}/frontend/dist
+        run: python tools/p41-persistence.py
       - name: Record scope and checksums
         if: always()
         run: |

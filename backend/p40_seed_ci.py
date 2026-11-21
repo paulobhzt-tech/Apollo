@@ -21,4 +21,5 @@ async def main():
     for number in [401,402]:
         await db.tables.insert_one(Table(id=f"p40table{number}",number=number).model_dump())
     print("P40 fictitious seed ready")
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
