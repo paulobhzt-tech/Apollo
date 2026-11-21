@@ -58,23 +58,44 @@ try:
         call(c,"/cash/movement",{"type":"sangria","amount":withdraw,"note":"P45 ficticio","expected_session_id":cash["id"],"client_ref":prefix+"-"+cash["id"]+"-withdraw"})
     cross=a.post("/api/cash/movement",json={"type":"suprimento","amount":1,"note":"P45 must reject","expected_session_id":cb["id"],"client_ref":prefix+"-cross"})
     assert cross.status_code==409,cross.text
+    # Lost-response retry is accepted exactly once; altered replay is rejected.
+    movement={"type":"suprimento","amount":20,"note":"P45 ficticio",
+        "expected_session_id":ca["id"],"client_ref":prefix+"-"+ca["id"]+"-supply"}
+    call(a,"/cash/movement",movement)
+    changed=a.post("/api/cash/movement",json={**movement,"amount":21})
+    assert changed.status_code==409,changed.text
+    other=b.post("/api/pdv/sale",json={"client_ref":prefix+"-sale-0-0",
+        "items":[{"product_id":"p40product","qty":1}],
+        "payments":[{"method":"dinheiro","amount":8},{"method":"pix","amount":4}],
+        "emit_invoice":False,"send_to_kitchen":False})
+    assert other.status_code==403,other.text
+    admin=connect("p40admin")
+    customer=call(a,"/customers",{"name":"P45 cliente ficticio","credit_limit":100})
+    call(admin,"/customers/"+customer["id"]+"/debts",{"amount":10,"reason":"P45 divida ficticia","client_ref":prefix+"-debt"})
+    receipt={"amount":3,"method":"pix","client_ref":prefix+"-receive-a"}
+    call(a,"/customers/"+customer["id"]+"/receive",receipt)
+    call(a,"/customers/"+customer["id"]+"/receive",receipt)
+    call(b,"/customers/"+customer["id"]+"/receive",{"amount":7,"method":"pix","client_ref":prefix+"-receive-b"})
     sa,sb=call(a,"/cash/current"),call(b,"/cash/current")
     assert sa["expected_cash"]==140 and sb["expected_cash"]==90,(sa,sb)
-    assert sa["totals_by_method"]=={"dinheiro":30,"pix":20},sa
-    assert sb["totals_by_method"]=={"dinheiro":30,"pix":20,"credito:visa":10},sb
+    assert sa["totals_by_method"]=={"dinheiro":30,"pix":23},sa
+    assert sb["totals_by_method"]=={"dinheiro":30,"pix":27,"credito:visa":10},sb
     assert db.ingredients.find_one({"id":"p40ing"})["stock"]==before-11
     assert len(sa["movements"])==len(sb["movements"])==2
     closed_a=call(a,"/cash/close",{"counted_amount":140,"expected_session_id":ca["id"]})
     assert call(b,"/cash/current")["id"]==cb["id"]
     closed_b=call(b,"/cash/close",{"counted_amount":90,"expected_session_id":cb["id"]})
     assert closed_a["difference"]==closed_b["difference"]==0
+    replay_after_close=call(a,"/cash/movement",movement)
+    assert len(replay_after_close["movements"])==2
     ha,hb=call(a,"/cash/history"),call(b,"/cash/history")
     assert all(x["opened_by_id"]=="p40caixa1" for x in ha)
     assert all(x["opened_by_id"]=="p40caixa2" for x in hb)
     result={"unique_sales":10,"sale_replays":10,"waiter_orders":1,"stock_delta":11,
         "cash_a":{"id":ca["id"],"expected":140,"difference":closed_a["difference"]},
         "cash_b":{"id":cb["id"],"expected":90,"difference":closed_b["difference"]},
-        "cross_register_movement_status":cross.status_code,"mode":"operator","physical_devices":False}
+        "cross_register_movement_status":cross.status_code,"changed_replay_status":changed.status_code,
+        "cross_register_sale_replay_status":other.status_code,"fiado_receipts":2,"fiado_replays":1,"mode":"operator","physical_devices":False}
     Path("evidence/p45-two-cashiers.json").write_text(json.dumps(result,indent=2))
     print(json.dumps(result),flush=True)
 finally:
