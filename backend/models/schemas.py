@@ -393,6 +393,7 @@ class SyncContext(BaseModel):
 
 
 class QuickSaleIn(PayIn):
+    expected_cash_session_id: Optional[str] = Field(default=None, min_length=1, max_length=128)
     sync_context: Optional[SyncContext] = None
     client_ref: str = Field(min_length=6)
     items: list[OrderItemIn] = Field(min_length=1)
