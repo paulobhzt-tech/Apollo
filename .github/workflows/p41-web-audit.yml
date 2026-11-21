@@ -1,0 +1,160 @@
+name: P41 mandatory Web PWA audit
+on:
+  push:
+    branches: [audit/p41-auditoria-total-liberacao-web]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      MONGO_URL: mongodb://127.0.0.1:27017/?replicaSet=rs0
+      DB_NAME: apollo_restore_test_p40_ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Record executor and ancestry
+        run: |
+          mkdir -p evidence
+          git --version | tee evidence/git.txt
+          python --version | tee evidence/python.txt
+          node --version | tee evidence/node.txt
+          git rev-parse HEAD > evidence/commit.txt
+          git merge-base --is-ancestor 28ea95ce50863c7c3ce8368b91e8d98a6a5b99ec HEAD
+          git log --oneline -10 > evidence/history.txt
+          git diff --stat 28ea95ce50863c7c3ce8368b91e8d98a6a5b99ec origin/homolog/p10-operational-web > evidence/p10-comparison.txt
+      - name: Start disposable MongoDB replica set
+        run: |
+          docker run -d --name apollo-p40-mongo -p 127.0.0.1:27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+          for i in $(seq 1 60); do
+            if docker exec apollo-p40-mongo mongosh --quiet --eval 'db.adminCommand({ping:1})'; then break; fi
+            sleep 1
+          done
+          docker exec apollo-p40-mongo mongosh --quiet --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"localhost:27017"}]})'
+          for i in $(seq 1 60); do
+            if docker exec apollo-p40-mongo mongosh --quiet --eval 'db.hello().isWritablePrimary' | grep -q true; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Start independent standalone MongoDB
+        run: |
+          docker run -d --name apollo-p41-standalone -p 127.0.0.1:27018:27017 mongo:7 --bind_ip_all
+          for i in $(seq 1 60); do
+            if docker exec apollo-p41-standalone mongosh --quiet --eval 'db.adminCommand({ping:1})'; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Compare all remote histories without merging
+        run: |
+          python - <<'PY'
+          import subprocess, json
+          def git(*args):
+              return subprocess.run(['git',*args],capture_output=True,text=True)
+          refs=git('for-each-ref','--format=%(refname)','refs/remotes/origin').stdout.splitlines()
+          report=[]
+          for ref in refs:
+              if ref.endswith('/HEAD'): continue
+              common=git('merge-base','HEAD',ref)
+              counts=git('rev-list','--left-right','--count','HEAD...'+ref)
+              diff=git('diff','--stat','HEAD',ref)
+              report.append(dict(ref=ref,sha=git('rev-parse',ref).stdout.strip(),merge_base=common.stdout.strip(),
+                  counts=counts.stdout.strip(),stat=diff.stdout,errors=common.stderr+counts.stderr+diff.stderr))
+          open('evidence/remote-comparison.json','w').write(json.dumps(report,indent=2))
+          PY
+      - name: Backend regression with disposable replica set
+        run: |
+          set -o pipefail
+          python -m pip install pytest pytest-xdist pytest-asyncio pytest-subtests httpx fastapi starlette motor pymongo python-dotenv 'bcrypt==4.0.1' cryptography uvicorn python-multipart requests google-api-python-client google-auth-oauthlib
+          python tools/p41-backend-groups.py
+      - name: Legacy HTTP tests with running backend and fictitious fixtures
+        if: ${{ !cancelled() }}
+        env:
+          DB_NAME: apollo_p40_browser_p41legacy
+          COOKIE_SECURE: 'false'
+          BACKEND_URL: http://127.0.0.1:8002
+        run: |
+          set -o pipefail
+          cd backend
+          python p41_seed_legacy_ci.py
+          python -m uvicorn server:app --host 127.0.0.1 --port 8002 > ../evidence/legacy-backend.log 2>&1 &
+          legacy_pid=$!
+          trap 'kill "$legacy_pid"' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8002/api/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8002/api/ >/dev/null
+          python -m pytest -q -ra -n 0 tests/test_tscheck_autoteste.py tests/test_tscheck_delivery_simulate.py tests/test_tscheck_nfce_invoice.py --junitxml=../evidence/legacy.xml 2>&1 | tee ../evidence/legacy.log
+      - name: Build and offline unit baseline
+        if: ${{ !cancelled() }}
+        working-directory: frontend
+        run: |
+          set -o pipefail
+          npm pkg delete 'devDependencies.@emergentbase/overlay' 'devDependencies.@emergentbase/visual-edits'
+          npm install --no-audit --no-fund --legacy-peer-deps
+          npx vitest run 2>&1 | tee ../evidence/vitest.log
+          npm run typecheck 2>&1 | tee ../evidence/typecheck.log
+          npm run build 2>&1 | tee ../evidence/build.log
+      - name: Chromium interface baseline (existing tests may mock API)
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          cd tests
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          cd ../frontend
+          npm run preview -- --host 127.0.0.1 --port 3000 > ../evidence/preview.log 2>&1 &
+          cd ../tests
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://localhost:3000/ >/dev/null
+          npx playwright test operator-session.spec.ts --project=desktop --project=mobile 2>&1 | tee ../evidence/playwright.log
+      - name: Real backend and real browser acceptance
+        if: ${{ !cancelled() }}
+        env:
+          DB_NAME: apollo_p40_browser_fictitious
+          COOKIE_SECURE: 'false'
+          CORS_ORIGINS: http://127.0.0.1:8001
+          SERVE_FRONTEND_DIR: ${{ github.workspace }}/frontend/dist
+        run: |
+          set -o pipefail
+          cd backend
+          python p40_seed_ci.py
+          python -m uvicorn server:app --host 127.0.0.1 --port 8001 > ../evidence/real-backend.log 2>&1 &
+          echo $! > ../evidence/backend.pid
+          cd ../tests
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8001/api/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8001/api/ > ../evidence/real-api-health.json
+          npx playwright test p40-real-api.spec.ts --project=desktop --project=mobile 2>&1 | tee ../evidence/real-playwright.log
+      - name: Record scope and checksums
+        if: always()
+        run: |
+          echo 'P41 experimental. P32 binary recovery remains unverified. All mandatory steps propagate failures; read individual logs/XML. No store authorization. Offline replay after restart and rollback require additional validation.' > evidence/SCOPE.txt
+          if test -d frontend/dist; then
+            find frontend/dist -type f -print0 | sort -z | xargs -0 sha256sum > evidence/web-SHA256SUMS.txt
+          fi
+          find evidence -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Apollo-P41-experimental-evidence
+          path: |
+            evidence/
+            frontend/dist/
+            tests/test-results/
+            tests/playwright-report/
+          retention-days: 14
