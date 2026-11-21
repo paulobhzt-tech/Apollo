@@ -446,16 +446,32 @@ async def cash_move(body: CashMoveIn, user: dict = Depends(require("caixa"))):
 async def apply_cash_move(body: CashMoveIn, user: dict, *, session=None):
     options = {"session": session} if session is not None else {}
     s = await current_cash(**cash_scope(user), **options)
+    if independent_cash() and not body.client_ref:
+        raise HTTPException(422, "Atualize o Apollo para enviar a referência da movimentação.")
+    if not s and independent_cash() and body.expected_session_id:
+        s = await db.cash_sessions.find_one(
+            {"id": body.expected_session_id, "opened_by_id": user["id"]}, {"_id": 0}, **options)
     if not s:
         raise HTTPException(400, "Nenhum caixa aberto")
     if body.expected_session_id is not None and body.expected_session_id != s["id"]:
         raise HTTPException(409, "O turno do caixa mudou. Atualize antes de tentar novamente.")
+    fingerprint = hashlib.sha256(json.dumps(
+        {"type": body.type, "amount": body.amount, "note": body.note.strip()},
+        sort_keys=True).encode()).hexdigest()
+    if body.client_ref:
+        previous = next((m for m in s.get("movements", []) if m.get("client_ref") == body.client_ref), None)
+        if previous:
+            if previous.get("request_fingerprint") != fingerprint:
+                raise HTTPException(409, "Referência de movimentação reutilizada com outros dados.")
+            return await cash_summary(s, **options)
+    if s["status"] != "aberto":
+        raise HTTPException(409, "Caixa já fechado; nenhuma movimentação registrada.")
     if body.type == "sangria" and len(body.note.strip()) < 3:
         raise HTTPException(400, "Informe o motivo da sangria (mínimo de 3 caracteres)")
     if body.type == "sangria" and body.amount > (await cash_summary(dict(s), **options))["expected_cash"]:
         raise HTTPException(400, "Sangria maior que o saldo em dinheiro")
     await claim_cash(s, session=session)
-    m = CashMovement(type=body.type, amount=body.amount, note=body.note, by_name=user["name"]).model_dump()
+    m = CashMovement(type=body.type, amount=body.amount, note=body.note.strip(), by_name=user["name"], client_ref=body.client_ref, request_fingerprint=fingerprint).model_dump()
     result = await db.cash_sessions.update_one({"id": s["id"], "status": "aberto",
         "$expr": {"$eq": [{"$size": {"$ifNull": ["$movements", []]}}, len(s.get("movements", []))]}}, {"$push": {"movements": m, "audit_events": audit_event("cash_" + body.type, user, reason=body.note, values={"amount": body.amount})}}, **options)
     if not result.modified_count:
