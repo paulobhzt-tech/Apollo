@@ -1,9 +1,9 @@
-/* Apollo PWA: cache only the public manifest.
+/* Apollo PWA: cache only the public manifest and a public offline notice.
  * NEVER cache private HTML, API, orders or financial data.
  * Offline sales use the separately controlled POS queue.
  */
-const CACHE = 'apollo-public-v2';
-const PUBLIC_ASSETS = ['/manifest.webmanifest'];
+const CACHE = 'apollo-public-v3';
+const PUBLIC_ASSETS = ['/manifest.webmanifest', '/offline.html'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(PUBLIC_ASSETS)));
   self.skipWaiting();
@@ -21,5 +21,8 @@ self.addEventListener('fetch', event => {
   if (url.pathname === '/manifest.webmanifest') {
     event.respondWith(fetch(req).catch(() => caches.match(req)));
   }
-  // Navigation, authentication, all API and business data remain network-only.
+  if (req.mode === 'navigate' && !url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(req).catch(() => caches.match('/offline.html')));
+  }
+  // No authenticated pages, credentials, API responses or business data enter CacheStorage.
 });

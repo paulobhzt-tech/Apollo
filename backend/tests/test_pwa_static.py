@@ -19,7 +19,7 @@ def test_pwa_files_and_registration_exist():
 
 def test_service_worker_never_caches_private_pages_or_api():
     sw = SW.read_text()
-    assert "PUBLIC_ASSETS = ['/manifest.webmanifest']" in sw
+    assert "PUBLIC_ASSETS = ['/manifest.webmanifest', '/offline.html']" in sw
     assert "url.pathname === '/manifest.webmanifest'" in sw
     assert "req.method !== 'GET'" in sw
     assert "url.origin !== self.location.origin" in sw
