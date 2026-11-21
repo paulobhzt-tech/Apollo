@@ -194,8 +194,8 @@ async def list_purchases(_: dict = Depends(require("caixa"))):
 
 @router.post("/purchases", response_model=Purchase)
 async def register_purchase(body: PurchaseIn, user: dict = Depends(require("caixa"))):
-    if not body.client_ref:
-        return await apply_purchase(body, user)
+    if not body.client_ref or not body.client_ref.strip():
+        raise HTTPException(422, "Informe uma referência persistente para registrar a compra com segurança")
     purchase_id = str(uuid5(NAMESPACE_URL, f"apollo-purchase:{user['id']}:{body.client_ref}"))
     expected = {**body.model_dump(), "qty": round(body.qty, 4)}
 
