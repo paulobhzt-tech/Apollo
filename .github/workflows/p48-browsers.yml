@@ -2,7 +2,7 @@ name: P48 browser engine operational matrix
 on:
   push:
     branches: [audit/p48-correcao-vps-offline-liberacao]
-    paths: ['.github/workflows/p48-browsers.yml']
+    paths: ['.github/workflows/p48-browsers.yml', 'tests/e2e/p48-offline-interruption.spec.ts']
   workflow_dispatch:
 permissions:
   contents: read
