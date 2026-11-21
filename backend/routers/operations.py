@@ -10,7 +10,7 @@ from pymongo.errors import DuplicateKeyError
 
 from lib.audit_alerts import summarize_audit_alerts
 from lib.audit import audit_event, verify_event
-from lib.cash_scope import cash_scope, independent_cash
+from lib.cash_scope import cash_scope, independent_cash, claim_cash, prepare_cash_mode
 from lib.auth import cancel_authorizer, current_user, require
 from lib.sync_identity import validate_sync_context
 from lib.db import db
@@ -349,6 +349,9 @@ async def apply_delivery_status(id: str, body: DeliveryStatusIn, user: dict, *, 
         upd["status"] = "cancelado"
     elif body.status == "entregue":
         cash = await current_cash(**cash_scope(user), **options)
+        if not cash:
+            raise HTTPException(400, "Abra o caixa do operador para receber a entrega.")
+        await claim_cash(cash, session=session)
         method = o.get("pay_on_delivery") or "online"
         upd.update(status="pago", paid_at=now(), payments=[{"method": method, "amount": o["total"]}],
                    cmv=round(sum(i.qty * i.unit_cost for i in items), 2),
@@ -374,12 +377,13 @@ async def apply_delivery_status(id: str, body: DeliveryStatusIn, user: dict, *, 
 
 
 # ---------- Cash register ----------
-async def cash_summary(s: dict) -> dict:
+async def cash_summary(s: dict, *, session=None) -> dict:
+    options = {"session": session} if session is not None else {}
     orders = await db.orders.find({"cash_session_id": s["id"], "status": "pago"},
-                                  {"_id": 0, "payments": 1, "change": 1, "total": 1, "refunds": 1}).to_list(10000)
+                                  {"_id": 0, "payments": 1, "change": 1, "total": 1, "refunds": 1}, **options).to_list(None)
     totals = method_totals(orders, with_brand=True)
     receipts = {}
-    async for receipt in db.customer_moves.find({"cash_session_id": s["id"], "type": "pagamento"}, {"_id": 0}):
+    async for receipt in db.customer_moves.find({"cash_session_id": s["id"], "type": "pagamento"}, {"_id": 0}, **options):
         receipts[receipt["id"]] = receipt
     async for receipt in db.fiado_customers.aggregate([
         {"$match": {"fiado_journal": {"$type": "object"}}},
@@ -387,7 +391,7 @@ async def cash_summary(s: dict) -> dict:
         {"$unwind": "$entries"},
         {"$match": {"entries.v.move.cash_session_id": s["id"], "entries.v.move.type": "pagamento"}},
         {"$replaceRoot": {"newRoot": "$entries.v.move"}},
-    ]):
+    ], **options):
         receipts[receipt["id"]] = receipt
     for receipt in receipts.values():
         key = pay_key(receipt)
@@ -419,6 +423,8 @@ async def cash_history(user: dict = Depends(require("caixa"))):
 
 @router.post("/cash/open", response_model=CashSession)
 async def cash_open(body: CashOpenIn, user: dict = Depends(require("caixa"))):
+    if independent_cash():
+        await prepare_cash_mode()
     if await current_cash(**cash_scope(user)):
         raise HTTPException(400, "Já existe um caixa aberto")
     s = CashSession(opened_by_id=user["id"] if independent_cash() else None, opened_by_name=user["name"], opening_amount=body.opening_amount, opening_note=body.note.strip(),
@@ -432,32 +438,48 @@ async def cash_open(body: CashOpenIn, user: dict = Depends(require("caixa"))):
 
 @router.post("/cash/movement", response_model=CashSession)
 async def cash_move(body: CashMoveIn, user: dict = Depends(require("caixa"))):
-    s = await current_cash(**cash_scope(user))
+    if independent_cash():
+        return await with_order_transaction(lambda session: apply_cash_move(body, user, session=session))
+    return await apply_cash_move(body, user)
+
+
+async def apply_cash_move(body: CashMoveIn, user: dict, *, session=None):
+    options = {"session": session} if session is not None else {}
+    s = await current_cash(**cash_scope(user), **options)
     if not s:
         raise HTTPException(400, "Nenhum caixa aberto")
     if body.expected_session_id is not None and body.expected_session_id != s["id"]:
         raise HTTPException(409, "O turno do caixa mudou. Atualize antes de tentar novamente.")
     if body.type == "sangria" and len(body.note.strip()) < 3:
         raise HTTPException(400, "Informe o motivo da sangria (mínimo de 3 caracteres)")
-    if body.type == "sangria" and body.amount > (await cash_summary(dict(s)))["expected_cash"]:
+    if body.type == "sangria" and body.amount > (await cash_summary(dict(s), **options))["expected_cash"]:
         raise HTTPException(400, "Sangria maior que o saldo em dinheiro")
+    await claim_cash(s, session=session)
     m = CashMovement(type=body.type, amount=body.amount, note=body.note, by_name=user["name"]).model_dump()
     result = await db.cash_sessions.update_one({"id": s["id"], "status": "aberto",
-        "$expr": {"$eq": [{"$size": {"$ifNull": ["$movements", []]}}, len(s.get("movements", []))]}}, {"$push": {"movements": m, "audit_events": audit_event("cash_" + body.type, user, reason=body.note, values={"amount": body.amount})}})
+        "$expr": {"$eq": [{"$size": {"$ifNull": ["$movements", []]}}, len(s.get("movements", []))]}}, {"$push": {"movements": m, "audit_events": audit_event("cash_" + body.type, user, reason=body.note, values={"amount": body.amount})}}, **options)
     if not result.modified_count:
         raise HTTPException(409, "O caixa mudou durante a operação. Atualize o saldo antes de tentar novamente.")
-    return await cash_summary(await db.cash_sessions.find_one({"id": s["id"]}, {"_id": 0}))
+    return await cash_summary(await db.cash_sessions.find_one({"id": s["id"]}, {"_id": 0}, **options), **options)
 
 
 @router.post("/cash/close", response_model=CashSession)
 async def cash_close(body: CashCloseIn, user: dict = Depends(require("caixa"))):
-    s = await current_cash(**cash_scope(user))
+    if independent_cash():
+        return await with_order_transaction(lambda session: apply_cash_close(body, user, session=session))
+    return await apply_cash_close(body, user)
+
+
+async def apply_cash_close(body: CashCloseIn, user: dict, *, session=None):
+    options = {"session": session} if session is not None else {}
+    s = await current_cash(**cash_scope(user), **options)
     if not s:
         raise HTTPException(400, "Nenhum caixa aberto")
     if body.expected_session_id is not None and body.expected_session_id != s["id"]:
         raise HTTPException(409, "O turno do caixa mudou. Atualize antes de tentar novamente.")
+    await claim_cash(s, session=session)
     s["counted_amount"] = body.counted_amount
-    s = await cash_summary(s)
+    s = await cash_summary(s, **options)
     upd = {k: s[k] for k in ("totals_by_method", "sales_count", "sales_total", "expected_cash", "difference", "counted_amount")}
     upd.update(status="fechado", closed_at=now(), closed_by_name=user["name"])
     result = await db.cash_sessions.update_one(
@@ -465,10 +487,11 @@ async def cash_close(body: CashCloseIn, user: dict = Depends(require("caixa"))):
          "$expr": {"$eq": [{"$size": {"$ifNull": ["$movements", []]}}, len(s.get("movements", []))]}},
         {"$set": {**upd, "closing_note": body.note.strip()},
          "$push": {"audit_events": audit_event("cash_closed", user, reason=body.note.strip(), values=upd)}},
+        **options,
     )
     if not result.modified_count:
         raise HTTPException(409, "O caixa mudou durante o fechamento. Atualize a conferência antes de tentar novamente.")
-    return await db.cash_sessions.find_one({"id": s["id"]}, {"_id": 0})
+    return await db.cash_sessions.find_one({"id": s["id"]}, {"_id": 0}, **options)
 
 
 @router.get("/audit/operations")
