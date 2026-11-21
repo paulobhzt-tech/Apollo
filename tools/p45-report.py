@@ -33,7 +33,7 @@ lines += ["## Alterações e auditoria funcional",
 "- Uso na loja permanece sujeito a resolver requisitos obrigatórios e aprovação explícita do proprietário.",
 "## Instalação e retorno",
 "Pacote Apollo-P45-homologacao.zip: fonte exata, frontend/dist e instruções. Não é instalador Windows assinado. Uso exclusivamente em ambiente isolado com dados fictícios.",
-"Para dois caixas independentes definir APOLLO_CASH_MODE=operator antes da primeira abertura, MONGO_URL de réplica dedicada, DB_NAME exclusivo, CORS_ORIGINS exato e HTTPS. Na ausência da variável, mantém modo shared legado.",
+"Para dois caixas independentes definir APOLLO_CASH_MODE=operator antes da primeira abertura, MONGO_URL de réplica dedicada, DB_NAME exclusivo, CORS_ORIGINS exato e HTTPS. Na ausência da variável, usa operator; shared precisa ser escolhido explicitamente para compatibilidade legada.",
 "Antes de futura atualização: encerrar todos os turnos, suspender lançamentos e preservar backup consistente do banco/configuração e build anterior. Restaurar primeiro em banco separado. Nunca ativar versão anterior para escrever enquanto houver caixas independentes abertos.",
 "Rollback automatizado desta execução é por processos em banco descartável; não comprova infraestrutura de destino."]
 for name in ["p45-two-cashiers.json","p45-p32-equivalent.json","p45-load-comparison.json","p44-sustained-10.json","p44-sustained-30.json","p44-sustained-50.json","p43-financial-load.json","restart-integrity.json","rollback-integrity.json"]:
