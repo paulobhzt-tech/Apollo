@@ -147,7 +147,7 @@ async def record_refund_adjustment(order, cash_id, amounts, key, user, reason, *
     if session is None:
         raise HTTPException(503, "Devolução entre turnos exige transação.")
     await db.cash_adjustments.insert_one({
-        "_id": order["id"] + ":" + key, "cash_session_id": cash_id,
+        "_id": order["id"] + ":" + key, "id": order["id"] + ":" + key, "cash_session_id": cash_id,
         "source_cash_session_id": order["cash_session_id"], "order_id": order["id"],
         "operator_id": user["id"], "by_name": user["name"], "at": now(), "reason": reason,
         "totals_by_method": {method: -round(amount, 2) for method, amount in amounts.items()},
@@ -562,7 +562,7 @@ async def operational_audit(action: Optional[str] = None, record_id: Optional[st
                             _: dict = Depends(require())):
     """Admin-only read view; never expose order/customer/payment payloads."""
     events = []
-    for name in ("orders", "cash_sessions", "kitchen_tickets"):
+    for name in ("orders", "cash_sessions", "cash_adjustments", "kitchen_tickets"):
         match = {"id": record_id} if record_id else {}
         pipeline = [{"$match": match}, {"$project": {"_id": 0, "id": 1, "audit_events": 1}},
                     {"$unwind": "$audit_events"}]
