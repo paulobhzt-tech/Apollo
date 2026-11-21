@@ -7,7 +7,7 @@ from pymongo.errors import DuplicateKeyError
 from fastapi import APIRouter, Depends, HTTPException
 
 from lib.audit import audit_event
-from lib.cash_scope import cash_scope
+from lib.cash_scope import cash_scope, claim_cash, independent_cash
 from lib.auth import require
 from lib.db import db
 from lib.orders import current_cash, validate_methods
@@ -16,8 +16,9 @@ from models.schemas import CustomerMove, FiadoCustomer, FiadoCustomerIn, OkOut, 
 router = APIRouter()
 
 
-async def get_customer(id: str) -> dict:
-    c = await db.fiado_customers.find_one({"id": id}, {"_id": 0})
+async def get_customer(id: str, *, session=None) -> dict:
+    options = {"session": session} if session is not None else {}
+    c = await db.fiado_customers.find_one({"id": id}, {"_id": 0}, **options)
     if not c:
         raise HTTPException(404, "Cliente não encontrado")
     return c
@@ -55,13 +56,14 @@ async def delete_customer(id: str, _: dict = Depends(require("caixa"))):
     return OkOut(message="Cliente descadastrado")
 
 
-async def publish_customer_move(move: dict):
+async def publish_customer_move(move: dict, *, session=None):
+    options = {"session": session} if session is not None else {}
     # The customer document commits the balance and the movement together.
     # This projection can be repeated after a lost response or a process restart.
     try:
-        await db.customer_moves.update_one({"_id": move["id"]}, {"$setOnInsert": move}, upsert=True)
+        await db.customer_moves.update_one({"_id": move["id"]}, {"$setOnInsert": move}, upsert=True, **options)
     except DuplicateKeyError:
-        if not await db.customer_moves.find_one({"_id": move["id"]}):
+        if not await db.customer_moves.find_one({"_id": move["id"]}, **options):
             raise
 
 
@@ -91,17 +93,18 @@ async def customer_moves(id: str, _: dict = Depends(require("caixa"))):
     return rows[:1000]
 
 
-async def record_customer_move(id, ref, fingerprint, user, build_move, *, reverse_id=None):
+async def record_customer_move(id, ref, fingerprint, user, build_move, *, reverse_id=None, session=None):
+    options = {"session": session} if session is not None else {}
     key = hashlib.sha256(ref.encode()).hexdigest()
     field = f"fiado_journal.{key}"
     for _ in range(5):
-        customer = await get_customer(id)
+        customer = await get_customer(id, **options)
         saved = customer.get("fiado_journal", {}).get(key)
         if saved:
             if saved["fingerprint"] != fingerprint or saved["move"]["operator_id"] != user["id"]:
                 raise HTTPException(409, "Referência já utilizada em outra operação.")
-            await publish_customer_move(saved["move"])
-            return await get_customer(id)
+            await publish_customer_move(saved["move"], **options)
+            return await get_customer(id, **options)
         move, delta = await build_move(customer)
         balance = round(customer["balance"] + delta, 2)
         move.update(id=f"fiado:{id}:{key}", operator_id=user["id"], balance_after=balance)
@@ -118,15 +121,23 @@ async def record_customer_move(id, ref, fingerprint, user, build_move, *, revers
             conditions[reversal] = {"$exists": False}
             changes[reversal] = move["id"]
         updated = await db.fiado_customers.find_one_and_update(conditions, {"$set": changes},
-                                                                return_document=ReturnDocument.AFTER)
+                                                                return_document=ReturnDocument.AFTER, **options)
         if updated:
-            await publish_customer_move(move)
+            await publish_customer_move(move, **options)
             return updated
     raise HTTPException(409, "Conta alterada por outro operador. Confira o extrato e tente novamente.")
 
 
 @router.post("/customers/{id}/receive", response_model=FiadoCustomer)
 async def receive(id: str, body: ReceiveIn, user: dict = Depends(require("caixa"))):
+    if independent_cash():
+        from routers.operations import with_order_transaction
+        return await with_order_transaction(lambda session: apply_receive(id, body, user, session=session))
+    return await apply_receive(id, body, user)
+
+
+async def apply_receive(id: str, body: ReceiveIn, user: dict, *, session=None):
+    options = {"session": session} if session is not None else {}
     async def build(customer):
         amount = round(body.amount, 2)
         if amount <= 0 or amount > customer["balance"]:
@@ -134,9 +145,10 @@ async def receive(id: str, body: ReceiveIn, user: dict = Depends(require("caixa"
         if body.method in ("credito", "debito") and not body.brand:
             raise HTTPException(400, "Informe a bandeira do cartão.")
         await validate_methods([body.method])
-        cash = await current_cash(**cash_scope(user))
+        cash = await current_cash(**cash_scope(user), **options)
         if not cash:
             raise HTTPException(400, "Caixa fechado. Abra o caixa para receber pagamentos.")
+        await claim_cash(cash, session=session)
         return CustomerMove(customer_id=id, type="pagamento", amount=amount, method=body.method,
                             brand=body.brand if body.method in ("credito", "debito") else None,
                             note=body.note, by_name=user["name"], cash_session_id=cash["id"]).model_dump(), -amount
@@ -144,7 +156,7 @@ async def receive(id: str, body: ReceiveIn, user: dict = Depends(require("caixa"
     fingerprint = hashlib.sha256(body.model_dump_json().encode()).hexdigest()
     if not body.client_ref:
         raise HTTPException(422, "Atualize o Apollo para enviar a referência do recebimento.")
-    return await record_customer_move(id, body.client_ref, fingerprint, user, build)
+    return await record_customer_move(id, body.client_ref, fingerprint, user, build, **options)
 
 
 class DebtIn(BaseModel):
