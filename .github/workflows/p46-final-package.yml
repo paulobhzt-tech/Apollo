@@ -1,0 +1,35 @@
+name: P46 final verified review package
+on:
+  push:
+    branches: [audit/p46-homologacao-operacional-real]
+    paths: ['.github/workflows/p46-final-package.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate reporting scripts
+        run: python -m py_compile tools/p46-finalize.py tools/p45-baseline.py
+      - name: Wait for exact tested candidate acceptance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run watch 44917919329 --exit-status --interval 20
+      - name: Verify immutable artifact and consolidate package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/p46-finalize.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Apollo-P46-final-review-package
+          path: |
+            collected/
+            final-summary.json
+          retention-days: 14
