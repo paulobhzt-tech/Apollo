@@ -103,12 +103,19 @@ test('UI operational shift: tables, shared customers, transfer, comanda, mixed p
     await expect(page.getByTestId('cash-open-panel')).toBeVisible();
     await info.attach('operational-closing',{body:JSON.stringify(result,null,2),contentType:'application/json'});
     await info.attach('operational-browser',{body:await page.screenshot(),contentType:'image/png'});
-  } finally {await context.close();}
+  } finally {
+    try {
+      const r=await context.request.get(base+'/api/cash/current');
+      const cash=r.ok()?await r.json():null;
+      if(cash?.id) await context.request.post(base+'/api/cash/close',{headers:{Origin:base},
+        data:{counted_amount:cash.expected_cash,expected_session_id:cash.id,note:'P43 disposable test cleanup'}});
+    } finally {await context.close();}
+  }
 });
-test('UI offline sale persists after reload, reconnects once and reconciles stock and cash',async({browser},info)=>{
+test('UI offline sale persists after browser restart, reconnects once and reconciles stock and cash',async({browser},info)=>{
   test.setTimeout(180000);
-  const context=await browser.newContext({...info.project.use,baseURL:base,ignoreHTTPSErrors:true});
-  const page=await context.newPage();
+  let context=await browser.newContext({...info.project.use,baseURL:base,ignoreHTTPSErrors:true});
+  let page=await context.newPage();
   page.on('dialog',d=>d.accept());
   async function read(path:string) {
     const r=await context.request.get(base+'/api'+path);
@@ -132,11 +139,17 @@ test('UI offline sale persists after reload, reconnects once and reconciles stoc
       .flatMap(k=>JSON.parse(localStorage.getItem(k)||'[]')));
     expect(queued).toHaveLength(1);
     const payload=queued[0].payload;
-    // Reload the actual application while transport remains offline. No storage injection.
-    await page.reload();
-    await expect(page.getByTestId('pdv-offline-banner')).toContainText('1 na fila');
     await info.attach('offline-queued',{body:await page.screenshot(),contentType:'image/png'});
-    await context.setOffline(false);
+    // Carry actual browser persistence into a fresh process context; never inject a sale.
+    const state=await context.storageState();
+    await context.close();
+    context=await browser.newContext({...info.project.use,baseURL:base,ignoreHTTPSErrors:true,storageState:state});
+    page=await context.newPage();
+    page.on('dialog',d=>d.accept());
+    await page.goto(base);
+    expect(await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('pdv_offline_queue:v3:'))
+      .flatMap(k=>JSON.parse(localStorage.getItem(k)||'[]')).length)).toBe(1);
+    await login(page);
     await expect.poll(()=>page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('pdv_offline_queue:v3:'))
       .flatMap(k=>JSON.parse(localStorage.getItem(k)||'[]')).length),{timeout:45000}).toBe(0);
     const replay=await context.request.post(base+'/api/pdv/sale',{data:payload,headers:{Origin:base}});
@@ -151,5 +164,12 @@ test('UI offline sale persists after reload, reconnects once and reconciles stoc
     await page.getByTestId('cash-close-button').click();
     await expect(page.getByTestId('cash-open-panel')).toBeVisible();
     await info.attach('offline-result',{body:JSON.stringify({reference:payload.client_ref,order:paid.order.id,stock_before:before,stock_after:before-1}),contentType:'application/json'});
-  }finally{await context.close();}
+  }finally {
+    try {
+      const r=await context.request.get(base+'/api/cash/current');
+      const cash=r.ok()?await r.json():null;
+      if(cash?.id) await context.request.post(base+'/api/cash/close',{headers:{Origin:base},
+        data:{counted_amount:cash.expected_cash,expected_session_id:cash.id,note:'P43 disposable test cleanup'}});
+    } finally {await context.close();}
+  }
 });
