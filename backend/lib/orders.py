@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from pymongo import ReturnDocument
 
 from lib.audit import audit_event
+from lib.cash_scope import cash_scope
 from lib.db import db
 from models.schemas import Invoice, InvoiceItem, KitchenItem, KitchenTicket, OrderItem, OrderItemIn, PayIn, PRODUCT_CHANNELS, ProductChannel, StockMove
 
@@ -290,8 +291,11 @@ async def refresh_totals(order_id: str, *, session=None) -> dict:
     return order
 
 
-async def current_cash(*, session=None) -> dict | None:
-    return await db.cash_sessions.find_one({"status": "aberto"}, {"_id": 0}, **_session_args(session))
+async def current_cash(*, session=None, operator_id=None) -> dict | None:
+    query = {"status": "aberto"}
+    if operator_id is not None:
+        query["opened_by_id"] = operator_id
+    return await db.cash_sessions.find_one(query, {"_id": 0}, **_session_args(session))
 
 
 async def emit_invoice(order: dict, doc_type: str = "nfce", cpf: str = "", *, session=None) -> dict:
@@ -329,7 +333,7 @@ def validate_payment_details(pay: PayIn) -> None:
 async def finalize_payment(order: dict, pay: PayIn, actor: dict | None = None, *, session=None) -> tuple[dict, dict | None]:
     if order["status"] != "aberto":
         raise HTTPException(400, "Este pedido já foi fechado")
-    cash = await current_cash(**_session_args(session))
+    cash = await current_cash(**cash_scope(actor), **_session_args(session))
     if not cash:
         raise HTTPException(400, "Caixa fechado. Abra o caixa para receber pagamentos.")
     sub = compute_subtotal(order)
