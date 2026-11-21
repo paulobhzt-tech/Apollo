@@ -1,0 +1,81 @@
+name: P47 Chromium PWA installability diagnostic
+on:
+  push:
+    branches: [audit/p47-validacao-vps-web-pwa]
+    paths: ['.github/workflows/p47-installability.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  installability:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download exact audited frontend and create disposable HTTPS server
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence webroot
+          python - <<'PY'
+          import hashlib,io,os,urllib.request,zipfile
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          class Redirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,headers,url):
+                  next_req=super().redirect_request(req,fp,code,msg,headers,url)
+                  if next_req is not None and urlsplit(req.full_url).netloc!=urlsplit(url).netloc: next_req.remove_header("Authorization")
+                  return next_req
+          req=urllib.request.Request("https://api.github.com/repos/"+os.environ["GITHUB_REPOSITORY"]+"/actions/artifacts/14713121325/zip",headers={"Authorization":"Bearer "+os.environ["GH_TOKEN"]})
+          data=urllib.request.build_opener(Redirect()).open(req,timeout=60).read()
+          assert hashlib.sha256(data).hexdigest()=="8c846f931c1ac037aa5e751e61feac2c3e10cbdd1d12bbb042cd3873f0c8b17d"
+          archive=zipfile.ZipFile(io.BytesIO(data))
+          count=0
+          for name in archive.namelist():
+              if "frontend/dist/" not in name or name.endswith("/"): continue
+              relative=Path(name.split("frontend/dist/",1)[1])
+              assert not relative.is_absolute() and ".." not in relative.parts
+              target=Path("webroot")/relative;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(archive.read(name));count+=1
+          assert count>0
+          PY
+          openssl req -x509 -newkey rsa:2048 -keyout /tmp/p47.key -out /tmp/p47.crt -days 1 -nodes -subj /CN=localhost >/dev/null 2>&1
+          cat > /tmp/p47-https.py <<'PY'
+          import http.server,ssl,os
+          os.chdir("webroot")
+          server=http.server.ThreadingHTTPServer(("127.0.0.1",8443),http.server.SimpleHTTPRequestHandler)
+          ctx=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);ctx.load_cert_chain("/tmp/p47.crt","/tmp/p47.key")
+          server.socket=ctx.wrap_socket(server.socket,server_side=True);server.serve_forever()
+          PY
+          python /tmp/p47-https.py > evidence/server.log 2>&1 &
+          cd tests
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chrome
+      - name: Query actual Chrome installability errors
+        working-directory: tests
+        run: |
+          set -o pipefail
+          node --input-type=module <<'JS' | tee ../evidence/installability.log
+          import {chromium} from '@playwright/test';
+          import {writeFileSync} from 'node:fs';
+          const browser=await chromium.launch({channel:'chrome',args:['--ignore-certificate-errors']});
+          try {
+            const context=await browser.newContext({ignoreHTTPSErrors:true});
+            const page=await context.newPage();
+            await page.goto('https://localhost:8443/');
+            await page.waitForFunction(()=>Boolean(navigator.serviceWorker.controller));
+            const cdp=await context.newCDPSession(page);
+            const result=await cdp.send('Page.getInstallabilityErrors');
+            writeFileSync('../evidence/installability.json',JSON.stringify({scope:'P46 exact build, real headless Chrome on Linux, local TLS exception; not physical installation',...result},null,2));
+            console.log(JSON.stringify(result));
+            if(result.installabilityErrors.length) process.exitCode=1;
+          } finally {await browser.close();}
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Apollo-P47-installability
+          path: evidence/
+          retention-days: 14
