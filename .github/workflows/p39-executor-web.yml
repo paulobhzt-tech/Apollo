@@ -1,0 +1,94 @@
+name: P39 isolated executor and Web baseline
+on:
+  push:
+    branches: [audit/p39-recuperacao-executor-web]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      MONGO_URL: mongodb://127.0.0.1:27017/?replicaSet=rs0
+      DB_NAME: apollo_p39_fictitious_ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Record executor and ancestry
+        run: |
+          mkdir -p evidence
+          git --version | tee evidence/git.txt
+          python --version | tee evidence/python.txt
+          node --version | tee evidence/node.txt
+          git rev-parse HEAD > evidence/commit.txt
+          git merge-base --is-ancestor 28ea95ce50863c7c3ce8368b91e8d98a6a5b99ec HEAD
+          git log --oneline -10 > evidence/history.txt
+          git diff --stat 28ea95ce50863c7c3ce8368b91e8d98a6a5b99ec origin/homolog/p10-operational-web > evidence/p10-comparison.txt
+      - name: Start disposable MongoDB replica set
+        run: |
+          docker run -d --name apollo-p39-mongo -p 127.0.0.1:27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+          for i in $(seq 1 60); do
+            if docker exec apollo-p39-mongo mongosh --quiet --eval 'db.adminCommand({ping:1})'; then break; fi
+            sleep 1
+          done
+          docker exec apollo-p39-mongo mongosh --quiet --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"localhost:27017"}]})'
+          for i in $(seq 1 60); do
+            if docker exec apollo-p39-mongo mongosh --quiet --eval 'db.hello().isWritablePrimary' | grep -q true; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Backend security and transactional payment baseline
+        run: |
+          set -o pipefail
+          python -m pip install pytest pytest-xdist pytest-asyncio httpx fastapi starlette motor pymongo python-dotenv bcrypt cryptography
+          cd backend
+          python -m pytest -q -n 0 tests/test_csrf_origin.py tests/test_auth_security.py tests/test_demo_guard.py tests/test_partial_payment_integration.py --junitxml=../evidence/backend.xml 2>&1 | tee ../evidence/backend.log
+      - name: Build and offline unit baseline
+        working-directory: frontend
+        run: |
+          set -o pipefail
+          npm pkg delete 'devDependencies.@emergentbase/overlay' 'devDependencies.@emergentbase/visual-edits'
+          npm install --no-audit --no-fund --legacy-peer-deps
+          npx vitest run 2>&1 | tee ../evidence/vitest.log
+          npm run build 2>&1 | tee ../evidence/build.log
+      - name: Chromium interface baseline (existing tests may mock API)
+        run: |
+          set -o pipefail
+          cd tests
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          cd ../frontend
+          npm run preview -- --host 127.0.0.1 --port 3000 > ../evidence/preview.log 2>&1 &
+          cd ../tests
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://localhost:3000/ >/dev/null
+          npx playwright test --project=desktop --project=mobile 2>&1 | tee ../evidence/playwright.log
+      - name: Record scope and checksums
+        if: always()
+        run: |
+          echo 'Executor/baseline only. P32 bundle NOT imported or SHA256 verified. Full real-backend P39 acceptance, recovery and rollback NOT certified. NOT authorized for production.' > evidence/SCOPE.txt
+          if test -d frontend/dist; then
+            find frontend/dist -type f -print0 | sort -z | xargs -0 sha256sum > evidence/web-SHA256SUMS.txt
+          fi
+          find evidence -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Apollo-P39-executor-baseline
+          path: |
+            evidence/
+            frontend/dist/
+            tests/test-results/
+            tests/playwright-report/
+          retention-days: 14
