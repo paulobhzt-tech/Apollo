@@ -10,13 +10,16 @@ db=MongoClient(os.environ["MONGO_URL"])[os.environ["DB_NAME"]]
 base="https://127.0.0.1:8001"
 tls=ssl.create_default_context(cafile="/tmp/apollo-p41-tls/apollo-local-ca.crt")
 clients=[]
+measurements=[]
 def connect(name):
     c=httpx.Client(base_url=base,verify=tls,headers={"Origin":base},timeout=60)
     c.post("/api/auth/login",json={"username":name,"password":"P40-Fictitious-Password!"}).raise_for_status()
     clients.append(c)
     return c
 def call(c,path,payload=None):
+    started=time.perf_counter()
     r=c.get("/api"+path) if payload is None else c.post("/api"+path,json=payload)
+    measurements.append(time.perf_counter()-started)
     assert r.is_success,(r.status_code,r.text)
     return r.json()
 prefix="p45-"+uuid.uuid4().hex
@@ -156,7 +159,12 @@ try:
         assert db.ingredients.find_one({"id":"p40ing"})["stock"]==race_stock
         assert db.orders.count_documents({"client_ref":race_payload["client_ref"]})==0
     assert race_closed["difference"]==0
-    result={"close_race":{"sale_status":race_sale.status_code,"close_status":race_close.status_code,
+    exported=call(admin,"/backup")
+    assert len(exported["data"]["cash_adjustments"])==2
+    Path("evidence/p45-ledger-backup.json").write_text(json.dumps(exported,indent=2))
+    latencies=sorted(measurements)
+    result={"measured_http_requests":len(latencies),"http_p95_seconds":latencies[int(.95*(len(latencies)-1))],
+        "unexpected_http_errors":0,"close_race":{"sale_status":race_sale.status_code,"close_status":race_close.status_code,
         "difference":race_closed["difference"]},"unique_sales":10,"sale_replays":10,"waiter_orders":1,"stock_delta":11,
         "cash_a":{"id":ca["id"],"expected":140,"difference":closed_a["difference"]},
         "cash_b":{"id":cb["id"],"expected":90,"difference":closed_b["difference"]},
