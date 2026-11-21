@@ -118,7 +118,10 @@ async def test_purchase_blocks_inconsistent_lot_if_ingredient_unit_changes(monke
     ))
     body = PurchaseIn(ingredient_id="i1", supplier_id="s1", qty=2, unit_cost=4.5)
     with pytest.raises(HTTPException) as error:
-        await catalog.register_purchase(body, {"name": "Caixa de teste"})
+        # This unit test isolates the guarded stock write. The HTTP reference
+        # requirement is covered by test_purchase_reference_required.py and the
+        # real database replay tests exercise the complete purchase endpoint.
+        await catalog.apply_purchase(body, {"name": "Caixa de teste"})
     assert error.value.status_code == 409
     query, update = ingredients.update_one.call_args.args
     assert query == {"id": "i1", "unit": "kg"}
