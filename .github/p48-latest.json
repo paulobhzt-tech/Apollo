@@ -1,0 +1,58 @@
+{
+  "sha": "f7e1bb92e09c5eeb9d31c711ce65f71597d1b6c4",
+  "run_id": "44933540629",
+  "result": "running",
+  "jobs": {
+    "total_count": 1,
+    "jobs": [
+      {
+        "id": 136935159380,
+        "run_id": 44933540629,
+        "workflow_name": "P48 isolated Web PWA acceptance",
+        "head_branch": "audit/p48-correcao-vps-offline-liberacao",
+        "run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/runs/44933540629",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVjMoH88AAAAf4fi2VA",
+        "head_sha": "f7e1bb92e09c5eeb9d31c711ce65f71597d1b6c4",
+        "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/jobs/136935159380",
+        "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44933540629/job/136935159380",
+        "status": "in_progress",
+        "conclusion": null,
+        "created_at": "2026-11-21T18:05:00Z",
+        "started_at": "2026-11-21T18:05:08Z",
+        "completed_at": null,
+        "name": "publish-start-receipt",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-11-21T18:05:09Z",
+            "completed_at": "2026-11-21T18:05:09Z"
+          },
+          {
+            "name": "Record this isolated execution and its jobs on P46 only",
+            "status": "in_progress",
+            "conclusion": null,
+            "number": 2,
+            "started_at": "2026-11-21T18:05:09Z",
+            "completed_at": null
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/check-runs/136935159380",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000012670,
+        "runner_name": "GitHub Actions 1000012670",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      }
+    ]
+  },
+  "artifacts": {
+    "total_count": 0,
+    "artifacts": []
+  }
+}
