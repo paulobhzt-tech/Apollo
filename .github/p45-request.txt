@@ -1,1 +1,1 @@
-Run P45 acceptance for operator-default registers, cash revisions, idempotent movements, debt receipts, safe refund gating and bounded P32-equivalent recovery.
+Run complete P45 regression including active and historical refunds, independent default registers, bounded interrupted-transaction recovery, UI, security, load, persistence and rollback.
