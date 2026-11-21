@@ -53,7 +53,7 @@ export default function Caixa() {
     onError: onErr,
   });
   const close = useMutation({
-    mutationFn: () => apiPost<CashSession>("/cash/close", { counted_amount: countedAmount, note: closingNote.trim(), expected_session_id: s?.id }),
+    mutationFn: () => apiPost<CashSession>("/cash/close", { counted_amount: countedAmount, note: closingNote.trim(), expected_session_id: s?.id, expected_financial_revision: s?.financial_revision }),
     onSuccess: (s) => { toast.success(`Caixa fechado · diferença ${brl(s.difference)}`); setCounted(""); setClosingNote(""); setBlind(true); inv(); setPrinting(s); },
     onError: onErr,
   });
