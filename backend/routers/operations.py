@@ -10,6 +10,7 @@ from pymongo.errors import DuplicateKeyError
 
 from lib.audit_alerts import summarize_audit_alerts
 from lib.audit import audit_event, verify_event
+from lib.cash_scope import cash_scope, independent_cash
 from lib.auth import cancel_authorizer, current_user, require
 from lib.sync_identity import validate_sync_context
 from lib.db import db
@@ -78,7 +79,7 @@ async def with_order_transaction(operation):
 
 async def record_counter_sale(body: QuickSaleIn, user: dict, *, session=None):
     options = {"session": session} if session is not None else {}
-    if not await current_cash(**options):
+    if not await current_cash(**cash_scope(user), **options):
         raise HTTPException(400, "Caixa fechado. Abra o caixa para receber pagamentos.")
     items = await build_items(body.items, channel="caixa")
     order = await new_order(channel="balcao", source="pdv", items=[i.model_dump() for i in items],
@@ -347,7 +348,7 @@ async def apply_delivery_status(id: str, body: DeliveryStatusIn, user: dict, *, 
     elif body.status == "recusado":
         upd["status"] = "cancelado"
     elif body.status == "entregue":
-        cash = await current_cash(**options)
+        cash = await current_cash(**cash_scope(user), **options)
         method = o.get("pay_on_delivery") or "online"
         upd.update(status="pago", paid_at=now(), payments=[{"method": method, "amount": o["total"]}],
                    cmv=round(sum(i.qty * i.unit_cost for i in items), 2),
@@ -403,21 +404,24 @@ async def cash_summary(s: dict) -> dict:
 
 
 @router.get("/cash/current", response_model=CashSession | None)
-async def cash_current(_: dict = Depends(require("caixa"))):
-    s = await current_cash()
+async def cash_current(user: dict = Depends(require("caixa"))):
+    s = await current_cash(**cash_scope(user))
     return await cash_summary(s) if s else None
 
 
 @router.get("/cash/history", response_model=list[CashSession])
-async def cash_history(_: dict = Depends(require("caixa"))):
-    return await db.cash_sessions.find({"status": "fechado"}, {"_id": 0}).sort("closed_at", -1).to_list(60)
+async def cash_history(user: dict = Depends(require("caixa"))):
+    query = {"status": "fechado"}
+    if independent_cash() and user.get("role") != "admin":
+        query["opened_by_id"] = user["id"]
+    return await db.cash_sessions.find(query, {"_id": 0}).sort("closed_at", -1).to_list(60)
 
 
 @router.post("/cash/open", response_model=CashSession)
 async def cash_open(body: CashOpenIn, user: dict = Depends(require("caixa"))):
-    if await current_cash():
+    if await current_cash(**cash_scope(user)):
         raise HTTPException(400, "Já existe um caixa aberto")
-    s = CashSession(opened_by_name=user["name"], opening_amount=body.opening_amount, opening_note=body.note.strip(),
+    s = CashSession(opened_by_id=user["id"] if independent_cash() else None, opened_by_name=user["name"], opening_amount=body.opening_amount, opening_note=body.note.strip(),
                     audit_events=[audit_event("cash_opened", user, reason=body.note.strip(), values={"opening_amount": body.opening_amount})]).model_dump()
     try:
         await db.cash_sessions.insert_one(dict(s))
@@ -428,7 +432,7 @@ async def cash_open(body: CashOpenIn, user: dict = Depends(require("caixa"))):
 
 @router.post("/cash/movement", response_model=CashSession)
 async def cash_move(body: CashMoveIn, user: dict = Depends(require("caixa"))):
-    s = await current_cash()
+    s = await current_cash(**cash_scope(user))
     if not s:
         raise HTTPException(400, "Nenhum caixa aberto")
     if body.expected_session_id is not None and body.expected_session_id != s["id"]:
@@ -447,7 +451,7 @@ async def cash_move(body: CashMoveIn, user: dict = Depends(require("caixa"))):
 
 @router.post("/cash/close", response_model=CashSession)
 async def cash_close(body: CashCloseIn, user: dict = Depends(require("caixa"))):
-    s = await current_cash()
+    s = await current_cash(**cash_scope(user))
     if not s:
         raise HTTPException(400, "Nenhum caixa aberto")
     if body.expected_session_id is not None and body.expected_session_id != s["id"]:
