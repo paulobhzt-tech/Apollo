@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from lib.audit import audit_event
-from lib.cash_scope import cash_scope, claim_cash
+from lib.cash_scope import cash_scope, claim_cash, independent_cash
 from lib.auth import cancel_authorizer, current_user, require
 from lib.db import client, db
 from lib.orders import (build_items, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods, validate_payment_details,
@@ -537,6 +537,10 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
             async with session.start_transaction():
                 previous = await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0}, session=session)
                 if previous:
+                    if independent_cash():
+                        receipt_cash = await db.cash_sessions.find_one({"id": previous.get("cash_session_id")}, session=session)
+                        if not receipt_cash or receipt_cash.get("opened_by_id") != user["id"]:
+                            raise HTTPException(403, "Pagamento parcial registrado em outro caixa.")
                     parent_id = previous.get("parent_order_id")
                     origin = previous.get("partial_table_id")
                     if parent_id and origin is None:
