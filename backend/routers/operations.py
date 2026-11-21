@@ -124,14 +124,35 @@ async def cancel_order(id: str, body: CancelIn, user: dict = Depends(current_use
     return await with_order_transaction(lambda session: apply_cancel_order(id, body, user, auth, session=session))
 
 
-async def guard_refund_cash(order: dict, *, session=None):
+async def guard_refund_cash(order: dict, user: dict, *, session=None):
     if not independent_cash() or order.get("status") != "pago":
-        return
+        return None
     options = {"session": session} if session is not None else {}
-    cash = await db.cash_sessions.find_one({"id": order.get("cash_session_id")}, {"_id": 0}, **options)
-    if not cash or cash.get("status") != "aberto":
-        raise HTTPException(409, "Caixa original fechado. Estorno exige ajuste financeiro administrativo; nenhuma alteração registrada.")
+    original = await db.cash_sessions.find_one({"id": order.get("cash_session_id")}, {"_id": 0}, **options)
+    if not original:
+        raise HTTPException(409, "Caixa original não encontrado. Solicite conferência administrativa.")
+    if original.get("status") == "aberto":
+        await claim_cash(original, session=session)
+        return None
+    cash = await current_cash(**cash_scope(user), **options)
+    if not cash:
+        raise HTTPException(409, "Abra seu caixa para registrar a devolução de um turno anterior.")
     await claim_cash(cash, session=session)
+    return cash["id"]
+
+
+async def record_refund_adjustment(order, cash_id, amounts, key, user, reason, *, session=None):
+    if cash_id is None:
+        return
+    if session is None:
+        raise HTTPException(503, "Devolução entre turnos exige transação.")
+    await db.cash_adjustments.insert_one({
+        "_id": order["id"] + ":" + key, "cash_session_id": cash_id,
+        "source_cash_session_id": order["cash_session_id"], "order_id": order["id"],
+        "operator_id": user["id"], "by_name": user["name"], "at": now(), "reason": reason,
+        "totals_by_method": {method: -round(amount, 2) for method, amount in amounts.items()},
+        "audit_events": [audit_event("closed_shift_refund", user, reason=reason, values=amounts)],
+    }, session=session)
 
 
 async def apply_cancel_order(id: str, body: CancelIn, user: dict, auth: str, *, session=None):
@@ -143,7 +164,7 @@ async def apply_cancel_order(id: str, body: CancelIn, user: dict, auth: str, *, 
         raise HTTPException(400, "Pedido já cancelado")
     if o.get("stock_completion") == "pending":
         raise HTTPException(409, "Confira a baixa pendente deste pedido antes de estornar.")
-    await guard_refund_cash(o, session=session)
+    refund_cash_id = await guard_refund_cash(o, user, session=session)
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
     result = await db.orders.update_one({"id": id, "status": o["status"], "items": o.get("items", []), "stock_completion": {"$ne": "pending"},
                                          "delivery_status": o.get("delivery_status")},
@@ -153,6 +174,7 @@ async def apply_cancel_order(id: str, body: CancelIn, user: dict, auth: str, *, 
     if not result.modified_count:
         raise HTTPException(409, "Pedido alterado por outro operador. Atualize antes de cancelar.")
     if o["status"] == "pago":
+        await record_refund_adjustment(o, refund_cash_id, method_totals([o], with_brand=True), "cancel", user, body.reason, session=session)
         fiado = sum(p["amount"] for p in o.get("payments", []) if p["method"] == "fiado") - \
             sum(r["amount"] for r in o.get("refunds", []) if r["method"] == "fiado")
         await fiado_reverse(o, fiado, who, f"Estorno do pedido #{o['number']}", **options)
@@ -185,7 +207,7 @@ async def apply_refund_item(id: str, item_id: str, body: CancelIn, user: dict, a
     item = next((i for i in o["items"] if i["id"] == item_id and not i.get("cancelled")), None)
     if not item:
         raise HTTPException(404, "Item não encontrado ou já cancelado")
-    await guard_refund_cash(o, session=session)
+    refund_cash_id = await guard_refund_cash(o, user, session=session)
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
     event = audit_event("item_refunded" if o["status"] == "pago" else "item_cancelled", user,
                         reason=body.reason, authorized_by=auth,
@@ -408,6 +430,13 @@ async def cash_summary(s: dict, *, session=None) -> dict:
     for receipt in receipts.values():
         key = pay_key(receipt)
         totals[key] = round(totals.get(key, 0) + receipt["amount"], 2)
+    adjustments = []
+    if independent_cash():
+        async for adjustment in db.cash_adjustments.find({"cash_session_id": s["id"]}, {"_id": 0}, **options):
+            adjustments.append(adjustment)
+            for method, amount in adjustment["totals_by_method"].items():
+                totals[method] = round(totals.get(method, 0) + amount, 2)
+    s["refund_adjustments"] = adjustments
     sup = sum(m["amount"] for m in s.get("movements", []) if m["type"] == "suprimento")
     san = sum(m["amount"] for m in s.get("movements", []) if m["type"] == "sangria")
     s["totals_by_method"] = totals
