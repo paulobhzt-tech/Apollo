@@ -578,6 +578,7 @@ class CashMoveIn(BaseModel):
 
 
 class CashCloseIn(BaseModel):
+    expected_financial_revision: Optional[int] = Field(default=None, ge=0)
     counted_amount: float = Field(ge=0, allow_inf_nan=False)
     note: str = Field(default="", max_length=500)
     expected_session_id: Optional[str] = None
