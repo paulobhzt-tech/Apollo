@@ -541,7 +541,8 @@ async def apply_cash_close(body: CashCloseIn, user: dict, *, session=None):
     await claim_cash(s, session=session)
     s["counted_amount"] = body.counted_amount
     s = await cash_summary(s, **options)
-    upd = {k: s[k] for k in ("totals_by_method", "sales_count", "sales_total", "expected_cash", "difference", "counted_amount", "refund_adjustments")}
+    upd = {k: s[k] for k in ("totals_by_method", "sales_count", "sales_total", "expected_cash", "difference", "counted_amount")}
+    upd["refund_adjustments"] = s.get("refund_adjustments", [])
     upd.update(status="fechado", closed_at=now(), closed_by_name=user["name"])
     result = await db.cash_sessions.update_one(
         {"id": s["id"], "status": "aberto",
