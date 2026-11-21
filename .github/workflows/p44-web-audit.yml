@@ -186,6 +186,14 @@ jobs:
           set -o pipefail
           cd tests
           npx playwright test p44-pwa.spec.ts --reporter=list,junit --output=test-results/p44-pwa --trace=on --project=desktop --project=mobile 2>&1 | tee ../evidence/p44-pwa.log
+      - name: P44 desktop tablet mobile interface zoom matrix
+        if: ${{ !cancelled() }}
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_FILE: ${{ github.workspace }}/evidence/p44-layout.xml
+        run: |
+          set -o pipefail
+          cd tests
+          npx playwright test p44-layout.spec.ts --reporter=list,junit --output=test-results/p44-layout --trace=on --project=desktop 2>&1 | tee ../evidence/p44-layout.log
       - name: P44 sustained 10/30/50-session and concurrent financial load
         if: ${{ !cancelled() }}
         env:

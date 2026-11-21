@@ -44,6 +44,9 @@ export default function Impressao() {
     if (!pr) throw new Error(`Cadastre uma impressora ativa para ${envName(envs.data, station)}`);
     if (isDesktop() && !pr.device_name) throw new Error(`Selecione a impressora Windows para ${envName(envs.data, station)}`);
     await printHtml(ticketHtml(t, station, envName(envs.data, station), pr?.paper), pr?.copies ?? 1, pr);
+    if (!isDesktop() && !window.confirm("O ticket saiu corretamente na impressora? Confirme somente após conferir o papel.")) {
+      throw new Error("Impressão não confirmada. O ticket permanece pendente; confira antes de tentar novamente.");
+    }
     const confirmed = await apiPost<KitchenTicket>(`/kds/tickets/${t.id}/printed`, { station });
     queryClient.setQueriesData<KitchenTicket[]>({ queryKey: ["print-queue"] },
       (tickets) => tickets?.map((ticket) => ticket.id === confirmed.id ? confirmed : ticket));
