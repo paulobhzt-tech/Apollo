@@ -1,9 +1,9 @@
 {
   "sha": "23f43967318f6754b91118c76fefbab9f8a20c1a",
   "run_id": "44912612918",
-  "result": "running",
+  "result": "cancelled",
   "jobs": {
-    "total_count": 1,
+    "total_count": 3,
     "jobs": [
       {
         "id": 136871528635,
@@ -16,11 +16,11 @@
         "head_sha": "23f43967318f6754b91118c76fefbab9f8a20c1a",
         "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/jobs/136871528635",
         "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44912612918/job/136871528635",
-        "status": "in_progress",
-        "conclusion": null,
+        "status": "completed",
+        "conclusion": "success",
         "created_at": "2026-11-21T14:11:37Z",
         "started_at": "2026-11-21T14:11:42Z",
-        "completed_at": null,
+        "completed_at": "2026-11-21T14:11:49Z",
         "name": "publish-start-receipt",
         "steps": [
           {
@@ -33,11 +33,19 @@
           },
           {
             "name": "Record this isolated execution and its jobs on P45 only",
-            "status": "in_progress",
-            "conclusion": null,
+            "status": "completed",
+            "conclusion": "success",
             "number": 2,
             "started_at": "2026-11-21T14:11:42Z",
-            "completed_at": null
+            "completed_at": "2026-11-21T14:11:47Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-11-21T14:11:47Z",
+            "completed_at": "2026-11-21T14:11:47Z"
           }
         ],
         "check_run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/check-runs/136871528635",
@@ -48,6 +56,69 @@
         "runner_name": "GitHub Actions 1000011389",
         "runner_group_id": 0,
         "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 136871581696,
+        "run_id": 44912612918,
+        "workflow_name": "P45 isolated Web PWA acceptance",
+        "head_branch": "audit/p45-liberacao-operacional-web-pwa",
+        "run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/runs/44912612918",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVjMoH88AAAAf3i6YAA",
+        "head_sha": "23f43967318f6754b91118c76fefbab9f8a20c1a",
+        "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/jobs/136871581696",
+        "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44912612918/job/136871581696",
+        "status": "completed",
+        "conclusion": "cancelled",
+        "created_at": "2026-11-21T14:11:49Z",
+        "started_at": "2026-11-21T14:11:54Z",
+        "completed_at": "2026-11-21T14:11:59Z",
+        "name": "baseline",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "cancelled",
+            "number": 1,
+            "started_at": "2026-11-21T14:11:55Z",
+            "completed_at": "2026-11-21T14:11:57Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/check-runs/136871581696",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000011401,
+        "runner_name": "GitHub Actions 1000011401",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 136871623645,
+        "run_id": 44912612918,
+        "workflow_name": "P45 isolated Web PWA acceptance",
+        "head_branch": "audit/p45-liberacao-operacional-web-pwa",
+        "run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/runs/44912612918",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVjMoH88AAAAf3i873Q",
+        "head_sha": "23f43967318f6754b91118c76fefbab9f8a20c1a",
+        "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/jobs/136871623645",
+        "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44912612918/job/136871623645",
+        "status": "queued",
+        "conclusion": null,
+        "created_at": "2026-11-21T14:11:59Z",
+        "started_at": "2026-11-21T14:11:59Z",
+        "completed_at": null,
+        "name": "publish-execution-receipt",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/check-runs/136871623645",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
       }
     ]
   },
