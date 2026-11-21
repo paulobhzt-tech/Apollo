@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from lib.auth import require
 from lib.db import db
+from lib.cash_scope import cash_scope
 from lib.orders import TAX_RATE, TZ, card_fee_table, current_cash, day_bounds, local_today, method_totals
 from models.schemas import CardFees, Dashboard, Dre, Expense, ExpenseIn, OkOut, OptionRank
 
@@ -162,7 +163,7 @@ async def dashboard(_: dict = Depends(require("caixa"))):
         "by_channel": nv(channels, SRC_LABEL),
         "top_products": top_products(orders, 5),
         "last7": last7,
-        "cash_open": bool(await current_cash()),
+        "cash_open": bool(await current_cash(**cash_scope(_))),
     }
 
 
