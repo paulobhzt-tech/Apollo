@@ -49,7 +49,7 @@ INDEXES: dict[str, list[IndexModel]] = {
                       (IndexModel([("status", ASCENDING), ("opened_by_id", ASCENDING)],
                                  name="open_cash_per_operator", unique=True,
                                  partialFilterExpression={"status": "aberto"})
-                       if os.environ.get("APOLLO_CASH_MODE") == "operator" else
+                       if os.environ.get("APOLLO_CASH_MODE", "operator") == "operator" else
                        IndexModel([("status", ASCENDING)], name="single_open_cash", unique=True,
                                   partialFilterExpression={"status": "aberto"}))],
     "fiado_customers": [_id_idx()],
