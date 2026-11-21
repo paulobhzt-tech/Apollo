@@ -11,7 +11,17 @@ from fastapi import Depends, HTTPException, Request
 from lib.db import db
 
 COOKIE = "pdv_session"
-SESSION_HOURS = 14
+def configured_session_hours() -> int:
+    try:
+        hours = int(os.environ.get("APOLLO_SESSION_HOURS", "168"))
+    except ValueError:
+        raise RuntimeError("APOLLO_SESSION_HOURS deve ser um número inteiro de horas.") from None
+    if not 1 <= hours <= 720:
+        raise RuntimeError("APOLLO_SESSION_HOURS deve estar entre 1 e 720.")
+    return hours
+
+
+SESSION_HOURS = configured_session_hours()
 
 
 def hash_pin(pin: str) -> str:
