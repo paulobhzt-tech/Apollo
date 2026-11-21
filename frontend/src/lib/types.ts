@@ -221,6 +221,8 @@ export interface Invoice {
 
 export interface CashMovement { type: "sangria" | "suprimento"; amount: number; note: string; by_name: string; at: string }
 export interface CashSession {
+  opened_by_id?: string | null;
+  financial_revision?: number;
   id: string;
   opened_by_name: string;
   opened_at: string;
