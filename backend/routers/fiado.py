@@ -7,6 +7,7 @@ from pymongo.errors import DuplicateKeyError
 from fastapi import APIRouter, Depends, HTTPException
 
 from lib.audit import audit_event
+from lib.cash_scope import cash_scope
 from lib.auth import require
 from lib.db import db
 from lib.orders import current_cash, validate_methods
@@ -133,7 +134,7 @@ async def receive(id: str, body: ReceiveIn, user: dict = Depends(require("caixa"
         if body.method in ("credito", "debito") and not body.brand:
             raise HTTPException(400, "Informe a bandeira do cartão.")
         await validate_methods([body.method])
-        cash = await current_cash()
+        cash = await current_cash(**cash_scope(user))
         if not cash:
             raise HTTPException(400, "Caixa fechado. Abra o caixa para receber pagamentos.")
         return CustomerMove(customer_id=id, type="pagamento", amount=amount, method=body.method,
