@@ -20,6 +20,8 @@ from routers import assistant, assistant_openai, auth, beverages, catalog, comme
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from lib.cash_scope import prepare_cash_mode
+    await prepare_cash_mode()
     app.state.index_task = asyncio.create_task(ensure_indexes())
     await production.ensure_environments()
     await finance.ensure_finance_defaults()
