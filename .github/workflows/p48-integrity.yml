@@ -1,0 +1,85 @@
+name: P48 build identity and read-only public comparison
+on:
+  push:
+    branches: [audit/p48-correcao-vps-offline-liberacao]
+    paths: ['.github/workflows/p48-integrity.yml']
+permissions:
+  contents: read
+jobs:
+  integrity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Git integrity and build
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          git fsck --full > evidence/git-fsck.txt 2>&1
+          git merge-base --is-ancestor 9e6beabed6e66e593fb07224006c54304e9a919f HEAD
+          git rev-parse HEAD > evidence/commit.txt
+          cd frontend
+          npm ci --legacy-peer-deps --no-audit --no-fund
+          npm run build
+          EXPECTED_COMMIT="$GITHUB_SHA" node scripts/verify-build.mjs
+          cp dist/build-integrity.json ../evidence/build-first.json
+          npm run build
+          cmp dist/build-integrity.json ../evidence/build-first.json
+          EXPECTED_COMMIT="$GITHUB_SHA" node scripts/verify-build.mjs
+      - name: Reject altered, extra, missing files and wrong source
+        working-directory: frontend
+        run: |
+          set -euo pipefail
+          cp dist/index.html /tmp/p48-index.html
+          printf '\nchanged\n' >> dist/index.html
+          if node scripts/verify-build.mjs; then exit 1; fi
+          cp /tmp/p48-index.html dist/index.html
+          printf 'unexpected' > dist/unexpected.js
+          if node scripts/verify-build.mjs; then exit 1; fi
+          rm dist/unexpected.js
+          mv dist/sw.js /tmp/p48-sw.js
+          if node scripts/verify-build.mjs; then exit 1; fi
+          mv /tmp/p48-sw.js dist/sw.js
+          if EXPECTED_COMMIT=0000000000000000000000000000000000000000 node scripts/verify-build.mjs; then exit 1; fi
+          EXPECTED_COMMIT="$GITHUB_SHA" node scripts/verify-build.mjs
+          echo 'Altered, extra, missing files and wrong commit rejected; restored build verified' > ../evidence/negative-tests.txt
+      - name: Public HTTPS reads without authentication or writes
+        shell: python
+        run: |
+          import hashlib,json,urllib.request
+          from pathlib import Path
+          manifest=json.loads(Path('frontend/dist/build-integrity.json').read_text())
+          rows=[]
+          for suffix in ('/','/sw.js','/manifest.webmanifest','/build-integrity.json','/api/'):
+              row={'url':'https://homologacao.apollo-pdv.com'+suffix}
+              try:
+                  req=urllib.request.Request(row['url'],headers={'Cache-Control':'no-cache','User-Agent':'Apollo-P48-readonly-validation'})
+                  with urllib.request.urlopen(req,timeout=20) as res:
+                      body=res.read(10000000)
+                      row.update(status=res.status,final_url=res.url,sha256=hashlib.sha256(body).hexdigest(),cache_control=res.headers.get('Cache-Control'),age=res.headers.get('Age'))
+                  name='index.html' if suffix=='/' else suffix.lstrip('/')
+                  expected=manifest['files'].get(name)
+                  if expected: row['matches_P48_build']=expected==row['sha256']
+              except Exception as error:
+                  row['error']=type(error).__name__
+              rows.append(row)
+          Path('evidence/public-comparison.json').write_text(json.dumps({'source':manifest['commit'],'public':rows,'vps_commit':'NOT PROVEN','isolation':'NOT PROVEN','deployment':'NOT EXECUTED'},indent=2))
+          print(json.dumps(rows,indent=2))
+      - name: Package checksums
+        if: always()
+        run: |
+          if test -d frontend/dist; then
+            tar -czf evidence/Apollo-P48-Web-PWA.tar.gz -C frontend/dist .
+          fi
+          find evidence -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Apollo-P48-integrity-web
+          path: evidence/
+          retention-days: 14
