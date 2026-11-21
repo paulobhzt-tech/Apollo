@@ -27,6 +27,7 @@ try:
     assert ca["id"]!=cb["id"]
     assert ca["opened_by_id"]=="p40caixa1" and cb["opened_by_id"]=="p40caixa2"
     before=db.ingredients.find_one({"id":"p40ing"})["stock"]
+    identity=call(a,"/auth/sync-context")
     def sale(i):
         c=a if i%2==0 else b
         payload={"client_ref":prefix+"-sale-"+str(i//2)+"-"+str(i%2),
@@ -110,6 +111,16 @@ try:
     assert refund_closed["difference"]==0
     # Refunding the last item must retain the actual cash outflow of a mixed receipt.
     last_cash=call(a,"/cash/open",{"opening_amount":100})
+    stale_payload={"client_ref":prefix+"-stale-shift","sync_context":identity,"expected_cash_session_id":ca["id"],
+        "items":[{"product_id":"p40product","qty":1}],"payments":[{"method":"dinheiro","amount":10}],
+        "emit_invoice":False,"send_to_kitchen":False}
+    stale=a.post("/api/pdv/sale",json=stale_payload)
+    assert stale.status_code==409,stale.text
+    unbound={k:v for k,v in stale_payload.items() if k!="expected_cash_session_id"}
+    unbound["client_ref"]=prefix+"-unbound-shift"
+    unbound_response=a.post("/api/pdv/sale",json=unbound)
+    assert unbound_response.status_code==422,unbound_response.text
+    assert db.orders.count_documents({"client_ref":{"$in":[stale_payload["client_ref"],unbound["client_ref"]]}})==0
     last_sale=call(a,"/pdv/sale",{"client_ref":prefix+"-last-item","items":[{"product_id":"p40product","qty":1}],
         "payments":[{"method":"dinheiro","amount":8},{"method":"pix","amount":4}],
         "emit_invoice":False,"send_to_kitchen":False})["order"]
@@ -149,6 +160,7 @@ try:
         "difference":race_closed["difference"]},"unique_sales":10,"sale_replays":10,"waiter_orders":1,"stock_delta":11,
         "cash_a":{"id":ca["id"],"expected":140,"difference":closed_a["difference"]},
         "cash_b":{"id":cb["id"],"expected":90,"difference":closed_b["difference"]},
+        "stale_offline_shift_status":stale.status_code,"unbound_offline_shift_status":unbound_response.status_code,
         "closed_shift_refund_without_open_cash_status":closed_refund.status_code,
         "active_last_item_mixed_refund_difference":last_closed["difference"],"historical_refunds":2,"historical_refund_cash_difference":refund_closed["difference"],"cross_register_movement_status":cross.status_code,"changed_replay_status":changed.status_code,
         "cross_register_sale_replay_status":other.status_code,"fiado_receipts":2,"fiado_replays":1,"mode":"operator","physical_devices":False}
