@@ -57,7 +57,7 @@ async def test_cash_move_audit_is_part_of_same_write(monkeypatch):
     cash = SimpleNamespace(update_one=AsyncMock(return_value=SimpleNamespace(modified_count=1)),
                            find_one=AsyncMock(return_value={"id": "c1", "status": "aberto"}))
     monkeypatch.setattr(operations, "db", SimpleNamespace(cash_sessions=cash))
-    monkeypatch.setattr(operations, "current_cash", AsyncMock(return_value={"id": "c1"}))
+    monkeypatch.setattr(operations, "current_cash", AsyncMock(return_value={"id": "c1", "status": "aberto"}))
     monkeypatch.setattr(operations, "cash_summary", AsyncMock(side_effect=lambda s: s))
     await operations.cash_move(CashMoveIn(type="suprimento", amount=30, note="Troco inicial"), {"id": "u1", "name": "Operator"})
     query, update = cash.update_one.await_args.args
