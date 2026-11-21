@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from lib.audit import audit_event
-from lib.cash_scope import cash_scope
+from lib.cash_scope import cash_scope, claim_cash
 from lib.auth import cancel_authorizer, current_user, require
 from lib.db import client, db
 from lib.orders import (build_items, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods, validate_payment_details,
@@ -547,6 +547,7 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
                             or (recorded_fingerprint and recorded_fingerprint != fingerprint)):
                         raise HTTPException(409, "Referência de pagamento já usada em outra operação")
                     return {"order": previous, "invoice": None}
+                await claim_cash(cash, session=session)
                 table = await db.tables.find_one({"id": id}, session=session)
                 if not table or not table.get("order_id"):
                     raise HTTPException(400, "Mesa sem comanda aberta")
