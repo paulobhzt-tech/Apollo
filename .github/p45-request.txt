@@ -1,1 +1,1 @@
-P45 full acceptance: financial isolation, shared compatibility, mixed last-item refunds, historical refund ledger, valid open-shift regression fixtures, P32-equivalent recovery, Web/PWA security and performance.
+Final P45 full acceptance: configurable multi-day sessions with expiration/revocation, original-shift offline binding, independent registers, refunds, actual backup restore, recovery, browser UI, security and measured performance.
