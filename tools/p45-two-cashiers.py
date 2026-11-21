@@ -108,6 +108,19 @@ try:
     refund_closed=call(admin,"/cash/close",{"counted_amount":84,"expected_session_id":refund_cash["id"],
         "expected_financial_revision":refund_summary["financial_revision"]})
     assert refund_closed["difference"]==0
+    # Refunding the last item must retain the actual cash outflow of a mixed receipt.
+    last_cash=call(a,"/cash/open",{"opening_amount":100})
+    last_sale=call(a,"/pdv/sale",{"client_ref":prefix+"-last-item","items":[{"product_id":"p40product","qty":1}],
+        "payments":[{"method":"dinheiro","amount":8},{"method":"pix","amount":4}],
+        "emit_invoice":False,"send_to_kitchen":False})["order"]
+    call(admin,"/orders/"+last_sale["id"]+"/items/"+last_sale["items"][0]["id"]+"/refund",
+        {"reason":"P45 ultimo item de pagamento misto"})
+    last_summary=call(a,"/cash/current")
+    assert last_summary["expected_cash"]==96,last_summary
+    assert last_summary["totals_by_method"]=={"dinheiro":-4,"pix":4},last_summary
+    last_closed=call(a,"/cash/close",{"counted_amount":96,"expected_session_id":last_cash["id"],
+        "expected_financial_revision":last_summary["financial_revision"]})
+    assert last_closed["difference"]==0
     # A new sale racing a reviewed closing is either rolled back or forces a recount.
     race_cash=call(a,"/cash/open",{"opening_amount":0})
     race_stock=db.ingredients.find_one({"id":"p40ing"})["stock"]
@@ -137,7 +150,7 @@ try:
         "cash_a":{"id":ca["id"],"expected":140,"difference":closed_a["difference"]},
         "cash_b":{"id":cb["id"],"expected":90,"difference":closed_b["difference"]},
         "closed_shift_refund_without_open_cash_status":closed_refund.status_code,
-        "historical_refunds":2,"historical_refund_cash_difference":refund_closed["difference"],"cross_register_movement_status":cross.status_code,"changed_replay_status":changed.status_code,
+        "active_last_item_mixed_refund_difference":last_closed["difference"],"historical_refunds":2,"historical_refund_cash_difference":refund_closed["difference"],"cross_register_movement_status":cross.status_code,"changed_replay_status":changed.status_code,
         "cross_register_sale_replay_status":other.status_code,"fiado_receipts":2,"fiado_replays":1,"mode":"operator","physical_devices":False}
     Path("evidence/p45-two-cashiers.json").write_text(json.dumps(result,indent=2))
     print(json.dumps(result),flush=True)
