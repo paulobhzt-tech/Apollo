@@ -1,5 +1,7 @@
 """Regression tests for reseller and franchise administration."""
 from unittest.mock import AsyncMock
+from types import SimpleNamespace
+from lib.auth import require_platform_admin
 import pytest
 from fastapi import HTTPException
 from routers import commercial_admin as admin
@@ -26,7 +28,7 @@ def test_location_code_validation():
 
 @pytest.mark.asyncio
 async def test_inactive_reseller_cannot_own_new_franchise(monkeypatch):
-    monkeypatch.setattr(admin.db.commercial_resellers, "find_one", AsyncMock(return_value=None))
+    monkeypatch.setattr(admin, "db", SimpleNamespace(commercial_resellers=SimpleNamespace(find_one=AsyncMock(return_value=None))))
     with pytest.raises(HTTPException) as error:
         await admin.create_franchise(admin.FranchiseIn(name="Rede Teste", reseller_id="inativo"), {"id": "admin"})
     assert error.value.status_code == 422
@@ -34,7 +36,7 @@ async def test_inactive_reseller_cannot_own_new_franchise(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_unit_requires_existing_franchise(monkeypatch):
-    monkeypatch.setattr(admin.db.commercial_franchises, "find_one", AsyncMock(return_value=None))
+    monkeypatch.setattr(admin, "db", SimpleNamespace(commercial_franchises=SimpleNamespace(find_one=AsyncMock(return_value=None))))
     with pytest.raises(HTTPException) as error:
         await admin.create_franchise_location("missing", admin.LocationIn(name="Loja 1"), {"id": "admin"})
     assert error.value.status_code == 404
@@ -42,9 +44,10 @@ async def test_unit_requires_existing_franchise(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_unit_duplicate_code_rejected_within_franchise(monkeypatch):
-    monkeypatch.setattr(admin.db.commercial_franchises, "find_one", AsyncMock(return_value={"id": "franchise-1"}))
     duplicate = AsyncMock(return_value={"id": "existing"})
-    monkeypatch.setattr(admin.db.commercial_locations, "find_one", duplicate)
+    monkeypatch.setattr(admin, "db", SimpleNamespace(
+        commercial_franchises=SimpleNamespace(find_one=AsyncMock(return_value={"id": "franchise-1"})),
+        commercial_locations=SimpleNamespace(find_one=duplicate)))
     with pytest.raises(HTTPException) as error:
         await admin.create_franchise_location(
             "franchise-1", admin.LocationIn(name="Loja 2", external_code="store-1"), {"id": "admin"},
@@ -60,5 +63,12 @@ def test_registry_endpoints_require_admin():
     for route in routes:
         dependencies = [dependency.call for dependency in route.dependant.dependencies]
         assert len(dependencies) == 1
-        assert dependencies[0].__name__ == "dep"
-        assert dependencies[0].__closure__[0].cell_contents == ("admin",)
+        assert dependencies[0] is require_platform_admin
+
+
+@pytest.mark.asyncio
+async def test_restaurant_admin_cannot_manage_platform_registry():
+    with pytest.raises(HTTPException) as error:
+        await require_platform_admin({"role": "admin"})
+    assert error.value.status_code == 403
+    assert await require_platform_admin({"role": "admin", "platform_role": "superadmin"})
