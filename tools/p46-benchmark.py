@@ -38,6 +38,7 @@ async def measured(*args,**kwargs):
         return await original(*args,**kwargs)
     finally:
         metrics["transaction_body_seconds"]+=time.monotonic()-started
+        Path("profile.json").write_text(json.dumps(metrics))
 operations.record_counter_sale=measured
 import server,uvicorn
 try:
