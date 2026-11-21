@@ -1,0 +1,41 @@
+{
+  "sha": "1cb89cff2419a993bd31878a0e91e42ef7547d6f",
+  "run_id": "44917409891",
+  "result": "running",
+  "jobs": {
+    "total_count": 1,
+    "jobs": [
+      {
+        "id": 136885875323,
+        "run_id": 44917409891,
+        "workflow_name": "P46 isolated Web PWA acceptance",
+        "head_branch": "audit/p46-homologacao-operacional-real",
+        "run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/runs/44917409891",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVjMoH88AAAAf3wiyew",
+        "head_sha": "1cb89cff2419a993bd31878a0e91e42ef7547d6f",
+        "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/jobs/136885875323",
+        "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44917409891/job/136885875323",
+        "status": "in_progress",
+        "conclusion": null,
+        "created_at": "2026-11-21T15:06:36Z",
+        "started_at": "2026-11-21T15:06:38Z",
+        "completed_at": null,
+        "name": "publish-start-receipt",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/check-runs/136885875323",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000012294,
+        "runner_name": "GitHub Actions 1000012294",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      }
+    ]
+  },
+  "artifacts": {
+    "total_count": 0,
+    "artifacts": []
+  }
+}
