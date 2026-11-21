@@ -1,0 +1,40 @@
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
+const root = path.resolve('dist');
+const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
+const commit = git('rev-parse', 'HEAD');
+if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('Invalid source commit');
+const dirty = git('status', '--porcelain', '--untracked-files=no');
+if (dirty) throw new Error('Refusing provenance for modified tracked sources');
+async function files(dir) {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const found = [];
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) found.push(...await files(full));
+    else if (entry.isFile()) found.push(full);
+    else throw new Error('Unsupported build entry: ' + full);
+  }
+  return found;
+}
+const hashes = {};
+for (const file of (await files(root)).sort()) {
+  const name = path.relative(root, file).split(path.sep).join('/');
+  if (name === 'build-integrity.json') continue;
+  hashes[name] = createHash('sha256').update(await readFile(file)).digest('hex');
+}
+const manifest = {
+  schema: 1,
+  application: 'Apollo PDV 3.0.1',
+  commit,
+  sourceDate: git('show', '-s', '--format=%cI', 'HEAD'),
+  workflowRun: process.env.GITHUB_RUN_ID || null,
+  workflowAttempt: process.env.GITHUB_RUN_ATTEMPT || null,
+  files: hashes,
+  scope: 'Build identity only; does not attest deployment, backend compatibility or operational approval.'
+};
+await writeFile(path.join(root, 'build-integrity.json'), JSON.stringify(manifest, null, 2) + '\n');
+console.log('Build integrity:', commit, Object.keys(hashes).length, 'files');
