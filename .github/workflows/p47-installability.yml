@@ -60,9 +60,8 @@ jobs:
           node --input-type=module <<'JS' | tee ../evidence/installability.log
           import {chromium} from '@playwright/test';
           import {writeFileSync} from 'node:fs';
-          const browser=await chromium.launch({channel:'chrome',args:['--ignore-certificate-errors']});
+          const context=await chromium.launchPersistentContext('/tmp/p47-install-profile',{channel:'chrome',ignoreHTTPSErrors:true,args:['--ignore-certificate-errors']});
           try {
-            const context=await browser.newContext({ignoreHTTPSErrors:true});
             const page=await context.newPage();
             await page.goto('https://localhost:8443/');
             await page.waitForFunction(()=>Boolean(navigator.serviceWorker.controller));
@@ -71,7 +70,7 @@ jobs:
             writeFileSync('../evidence/installability.json',JSON.stringify({scope:'P46 exact build, real headless Chrome on Linux, local TLS exception; not physical installation',...result},null,2));
             console.log(JSON.stringify(result));
             if(result.installabilityErrors.length) process.exitCode=1;
-          } finally {await browser.close();}
+          } finally {await context.close();}
           JS
       - uses: actions/upload-artifact@v4
         if: always()
