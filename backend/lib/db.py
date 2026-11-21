@@ -46,8 +46,12 @@ INDEXES: dict[str, list[IndexModel]] = {
     "invoices": [_id_idx(), IndexModel([("emitted_at", DESCENDING)], name="emitted_desc")],
     "purchases": [_id_idx(), IndexModel([("ingredient_id", ASCENDING), ("expiry_date", ASCENDING)], name="ingredient_expiry")],
     "cash_sessions": [_id_idx(), IndexModel([("status", ASCENDING)], name="status"),
-                      IndexModel([("status", ASCENDING)], name="single_open_cash", unique=True,
-                                 partialFilterExpression={"status": "aberto"})],
+                      (IndexModel([("status", ASCENDING), ("opened_by_id", ASCENDING)],
+                                 name="open_cash_per_operator", unique=True,
+                                 partialFilterExpression={"status": "aberto"})
+                       if os.environ.get("APOLLO_CASH_MODE") == "operator" else
+                       IndexModel([("status", ASCENDING)], name="single_open_cash", unique=True,
+                                  partialFilterExpression={"status": "aberto"}))],
     "fiado_customers": [_id_idx()],
     "printers": [_id_idx()],
     "customer_moves": [IndexModel([("customer_id", ASCENDING), ("at", DESCENDING)], name="customer_at"),
