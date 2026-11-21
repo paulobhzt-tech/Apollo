@@ -93,7 +93,7 @@ Logs, XMLs e test-results: evidências de execução. Não contêm autorização
 for name in ("python-audit.json", "npm-audit.json", "read-load.json", "restart-integrity.json", "rollback-integrity.json"):
     path = out / name
     if not path.exists():
-        text += "\\nResultado ausente: " + name + "\\n"
+        text += "\nResultado ausente: " + name + "\n"
         continue
     data = json.loads(path.read_text())
     if name == "python-audit.json":
@@ -104,6 +104,6 @@ for name in ("python-audit.json", "npm-audit.json", "read-load.json", "restart-i
         data = data.get("metadata", data)
     elif name == "restart-integrity.json":
         data = {"same": data.get("same"), "collections": list(data.get("before", {}))}
-    text += "\\n### " + name + "\\n\\n" + json.dumps(data, indent=2, ensure_ascii=False) + "\\n"
+    text += "\n### " + name + "\n\n```json\n" + json.dumps(data, indent=2, ensure_ascii=False) + "\n```\n"
 (out / "Apollo-P41-Auditoria.md").write_text(text)
 print("Audit report generated for", commit)
