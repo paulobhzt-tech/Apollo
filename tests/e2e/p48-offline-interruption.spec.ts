@@ -1,12 +1,15 @@
 import { test, expect } from '@playwright/test';
-import { createServer } from 'node:http';
+import { createServer } from 'node:https';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 test('P48 offline navigation with real server interruption and no network emulation', async ({ page }, testInfo) => {
   const root = path.resolve('../frontend/dist');
-  const server = createServer(async (req, res) => {
-    const url = new URL(req.url || '/', 'http://localhost');
+  const server = createServer({
+    key: await readFile('/tmp/apollo-p41-tls/server.key'),
+    cert: await readFile('/tmp/apollo-p41-tls/server.crt'),
+  }, async (req, res) => {
+    const url = new URL(req.url || '/', 'https://localhost');
     const target = url.pathname === '/sw.js' ? 'sw.js'
       : url.pathname === '/manifest.webmanifest' ? 'manifest.webmanifest'
       : url.pathname === '/offline.html' ? 'offline.html'
@@ -26,7 +29,7 @@ test('P48 offline navigation with real server interruption and no network emulat
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('Missing disposable listener');
-  const base = 'http://127.0.0.1:' + address.port;
+  const base = 'https://127.0.0.1:' + address.port;
   try {
     await page.goto(base);
     await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)), { timeout: 20000 }).toBe(true);
@@ -38,7 +41,7 @@ test('P48 offline navigation with real server interruption and no network emulat
     await expect(page.getByRole('heading', { name: 'Apollo sem conexão' })).toBeVisible();
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Apollo sem conexão' })).toBeVisible();
-    await testInfo.attach('scope', { body: 'Real loopback HTTP server stopped; secure-context loopback exception. Public fallback only, no offline sales or physical iPhone approval.', contentType: 'text/plain' });
+    await testInfo.attach('scope', { body: 'Real loopback HTTPS server stopped, using the same disposable TLS certificate as the operational tests. Public fallback only, no offline sales or physical iPhone approval.', contentType: 'text/plain' });
   } finally {
     server.closeAllConnections();
     server.close();
