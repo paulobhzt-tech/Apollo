@@ -1,0 +1,1 @@
+Run full P45 acceptance after cashier isolation, idempotent movements, reviewed closing and P32-equivalent recovery.
