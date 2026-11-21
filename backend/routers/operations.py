@@ -217,7 +217,7 @@ async def list_invoices(_: dict = Depends(require("caixa"))):
 
 
 @router.get("/invoices/{id}", response_model=Invoice)
-async def get_invoice(id: str, _: dict = Depends(current_user)):
+async def get_invoice(id: str, _: dict = Depends(require("caixa"))):
     inv = await db.invoices.find_one({"id": id}, {"_id": 0})
     if not inv:
         raise HTTPException(404, "Nota não encontrada")

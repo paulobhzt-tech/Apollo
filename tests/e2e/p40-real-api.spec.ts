@@ -27,6 +27,8 @@ test('real API: two cashiers and waiter, shared table, mixed payments and replay
     const [c1,c2,w] = await Promise.all([login('p40caixa1'),login('p40caixa2'),login('p40garcom')]);
     const denied = await w.context.request.post(base+'/api/cash/open',{data:{opening_amount:0},headers:{Origin:base}});
     expect(denied.status()).toBe(403);
+    const deniedInvoice = await w.context.request.get(base+'/api/invoices/p41-invoice-access-probe');
+    expect(deniedInvoice.status()).toBe(403);
     const missingOrigin = await c1.context.request.post(base+'/api/cash/open',{data:{opening_amount:0}});
     expect(missingOrigin.status()).toBe(403);
     const hostileOrigin = await c1.context.request.post(base+'/api/cash/open',{data:{opening_amount:0},headers:{Origin:'https://hostile.invalid'}});
