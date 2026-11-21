@@ -228,13 +228,21 @@ jobs:
         run: |
           set -o pipefail
           python tools/p45-two-cashiers.py 2>&1 | tee evidence/p45-two-cashiers.log
+      - name: Restore actual P45 financial backup in a separate new database
+        if: ${{ !cancelled() }}
+        env:
+          DB_NAME: apollo_restore_test_p45_ledger
+          APOLLO_CASH_MODE: operator
+        run: |
+          set -o pipefail
+          python tools/p45-ledger-restore.py 2>&1 | tee evidence/p45-ledger-restore.log
       - name: P45 sustained 10/30/50-session and concurrent financial load
         if: ${{ !cancelled() }}
         env:
           DB_NAME: apollo_p40_browser_fictitious
         run: |
           set -o pipefail
-          python tools/p44-load.py 2>&1 | tee evidence/p43-load.log
+          python tools/p45-load.py 2>&1 | tee evidence/p43-load.log
       - name: Compare sustained load against historical P44 evidence
         if: ${{ !cancelled() }}
         env:
