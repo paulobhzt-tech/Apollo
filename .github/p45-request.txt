@@ -1,1 +1,1 @@
-Full P45 validation after correcting last mixed-payment item refund cash outflow, historical refunds, immutable closing snapshots and independent operator registers.
+P45 full acceptance: financial isolation, shared compatibility, mixed last-item refunds, historical refund ledger, valid open-shift regression fixtures, P32-equivalent recovery, Web/PWA security and performance.
