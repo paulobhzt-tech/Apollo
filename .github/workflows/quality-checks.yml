@@ -15,6 +15,7 @@ jobs:
     env:
       MONGO_URL: mongodb://127.0.0.1:27017
       DB_NAME: apollo_ci
+      APOLLO_CASH_MODE: shared
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,6 +36,7 @@ jobs:
     env:
       MONGO_URL: mongodb://127.0.0.1:27017/?replicaSet=rs0
       DB_NAME: apollo_partial_ci
+      APOLLO_CASH_MODE: shared
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
