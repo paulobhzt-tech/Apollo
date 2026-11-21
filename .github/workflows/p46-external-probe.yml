@@ -1,0 +1,48 @@
+name: P46 external homologation read-only probe
+on:
+  push:
+    branches: [audit/p46-homologacao-operacional-real]
+    paths: ['.github/workflows/p46-external-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check public HTTPS endpoints without authentication
+        shell: python
+        run: |
+          import json,urllib.request,urllib.error,socket,ssl
+          from pathlib import Path
+          records=[]
+          for host in ("homologacao.apollo-pdv.com","teste.apollo-pdv.com"):
+              for path in ("/","/api/","/openapi.json"):
+                  url="https://"+host+path
+                  record={"url":url}
+                  try:
+                      request=urllib.request.Request(url,headers={"User-Agent":"Apollo-P46-readonly-validation"})
+                      with urllib.request.urlopen(request,timeout=15) as response:
+                          data=response.read(2000000)
+                          record.update(status=response.status,final_url=response.url,content_type=response.headers.get("Content-Type"))
+                          if path=="/openapi.json":
+                              try:
+                                  schema=json.loads(data)
+                                  record.update(info=schema.get("info"),operations=sum(k.lower() in ("get","post","put","patch","delete","options","head") for item in schema.get("paths",{}).values() for k in item))
+                              except (ValueError,AttributeError):
+                                  record["schema"]="not an OpenAPI JSON response"
+                          elif path=="/api/":
+                              record["public_health_body"]=data[:2000].decode("utf-8",errors="replace")
+                          else:
+                              record["html_document"]=b"<html" in data.lower() or b"<!doctype html" in data.lower()
+                  except Exception as error:
+                      record.update(error=type(error).__name__,detail=str(error))
+                  records.append(record)
+                  print(json.dumps(record,ensure_ascii=False),flush=True)
+          Path("external-probe.json").write_text(json.dumps({"scope":"Public GET only; no credentials, login, deployment or data mutations. Reachability does not prove candidate SHA or infrastructure isolation.","results":records},indent=2))
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Apollo-P46-external-readonly-probe
+          path: external-probe.json
+          retention-days: 14
