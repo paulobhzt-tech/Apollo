@@ -5,16 +5,16 @@ import json
 import os
 from pathlib import Path
 import signal
-import statistics
 import subprocess
 import time
 
+import ssl
 import httpx
 from bson.json_util import dumps
 from pymongo import MongoClient
 
 assert os.environ["DB_NAME"] == "apollo_p40_browser_fictitious"
-base = "http://127.0.0.1:8001"
+base = "https://127.0.0.1:8001"
 out = Path("evidence")
 db = MongoClient(os.environ["MONGO_URL"], tz_aware=True)[os.environ["DB_NAME"]]
 collections = ["orders", "ingredients", "purchases", "stock_moves", "lot_consumptions",
@@ -26,7 +26,7 @@ def snapshot():
         result[name] = {"count": len(rows), "sha256": hashlib.sha256(dumps(rows, sort_keys=True).encode()).hexdigest()}
     return result
 before = snapshot()
-with httpx.Client(base_url=base, headers={"Origin": base}) as client:
+with httpx.Client(base_url=base, headers={"Origin": base}, verify=ssl.create_default_context(cafile="/tmp/apollo-p41-tls/apollo-local-ca.crt")) as client:
     response = client.post("/api/auth/login", json={"username": "p40admin", "password": "P40-Fictitious-Password!"})
     response.raise_for_status()
     cookies = dict(client.cookies)
@@ -58,7 +58,7 @@ with httpx.Client(base_url=base, headers={"Origin": base}) as client:
     else:
         raise AssertionError("Replica did not recover")
     with (out / "restarted-backend.log").open("w") as log:
-        process = subprocess.Popen(["python", "-m", "uvicorn", "server:app", "--host", "127.0.0.1", "--port", "8001"],
+        process = subprocess.Popen(["python", "-m", "uvicorn", "server:app", "--host", "127.0.0.1", "--port", "8001", "--ssl-keyfile", "/tmp/apollo-p41-tls/server.key", "--ssl-certfile", "/tmp/apollo-p41-tls/server.crt"],
                                    cwd="backend", stdout=log, stderr=subprocess.STDOUT)
     for _ in range(60):
         try:

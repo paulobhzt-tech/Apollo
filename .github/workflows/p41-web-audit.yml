@@ -110,11 +110,18 @@ jobs:
           set -o pipefail
           python -m pip freeze > evidence/python-installed.txt
           python -m pip install pip-audit
-          python -m pip_audit --format json --output evidence/python-audit.json
+          audit_status=0
+          python -m pip_audit --format json --output evidence/python-audit.json || audit_status=$?
+          cat evidence/python-audit.json
+          exit "$audit_status"
       - name: Frontend dependency vulnerability audit
         if: ${{ !cancelled() }}
         working-directory: frontend
-        run: npm audit --audit-level=high --json > ../evidence/npm-audit.json
+        run: |
+          audit_status=0
+          npm audit --audit-level=high --json > ../evidence/npm-audit.json || audit_status=$?
+          cat ../evidence/npm-audit.json
+          exit "$audit_status"
       - name: Chromium interface baseline (existing tests may mock API)
         if: ${{ !cancelled() }}
         run: |
@@ -135,28 +142,29 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           DB_NAME: apollo_p40_browser_fictitious
-          COOKIE_SECURE: 'false'
-          CORS_ORIGINS: http://127.0.0.1:8001
+          COOKIE_SECURE: 'true'
+          CORS_ORIGINS: https://127.0.0.1:8001
           SERVE_FRONTEND_DIR: ${{ github.workspace }}/frontend/dist
         run: |
           set -o pipefail
+          python local-server/gerar-certificado.py /tmp/apollo-p41-tls 127.0.0.1
           cd backend
           python p40_seed_ci.py
-          python -m uvicorn server:app --host 127.0.0.1 --port 8001 > ../evidence/real-backend.log 2>&1 &
+          python -m uvicorn server:app --host 127.0.0.1 --port 8001 --ssl-keyfile /tmp/apollo-p41-tls/server.key --ssl-certfile /tmp/apollo-p41-tls/server.crt > ../evidence/real-backend.log 2>&1 &
           echo $! > ../evidence/backend.pid
           cd ../tests
           for i in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:8001/api/ >/dev/null; then break; fi
+            if curl --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS https://127.0.0.1:8001/api/ >/dev/null; then break; fi
             sleep 1
           done
-          curl -fsS http://127.0.0.1:8001/api/ > ../evidence/real-api-health.json
+          curl --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS https://127.0.0.1:8001/api/ > ../evidence/real-api-health.json
           npx playwright test p40-real-api.spec.ts --project=desktop --project=mobile 2>&1 | tee ../evidence/real-playwright.log
           npx playwright test p41-queue-recovery.spec.ts --project=desktop --project=mobile 2>&1 | tee ../evidence/queue-playwright.log
       - name: Controlled restart and read concurrency
         if: ${{ !cancelled() }}
         env:
           DB_NAME: apollo_p40_browser_fictitious
-          COOKIE_SECURE: 'false'
+          COOKIE_SECURE: 'true'
           SERVE_FRONTEND_DIR: ${{ github.workspace }}/frontend/dist
         run: python tools/p41-persistence.py
       - name: Record scope and checksums

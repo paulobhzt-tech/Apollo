@@ -2,10 +2,10 @@ import { test, expect, BrowserContext } from '@playwright/test';
 
 test('real API: two cashiers and waiter, shared table, mixed payments and replay', async ({ browser }, info) => {
   test.setTimeout(180000);
-  const base = 'http://127.0.0.1:8001';
+  const base = 'https://127.0.0.1:8001';
   const contexts: BrowserContext[] = [];
   async function login(username: string) {
-    const context = await browser.newContext({ ...info.project.use, baseURL: base });
+    const context = await browser.newContext({ ...info.project.use, baseURL: base, ignoreHTTPSErrors: true });
     contexts.push(context);
     const page = await context.newPage();
     await page.goto(base);
@@ -27,6 +27,10 @@ test('real API: two cashiers and waiter, shared table, mixed payments and replay
     const [c1,c2,w] = await Promise.all([login('p40caixa1'),login('p40caixa2'),login('p40garcom')]);
     const denied = await w.context.request.post(base+'/api/cash/open',{data:{opening_amount:0},headers:{Origin:base}});
     expect(denied.status()).toBe(403);
+    const missingOrigin = await c1.context.request.post(base+'/api/cash/open',{data:{opening_amount:0}});
+    expect(missingOrigin.status()).toBe(403);
+    const hostileOrigin = await c1.context.request.post(base+'/api/cash/open',{data:{opening_amount:0},headers:{Origin:'https://hostile.invalid'}});
+    expect(hostileOrigin.status()).toBe(403);
     const cash = await call(c1,'POST','/cash/open',{opening_amount:100,note:'P40 ficticio'});
     const suffix = info.project.name;
     const t1 = await call(c1,'POST','/tables',{number:suffix==='desktop'?9401:9403});

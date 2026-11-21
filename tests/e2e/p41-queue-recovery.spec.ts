@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 
 test('persisted offline queue recovers after browser context restart and does not charge twice', async ({ browser }, info) => {
   test.setTimeout(120000);
-  const base = 'http://127.0.0.1:8001';
-  let context = await browser.newContext({...info.project.use, baseURL: base});
+  const base = 'https://127.0.0.1:8001';
+  let context = await browser.newContext({...info.project.use, baseURL: base,ignoreHTTPSErrors:true});
   let page = await context.newPage();
   const username = 'p40caixa1';
   const ref = 'p41-offline-' + info.project.name;
@@ -34,7 +34,7 @@ test('persisted offline queue recovers after browser context restart and does no
     // Recover an already persisted queue using the production application's startup code.
     const state = await context.storageState();
     await context.close();
-    context = await browser.newContext({...info.project.use,baseURL:base,storageState:state});
+    context = await browser.newContext({...info.project.use,baseURL:base,ignoreHTTPSErrors:true,storageState:state});
     page = await context.newPage();
     await page.goto(base);
     await expect.poll(()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)||'[]').length,key),{timeout:30000}).toBe(0);
