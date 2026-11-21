@@ -168,7 +168,7 @@ async def apply_cancel_order(id: str, body: CancelIn, user: dict, auth: str, *, 
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
     result = await db.orders.update_one({"id": id, "status": o["status"], "items": o.get("items", []), "stock_completion": {"$ne": "pending"},
                                          "delivery_status": o.get("delivery_status")},
-        {"$set": {"status": "cancelado", "cancel_reason": body.reason, "cancelled_by": who, "cancelled_at": now()},
+        {"$set": {"status": "cancelado", "cancellation_kind": "full", "cancel_reason": body.reason, "cancelled_by": who, "cancelled_at": now()},
          "$push": {"audit_events": audit_event("order_cancelled", user, reason=body.reason, authorized_by=auth,
                                                values={"from": o["status"], "to": "cancelado", "total": o.get("total", 0)})}}, **options)
     if not result.modified_count:
@@ -241,7 +241,7 @@ async def apply_refund_item(id: str, item_id: str, body: CancelIn, user: dict, a
     upd = {**set_item, "subtotal": new_sub, "service_fee": service, "discount": discount, "total": total,
            "cmv": round(sum(i["qty"] * i.get("unit_cost", 0) for i in live), 2)}
     if not live:
-        upd.update(status="cancelado", cancel_reason=body.reason, cancelled_by=who, cancelled_at=now())
+        upd.update(status="cancelado", cancellation_kind="last_item", cancel_reason=body.reason, cancelled_by=who, cancelled_at=now())
     result = await db.orders.update_one(criteria,
         {"$set": upd, "$push": {"refunds": refund, "audit_events": event}, "$inc": {"refunded_total": amount}}, **options)
     if not result.modified_count:
@@ -413,9 +413,14 @@ async def apply_delivery_status(id: str, body: DeliveryStatusIn, user: dict, *, 
 
 # ---------- Cash register ----------
 async def cash_summary(s: dict, *, session=None) -> dict:
+    if independent_cash() and s.get("status") == "fechado" and s.get("counted_amount") is not None:
+        return s
     options = {"session": session} if session is not None else {}
-    orders = await db.orders.find({"cash_session_id": s["id"], "status": "pago"},
-                                  {"_id": 0, "payments": 1, "change": 1, "total": 1, "refunds": 1}, **options).to_list(None)
+    orders = await db.orders.find({"cash_session_id": s["id"], "$or": [
+        {"status": "pago"},
+        {"status": "cancelado", "total": 0, "refunds.0": {"$exists": True},
+         "cancellation_kind": {"$ne": "full"}},
+    ]}, {"_id": 0, "status": 1, "payments": 1, "change": 1, "total": 1, "refunds": 1}, **options).to_list(None)
     totals = method_totals(orders, with_brand=True)
     receipts = {}
     async for receipt in db.customer_moves.find({"cash_session_id": s["id"], "type": "pagamento"}, {"_id": 0}, **options):
@@ -441,7 +446,7 @@ async def cash_summary(s: dict, *, session=None) -> dict:
     sup = sum(m["amount"] for m in s.get("movements", []) if m["type"] == "suprimento")
     san = sum(m["amount"] for m in s.get("movements", []) if m["type"] == "sangria")
     s["totals_by_method"] = totals
-    s["sales_count"] = len(orders)
+    s["sales_count"] = sum(o.get("status", "pago") == "pago" for o in orders)
     s["sales_total"] = round(sum(o["total"] for o in orders), 2)
     s["expected_cash"] = round(s["opening_amount"] + totals.get("dinheiro", 0) + sup - san, 2)
     if s.get("counted_amount") is not None:
