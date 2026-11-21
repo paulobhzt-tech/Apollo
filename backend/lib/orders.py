@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from pymongo import ReturnDocument
 
 from lib.audit import audit_event
-from lib.cash_scope import cash_scope
+from lib.cash_scope import cash_scope, claim_cash
 from lib.db import db
 from models.schemas import Invoice, InvoiceItem, KitchenItem, KitchenTicket, OrderItem, OrderItemIn, PayIn, PRODUCT_CHANNELS, ProductChannel, StockMove
 
@@ -362,6 +362,7 @@ async def finalize_payment(order: dict, pay: PayIn, actor: dict | None = None, *
     cash_paid = sum(p.amount for p in pay.payments if p.method == "dinheiro")
     if change > cash_paid + 0.009:
         raise HTTPException(400, "Troco só pode ser dado em dinheiro")
+    await claim_cash(cash, session=session)
     cmv = round(sum(i["qty"] * i.get("unit_cost", 0) for i in order["items"] if not i.get("cancelled")), 2)
     upd = {
         "status": "pago", "subtotal": sub, "discount": pay.discount, "service_fee": service, "total": total,
