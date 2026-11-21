@@ -2,7 +2,7 @@ name: P45 isolated Web PWA acceptance
 on:
   push:
     branches: [audit/p45-liberacao-operacional-web-pwa]
-    paths-ignore: ['.github/p45-latest.json']
+    paths: ['.github/workflows/p45-web-audit.yml', '.github/p45-request.txt']
   workflow_dispatch:
 concurrency:
   group: apollo-p45-acceptance
@@ -153,6 +153,7 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           DB_NAME: apollo_p40_browser_fictitious
+          APOLLO_CASH_MODE: operator
           COOKIE_SECURE: 'true'
           CORS_ORIGINS: https://127.0.0.1:8001
           SERVE_FRONTEND_DIR: ${{ github.workspace }}/frontend/dist
@@ -202,6 +203,13 @@ jobs:
           set -o pipefail
           cd tests
           npx playwright test p44-layout.spec.ts --reporter=list,junit --output=test-results/p44-layout --trace=on --project=desktop 2>&1 | tee ../evidence/p44-layout.log
+      - name: P45 two independent cashiers and waiter financial acceptance
+        if: ${{ !cancelled() }}
+        env:
+          DB_NAME: apollo_p40_browser_fictitious
+        run: |
+          set -o pipefail
+          python tools/p45-two-cashiers.py 2>&1 | tee evidence/p45-two-cashiers.log
       - name: P45 sustained 10/30/50-session and concurrent financial load
         if: ${{ !cancelled() }}
         env:
