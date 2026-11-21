@@ -1,1 +1,1 @@
-Run complete P45 regression including active and historical refunds, independent default registers, bounded interrupted-transaction recovery, UI, security, load, persistence and rollback.
+Full P45 acceptance: dashboard operator scope, valid cash fixtures, historical refund ledger with backup/restart, concurrent cashier reconciliation, process-kill recovery, UI and security.
