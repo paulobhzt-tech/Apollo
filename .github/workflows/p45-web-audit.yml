@@ -11,6 +11,7 @@ permissions:
   contents: read
 jobs:
   baseline:
+    needs: publish-start-receipt
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -250,6 +251,42 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.run_id }}
           RESULT: ${{ needs.baseline.result }}
+        run: |
+          python - <<'PY'
+          import os,json,urllib.request,base64
+          repo=os.environ['GITHUB_REPOSITORY']
+          branch='audit/p45-liberacao-operacional-web-pwa'
+          assert os.environ['GITHUB_REF']=='refs/heads/'+branch
+          api='https://api.github.com/repos/'+repo
+          headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'}
+          def request(path,data=None):
+              req=urllib.request.Request(api+path,headers=headers,data=json.dumps(data).encode() if data is not None else None,method='PUT' if data is not None else 'GET')
+              return json.load(urllib.request.urlopen(req))
+          receipt={'sha':os.environ['GITHUB_SHA'],'run_id':os.environ['RUN_ID'],'result':os.environ['RESULT'],
+                   'jobs':request('/actions/runs/'+os.environ['RUN_ID']+'/jobs'),
+                   'artifacts':request('/actions/runs/'+os.environ['RUN_ID']+'/artifacts')}
+          path='/contents/.github/p45-latest.json'
+          data={'message':'ci(p45): record isolated run receipt','branch':branch,'content':base64.b64encode(json.dumps(receipt,indent=2).encode()).decode()}
+          try:
+              old=request(path+'?ref='+branch)
+          except urllib.error.HTTPError as error:
+              if error.code!=404: raise
+          else: data['sha']=old['sha']
+          request(path,data)
+          print('P45 execution receipt saved',receipt['run_id'],receipt['result'])
+          PY
+  publish-start-receipt:
+    if: always()
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Record this isolated execution and its jobs on P45 only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          RESULT: running
         run: |
           python - <<'PY'
           import os,json,urllib.request,base64
