@@ -25,7 +25,7 @@ def connect(i):
     return client
 def post(c,path,data):
     r=c.post("/api"+path,json=data)
-    r.raise_for_status()
+    assert r.is_success, (r.status_code, r.text)
     return r.json()
 clients=[]
 try:
@@ -80,4 +80,10 @@ try:
     Path("evidence/p43-financial-load.json").write_text(json.dumps(result,indent=2))
     print(json.dumps(result),flush=True)
 finally:
+    if clients:
+        r=clients[0].get("/api/cash/current")
+        cash=r.json() if r.is_success else None
+        if cash and cash.get("id"):
+            post(clients[0],"/cash/close",{"expected_session_id":cash["id"],
+                "counted_amount":cash["expected_cash"],"note":"P43 disposable load cleanup"})
     for client in clients: client.close()

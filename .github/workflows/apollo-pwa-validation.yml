@@ -30,8 +30,7 @@ jobs:
           node-version: '22'
       - name: Install frontend dependencies without Emergent preview-only packages
         run: |
-          npm pkg delete 'devDependencies.@emergentbase/overlay' 'devDependencies.@emergentbase/visual-edits'
-          npm install --no-audit --no-fund --legacy-peer-deps
+          npm ci --no-audit --no-fund --legacy-peer-deps
       - name: Testar fila offline
         run: npx vitest run
       - name: TypeScript typecheck
@@ -41,7 +40,7 @@ jobs:
       - name: Instalar Chromium para testes de interface
         working-directory: tests
         run: |
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
       - name: Testar login, troca de operador e atendimento
         run: |

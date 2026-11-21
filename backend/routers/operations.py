@@ -41,22 +41,31 @@ async def quick_sale(body: QuickSaleIn, user: dict = Depends(require("caixa"))):
     await validate_sync_context(body.sync_context, user)
     existing = await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0})
     if existing:
-        # A reference is an idempotency key, never authorization to another
-        # cashier's receipt/customer information.
-        if existing.get("waiter_id") and existing["waiter_id"] != user["id"] and user.get("role") != "admin":
-            raise HTTPException(403, "Venda registrada por outro operador. Solicite revisão do administrador.")
-        if existing.get("request_fingerprint") and existing["request_fingerprint"] != sale_fingerprint(body):
-            raise HTTPException(422, "Referência de venda reutilizada com dados diferentes. Solicite revisão do administrador.")
-        if existing.get("status") != "pago":
-            raise HTTPException(409, "Venda ainda em processamento. Tente sincronizar novamente.")
-        if existing.get("stock_completion") == "pending":
-            raise HTTPException(409, "Pagamento já registrado. Baixa pendente de conferência administrativa. Não cobre novamente.")
-        inv = await db.invoices.find_one({"id": existing.get("invoice_id")}, {"_id": 0}) if existing.get("invoice_id") else None
-        return {"order": existing, "invoice": inv}
+        return await counter_sale_replay(existing, body, user)
     try:
         return await with_order_transaction(lambda session: record_counter_sale(body, user, session=session))
     except DuplicateKeyError:
+        # The competing transaction may have committed after our initial lookup.
+        # Return only its fully settled result, with the same ownership/fingerprint checks.
+        existing = await db.orders.find_one({"client_ref": body.client_ref}, {"_id": 0})
+        if existing:
+            return await counter_sale_replay(existing, body, user)
         raise HTTPException(409, "Venda em processamento. Tente sincronizar novamente.") from None
+
+
+async def counter_sale_replay(existing: dict, body: QuickSaleIn, user: dict):
+    # A reference is an idempotency key, never authorization to another
+    # cashier's receipt/customer information.
+    if existing.get("waiter_id") and existing["waiter_id"] != user["id"] and user.get("role") != "admin":
+        raise HTTPException(403, "Venda registrada por outro operador. Solicite revisão do administrador.")
+    if existing.get("request_fingerprint") and existing["request_fingerprint"] != sale_fingerprint(body):
+        raise HTTPException(422, "Referência de venda reutilizada com dados diferentes. Solicite revisão do administrador.")
+    if existing.get("status") != "pago":
+        raise HTTPException(409, "Venda ainda em processamento. Tente sincronizar novamente.")
+    if existing.get("stock_completion") == "pending":
+        raise HTTPException(409, "Pagamento já registrado. Baixa pendente de conferência administrativa. Não cobre novamente.")
+    inv = await db.invoices.find_one({"id": existing.get("invoice_id")}, {"_id": 0}) if existing.get("invoice_id") else None
+    return {"order": existing, "invoice": inv}
 
 
 async def with_order_transaction(operation):

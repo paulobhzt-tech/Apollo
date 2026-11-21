@@ -1,0 +1,65 @@
+name: P43 private P32 bundle verification
+on:
+  push:
+    branches: [audit/p43-desbloqueio-homologacao-web]
+    paths: [.github/workflows/p43-p32.yml, .github/p43-p32-request.txt]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      P32_URL: ${{ secrets.APOLLO_P32_BUNDLE_URL }}
+      P32_SHA256: ${{ vars.APOLLO_P32_SHA256 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate private input availability
+        run: |
+          mkdir -p evidence
+          if test -z "$P32_URL" || test -z "$P32_SHA256"; then
+            echo 'P32 NOT VERIFIED: configure repository secret APOLLO_P32_BUNDLE_URL and variable APOLLO_P32_SHA256, then request a new verification on P43.' | tee evidence/P32-STATUS.txt
+            exit 1
+          fi
+      - name: Download only into temporary runner and verify independent checksum
+        run: |
+          python - <<'PY'
+          import hashlib, os, re, urllib.request
+          from pathlib import Path
+          from urllib.parse import urlparse
+          url=os.environ['P32_URL']
+          expected=os.environ['P32_SHA256'].lower()
+          assert re.fullmatch('[0-9a-f]{64}',expected),'Expected SHA256 is required'
+          assert urlparse(url).scheme=='https','HTTPS required'
+          try:
+              data=urllib.request.urlopen(url,timeout=60).read(2301924)
+          except Exception:
+              raise SystemExit('Private P32 download failed; replace the secret URL if expired')
+          assert len(data)==2301923,'Unexpected P32 bundle size'
+          digest=hashlib.sha256(data).hexdigest()
+          assert digest==expected,'P32 checksum mismatch'
+          Path(os.environ['RUNNER_TEMP'],'Apollo-P32.bundle').write_bytes(data)
+          Path('evidence/P32-SHA256.txt').write_text(digest+'  Apollo-P32.bundle\n')
+          PY
+      - name: Verify integrity and inspect ancestry without incorporation
+        run: |
+          set -euo pipefail
+          bundle="$RUNNER_TEMP/Apollo-P32.bundle"
+          git bundle list-heads "$bundle" | tee evidence/P32-heads.txt
+          git clone --mirror "$bundle" "$RUNNER_TEMP/p32.git"
+          git --git-dir="$RUNNER_TEMP/p32.git" bundle verify "$bundle" 2>&1 | tee evidence/P32-verify.log
+          git --git-dir="$RUNNER_TEMP/p32.git" fsck --full 2>&1 | tee evidence/P32-fsck.log
+          git --git-dir="$RUNNER_TEMP/p32.git" cat-file -e cda5ed5a36210524f2f5fe5f255867210cb35be8^{commit}
+          git --git-dir="$RUNNER_TEMP/p32.git" fetch "$GITHUB_WORKSPACE" HEAD:refs/heads/p43-candidate
+          git --git-dir="$RUNNER_TEMP/p32.git" merge-base cda5ed5a36210524f2f5fe5f255867210cb35be8 refs/heads/p43-candidate > evidence/P32-merge-base.txt
+          git --git-dir="$RUNNER_TEMP/p32.git" rev-list --left-right --count cda5ed5a36210524f2f5fe5f255867210cb35be8...refs/heads/p43-candidate > evidence/P32-divergence.txt
+          git --git-dir="$RUNNER_TEMP/p32.git" diff --stat cda5ed5a36210524f2f5fe5f255867210cb35be8 refs/heads/p43-candidate > evidence/P32-diff.txt
+          echo 'P32 bytes/checksum/integrity checked; ancestry and divergence recorded without incorporation. Review before release.' > evidence/P32-STATUS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Apollo-P43-P32-verification
+          path: evidence/

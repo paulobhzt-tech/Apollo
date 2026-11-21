@@ -64,6 +64,7 @@ test('UI operational shift: tables, shared customers, transfer, comanda, mixed p
     await page.getByTestId('table-customers').getByRole('button',{name:'Adicionar',exact:true}).click();
     await page.getByTestId('table-save-customers').click();
     await expect(page.getByText('Clientes da mesa atualizados',{exact:true})).toBeVisible();
+    await page.getByTestId('add-items-button').click();
     await page.locator('[data-testid^="product-card-"]').filter({hasText:'Espetinho P40'}).click();
     await page.getByTestId('send-to-kitchen-button').click();
     const send=page.waitForResponse(r=>/\/api\/tables\/[^/]+\/items$/.test(r.url())&&r.request().method()==='POST');
@@ -87,6 +88,7 @@ test('UI operational shift: tables, shared customers, transfer, comanda, mixed p
     await expect(page.getByTestId('new-table-dialog')).toBeHidden();
     await page.getByTestId('comanda-card-'+start).click();
     await page.getByTestId('open-table-button').click();
+    await page.getByTestId('add-items-button').click();
     await page.locator('[data-testid^="product-card-"]').filter({hasText:'Bebida P41'}).click();
     await page.getByTestId('send-to-kitchen-button').click();
     await page.getByTestId('waiter-confirm-send').click();

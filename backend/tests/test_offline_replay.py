@@ -146,3 +146,43 @@ async def test_paid_sale_with_pending_stock_cannot_be_acknowledged_as_complete()
     assert error.value.status_code == 409
     assert "Não cobre novamente" in error.value.detail
     operations.db.orders.delete_one.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_concurrent_duplicate_returns_committed_sale_without_new_side_effects(monkeypatch):
+    body = sale_body()
+    order = {"id": "winner", "status": "pago", "stock_completion": "complete",
+             "waiter_id": "cashier", "request_fingerprint": operations.sale_fingerprint(body)}
+    operations.db.orders.find_one.side_effect = [None, order]
+    create = AsyncMock(side_effect=DuplicateKeyError("duplicate client_ref"))
+    monkeypatch.setattr(operations, "current_cash", AsyncMock(return_value={"id": "cash"}))
+    monkeypatch.setattr(operations, "build_items", AsyncMock(return_value=[]))
+    monkeypatch.setattr(operations, "new_order", create)
+    pay, stock = AsyncMock(), AsyncMock()
+    monkeypatch.setattr(operations, "finalize_payment", pay)
+    monkeypatch.setattr(operations, "move_stock", stock)
+    result = await operations.quick_sale(body, {"id": "cashier", "name": "Cashier", "role": "caixa"})
+    assert result == {"order": order, "invoice": None}
+    create.assert_awaited_once()
+    pay.assert_not_awaited()
+    stock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("updates", "expected"), [
+    ({"waiter_id": "another-cashier"}, 403),
+    ({"request_fingerprint": "different-body"}, 422),
+    ({"status": "aberto"}, 409),
+    ({"stock_completion": "pending"}, 409),
+])
+async def test_duplicate_race_preserves_authorization_and_completion_checks(monkeypatch, updates, expected):
+    body = sale_body()
+    order = {"id": "winner", "status": "pago", "stock_completion": "complete",
+             "waiter_id": "cashier", "request_fingerprint": operations.sale_fingerprint(body), **updates}
+    operations.db.orders.find_one.side_effect = [None, order]
+    monkeypatch.setattr(operations, "current_cash", AsyncMock(return_value={"id": "cash"}))
+    monkeypatch.setattr(operations, "build_items", AsyncMock(return_value=[]))
+    monkeypatch.setattr(operations, "new_order", AsyncMock(side_effect=DuplicateKeyError("duplicate client_ref")))
+    with pytest.raises(HTTPException) as error:
+        await operations.quick_sale(body, {"id": "cashier", "name": "Cashier", "role": "caixa"})
+    assert error.value.status_code == expected

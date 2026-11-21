@@ -61,13 +61,13 @@ jobs:
           node-version: "20"
       - name: Instalar dependencias
         working-directory: frontend
-        run: yarn install
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
       - name: Verificar TypeScript
         working-directory: frontend
-        run: yarn typecheck
+        run: npm run typecheck
       - name: Gerar frontend
         working-directory: frontend
-        run: yarn build
+        run: npm run build
   local-windows:
     runs-on: windows-latest
     steps:
