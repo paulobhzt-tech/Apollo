@@ -1,358 +1,41 @@
 {
-  "sha": "aba074e9a6aa9bfa5146ddc9c02f412da572a8db",
-  "run_id": "44912736033",
-  "result": "cancelled",
+  "sha": "ff3a1c1baf6610103a69b792522a2acfab011475",
+  "run_id": "44913163386",
+  "result": "running",
   "jobs": {
-    "total_count": 3,
+    "total_count": 1,
     "jobs": [
       {
-        "id": 136871817065,
-        "run_id": 44912736033,
+        "id": 136873180338,
+        "run_id": 44913163386,
         "workflow_name": "P45 isolated Web PWA acceptance",
         "head_branch": "audit/p45-liberacao-operacional-web-pwa",
-        "run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/runs/44912736033",
+        "run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/runs/44913163386",
         "run_attempt": 1,
-        "node_id": "CR_kwDOVjMoH88AAAAf3jIvaQ",
-        "head_sha": "aba074e9a6aa9bfa5146ddc9c02f412da572a8db",
-        "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/jobs/136871817065",
-        "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44912736033/job/136871817065",
-        "status": "completed",
-        "conclusion": "success",
-        "created_at": "2026-11-21T14:12:44Z",
-        "started_at": "2026-11-21T14:13:10Z",
-        "completed_at": "2026-11-21T14:13:16Z",
-        "name": "publish-start-receipt",
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 1,
-            "started_at": "2026-11-21T14:13:10Z",
-            "completed_at": "2026-11-21T14:13:10Z"
-          },
-          {
-            "name": "Record this isolated execution and its jobs on P45 only",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 2,
-            "started_at": "2026-11-21T14:13:10Z",
-            "completed_at": "2026-11-21T14:13:14Z"
-          },
-          {
-            "name": "Complete job",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 3,
-            "started_at": "2026-11-21T14:13:14Z",
-            "completed_at": "2026-11-21T14:13:14Z"
-          }
-        ],
-        "check_run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/check-runs/136871817065",
-        "labels": [
-          "ubuntu-24.04"
-        ],
-        "runner_id": 1000011469,
-        "runner_name": "GitHub Actions 1000011469",
-        "runner_group_id": 0,
-        "runner_group_name": "GitHub Actions"
-      },
-      {
-        "id": 136871962542,
-        "run_id": 44912736033,
-        "workflow_name": "P45 isolated Web PWA acceptance",
-        "head_branch": "audit/p45-liberacao-operacional-web-pwa",
-        "run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/runs/44912736033",
-        "run_attempt": 1,
-        "node_id": "CR_kwDOVjMoH88AAAAf3jRnrg",
-        "head_sha": "aba074e9a6aa9bfa5146ddc9c02f412da572a8db",
-        "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/jobs/136871962542",
-        "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44912736033/job/136871962542",
-        "status": "completed",
-        "conclusion": "cancelled",
-        "created_at": "2026-11-21T14:13:17Z",
-        "started_at": "2026-11-21T14:13:19Z",
-        "completed_at": "2026-11-21T14:17:50Z",
-        "name": "baseline",
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 1,
-            "started_at": "2026-11-21T14:13:20Z",
-            "completed_at": "2026-11-21T14:13:22Z"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 2,
-            "started_at": "2026-11-21T14:13:22Z",
-            "completed_at": "2026-11-21T14:13:26Z"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 3,
-            "started_at": "2026-11-21T14:13:26Z",
-            "completed_at": "2026-11-21T14:13:26Z"
-          },
-          {
-            "name": "Run actions/setup-node@v4",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 4,
-            "started_at": "2026-11-21T14:13:26Z",
-            "completed_at": "2026-11-21T14:13:31Z"
-          },
-          {
-            "name": "Record executor and ancestry",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 5,
-            "started_at": "2026-11-21T14:13:31Z",
-            "completed_at": "2026-11-21T14:13:31Z"
-          },
-          {
-            "name": "Start disposable MongoDB replica set",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 6,
-            "started_at": "2026-11-21T14:13:31Z",
-            "completed_at": "2026-11-21T14:13:42Z"
-          },
-          {
-            "name": "Start independent standalone MongoDB",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 7,
-            "started_at": "2026-11-21T14:13:42Z",
-            "completed_at": "2026-11-21T14:13:42Z"
-          },
-          {
-            "name": "Compare all remote histories without merging",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 8,
-            "started_at": "2026-11-21T14:13:42Z",
-            "completed_at": "2026-11-21T14:13:44Z"
-          },
-          {
-            "name": "Backend regression with disposable replica set",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 9,
-            "started_at": "2026-11-21T14:13:44Z",
-            "completed_at": "2026-11-21T14:14:16Z"
-          },
-          {
-            "name": "Legacy HTTP tests with running backend and fictitious fixtures",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 10,
-            "started_at": "2026-11-21T14:14:16Z",
-            "completed_at": "2026-11-21T14:14:21Z"
-          },
-          {
-            "name": "Build and offline unit baseline",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 11,
-            "started_at": "2026-11-21T14:14:21Z",
-            "completed_at": "2026-11-21T14:14:35Z"
-          },
-          {
-            "name": "Dependency vulnerability audit",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 12,
-            "started_at": "2026-11-21T14:14:35Z",
-            "completed_at": "2026-11-21T14:14:39Z"
-          },
-          {
-            "name": "Frontend dependency vulnerability audit",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 13,
-            "started_at": "2026-11-21T14:14:39Z",
-            "completed_at": "2026-11-21T14:14:39Z"
-          },
-          {
-            "name": "Chromium interface baseline (existing tests may mock API)",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 14,
-            "started_at": "2026-11-21T14:14:39Z",
-            "completed_at": "2026-11-21T14:16:06Z"
-          },
-          {
-            "name": "Real backend and real browser acceptance",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 15,
-            "started_at": "2026-11-21T14:16:06Z",
-            "completed_at": "2026-11-21T14:16:42Z"
-          },
-          {
-            "name": "P45 complete UI and genuine offline entry",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 16,
-            "started_at": "2026-11-21T14:16:42Z",
-            "completed_at": "2026-11-21T14:17:29Z"
-          },
-          {
-            "name": "P45 real service-worker offline boundary",
-            "status": "completed",
-            "conclusion": "cancelled",
-            "number": 17,
-            "started_at": "2026-11-21T14:17:29Z",
-            "completed_at": "2026-11-21T14:17:32Z"
-          },
-          {
-            "name": "P45 desktop tablet mobile interface zoom matrix",
-            "status": "completed",
-            "conclusion": "skipped",
-            "number": 18,
-            "started_at": "2026-11-21T14:17:32Z",
-            "completed_at": "2026-11-21T14:17:32Z"
-          },
-          {
-            "name": "P45 two independent cashiers and waiter financial acceptance",
-            "status": "completed",
-            "conclusion": "skipped",
-            "number": 19,
-            "started_at": "2026-11-21T14:17:32Z",
-            "completed_at": "2026-11-21T14:17:32Z"
-          },
-          {
-            "name": "P45 sustained 10/30/50-session and concurrent financial load",
-            "status": "completed",
-            "conclusion": "skipped",
-            "number": 20,
-            "started_at": "2026-11-21T14:17:32Z",
-            "completed_at": "2026-11-21T14:17:32Z"
-          },
-          {
-            "name": "Controlled restart and read concurrency",
-            "status": "completed",
-            "conclusion": "skipped",
-            "number": 21,
-            "started_at": "2026-11-21T14:17:32Z",
-            "completed_at": "2026-11-21T14:17:32Z"
-          },
-          {
-            "name": "Record scope and checksums",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 22,
-            "started_at": "2026-11-21T14:17:32Z",
-            "completed_at": "2026-11-21T14:17:32Z"
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 23,
-            "started_at": "2026-11-21T14:17:32Z",
-            "completed_at": "2026-11-21T14:17:47Z"
-          },
-          {
-            "name": "Post Run actions/setup-node@v4",
-            "status": "completed",
-            "conclusion": "skipped",
-            "number": 44,
-            "started_at": "2026-11-21T14:17:47Z",
-            "completed_at": "2026-11-21T14:17:47Z"
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "skipped",
-            "number": 45,
-            "started_at": "2026-11-21T14:17:47Z",
-            "completed_at": "2026-11-21T14:17:47Z"
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 46,
-            "started_at": "2026-11-21T14:17:47Z",
-            "completed_at": "2026-11-21T14:17:47Z"
-          },
-          {
-            "name": "Complete job",
-            "status": "completed",
-            "conclusion": "success",
-            "number": 47,
-            "started_at": "2026-11-21T14:17:47Z",
-            "completed_at": "2026-11-21T14:17:47Z"
-          }
-        ],
-        "check_run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/check-runs/136871962542",
-        "labels": [
-          "ubuntu-24.04"
-        ],
-        "runner_id": 1000011474,
-        "runner_name": "GitHub Actions 1000011474",
-        "runner_group_id": 0,
-        "runner_group_name": "GitHub Actions"
-      },
-      {
-        "id": 136873150357,
-        "run_id": 44912736033,
-        "workflow_name": "P45 isolated Web PWA acceptance",
-        "head_branch": "audit/p45-liberacao-operacional-web-pwa",
-        "run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/runs/44912736033",
-        "run_attempt": 1,
-        "node_id": "CR_kwDOVjMoH88AAAAf3kaHlQ",
-        "head_sha": "aba074e9a6aa9bfa5146ddc9c02f412da572a8db",
-        "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/jobs/136873150357",
-        "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44912736033/job/136873150357",
-        "status": "queued",
+        "node_id": "CR_kwDOVjMoH88AAAAf3kb8sg",
+        "head_sha": "ff3a1c1baf6610103a69b792522a2acfab011475",
+        "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/jobs/136873180338",
+        "html_url": "https://github.com/paulobhzt-tech/Apollo/actions/runs/44913163386/job/136873180338",
+        "status": "in_progress",
         "conclusion": null,
-        "created_at": "2026-11-21T14:17:50Z",
-        "started_at": "2026-11-21T14:17:50Z",
+        "created_at": "2026-11-21T14:17:56Z",
+        "started_at": "2026-11-21T14:18:00Z",
         "completed_at": null,
-        "name": "publish-execution-receipt",
+        "name": "publish-start-receipt",
         "steps": [],
-        "check_run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/check-runs/136873150357",
+        "check_run_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/check-runs/136873180338",
         "labels": [
           "ubuntu-24.04"
         ],
-        "runner_id": 0,
-        "runner_name": "",
+        "runner_id": 1000011617,
+        "runner_name": "GitHub Actions 1000011617",
         "runner_group_id": 0,
-        "runner_group_name": ""
+        "runner_group_name": "GitHub Actions"
       }
     ]
   },
   "artifacts": {
-    "total_count": 1,
-    "artifacts": [
-      {
-        "id": 14710541839,
-        "node_id": "MDg6QXJ0aWZhY3QxNDcxMDU0MTgzOQ==",
-        "name": "Apollo-P45-experimental-evidence",
-        "size_in_bytes": 47209280,
-        "url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/artifacts/14710541839",
-        "archive_download_url": "https://api.github.com/repos/paulobhzt-tech/Apollo/actions/artifacts/14710541839/zip",
-        "expired": false,
-        "digest": "sha256:e42614b326d787a9afaa163ecd1f67af34c192b192f37432975d1ffbfe79cab4",
-        "created_at": "2026-11-21T14:17:46Z",
-        "updated_at": "2026-11-21T14:17:46Z",
-        "expires_at": "2026-12-05T14:17:32Z",
-        "workflow_run": {
-          "id": 44912736033,
-          "repository_id": 1446193183,
-          "head_repository_id": 1446193183,
-          "head_branch": "audit/p45-liberacao-operacional-web-pwa",
-          "head_sha": "aba074e9a6aa9bfa5146ddc9c02f412da572a8db"
-        }
-      }
-    ]
+    "total_count": 0,
+    "artifacts": []
   }
 }
