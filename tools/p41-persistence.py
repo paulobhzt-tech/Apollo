@@ -18,7 +18,7 @@ base = "https://127.0.0.1:8001"
 out = Path("evidence")
 db = MongoClient(os.environ["MONGO_URL"], tz_aware=True)[os.environ["DB_NAME"]]
 collections = ["orders", "ingredients", "purchases", "stock_moves", "lot_consumptions",
-               "cash_sessions", "tables", "kitchen_tickets"]
+               "cash_sessions", "cash_adjustments", "tables", "kitchen_tickets"]
 def snapshot():
     result = {}
     for name in collections:
