@@ -124,6 +124,16 @@ async def cancel_order(id: str, body: CancelIn, user: dict = Depends(current_use
     return await with_order_transaction(lambda session: apply_cancel_order(id, body, user, auth, session=session))
 
 
+async def guard_refund_cash(order: dict, *, session=None):
+    if not independent_cash() or order.get("status") != "pago":
+        return
+    options = {"session": session} if session is not None else {}
+    cash = await db.cash_sessions.find_one({"id": order.get("cash_session_id")}, {"_id": 0}, **options)
+    if not cash or cash.get("status") != "aberto":
+        raise HTTPException(409, "Caixa original fechado. Estorno exige ajuste financeiro administrativo; nenhuma alteração registrada.")
+    await claim_cash(cash, session=session)
+
+
 async def apply_cancel_order(id: str, body: CancelIn, user: dict, auth: str, *, session=None):
     options = {"session": session} if session is not None else {}
     o = await db.orders.find_one({"id": id}, {"_id": 0}, **options)
@@ -133,6 +143,7 @@ async def apply_cancel_order(id: str, body: CancelIn, user: dict, auth: str, *, 
         raise HTTPException(400, "Pedido já cancelado")
     if o.get("stock_completion") == "pending":
         raise HTTPException(409, "Confira a baixa pendente deste pedido antes de estornar.")
+    await guard_refund_cash(o, session=session)
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
     result = await db.orders.update_one({"id": id, "status": o["status"], "items": o.get("items", []), "stock_completion": {"$ne": "pending"},
                                          "delivery_status": o.get("delivery_status")},
@@ -174,6 +185,7 @@ async def apply_refund_item(id: str, item_id: str, body: CancelIn, user: dict, a
     item = next((i for i in o["items"] if i["id"] == item_id and not i.get("cancelled")), None)
     if not item:
         raise HTTPException(404, "Item não encontrado ou já cancelado")
+    await guard_refund_cash(o, session=session)
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
     event = audit_event("item_refunded" if o["status"] == "pago" else "item_cancelled", user,
                         reason=body.reason, authorized_by=auth,
