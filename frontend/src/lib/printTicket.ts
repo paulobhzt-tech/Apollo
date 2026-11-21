@@ -35,7 +35,7 @@ export async function printHtml(html: string, copies = 1, printer?: Pick<Printer
     if (!r.ok) throw new Error(r.error || "Falha na impressão");
     return;
   }
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const frame = document.createElement("iframe");
     frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
     frame.setAttribute("data-testid", "print-frame");
@@ -45,7 +45,18 @@ export async function printHtml(html: string, copies = 1, printer?: Pick<Printer
     doc.write(Array.from({ length: Math.max(1, copies) }, () => html).join('<div style="page-break-after:always"></div>'));
     doc.close();
     setTimeout(() => {
-      try { frame.contentWindow?.focus(); frame.contentWindow?.print(); } catch (err) { console.error("Falha ao imprimir ticket:", err); }
+      try {
+        const target = frame.contentWindow;
+        if (!target || typeof target.print !== "function") throw new Error("Impressão indisponível neste navegador");
+        target.focus();
+        target.print();
+      } catch (err) {
+        frame.remove();
+        reject(err instanceof Error ? err : new Error("Falha ao imprimir ticket"));
+        return;
+      }
+      // Browser print() returning proves only that the dialog was requested.
+      // It cannot confirm paper output or distinguish a cancelled dialog.
       setTimeout(() => { frame.remove(); resolve(); }, 500);
     }, 250);
   });
