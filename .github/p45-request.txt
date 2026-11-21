@@ -1,1 +1,1 @@
-Full P45 acceptance: dashboard operator scope, valid cash fixtures, historical refund ledger with backup/restart, concurrent cashier reconciliation, process-kill recovery, UI and security.
+Full P45 validation after correcting last mixed-payment item refund cash outflow, historical refunds, immutable closing snapshots and independent operator registers.
