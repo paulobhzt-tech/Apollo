@@ -25,7 +25,7 @@ test('persisted offline queue recovers after browser context restart and does no
     const ingredients = await call('GET','/ingredients');
     const before = ingredients.find((x:any)=>x.id==='p40ing').stock;
     const key = 'pdv_offline_queue:v3:' + encodeURIComponent(JSON.stringify([identity.establishment_id,identity.server_id,identity.operator_id]));
-    const payload = {client_ref:ref,sync_context:identity,items:[{product_id:'p40product',qty:1}],
+    const payload = {client_ref:ref,sync_context:identity,expected_cash_session_id:cash.id,items:[{product_id:'p40product',qty:1}],
       payments:[{method:'dinheiro',amount:10}],emit_invoice:false,send_to_kitchen:false};
     await context.setOffline(true);
     await page.evaluate(({key,payload})=>{
