@@ -37,9 +37,9 @@ test(`P55 ${actor} reopens encrypted drafts and replays automatically after HTTP
   try {
     context = await launch();
     let page = context.pages()[0] ?? await context.newPage();
-    const login = async () => {
+    const login = async (username: string = actor) => {
       await page.goto(origin + '/login');
-      await page.getByLabel('Usuário', { exact: true }).fill(actor);
+      await page.getByLabel('Usuário', { exact: true }).fill(username);
       await page.getByLabel('Senha', { exact: true }).fill('P40-Fictitious-Password!');
       await page.getByRole('button', { name: 'Entrar', exact: true }).click();
       await expect(page.getByTestId('apollo-ribbon')).toBeVisible();
@@ -57,9 +57,16 @@ test(`P55 ${actor} reopens encrypted drafts and replays automatically after HTTP
       await page.getByRole('button', { name: 'Salvar pedido no dispositivo' }).click();
       await expect(page.getByRole('status')).toContainText('Pedido gravado');
     };
-    await login();
     const serverPost = (path: string, data: object) => context!.request.post(origin + '/api' + path, { data, headers: { Origin: origin } });
     let own: { id: string; order_id: string } | undefined;
+    let other: { id: string; order_id: string } | undefined;
+    if (actor === 'p40garcom') {
+      await login('p40admin');
+      const openedOther = await serverPost('/tables/p40table402/open', { people: 1 });
+      expect(openedOther.ok()).toBe(true);
+      other = await openedOther.json();
+    }
+    await login();
     if (actor === 'p40garcom') {
       const opened = await serverPost('/tables/p40table401/open', { people: 1 });
       expect(opened.ok()).toBe(true);
@@ -111,9 +118,6 @@ test(`P55 ${actor} reopens encrypted drafts and replays automatically after HTTP
     await expect(page.getByRole('heading', { name: `Pedidos pendentes (${count})` })).toBeVisible();
     await info.attach('cold-offline', { body: await page.screenshot(), contentType: 'image/png' });
 
-    await start(address.port);
-    await login();
-    await page.goto(origin + '/mesas-offline');
     const outbound = page.waitForRequest(req => req.url().endsWith('/api/offline/tables') && req.method() === 'POST');
     const readCount = async () => {
       const result = await context!.request.get(origin + (own ? '/api/tables/' + own.id + '/order' : '/api/ingredients'));
@@ -121,9 +125,9 @@ test(`P55 ${actor} reopens encrypted drafts and replays automatically after HTTP
       const data = await result.json();
       return own ? data.items.length : data.find((item: { id: string }) => item.id === 'p40ing').stock;
     };
+    await start(address.port);
     const initial = await readCount();
     const final = own ? initial + 1 : initial - 2;
-    await unlock(password);
     const original = (await outbound).postDataJSON();
     await expect(page.getByRole('heading', { name: 'Pedidos pendentes (0)' })).toBeVisible({timeout: 30_000});
     expect(await readCount()).toBe(final);
@@ -131,8 +135,16 @@ test(`P55 ${actor} reopens encrypted drafts and replays automatically after HTTP
     const [replayA, replayB] = await Promise.all([post(original), post(original)]);
     expect(replayA.ok() && replayB.ok()).toBe(true);
     expect(await replayA.json()).toEqual(await replayB.json());
-    const foreign = { ...original, sync_context: { ...original.sync_context, operator_id: 'p40garcom' } };
+    const foreign = { ...original, sync_context: { ...original.sync_context, operator_id: actor === 'p40garcom' ? 'p40admin' : 'p40garcom' } };
     expect((await post(foreign)).status()).toBe(403);
+    if (own && other) {
+      const createAttempt = {...original, client_ref: crypto.randomUUID(), existing: undefined};
+      expect((await post(createAttempt)).status()).toBe(403);
+      const foreignOrder = {...original, client_ref: crypto.randomUUID(), existing: {table_id: other.id, order_id: other.order_id}};
+      expect((await post(foreignOrder)).status()).toBe(409);
+      const staleOrder = {...original, client_ref: crypto.randomUUID(), existing: {table_id: own.id, order_id: crypto.randomUUID()}};
+      expect((await post(staleOrder)).status()).toBe(409);
+    }
     const changed = { ...original, items: [{ ...original.items[0], expected_price: 999 }] };
     expect((await post(changed)).status()).toBe(409);
     expect((await post({ ...changed, client_ref: crypto.randomUUID(), table: { ...original.table, number: baseNumber + 2 } })).status()).toBe(409);
