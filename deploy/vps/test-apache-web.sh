@@ -40,6 +40,10 @@ Listen 127.0.0.1:18057
 Define APOLLO_DOCUMENT_ROOT /opt/apollo-dist
 Define APOLLO_BACKEND_ORIGIN http://127.0.0.1:18058
 ServerName localhost
+<Directory />
+    FallbackResource /index.html
+    ErrorDocument 404 /index.html
+</Directory>
 <VirtualHost 127.0.0.1:18057>
     Include /opt/apollo-web.conf
 </VirtualHost>
@@ -62,6 +66,7 @@ done
 python deploy/vps/test-apache-web.py || { docker logs "$container"; exit 1; }
 node tests/apache-worker.mjs
 mv "$APOLLO_TEST_BUILD/build-integrity.json" "$scratch/audited-build-integrity.json"
-status="$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18057/build-integrity.json)"
+status="$(curl -sS -o "$scratch/missing-manifest.html" -w '%{http_code}' http://127.0.0.1:18057/build-integrity.json)"
 test "$status" = 404
+! cmp -s "$scratch/missing-manifest.html" "$APOLLO_TEST_BUILD/index.html"
 printf 'Apache: manifesto removido devolveu HTTP %s.\n' "$status"

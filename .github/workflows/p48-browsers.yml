@@ -1,7 +1,7 @@
 name: Apollo six-profile browser operational matrix
 on:
   push:
-    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao, audit/p54-offline-integral-vps-validacao-final, audit/p55-correcao-final-offline-vps-operacional, audit/p56-validacao-vps-offline-operacional, audit/p57-correcao-vps-offline-liberacao]
+    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao, audit/p54-offline-integral-vps-validacao-final, audit/p55-correcao-final-offline-vps-operacional, audit/p56-validacao-vps-offline-operacional, audit/p57-correcao-vps-offline-liberacao, audit/p58-vps-validacao-operacional-final]
   workflow_dispatch:
 permissions:
   contents: read
@@ -60,7 +60,7 @@ jobs:
         run: |
           set -o pipefail
           python local-server/gerar-certificado.py /tmp/apollo-p41-tls 127.0.0.1
-          if test "$GITHUB_REF_NAME" = audit/p55-correcao-final-offline-vps-operacional || test "$GITHUB_REF_NAME" = audit/p56-validacao-vps-offline-operacional || test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao; then
+          if test "$GITHUB_REF_NAME" = audit/p55-correcao-final-offline-vps-operacional || test "$GITHUB_REF_NAME" = audit/p56-validacao-vps-offline-operacional || test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao || test "$GITHUB_REF_NAME" = audit/p58-vps-validacao-operacional-final; then
             APOLLO_TEST_TLS_SPKI="$(openssl x509 -in /tmp/apollo-p41-tls/server.crt -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl base64)"
             export APOLLO_TEST_TLS_SPKI
             printf 'APOLLO_TEST_TLS_SPKI=%s\n' "$APOLLO_TEST_TLS_SPKI" >> "$GITHUB_ENV"
@@ -82,15 +82,18 @@ jobs:
             sleep 1
           done
           curl --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS https://127.0.0.1:8001/api/ >/dev/null
-          if test "$GITHUB_REF_NAME" = audit/p56-validacao-vps-offline-operacional || test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao; then export APOLLO_P56_REVIEW=1; fi
-          if test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao; then export APOLLO_P57_ONLINE_GUARD=1; fi
+          if test "$GITHUB_REF_NAME" = audit/p56-validacao-vps-offline-operacional || test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao || test "$GITHUB_REF_NAME" = audit/p58-vps-validacao-operacional-final; then export APOLLO_P56_REVIEW=1; fi
+          if test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao || test "$GITHUB_REF_NAME" = audit/p58-vps-validacao-operacional-final; then export APOLLO_P57_ONLINE_GUARD=1; fi
           result=0
           npx playwright test --config=p47.config.ts p43-operational-ui.spec.ts p47-browser.spec.ts 2>&1 | tee ../evidence/browser.log || result=1
           if test "$GITHUB_REF_NAME" = audit/p54-offline-integral-vps-validacao-final; then
             npx playwright test --config=p47.config.ts p54-offline-tables.spec.ts --output=test-results/p54-vault --reporter=list 2>&1 | tee ../evidence/p54-vault.log || result=1
           fi
-          if test "$GITHUB_REF_NAME" = audit/p55-correcao-final-offline-vps-operacional || test "$GITHUB_REF_NAME" = audit/p56-validacao-vps-offline-operacional || test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao; then
+          if test "$GITHUB_REF_NAME" = audit/p55-correcao-final-offline-vps-operacional || test "$GITHUB_REF_NAME" = audit/p56-validacao-vps-offline-operacional || test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao || test "$GITHUB_REF_NAME" = audit/p58-vps-validacao-operacional-final; then
             npx playwright test --config=p47.config.ts p55-offline-tables.spec.ts --output=test-results/p55-vault --reporter=list 2>&1 | tee ../evidence/p55-vault.log || result=1
+          fi
+          if test "$GITHUB_REF_NAME" = audit/p58-vps-validacao-operacional-final && test "$P47_BROWSER" = chromium; then
+            npx playwright test --config=p47.config.ts p58-integrated-shift.spec.ts --output=test-results/p58-integrated --reporter=list 2>&1 | tee ../evidence/p58-integrated.log || result=1
           fi
           exit "$result"
       - name: Real server interruption diagnostic (separate from emulated offline)
