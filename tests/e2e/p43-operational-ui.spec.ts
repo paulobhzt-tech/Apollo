@@ -18,7 +18,7 @@ async function noOverflow(page:Page) {
     .toEqual(expect.objectContaining({width:expect.any(Number)}));
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'document horizontal overflow').toBe(true);
 }
-async function pay(page:Page,mixed=false, beforeConfirm?: () => Promise<void>) {
+async function pay(page:Page,mixed=false, beforeConfirm?: () => Promise<void>, afterConfirm?: () => Promise<void>) {
   const dialog=page.getByTestId('payment-dialog');
   await expect(dialog).toBeVisible();
   const invoice=page.getByTestId('payment-emit-invoice-checkbox');
@@ -36,6 +36,7 @@ async function pay(page:Page,mixed=false, beforeConfirm?: () => Promise<void>) {
   await noOverflow(page);
   await beforeConfirm?.();
   await page.getByTestId('payment-confirm-button').click();
+  await afterConfirm?.();
   await expect(dialog).toBeHidden();
 }
 test('UI operational shift: tables, shared customers, transfer, comanda, mixed payment, closing',async({browser},info)=>{
@@ -101,6 +102,24 @@ test('UI operational shift: tables, shared customers, transfer, comanda, mixed p
     await expect(page.getByTestId('table-sheet')).toBeHidden();
     await page.getByTestId('table-card-'+(start+1)).click();
     await page.getByTestId('close-table-button').click();
+    if (process.env.APOLLO_P58_PAYMENT_REVIEW === '1') {
+      const paymentPath = /\/api\/tables\/[^/]+\/pay$/;
+      let submittedOrderId: string | undefined;
+      await page.route(paymentPath, async route => {
+        submittedOrderId = route.request().postDataJSON().expected_order_id;
+        await route.abort('connectionreset');
+      }, { times: 1 });
+      await pay(page, true, undefined, async () => {
+        const review = page.getByRole('button', { name: 'Consultar servidor' });
+        await expect(review).toBeVisible();
+        await expect(page.getByTestId('payment-confirm-button')).toBeDisabled();
+        expect(submittedOrderId).toBeTruthy();
+        const reading = page.waitForResponse(response => /\/api\/tables\/[^/]+\/order$/.test(response.url()) && response.ok());
+        await review.click();
+        expect((await (await reading).json()).id).toBe(submittedOrderId);
+      });
+      await page.getByTestId('close-table-button').click();
+    }
     await pay(page,true, process.env.APOLLO_P57_ONLINE_GUARD !== '1' ? undefined : async () => {
       let attempts = 0;
       const observe = (request: import('@playwright/test').Request) => {

@@ -31,6 +31,7 @@ interface Props {
   partialMode?: boolean;
   pending?: boolean;
   connectionRequired?: boolean;
+  review?: { pending: boolean; consult: () => void };
   onConfirm: (p: PayIn) => void;
 }
 
@@ -44,7 +45,7 @@ export default function PaymentDialog(props: Props) {
   );
 }
 
-function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialMode = false, pending, connectionRequired, onConfirm }: Props) {
+function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialMode = false, pending, connectionRequired, review, onConfirm }: Props) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const settings = useQuery({ queryKey: ["settings-general"], queryFn: () => apiGet<GeneralSettings>("/settings/general") });
   const pixKeys = [settings.data?.pix_key, ...(settings.data?.pix_extra_keys ?? [])]
@@ -120,7 +121,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
     setConfirmedPixAmount(null);
   }
   const cashChangeOk = change <= payments.filter((payment) => payment.method === "dinheiro").reduce((sum, payment) => sum + payment.amount, 0) + 0.001;
-  const canConfirm = validDiscount && (disc === 0 || discountReason.trim().length >= 3) && payments.length > 0 && remaining === 0 && cashChangeOk && !pending && !connectionRequired;
+  const canConfirm = validDiscount && (disc === 0 || discountReason.trim().length >= 3) && payments.length > 0 && remaining === 0 && cashChangeOk && !pending && !connectionRequired && !review;
 
   function finish(print: boolean) {
     if (!canConfirm) return;
@@ -320,9 +321,10 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
       </div>
       <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-3">
         <p role="status" className="mr-auto self-center text-sm text-muted-foreground">
-          {connectionRequired ? "Reconecte para confirmar o pagamento." : pending ? "Aguardando confirmação do servidor." : canConfirm ? "Valores conferidos. Confirme para registrar o pagamento." :
+          {connectionRequired ? "Reconecte para confirmar o pagamento." : review ? "Resultado incerto. Consulte o servidor antes de confirmar novamente." : pending ? "Aguardando confirmação do servidor." : canConfirm ? "Valores conferidos. Confirme para registrar o pagamento." :
             remaining > 0 ? `Falta lançar ${brl(remaining)}.` : "Confira os lançamentos e a justificativa do desconto, quando aplicável."}
         </p>
+        {review && <Button variant="outline" disabled={connectionRequired || review.pending} onClick={review.consult}>Consultar servidor</Button>}
         <Button variant="outline" disabled={!canConfirm} onClick={() => finish(true)}>Finalizar e imprimir</Button>
         <Button disabled={!canConfirm} data-testid="payment-confirm-button" onClick={() => finish(false)}>
           {pending ? "Processando…" : "Finalizar pedido"}

@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ApiError, apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { withRequestTimeout } from "@/lib/request-timeout";
-import { isOffline, onlineMutation, onlineOperation, useOffline } from "@/lib/offline";
+import { isOffline, onlineMutation, onlineOperation, UncertainOperationError, useOffline } from "@/lib/offline";
 import { clearTableSubmission, pauseAutomaticTableSubmission, readTableSubmission, reserveTableSubmission, tableSubmissionKey, type TableSubmission } from "@/lib/table-submission";
 import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, uid } from "@/lib/format";
 import { useOperatorDraft } from "@/lib/operator-draft";
@@ -395,6 +395,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     refetchInterval: 8000,
   });
   const [payOpen, setPayOpen] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [transferTo, setTransferTo] = useState("");
   const transferTargets = tables.filter((target) => target.id !== table.id && target.status === "livre" && !target.order_id);
@@ -522,7 +523,8 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   });
   const pay = useMutation({
     ...onlineMutation,
-    mutationFn: (p: PayIn) => onlineOperation(() => apiPost<SaleResult>(`/tables/${table!.id}/pay`, p)),
+    mutationFn: ({ payment, orderId }: { payment: PayIn; orderId: string }) =>
+      onlineOperation(() => apiPost<SaleResult>(`/tables/${table.id}/pay`, { ...payment, expected_order_id: orderId })),
     onSuccess: (r) => {
       toast.success(`${tableLabel(table!)} fechada${r.order.change ? ` · Troco ${brl(r.order.change)}` : ""}`);
       setPayOpen(false); invalidateTables();
@@ -531,6 +533,22 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     },
     onError: onErr,
   });
+
+  const consultPayment = async () => {
+    setCheckingPayment(true);
+    try {
+      const latest = await apiGet<Order | null>(`/tables/${table.id}/order`);
+      queryClient.setQueryData(["table-order", table.id, table.order_id], latest);
+      invalidateTables();
+      pay.reset();
+      setPayOpen(false);
+      toast.info(latest?.status === "aberto" ? "Comanda atualizada. Confira os valores antes de abrir o recebimento." : "Não há comanda aberta. Confira o histórico antes de cobrar.");
+    } catch (error) {
+      onErr(error);
+    } finally {
+      setCheckingPayment(false);
+    }
+  };
 
   const [optFor, setOptFor] = useState<Product | null>(null);
   const push = (p: Product, picked?: Picked) => setPending((c) => {
@@ -840,7 +858,9 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
       )}
       {table && <PartialBillDialog key={table.id} table={table} items={items} open={partialOpen} onClose={() => setPartialOpen(false)} />}
       <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} items={o?.items.filter((item) => !item.cancelled)} defaultService={10}
-        title={`Fechamento · ${table ? tableLabel(table) : ""}`} pending={pay.isPending} connectionRequired={offline} onConfirm={(p) => pay.mutate(p)} />
+        title={`Fechamento · ${table ? tableLabel(table) : ""}`} pending={pay.isPending} connectionRequired={offline}
+        review={pay.error instanceof UncertainOperationError ? { pending: checkingPayment, consult: () => void consultPayment() } : undefined}
+        onConfirm={(p) => { if (o && o.id === table.order_id) pay.mutate({ payment: p, orderId: o.id }); }} />
       <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />
       {editingDraft && <DraftItemDialog line={editingDraft} onClose={() => setEditingDraft(null)} onSave={(line) => {
         if (pending.some((entry) => entry.key === line.key)) updateDraft(line);
@@ -922,6 +942,7 @@ function PartialBillDialog({ table, items, open, onClose }: { table: Table; item
   };
   const [preview, setPreview] = useState<PartialBillPreview | null>(null);
   const [payOpen, setPayOpen] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(false);
   const [clientRef, setClientRef] = useState(() => uid());
   const request = useQuery({
     queryKey: ["table-split-request", tableId],
@@ -973,6 +994,22 @@ function PartialBillDialog({ table, items, open, onClose }: { table: Table; item
       }
     },
   });
+  const consultPartialPayment = async () => {
+    setCheckingPayment(true);
+    try {
+      if (!preview) return;
+      const latest = await apiGet<Order | null>(`/tables/${tableId}/order`);
+      if (latest?.id !== preview.order_id || latest.status !== "aberto") {
+        setPayOpen(false); setPreview(null); invalidateTables();
+      }
+      payment.reset();
+      toast.info("Comanda consultada. Confira o atendimento e os valores antes de confirmar.");
+    } catch (error) {
+      toast.error(errMsg(error));
+    } finally {
+      setCheckingPayment(false);
+    }
+  };
   return (
     <>
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -1015,7 +1052,9 @@ function PartialBillDialog({ table, items, open, onClose }: { table: Table; item
         </div>}
       </DialogContent>
     </Dialog>
-    <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} items={preview?.items} defaultService={10} partialMode title="Recebimento parcial (não fiscal)" pending={payment.isPending} connectionRequired={offline} onConfirm={(p) => { if (preview) payment.mutate({ payment: p, quote: preview }); }} />
+    <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} items={preview?.items} defaultService={10} partialMode title="Recebimento parcial (não fiscal)" pending={payment.isPending} connectionRequired={offline}
+      review={payment.error instanceof UncertainOperationError ? { pending: checkingPayment, consult: () => void consultPartialPayment() } : undefined}
+      onConfirm={(p) => { if (preview) payment.mutate({ payment: p, quote: preview }); }} />
     </>
   );
 }

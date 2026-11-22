@@ -386,6 +386,10 @@ class PayIn(BaseModel):
     fiado_customer_id: Optional[str] = None
 
 
+class TablePayIn(PayIn):
+    expected_order_id: Optional[str] = Field(default=None, min_length=1, max_length=128)
+
+
 class SyncContext(BaseModel):
     establishment_id: str = Field(min_length=1, max_length=128)
     server_id: str = Field(min_length=1, max_length=128)
