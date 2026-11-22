@@ -133,7 +133,7 @@ export default function Mesas() {
           </nav> : <div className="flex gap-1 rounded-xl border border-white/8 p-1">
             {(["mesa", "comanda"] as const).map((k) => <button key={k} type="button" onClick={() => setKind(k)} data-testid={`kind-tab-${k}`} className={cn("rounded-lg px-4 py-1.5 text-sm", kind === k ? "bg-primary text-white" : "text-zinc-400 hover:text-white")}>{k === "mesa" ? "Mesas" : "Comandas"} ({all.filter((t) => t.kind === k).length})</button>)}
           </div>}
-          {canCreate && <Link to="/mesas-offline" className="rounded border px-3 py-2">Mesas offline</Link>}
+          <Link to="/mesas-offline" className="rounded border px-3 py-2">Mesas offline</Link>
           {canCreate && (!mobileMode || mobileSection !== "fechar") && (
             <Button onClick={() => setCreating(true)} data-testid="new-table-open-button"><Plus className="size-4" /> Nova {kind === "mesa" ? "mesa" : "comanda"}</Button>
           )}

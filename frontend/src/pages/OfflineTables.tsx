@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { brl } from "@/lib/format";
@@ -21,6 +21,9 @@ export default function OfflineTables() {
   const [secret, setSecret] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const operation = useRef(false);
+  const conflicting = useRef(new Set<string>());
+  const [target, setTarget] = useState("");
   const [number, setNumber] = useState("");
   const [kind, setKind] = useState<"mesa" | "comanda">("mesa");
   const [productId, setProductId] = useState("");
@@ -47,7 +50,8 @@ export default function OfflineTables() {
   }, [session]);
 
   async function run(action: () => Promise<void>) {
-    if (busy) return;
+    if (operation.current) return;
+    operation.current = true;
     setBusy(true);
     setMessage("");
     try { await action(); }
@@ -60,7 +64,7 @@ export default function OfflineTables() {
       const detail = error instanceof ApiError && error.body && typeof error.body === "object" && "detail" in error.body
         ? error.body.detail : undefined;
       setMessage(typeof detail === "string" ? detail : error instanceof Error ? error.message : "Operação indisponível.");
-    } finally { setBusy(false); }
+    } finally { operation.current = false; setBusy(false); }
   }
 
   async function unlock(event: FormEvent) {
@@ -76,7 +80,9 @@ export default function OfflineTables() {
       try {
         online = await withRequestTimeout(signal => apiGet<OfflineTableProfile>("/offline/table-profile", signal), 5000);
       } catch (error) {
-        if (!(error instanceof TypeError) && !(error instanceof DOMException && error.name === "AbortError")) throw error;
+        const unreachable = error instanceof TypeError || (error instanceof DOMException && error.name === "AbortError")
+          || (error instanceof ApiError && [502, 503, 504].includes(error.status));
+        if (!unreachable) throw error;
       }
       if (!online && (!opened || lock || !active(opened.vault.profile))) {
         throw new Error("Valide o operador online para preparar ou renovar o acesso local.");
@@ -117,14 +123,18 @@ export default function OfflineTables() {
   function save(event: FormEvent) {
     event.preventDefault();
     if (!session || !items.length) return;
+    const existing = session.vault.profile.tables.find(row => row.id === target);
+    if (target && (!existing?.id || !existing.order_id || existing.status !== "ocupada")) return;
+    if (!target && session.vault.profile.can_create === false) return;
     const draft: OfflineTableDraft = {
       client_ref: crypto.randomUUID(),
-      table: { number: Number(number), kind, name: "", seats: 4 },
+      table: { number: existing?.number ?? Number(number), kind: existing?.kind ?? kind, name: "", seats: 4 },
+      ...(existing?.id && existing.order_id ? { existing: { table_id: existing.id, order_id: existing.order_id } } : {}),
       items,
     };
     void run(async () => {
       const { vault } = session;
-      if ([...vault.profile.tables, ...vault.pending.map(row => row.table)]
+      if (!draft.existing && [...vault.profile.tables, ...vault.pending.map(row => row.table)]
         .some(row => row.number === draft.table.number && row.kind === kind)) {
         throw new Error("Esse número já está em uso na última consulta ou na fila.");
       }
@@ -135,22 +145,32 @@ export default function OfflineTables() {
     });
   }
 
-  function sync() {
-    if (!session) return;
+  function sync(automatic = false) {
+    if (!session || !session.vault.pending.some(draft => !automatic || !conflicting.current.has(draft.client_ref))) return;
     void run(async () => {
-      const online = await apiGet<OfflineTableProfile>("/offline/table-profile");
+      let online: OfflineTableProfile;
+      try {
+        online = await withRequestTimeout(signal => apiGet<OfflineTableProfile>("/offline/table-profile", signal), 5000);
+      } catch (error) {
+        if (automatic && (error instanceof TypeError || (error instanceof DOMException && error.name === "AbortError")
+          || (error instanceof ApiError && [502, 503, 504].includes(error.status)))) return;
+        throw error;
+      }
       if (!sameContext(online.context, session.vault.profile.context)) throw new Error("O operador ou estabelecimento mudou.");
       let current = session;
       const conflicts: string[] = [];
       for (const draft of session.vault.pending) {
+        if (automatic && conflicting.current.has(draft.client_ref)) continue;
         check(current);
         try {
           await withRequestTimeout(signal => apiPost("/offline/tables", { ...draft, sync_context: online.context }, signal), 15000);
         } catch (error) {
-          if (!(error instanceof ApiError) || error.status !== 409) throw error;
+          if (!(error instanceof ApiError) || ![400, 409, 422].includes(error.status)) throw error;
+          conflicting.current.add(draft.client_ref);
           conflicts.push(`${draft.table.kind} ${draft.table.number}`);
           continue;
         }
+        conflicting.current.delete(draft.client_ref);
         current = await persist(current, {
           ...current.vault, profile: online,
           pending: current.vault.pending.filter(row => row.client_ref !== draft.client_ref),
@@ -160,6 +180,21 @@ export default function OfflineTables() {
     });
   }
 
+  const reconnect = useEffectEvent(() => sync(true));
+  const hasPending = Boolean(session?.vault.pending.length);
+  useEffect(() => {
+    if (!hasPending) return;
+    // Upstream recovery can happen without an online event when Wi-Fi stays connected.
+    const poll = window.setInterval(() => reconnect(), 10_000);
+    const online = () => reconnect();
+    window.addEventListener("online", online);
+    return () => {
+      window.clearInterval(poll);
+      window.removeEventListener("online", online);
+    };
+  }, [hasPending]);
+
+
   return (
     <main className="mx-auto max-w-3xl space-y-5 p-5">
       <Link className="underline" to="/login">Voltar ao login</Link>
@@ -167,7 +202,7 @@ export default function OfflineTables() {
       {message && <p role="status">{message}</p>}
       {!session ? (
         <form onSubmit={unlock} className="space-y-3">
-          <p>Prepare este dispositivo com uma sessão online de caixa ou administrador. Use uma senha exclusiva para o cofre local.</p>
+          <p>Prepare este dispositivo com uma sessão online de garçom, caixa ou administrador. Use uma senha exclusiva para o cofre local.</p>
           <label className="block">Senha local <input required type="password" value={secret} onChange={e => setSecret(e.target.value)} /></label>
           <button disabled={busy} className="rounded border p-2">Abrir cofre</button>
         </form>
@@ -178,8 +213,15 @@ export default function OfflineTables() {
             <ul>{session.vault.profile.tables.map(table => <li key={table.kind + table.number}>{table.kind} {table.number} · {table.name} · {table.status}</li>)}</ul>
           </details>
           <form onSubmit={save} className="space-y-3">
+            <label className="block">Atendimento <select value={target} onChange={e => setTarget(e.target.value)}>
+              <option value="">{session.vault.profile.can_create === false ? "Selecione um atendimento" : "Nova mesa ou comanda"}</option>
+              {session.vault.profile.tables.filter(row => row.id && row.order_id && row.status === "ocupada").map(row =>
+                <option key={row.id} value={row.id}>{row.kind} {row.number}</option>)}
+            </select></label>
+            {!target && session.vault.profile.can_create !== false && <>
             <label>Tipo <select value={kind} onChange={e => setKind(e.target.value === "mesa" ? "mesa" : "comanda")}><option value="mesa">Mesa</option><option value="comanda">Comanda</option></select></label>
             <label className="block">Número <input required type="number" min="1" max="999999" value={number} onChange={e => setNumber(e.target.value)} /></label>
+            </>}
             <label className="block">Produto <select value={productId} onChange={e => setProductId(e.target.value)}><option value="">Selecione</option>{session.vault.profile.products.map(product => <option key={product.id} value={product.id}>{product.name} · {brl(product.price)}</option>)}</select></label>
             <label className="block">Quantidade <input type="number" min="0.001" step="0.001" value={qty} onChange={e => setQty(e.target.value)} /></label>
             <label className="block">Observação <input maxLength={300} value={notes} onChange={e => setNotes(e.target.value)} /></label>
@@ -191,11 +233,11 @@ export default function OfflineTables() {
               setNotes("");
             }}>Adicionar item</button>
             <ul>{items.map((item, index) => <li key={index}>{item.qty} × {session.vault.profile.products.find(row => row.id === item.product_id)?.name} · {item.notes} <button type="button" onClick={() => setItems(items.filter((_, i) => i !== index))}>Remover</button></li>)}</ul>
-            <button className="rounded border p-2" disabled={busy || !items.length}>Salvar pedido no dispositivo</button>
+            <button className="rounded border p-2" disabled={busy || !items.length || (!target && session.vault.profile.can_create === false)}>Salvar pedido no dispositivo</button>
           </form>
           <h2 className="text-lg font-semibold">Pedidos pendentes ({session.vault.pending.length})</h2>
           <ul>{session.vault.pending.map(draft => <li key={draft.client_ref}>{draft.table.kind} {draft.table.number} · {draft.items.length} linha(s)</li>)}</ul>
-          <button className="rounded border p-2" disabled={busy || !session.vault.pending.length} onClick={sync}>Enviar após reconectar</button>
+          <button className="rounded border p-2" disabled={busy || !session.vault.pending.length} onClick={() => sync()}>Enviar após reconectar</button>
           <button className="ml-2 rounded border p-2" disabled={busy} onClick={() => { setSession(undefined); setItems([]); }}>Fechar cofre</button>
           {!session.vault.pending.length && !items.length && <button className="ml-2 rounded border p-2" disabled={busy} onClick={() => void run(async () => {
             check(session);

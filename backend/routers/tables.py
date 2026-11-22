@@ -275,17 +275,21 @@ async def apply_add_items(id: str, body: AddItemsIn, user: dict, *, session=None
 @router.get("/offline/table-profile")
 async def offline_table_profile(response: Response, identity: tuple = Depends(authenticated_identity)):
     user, session_expires_at = identity
-    if user["role"] not in ("admin", "caixa"):
-        raise HTTPException(403, "Cofre local disponível para caixa e administrador.")
+    if user["role"] not in ("admin", *STAFF):
+        raise HTTPException(403, "Perfil sem permissão para o cofre local.")
     response.headers["Cache-Control"] = "no-store"
     products = await db.products.find(
         {"active": True}, {"_id": 0, "id": 1, "name": 1, "price": 1, "options": 1, "channels": 1},
     ).sort("name", 1).to_list(2000)
-    tables = await db.tables.find({}, {"_id": 0, "number": 1, "kind": 1, "name": 1, "status": 1}).to_list(1000)
+    scope = {"waiter_id": user["id"], "status": "ocupada", "order_id": {"$type": "string"}} if user["role"] == "garcom" else {}
+    tables = await db.tables.find(scope, {
+        "_id": 0, "id": 1, "order_id": 1, "number": 1, "kind": 1, "name": 1, "status": 1,
+    }).to_list(1000)
     issued_at = datetime.now(timezone.utc)
     return {
         "context": await sync_context(user),
         "operator": user["name"],
+        "can_create": user["role"] in ("admin", "caixa"),
         "issued_at": issued_at,
         "expires_at": min(session_expires_at, issued_at + timedelta(hours=8)),
         "products": [{"id": item["id"], "name": item["name"], "price": round(item["price"], 2)} for item in products
@@ -301,12 +305,20 @@ class OfflineTableItemIn(OrderItemIn):
     expected_price: float = Field(ge=0, allow_inf_nan=False)
 
 
+class OfflineTableTarget(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    table_id: str = Field(min_length=1, max_length=128)
+    order_id: str = Field(min_length=1, max_length=128)
+
+
 class OfflineTableIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     client_ref: str = Field(min_length=16, max_length=128)
     sync_context: SyncContext
     table: TableIn
+    existing: OfflineTableTarget | None = None
     items: list[OfflineTableItemIn] = Field(min_length=1, max_length=100)
 
 
@@ -316,14 +328,24 @@ class OfflineTableReceipt(BaseModel):
 
 
 @router.post("/offline/tables", response_model=OfflineTableReceipt)
-async def sync_offline_table(body: OfflineTableIn, user: dict = Depends(require("caixa"))):
+async def sync_offline_table(body: OfflineTableIn, user: dict = Depends(require(*STAFF))):
+    if body.existing is None and user["role"] == "garcom":
+        raise HTTPException(403, "Garçom só pode enviar itens para seu atendimento existente.")
     await validate_sync_context(body.sync_context, user)
     key = hashlib.sha256(json.dumps([body.sync_context.model_dump(), body.client_ref]).encode()).hexdigest()
-    fingerprint = hashlib.sha256(body.model_dump_json().encode()).hexdigest()
+    # Preserve receipts already issued for P54 drafts without an existing target.
+    serialized = body.model_dump_json(exclude={"existing"} if body.existing is None else None)
+    fingerprint = hashlib.sha256(serialized.encode()).hexdigest()
 
-    def receipt(record):
+    batch_key = hashlib.sha256(f"{user['id']}:{body.client_ref}".encode()).hexdigest()
+
+    async def receipt(record, **options):
         if record["fingerprint"] != fingerprint:
             raise HTTPException(409, "Referência já usada com dados diferentes.")
+        if not await db.orders.find_one({
+            "id": record["order_id"], f"table_item_batches.{batch_key}.complete": True,
+        }, {"_id": 1}, **options):
+            raise HTTPException(409, "Recibo sem lançamento correspondente no banco atual. Confira a restauração antes de reenviar.")
         return {"table_id": record["table_id"], "order_id": record["order_id"]}
 
     async def apply(session):
@@ -332,23 +354,31 @@ async def sync_offline_table(body: OfflineTableIn, user: dict = Depends(require(
         options = {"session": session}
         previous = await db.offline_table_receipts.find_one({"_id": key}, **options)
         if previous:
-            return receipt(previous)
-        table = Table(**body.table.model_dump()).model_dump()
-        await db.tables.insert_one(dict(table), **options)
-        order = await get_or_open_order(table, user, **options)
+            return await receipt(previous, **options)
+        if body.existing:
+            table = await db.tables.find_one({"id": body.existing.table_id}, **options)
+            if not table or table.get("order_id") != body.existing.order_id or table.get("status") != "ocupada":
+                raise HTTPException(409, "Atendimento mudou desde a última consulta. Revise o envio.")
+            if user["role"] == "garcom" and table.get("waiter_id") != user["id"]:
+                raise HTTPException(409, "Atendimento atribuído a outro operador. Revise o envio.")
+            order_id = body.existing.order_id
+        else:
+            table = Table(**body.table.model_dump()).model_dump()
+            await db.tables.insert_one(dict(table), **options)
+            order_id = (await get_or_open_order(table, user, **options))["id"]
         await apply_add_items(table["id"], AddItemsIn(
-            order_id=order["id"], client_ref=body.client_ref, items=[OrderItemIn.model_validate(item.model_dump(exclude={"expected_price"})) for item in body.items],
+            order_id=order_id, client_ref=body.client_ref, items=[OrderItemIn.model_validate(item.model_dump(exclude={"expected_price"})) for item in body.items],
         ), user, expected_prices=[item.expected_price for item in body.items], **options)
-        record = {"_id": key, "fingerprint": fingerprint, "table_id": table["id"], "order_id": order["id"]}
+        record = {"_id": key, "fingerprint": fingerprint, "table_id": table["id"], "order_id": order_id}
         await db.offline_table_receipts.insert_one(record, **options)
-        return receipt(record)
+        return await receipt(record, **options)
 
     try:
         return await with_order_transaction(apply)
     except DuplicateKeyError:
         previous = await db.offline_table_receipts.find_one({"_id": key})
         if previous:
-            return receipt(previous)
+            return await receipt(previous)
         raise HTTPException(409, "Já existe mesa ou comanda com este número. Revise o envio.") from None
 
 

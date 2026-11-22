@@ -1,7 +1,7 @@
 name: Apollo six-profile browser operational matrix
 on:
   push:
-    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao, audit/p54-offline-integral-vps-validacao-final]
+    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao, audit/p54-offline-integral-vps-validacao-final, audit/p55-correcao-final-offline-vps-operacional]
   workflow_dispatch:
 permissions:
   contents: read
@@ -82,6 +82,9 @@ jobs:
           if test "$GITHUB_REF_NAME" = audit/p54-offline-integral-vps-validacao-final; then
             npx playwright test --config=p47.config.ts p54-offline-tables.spec.ts --output=test-results/p54-vault --reporter=list 2>&1 | tee ../evidence/p54-vault.log || result=1
           fi
+          if test "$GITHUB_REF_NAME" = audit/p55-correcao-final-offline-vps-operacional; then
+            npx playwright test --config=p47.config.ts p55-offline-tables.spec.ts --output=test-results/p55-vault --reporter=list 2>&1 | tee ../evidence/p55-vault.log || result=1
+          fi
           exit "$result"
       - name: Real server interruption diagnostic (separate from emulated offline)
         if: ${{ !cancelled() }}
@@ -102,5 +105,6 @@ jobs:
             evidence/
             tests/test-results/p47/
             tests/test-results/p54-vault/
+            tests/test-results/p55-vault/
             tests/test-results/p48-interruption/
           retention-days: 14

@@ -3,14 +3,16 @@ import type { QueueContext } from "./queue-context";
 export interface OfflineTableProfile {
   context: QueueContext;
   operator: string;
+  can_create?: boolean;
   issued_at: string;
   expires_at: string;
   products: { id: string; name: string; price: number }[];
-  tables: { number: number; kind: "mesa" | "comanda"; name: string; status: string }[];
+  tables: { number: number; kind: "mesa" | "comanda"; name: string; status: string; id?: string; order_id?: string | null }[];
 }
 export interface OfflineTableDraft {
   client_ref: string;
   table: { number: number; kind: "mesa" | "comanda"; name: string; seats: number };
+  existing?: { table_id: string; order_id: string };
   items: { product_id: string; qty: number; notes: string; expected_price: number }[];
 }
 export interface TableVault { profile: OfflineTableProfile; pending: OfflineTableDraft[] }
