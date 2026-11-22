@@ -80,7 +80,7 @@ jobs:
         if: github.ref_name == 'audit/p56-validacao-vps-offline-operacional' || github.ref_name == 'audit/p57-correcao-vps-offline-liberacao'
         run: |
           python deploy/vps/test_verify_public_build.py
-          python deploy/vps/verify-public-build.py frontend/dist/build-integrity.json > evidence/p56-public-build.json
+          python deploy/vps/verify-public-build.py frontend/dist/build-integrity.json > evidence/public-build-gate.json
       - name: Package checksums
         if: always()
         run: |

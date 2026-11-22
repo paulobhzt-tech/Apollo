@@ -11,9 +11,11 @@ cleanup() {
 trap cleanup EXIT
 build_dir="$(realpath "${APOLLO_TEST_BUILD:-frontend/dist}")"
 template="$(realpath deploy/vps/apache-web.conf)"
-export APOLLO_TEST_BUILD="$build_dir"
 export APOLLO_TEST_COMMIT="$(git rev-parse HEAD)"
 EXPECTED_COMMIT="$APOLLO_TEST_COMMIT" node frontend/scripts/verify-build.mjs "$build_dir"
+mkdir "$scratch/site"
+cp -a "$build_dir/." "$scratch/site/"
+export APOLLO_TEST_BUILD="$scratch/site"
 
 python - <<'PY' &
 import json
@@ -44,7 +46,7 @@ ServerName localhost
 APACHE
 chmod 644 "$scratch/vhost.conf"
 docker run -d --name "$container" --network host \
-  -v "$build_dir:/opt/apollo-dist:ro" \
+  -v "$APOLLO_TEST_BUILD:/opt/apollo-dist:ro" \
   -v "$template:/opt/apollo-web.conf:ro" \
   -v "$scratch/vhost.conf:/opt/apollo-test-vhost.conf:ro" \
   httpd:2.4 sh -ec '
@@ -59,3 +61,7 @@ for i in $(seq 1 20); do
 done
 python deploy/vps/test-apache-web.py || { docker logs "$container"; exit 1; }
 node tests/apache-worker.mjs
+mv "$APOLLO_TEST_BUILD/build-integrity.json" "$scratch/audited-build-integrity.json"
+status="$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18057/build-integrity.json)"
+test "$status" = 404
+printf 'Apache: manifesto removido devolveu HTTP %s.\n' "$status"

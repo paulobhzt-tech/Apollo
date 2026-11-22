@@ -478,9 +478,14 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
 
   const removeItems = useMutation({
     ...onlineMutation,
-    mutationFn: async (r: RemoveRequest) => {
-      for (const l of r.lines) await onlineOperation(() => apiPost<Order>(`/tables/${table!.id}/items/${l.id}/cancel`, { reason: r.reason, manager_pin: r.manager_pin, qty: l.qty }));
-    },
+    mutationFn: (r: RemoveRequest) => onlineOperation(async () => {
+      for (const line of r.lines) {
+        if (isOffline()) throw new TypeError("Conexão interrompida durante o cancelamento.");
+        await apiPost<Order>(`/tables/${table!.id}/items/${line.id}/cancel`, {
+          reason: r.reason, manager_pin: r.manager_pin, qty: line.qty,
+        });
+      }
+    }),
     onSuccess: (_d, r) => { toast.success(`${r.lines.reduce((s, l) => s + l.qty, 0)} un. apagada(s)`); setRemoving(null); invalidateTables(); },
     onError: (e) => { onErr(e); invalidateTables(); },
   });

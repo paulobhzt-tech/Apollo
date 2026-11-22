@@ -18,7 +18,7 @@ async function noOverflow(page:Page) {
     .toEqual(expect.objectContaining({width:expect.any(Number)}));
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'document horizontal overflow').toBe(true);
 }
-async function pay(page:Page,mixed=false) {
+async function pay(page:Page,mixed=false, beforeConfirm?: () => Promise<void>) {
   const dialog=page.getByTestId('payment-dialog');
   await expect(dialog).toBeVisible();
   const invoice=page.getByTestId('payment-emit-invoice-checkbox');
@@ -34,6 +34,7 @@ async function pay(page:Page,mixed=false) {
   await page.getByTestId('payment-add-button').click();
   await expect(page.getByTestId('payment-remaining')).toContainText('0,00');
   await noOverflow(page);
+  await beforeConfirm?.();
   await page.getByTestId('payment-confirm-button').click();
   await expect(dialog).toBeHidden();
 }
@@ -100,7 +101,20 @@ test('UI operational shift: tables, shared customers, transfer, comanda, mixed p
     await expect(page.getByTestId('table-sheet')).toBeHidden();
     await page.getByTestId('table-card-'+(start+1)).click();
     await page.getByTestId('close-table-button').click();
-    await pay(page,true);
+    await pay(page,true, process.env.APOLLO_P57_ONLINE_GUARD !== '1' ? undefined : async () => {
+      let attempts = 0;
+      const observe = (request: import('@playwright/test').Request) => {
+        if (request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/pay')) attempts++;
+      };
+      page.on('request', observe);
+      await context.setOffline(true);
+      await expect(page.getByText('Reconecte para confirmar o pagamento.')).toBeVisible();
+      await expect(page.getByTestId('payment-confirm-button')).toBeDisabled();
+      await context.setOffline(false);
+      await expect(page.getByTestId('payment-confirm-button')).toBeEnabled();
+      expect(attempts).toBe(0);
+      page.off('request', observe);
+    });
     await page.getByTestId('table-workspace-close').click();
     await page.getByTestId('kind-tab-comanda').click();
     await page.getByTestId('new-table-open-button').click();
