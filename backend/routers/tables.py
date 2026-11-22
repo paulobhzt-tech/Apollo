@@ -8,6 +8,7 @@ from lib.audit import audit_event
 from lib.cash_scope import cash_scope, claim_cash, independent_cash
 from lib.auth import cancel_authorizer, current_user, require
 from lib.db import client, db
+from lib.sync_identity import validate_sync_context
 from lib.orders import (build_items, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods, validate_payment_details,
                         refresh_totals)
 from models.schemas import (SaleQuantity, AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, OrderItem, PayIn, SaleResult, Table, TableIn,
@@ -199,6 +200,7 @@ async def table_item_progress(id: str, _: dict = Depends(require(*STAFF))):
 
 @router.post("/tables/{id}/items", response_model=Order)
 async def add_items(id: str, body: AddItemsIn, user: dict = Depends(require(*STAFF))):
+    await validate_sync_context(body.sync_context, user)
     return await with_order_transaction(lambda session: apply_add_items(id, body, user, session=session))
 
 
@@ -210,7 +212,7 @@ async def apply_add_items(id: str, body: AddItemsIn, user: dict, *, session=None
     if body.order_id and t.get("order_id") != body.order_id:
         raise HTTPException(409, "Atendimento alterado. Atualize antes de enviar.")
     batch_key = hashlib.sha256(f"{user['id']}:{body.client_ref}".encode()).hexdigest()
-    fingerprint = hashlib.sha256(body.model_dump_json().encode()).hexdigest()
+    fingerprint = hashlib.sha256(body.model_dump_json(exclude={"sync_context"}).encode()).hexdigest()
     if body.order_id:
         order = await db.orders.find_one({"id": body.order_id, "status": "aberto"}, {"_id": 0}, **options)
         if not order:

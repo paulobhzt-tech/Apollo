@@ -491,6 +491,7 @@ class OpenTableIn(BaseModel):
 
 
 class AddItemsIn(BaseModel):
+    sync_context: Optional[SyncContext] = None
     order_id: Optional[str] = None
     client_ref: Optional[str] = Field(default=None, min_length=1, max_length=128)
     items: list[OrderItemIn] = Field(min_length=1)

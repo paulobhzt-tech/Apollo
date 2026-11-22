@@ -199,3 +199,75 @@ test('UI offline sale persists in a real browser profile across process restart 
     }
   }
 });
+
+test('confirmed table items survive a lost server response and browser process restart', async ({ browserName }, info) => {
+  const profile = await mkdtemp(path.join(tmpdir(), 'apollo-table-replay-'));
+  const launch = () => ({ chromium, firefox, webkit }[browserName]).launchPersistentContext(profile, {
+    ...info.project.use,
+    ...info.project.use.launchOptions,
+    baseURL: base,
+    ignoreHTTPSErrors: true,
+  });
+  let context: Awaited<ReturnType<typeof launch>> | undefined;
+  try {
+    context = await launch();
+    let page = await context.newPage();
+    await login(page);
+    const stock = async () => {
+      const response = await context!.request.get(base + '/api/ingredients');
+      expect(response.ok()).toBe(true);
+      return (await response.json()).find((item: { id: string }) => item.id === 'p40ing').stock;
+    };
+    const before = await stock();
+    const number = info.project.name === 'desktop' ? '9581' : '9582';
+    await page.goto(base + '/mesas');
+    await page.getByTestId('new-table-open-button').click();
+    await page.getByTestId('new-table-number').fill(number);
+    await page.getByTestId('new-table-qty').fill('1');
+    await page.getByTestId('new-table-save').click();
+    await page.getByTestId('table-card-' + number).click();
+    await page.getByTestId('open-table-button').click();
+    await page.getByTestId('add-items-button').click();
+    await page.locator('[data-testid^="product-card-"]').filter({ hasText: 'Espetinho P40' }).click();
+    await page.getByTestId('send-to-kitchen-button').click();
+
+    const itemsEndpoint = /\/api\/tables\/[^/]+\/items$/;
+    let original: unknown;
+    let committed = false;
+    await page.route(itemsEndpoint, async route => {
+      original = route.request().postDataJSON();
+      const response = await route.fetch();
+      committed = response.ok();
+      // The backend commits normally. Only delivery of the response is interrupted.
+      await route.abort('connectionreset');
+    });
+    await page.getByTestId('waiter-confirm-send').click();
+    await expect.poll(() => committed).toBe(true);
+    await expect(page.getByTestId('waiter-confirm-send')).toBeEnabled();
+    expect(await stock()).toBe(before - 1);
+    expect(original).toEqual(expect.objectContaining({ sync_context: expect.any(Object), client_ref: expect.any(String) }));
+
+    await context.close();
+    context = await launch();
+    page = await context.newPage();
+    await login(page);
+    await page.goto(base + '/mesas');
+    await page.getByTestId('table-card-' + number).click();
+    await page.getByRole('button', { name: 'Conferir envio pendente' }).click();
+    await expect(page.getByText('Envio recuperado deste dispositivo.', { exact: false })).toBeVisible();
+    const replay = page.waitForResponse(response => itemsEndpoint.test(response.url()) && response.request().method() === 'POST');
+    await page.getByTestId('waiter-confirm-send').click();
+    const response = await replay;
+    expect(response.ok()).toBe(true);
+    expect(response.request().postDataJSON()).toEqual(original);
+    await expect(page.getByRole('button', { name: 'Conferir envio pendente' })).toHaveCount(0);
+    expect(await stock()).toBe(before - 1);
+    await info.attach('table-recovery', {
+      body: JSON.stringify({ stockBefore: before, stockAfterReplay: await stock(), repeatedSameRequest: true }),
+      contentType: 'application/json',
+    });
+  } finally {
+    await context?.close();
+    await rm(profile, { recursive: true, force: true });
+  }
+});

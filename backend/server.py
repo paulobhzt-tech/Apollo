@@ -73,14 +73,10 @@ app.include_router(api_router)
 # Unset in the cloud/preview, where the frontend is served separately.
 _web = os.environ.get("SERVE_FRONTEND_DIR")
 if _web and os.path.isdir(_web):
-    from fastapi.responses import FileResponse
+    from lib.web_assets import web_response
+
+    web_root = Path(_web).resolve()
 
     @app.get("/{path:path}", include_in_schema=False)
     async def _spa(path: str):
-        f = os.path.realpath(os.path.join(_web, path))
-        # commonpath checks directory containment; startswith allows sibling paths
-        # such as /web-private to pass for a /web root.
-        root = os.path.realpath(_web)
-        if os.path.commonpath([root, f]) == root and os.path.isfile(f):
-            return FileResponse(f)
-        return FileResponse(os.path.join(_web, "index.html"))
+        return web_response(web_root, path)

@@ -18,6 +18,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ApiError, apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import { useMe } from "@/lib/auth";
+import { useOffline } from "@/lib/offline";
+import { clearTableSubmission, readTableSubmission, reserveTableSubmission, tableSubmissionKey, type TableSubmission } from "@/lib/table-submission";
 import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, uid } from "@/lib/format";
 import { useOperatorDraft } from "@/lib/operator-draft";
 import { queryClient } from "@/lib/queryClient";
@@ -370,8 +372,20 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const setPending = onDraftChange;
   const [adding, setAdding] = useState(!!draft?.length);
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [submission, setSubmission] = useOperatorDraft<{ ref: string; orderId: string; payload: string } | null>(
+  const { context } = useOffline();
+  const [legacySubmission, setLegacySubmission] = useOperatorDraft<TableSubmission | null>(
     `apollo-table-send:${me?.id}:${table.id}:${table.order_id}`, null);
+  const submissionKey = context && context.operator_id === me?.id && table.order_id
+    ? tableSubmissionKey(context, table.id, table.order_id) : null;
+  const submissionQuery = useQuery({
+    queryKey: ["table-submission", submissionKey],
+    queryFn: () => submissionKey ? readTableSubmission(submissionKey) : null,
+    enabled: !!submissionKey,
+    networkMode: "always",
+    retry: false,
+  });
+  const submission = submissionQuery.data ?? legacySubmission;
+  const pendingConfirmation = !!submission || (!!submissionKey && !submissionQuery.isSuccess);
   const itemProgress = useQuery({
     queryKey: ["table-item-progress", table.id, table.order_id],
     queryFn: () => apiGet<Record<string, string>>(`/tables/${table.id}/item-progress`),
@@ -400,19 +414,37 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     onError: (error) => { onErr(error); invalidateTables(); },
   });
   const send = useMutation({
-    mutationFn: () => {
+    networkMode: "always",
+    mutationFn: async () => {
       const payload = JSON.stringify(pending.map((p) => ({ product_id: p.product.id, qty: p.qty, notes: p.notes, options: p.options, customer_name: p.customerName })));
       if (!table.order_id) throw new Error("Abra o atendimento antes de enviar.");
-      if (submission && (submission.payload !== payload || submission.orderId !== table.order_id)) {
+      if (submission && ((pending.length && submission.payload !== payload) || submission.orderId !== table.order_id)) {
         throw new Error("Confira o envio anterior antes de editar os itens.");
       }
-      const request = submission ?? { ref: uid(), orderId: table.order_id, payload };
-      setSubmission(request);
-      return apiPost<Order>(`/tables/${table.id}/items`, { order_id: request.orderId, client_ref: request.ref, items: JSON.parse(request.payload) });
+      const proposed = submission ?? { ref: uid(), orderId: table.order_id, payload };
+      const request = submissionKey ? await reserveTableSubmission(submissionKey, proposed) : proposed;
+      if (submissionKey) queryClient.setQueryData(["table-submission", submissionKey], request);
+      else setLegacySubmission(request);
+      try {
+        await apiPost<Order>(`/tables/${table.id}/items`, {
+          order_id: request.orderId, client_ref: request.ref, items: JSON.parse(request.payload),
+          ...(submissionKey ? { sync_context: context } : {}),
+        });
+      } catch (error) {
+        if (error instanceof ApiError && [400, 422].includes(error.status) && submissionKey) {
+          const remaining = await clearTableSubmission(submissionKey, request.ref);
+          queryClient.setQueryData(["table-submission", submissionKey], remaining);
+        }
+        throw error;
+      }
+      if (submissionKey) {
+        const remaining = await clearTableSubmission(submissionKey, request.ref);
+        queryClient.setQueryData(["table-submission", submissionKey], remaining);
+      }
     },
-    onSuccess: () => { setSubmission(null); void itemProgress.refetch(); toast.success("Pedido enviado para preparo"); setReviewOpen(false); setPending([]); setAdding(false); invalidateTables(); },
+    onSuccess: () => { setLegacySubmission(null); void itemProgress.refetch(); toast.success("Pedido enviado para preparo"); setReviewOpen(false); setPending([]); setAdding(false); invalidateTables(); },
     onError: (error) => {
-      if (error instanceof ApiError && [400, 401, 403, 422].includes(error.status)) setSubmission(null);
+      if (!submissionKey && error instanceof ApiError && [400, 401, 403, 422].includes(error.status)) setLegacySubmission(null);
       onErr(error);
       invalidateTables();
     },
@@ -641,6 +673,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     <span className="font-mono text-2xl text-foreground" data-testid="table-order-total">{brl(o?.total ?? table.total)}</span>
                   </div>
 
+                  {submissionQuery.isError && <p role="alert" className="mt-4 text-sm text-red-500">Não foi possível verificar o envio salvo neste dispositivo.</p>}
                   {submission && <p role="status" className="mt-4 text-sm text-amber-600 dark:text-amber-300">Envio aguardando confirmação. Reabra a revisão e repita o mesmo envio para conferir o resultado.</p>}
                   {adding ? (
                     <fieldset disabled={send.isPending || !!submission} className="mt-4 min-w-0 space-y-3 rounded-2xl border border-primary/20 bg-panel p-3">
@@ -673,7 +706,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                         <Button variant="ghost" disabled={send.isPending} onClick={() => {
                           if (!pending.length || window.confirm("Descartar os itens ainda não enviados?")) { setAdding(false); setPending([]); }
                         }}>Cancelar</Button>
-                        <Button className="flex-1" disabled={!pending.length || send.isPending} onClick={() => setReviewOpen(true)} data-testid="send-to-kitchen-button">
+                        <Button className="flex-1" disabled={!pending.length || send.isPending || pendingConfirmation} onClick={() => setReviewOpen(true)} data-testid="send-to-kitchen-button">
                           <Send className="size-4" /> Revisar {pending.reduce((s, p) => s + p.qty, 0)} itens
                         </Button>
                       </div>
@@ -690,12 +723,12 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     <Button variant="outline" onClick={() => setPreBill("print")} disabled={!items.some((i) => !i.cancelled)}>
                       <Printer className="size-4" /> Pré-conta e impressão
                     </Button>
-                    {me?.role === "garcom" && <Button className="h-auto min-h-12" variant="outline" onClick={() => { if (window.confirm("Solicitar fechamento desta conta ao caixa?")) status.mutate("conta"); }} disabled={status.isPending || !!pending.length || !items.some((i) => !i.cancelled) || table.status === "conta"} data-testid="waiter-request-close"><Receipt className="size-4" /> {table.status === "conta" ? "Conta solicitada" : "Solicitar fechamento"}</Button>}
-                    {["admin", "caixa"].includes(me?.role ?? "") && <Button className="h-auto min-h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={!!pending.length || !items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
+                    {me?.role === "garcom" && <Button className="h-auto min-h-12" variant="outline" onClick={() => { if (window.confirm("Solicitar fechamento desta conta ao caixa?")) status.mutate("conta"); }} disabled={status.isPending || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || table.status === "conta"} data-testid="waiter-request-close"><Receipt className="size-4" /> {table.status === "conta" ? "Conta solicitada" : "Solicitar fechamento"}</Button>}
+                    {["admin", "caixa"].includes(me?.role ?? "") && <Button className="h-auto min-h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
                       <Receipt className="size-4" /> PAGAMENTO
                     </Button>}
                   </div>
-                  {["admin", "caixa"].includes(me?.role ?? "") && <Button className="mt-2 w-full" variant="outline" disabled={!!pending.length || !items.some((i) => !i.cancelled)} onClick={() => setPartialOpen(true)}>Dividir por cliente ou itens</Button>}
+                  {["admin", "caixa"].includes(me?.role ?? "") && <Button className="mt-2 w-full" variant="outline" disabled={pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled)} onClick={() => setPartialOpen(true)}>Dividir por cliente ou itens</Button>}
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Select value={transferTarget?.id ?? ""} onValueChange={(v: string) => setTransferTo(v)} disabled={!transferTargets.length || transfer.isPending}>
                       <SelectTrigger className="min-w-0 flex-1" data-testid="transfer-select"><SelectValue placeholder="Transferir para…">{(v) => v ? (() => { const x = tables.find((t) => t.id === v); return x ? tableLabel(x) : ""; })() : "Transferir para…"}</SelectValue></SelectTrigger>
@@ -703,7 +736,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                         {transferTargets.map((t) => <SelectItem key={t.id} value={t.id}>{tableLabel(t)}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" disabled={!!pending.length || transfer.isPending || !transferTarget} onClick={() => {
+                    <Button variant="outline" disabled={pendingConfirmation || !!pending.length || transfer.isPending || !transferTarget} onClick={() => {
                       if (transferTarget && window.confirm(`Transferir o atendimento de ${tableLabel(table)} para ${tableLabel(transferTarget)}?`)) {
                         transfer.mutate(transferTarget.id);
                       }
@@ -716,7 +749,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                         <SelectTrigger className="min-w-0 flex-1" data-testid="merge-select"><SelectValue placeholder="Mesa de destino">{(v) => v ? (() => { const x = tables.find(t => t.id === v); return x ? tableLabel(x) : ""; })() : "Mesa de destino"}</SelectValue></SelectTrigger>
                         <SelectContent>{tables.filter(t => t.id !== table.id && !!t.order_id).map(t => <SelectItem key={t.id} value={t.id}>{tableLabel(t)}</SelectItem>)}</SelectContent>
                       </Select>
-                      <Button variant="outline" data-testid="merge-button" disabled={!!pending.length || !mergeTo || merge.isPending} onClick={() => { const dst = tables.find(t => t.id === mergeTo); if (dst && window.confirm(`Juntar ${tableLabel(table)} em ${tableLabel(dst)}? Os itens serão transferidos e a mesa de origem será liberada.`)) merge.mutate(); }}>Juntar</Button>
+                      <Button variant="outline" data-testid="merge-button" disabled={pendingConfirmation || !!pending.length || !mergeTo || merge.isPending} onClick={() => { const dst = tables.find(t => t.id === mergeTo); if (dst && window.confirm(`Juntar ${tableLabel(table)} em ${tableLabel(dst)}? Os itens serão transferidos e a mesa de origem será liberada.`)) merge.mutate(); }}>Juntar</Button>
                     </div>
                     <p className="text-xs text-zinc-500">Disponível para caixa e administrador. Requer banco de dados com transações.</p>
                   </div>}
@@ -725,10 +758,10 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                       onClick={() => status.mutate(table.status === "conta" ? "ocupada" : "conta")} data-testid="table-toggle-status-button">
                       {table.status === "conta" ? "Voltar p/ ocupada" : "Marcar conta"}
                     </Button>
-                    <Button size="sm" variant="outline" disabled={!!pending.length || release.isPending || items.some((i) => !i.cancelled)}
+                    <Button size="sm" variant="outline" disabled={pendingConfirmation || !!pending.length || release.isPending || items.some((i) => !i.cancelled)}
                       title={items.some((i) => !i.cancelled) ? "Só libera sem consumo: feche a conta ou cancele" : ""}
                       onClick={() => release.mutate()} data-testid="table-release-button">Liberar</Button>
-                    <Button size="sm" variant="destructive" disabled={!!pending.length || cancelTable.isPending} data-testid="table-cancel-button" onClick={() => {
+                    <Button size="sm" variant="destructive" disabled={pendingConfirmation || !!pending.length || cancelTable.isPending} data-testid="table-cancel-button" onClick={() => {
                       const reason = window.prompt(`Motivo do cancelamento de ${tableLabel(table)}:`);
                       if (!reason || reason.trim().length < 3) return;
                       const manager_pin = canCancel(me) ? undefined : window.prompt("Sem permissão. PIN do gerente para autorizar:") ?? "";
@@ -756,8 +789,9 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
           <DialogHeader><DialogTitle>Revisar pedido antes de enviar</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">{tableLabel(table)} · Confira itens, quantidades e observações. Nenhum item foi enviado ainda.</p>
           <div className="space-y-2">{pending.map((p) => <div key={p.key} className="rounded-lg border border-border p-3 text-sm"><div className="flex justify-between gap-3"><strong>{p.qty} × {p.product.name}</strong><span>{brl(p.qty * (p.product.price + p.extra))}</span></div>{p.labels.length > 0 && <p className="text-muted-foreground">{p.labels.join(" · ")}</p>}{p.customerName && <p>Cliente: {p.customerName}</p>}{p.notes.trim() && <p className="font-medium text-amber-500">Obs.: {p.notes}</p>}</div>)}</div>
-          <p className="text-right font-semibold">Total dos novos itens: {brl(pending.reduce((sum, p) => sum + p.qty * (p.product.price + p.extra), 0))}</p>
-          <div className="grid grid-cols-2 gap-2"><Button type="button" variant="outline" disabled={send.isPending || !!submission} onClick={() => setReviewOpen(false)}>Editar itens</Button><Button type="button" disabled={!pending.length || send.isPending} onClick={() => send.mutate()} data-testid="waiter-confirm-send"><Send className="size-4" /> Confirmar envio</Button></div>
+          {submission && !pending.length && <p role="status">Envio recuperado deste dispositivo. Confirme para conferir os itens com o servidor.</p>}
+          {!!pending.length && <p className="text-right font-semibold">Total dos novos itens: {brl(pending.reduce((sum, p) => sum + p.qty * (p.product.price + p.extra), 0))}</p>}
+          <div className="grid grid-cols-2 gap-2"><Button type="button" variant="outline" disabled={send.isPending || !!submission} onClick={() => setReviewOpen(false)}>Editar itens</Button><Button type="button" disabled={(!pending.length && !submission) || send.isPending} onClick={() => send.mutate()} data-testid="waiter-confirm-send"><Send className="size-4" /> Confirmar envio</Button></div>
         </DialogContent>
       </Dialog>
       <RemoveItemDialog group={removing} needsPin={!canCancel(me)} pending={removeItems.isPending} onClose={() => setRemoving(null)} onConfirm={(r) => removeItems.mutate(r)} />
