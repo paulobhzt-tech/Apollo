@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useSyncExternalStore } from "react";
 import { ApiError, apiGet, apiPost } from "./api";
 import { queryClient } from "./queryClient";
-import type { Product, QuickSaleIn } from "./types";
+import type { PayIn, Product, QuickSaleIn } from "./types";
 import { deviceTag, kv } from "./desktop";
 import { clearTableSubmission, listAutomaticTableSubmissions, pauseAutomaticTableSubmission, readTableSubmission } from "./table-submission";
 import { withRequestTimeout } from "./request-timeout";
@@ -168,6 +168,10 @@ export async function syncQueue(options: { force?: boolean } = {}): Promise<{ sy
   return performSyncQueue(!!options.force, context);
 }
 
+export function requiresPaymentReview(payment: PayIn) {
+  return payment.payments?.some(({ method }) => method !== "dinheiro") ?? false;
+}
+
 async function performSyncQueue(force: boolean, context: QueueContext): Promise<{ synced: number; failed: number }> {
   if (syncing || isOffline() || !sameContext(activeContext, context)) return { synced: 0, failed: 0 };
   const { KEY, REJ_KEY, LOG_KEY } = queueKeys(context);
@@ -185,6 +189,11 @@ async function performSyncQueue(force: boolean, context: QueueContext): Promise<
     for (const [index, s] of snapshot.entries()) {
       if (!sameContext(activeContext, context)) { remaining.push(...snapshot.slice(index)); break; }
       if (!sameContext(s.payload.sync_context, context)) throw new Error("Registro de outra identidade encontrado. Fila preservada para revisão.");
+      if (requiresPaymentReview(s.payload)) {
+        failed++;
+        rejected.push({ ...s, error: "Confira o recebimento e a referência no servidor antes de lançar outro pagamento.", rejected_at: new Date().toISOString() });
+        continue;
+      }
       if (!force && s.next_retry_at && new Date(s.next_retry_at).getTime() > Date.now()) {
         remaining.push(...snapshot.slice(index));
         break;
@@ -252,6 +261,7 @@ export function retryRejected(ref: string) {
   const r = readRejected(true);
   const item = r.find((x) => x.payload.client_ref === ref);
   if (!item) return;
+  if (requiresPaymentReview(item.payload)) throw new Error("Confirme o recebimento e a venda original antes de lançar outro pagamento.");
   const { error: _e, rejected_at: _r, next_retry_at: _retry, ...sale } = item;
   // Persist the sale back into the pending queue BEFORE removing the rejected copy.
   // If storage is full or unavailable, the rejected record remains recoverable.

@@ -219,3 +219,16 @@ it("starts replay after restart only when the original authenticated context ret
   expect(post.mock.calls[0][1].client_ref).toBe("persisted-sale");
   expect(JSON.parse(storage.get(QUEUE_KEY)!)).toEqual([]);
 });
+
+
+it("preserves electronic payments for review without replaying or blocking the next cash sale", async () => {
+  const offline = await import("./offline");
+  for (const [client_ref, method] of [["lost-pix", "pix"], ["valid-cash", "dinheiro"]]) {
+    offline.enqueue({ payload: { client_ref, payments: [{ method, amount: 10 }] } as never, total: 10, queued_at: "2026-11-10" });
+  }
+  expect(await offline.syncQueue()).toEqual({ synced: 1, failed: 1 });
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(post).toHaveBeenCalledWith("/pdv/sale", expect.objectContaining({ client_ref: "valid-cash" }));
+  expect(JSON.parse(storage.get(REJECTED_KEY)!)).toEqual([expect.objectContaining({ payload: expect.objectContaining({ client_ref: "lost-pix" }) })]);
+  expect(() => offline.retryRejected("lost-pix")).toThrow("Confirme o recebimento");
+});

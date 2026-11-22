@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { brl, errMsg, uid } from "@/lib/format";
-import { cacheMenu, cachedMenu, enqueue, newClientRef, useOffline } from "@/lib/offline";
+import { cacheMenu, cachedMenu, enqueue, newClientRef, requiresPaymentReview, useOffline } from "@/lib/offline";
 import { useMe } from "@/lib/auth";
 import { useOperatorDraft } from "@/lib/operator-draft";
 import { queryClient } from "@/lib/queryClient";
@@ -71,7 +71,9 @@ export default function Pdv() {
       if (!(e instanceof ApiError)) {
         try {
           enqueue({ payload: p, total: subtotal, queued_at: new Date().toISOString() });
-          toast.warning("Sem conexão: venda salva no modo contingência e será sincronizada");
+          toast.warning(requiresPaymentReview(p)
+            ? "Resposta indisponível. Confira o recebimento e a referência na fila antes de lançar outro pagamento."
+            : "Sem conexão: venda salva no modo contingência e será sincronizada");
           reset();
         } catch {
           toast.error("Falha ao salvar a venda offline. NÃO finalize novamente sem conferir a venda; mantenha o carrinho aberto.");
@@ -100,6 +102,10 @@ export default function Pdv() {
       items: cart.map((l) => ({ product_id: l.product.id, qty: l.qty, notes: l.notes, options: l.options })),
     };
     if (offline) {
+      if (requiresPaymentReview(pay)) {
+        toast.error("Sem conexão, apenas dinheiro pode entrar na fila. Reconecte para confirmar os demais pagamentos.");
+        return;
+      }
       try {
         enqueue({ payload, total: subtotal, queued_at: new Date().toISOString() });
         toast.warning("Modo offline: venda pendente de sincronização. Documento fiscal ainda não emitido.");
