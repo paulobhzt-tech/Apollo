@@ -1,10 +1,11 @@
 import {test,expect,chromium,firefox,webkit,Page} from '@playwright/test';
-import {mkdtemp,rm} from 'node:fs/promises';
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
+import {createServer,request as httpsRequest} from 'node:https';
 import path from 'node:path';
 const base='https://127.0.0.1:8001';
-async function login(page:Page) {
-  await page.goto(base);
+async function login(page:Page, origin=base) {
+  await page.goto(origin);
   await page.getByLabel('Usuário',{exact:true}).fill('p40admin');
   await page.getByLabel('Senha',{exact:true}).fill('P40-Fictitious-Password!');
   const response=page.waitForResponse(r=>r.url().endsWith('/api/auth/login')&&r.request().method()==='POST');
@@ -201,26 +202,62 @@ test('UI offline sale persists in a real browser profile across process restart 
 });
 
 test('confirmed table items survive a lost server response and browser process restart', async ({ browserName }, info) => {
+  const [key, cert, ca] = await Promise.all(['server.key', 'server.crt', 'apollo-local-ca.crt']
+    .map(file => readFile('/tmp/apollo-p41-tls/' + file)));
+  const itemsEndpoint = /\/api\/tables\/[^/]+\/items$/;
+  let dropResponse = false;
+  let original: unknown;
+  let committedStatus: number | undefined;
+  const proxy = createServer({ key, cert }, (incoming, outgoing) => {
+    const drop = dropResponse && incoming.method === 'POST' && itemsEndpoint.test(incoming.url ?? '');
+    const chunks: Buffer[] = [];
+    if (drop) incoming.on('data', chunk => chunks.push(chunk));
+    const upstream = httpsRequest({
+      hostname: '127.0.0.1', port: 8001, path: incoming.url, method: incoming.method,
+      headers: incoming.headers, ca,
+    }, response => {
+      if (drop) {
+        response.resume();
+        response.once('end', () => {
+          original = JSON.parse(Buffer.concat(chunks).toString());
+          committedStatus = response.statusCode;
+          outgoing.destroy();
+        });
+        return;
+      }
+      outgoing.writeHead(response.statusCode ?? 502, response.headers);
+      response.pipe(outgoing);
+    });
+    upstream.on('error', () => outgoing.destroy());
+    incoming.pipe(upstream);
+  });
+  await new Promise<void>((resolve, reject) => {
+    proxy.once('error', reject);
+    proxy.listen(0, '127.0.0.1', resolve);
+  });
+  const address = proxy.address();
+  if (!address || typeof address === 'string') throw new Error('Missing disposable proxy listener');
+  const origin = `https://127.0.0.1:${address.port}`;
   const profile = await mkdtemp(path.join(tmpdir(), 'apollo-table-replay-'));
   const launch = () => ({ chromium, firefox, webkit }[browserName]).launchPersistentContext(profile, {
     ...info.project.use,
     ...info.project.use.launchOptions,
-    baseURL: base,
+    baseURL: origin,
     ignoreHTTPSErrors: true,
   });
   let context: Awaited<ReturnType<typeof launch>> | undefined;
   try {
     context = await launch();
     let page = await context.newPage();
-    await login(page);
+    await login(page, origin);
     const stock = async () => {
-      const response = await context!.request.get(base + '/api/ingredients');
+      const response = await context!.request.get(origin + '/api/ingredients');
       expect(response.ok()).toBe(true);
       return (await response.json()).find((item: { id: string }) => item.id === 'p40ing').stock;
     };
     const before = await stock();
     const number = info.project.name === 'desktop' ? '9581' : '9582';
-    await page.goto(base + '/mesas');
+    await page.goto(origin + '/mesas');
     await page.getByTestId('new-table-open-button').click();
     await page.getByTestId('new-table-number').fill(number);
     await page.getByTestId('new-table-qty').fill('1');
@@ -231,27 +268,19 @@ test('confirmed table items survive a lost server response and browser process r
     await page.locator('[data-testid^="product-card-"]').filter({ hasText: 'Espetinho P40' }).click();
     await page.getByTestId('send-to-kitchen-button').click();
 
-    const itemsEndpoint = /\/api\/tables\/[^/]+\/items$/;
-    let original: unknown;
-    let committed = false;
-    await page.route(itemsEndpoint, async route => {
-      original = route.request().postDataJSON();
-      const response = await route.fetch();
-      committed = response.ok();
-      // The backend commits normally. Only delivery of the response is interrupted.
-      await route.abort('connectionreset');
-    });
+    dropResponse = true;
     await page.getByTestId('waiter-confirm-send').click();
-    await expect.poll(() => committed).toBe(true);
+    await expect.poll(() => committedStatus).toBe(200);
     await expect(page.getByTestId('waiter-confirm-send')).toBeEnabled();
     expect(await stock()).toBe(before - 1);
     expect(original).toEqual(expect.objectContaining({ sync_context: expect.any(Object), client_ref: expect.any(String) }));
 
     await context.close();
+    dropResponse = false;
     context = await launch();
     page = await context.newPage();
-    await login(page);
-    await page.goto(base + '/mesas');
+    await login(page, origin);
+    await page.goto(origin + '/mesas');
     await page.getByTestId('table-card-' + number).click();
     await page.getByRole('button', { name: 'Conferir envio pendente' }).click();
     await expect(page.getByText('Envio recuperado deste dispositivo.', { exact: false })).toBeVisible();
@@ -267,7 +296,12 @@ test('confirmed table items survive a lost server response and browser process r
       contentType: 'application/json',
     });
   } finally {
-    await context?.close();
-    await rm(profile, { recursive: true, force: true });
+    try {
+      await context?.close();
+    } finally {
+      proxy.close();
+      proxy.closeAllConnections();
+      await rm(profile, { recursive: true, force: true });
+    }
   }
 });
