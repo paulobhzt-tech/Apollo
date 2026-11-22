@@ -201,7 +201,7 @@ test('UI offline sale persists in a real browser profile across process restart 
   }
 });
 
-test('confirmed table items survive a lost server response and browser process restart', async ({ browserName }, info) => {
+test('table items recover after restart and queued items sync outside the table', async ({ browserName }, info) => {
   const [key, cert, ca] = await Promise.all(['server.key', 'server.crt', 'apollo-local-ca.crt']
     .map(file => readFile('/tmp/apollo-p41-tls/' + file)));
   const itemsEndpoint = /\/api\/tables\/[^/]+\/items$/;
@@ -304,12 +304,16 @@ test('confirmed table items survive a lost server response and browser process r
     await expect(page.getByText('Envio salvo neste dispositivo. Aguardando conexão.', { exact: true })).toBeVisible();
     expect(itemPosts).toBe(postsBeforeOffline);
 
+    await context.close();
+    context = await launch();
+    page = await context.newPage();
     const resynced = page.waitForResponse(response => itemsEndpoint.test(response.url()) && response.request().method() === 'POST');
-    await context.setOffline(false);
+    await login(page, origin);
     const synced = await resynced;
     expect(synced.ok()).toBe(true);
     expect(synced.request().postDataJSON().client_ref).not.toBe((original as { client_ref: string }).client_ref);
     await expect(page.getByRole('button', { name: 'Conferir envio pendente' })).toHaveCount(0);
+    expect(new URL(page.url()).pathname).not.toBe("/mesas");
     expect(itemPosts).toBe(postsBeforeOffline + 1);
     expect(await stock()).toBe(before - 2);
     await info.attach('table-offline-reconnection', {

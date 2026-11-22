@@ -1,5 +1,5 @@
 import SaleQuantityInput from "@/components/SaleQuantityInput";
-import { type SetStateAction, useEffect, useRef, useState } from "react";
+import { type SetStateAction, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRightLeft, Bell, Clock, Ellipsis, Minus, Pencil, Plus, Printer, QrCode, Receipt, RefreshCw, Search, Send, Trash2, Users } from "lucide-react";
@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ApiError, apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { withRequestTimeout } from "@/lib/request-timeout";
-import { isOffline, useOffline } from "@/lib/offline";
+import { isOffline, syncTableSubmissions, useOffline } from "@/lib/offline";
 import { clearTableSubmission, readTableSubmission, reserveTableSubmission, tableSubmissionKey, type TableSubmission } from "@/lib/table-submission";
 import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, uid } from "@/lib/format";
 import { useOperatorDraft } from "@/lib/operator-draft";
@@ -374,7 +374,6 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const [adding, setAdding] = useState(!!draft?.length);
   const [reviewOpen, setReviewOpen] = useState(false);
   const { context, offline } = useOffline();
-  const wasOffline = useRef(offline);
   const [legacySubmission, setLegacySubmission] = useOperatorDraft<TableSubmission | null>(
     `apollo-table-send:${me?.id}:${table.id}:${table.order_id}`, null);
   const submissionKey = context && context.operator_id === me?.id && table.order_id
@@ -424,11 +423,14 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
         throw new Error("Confira o envio anterior antes de editar os itens.");
       }
       const proposed = submission ?? { ref: uid(), orderId: table.order_id, payload };
-      if (isOffline() && !submissionKey) throw new Error("Valide seu acesso online antes de salvar um envio neste dispositivo.");
-      const request = submissionKey ? await reserveTableSubmission(submissionKey, proposed) : proposed;
+      const queueLocally = isOffline();
+      if (queueLocally && !submissionKey) throw new Error("Valide seu acesso online antes de salvar um envio neste dispositivo.");
+      const request = submissionKey
+        ? await reserveTableSubmission(submissionKey, { ...proposed, autoSync: proposed.autoSync || queueLocally })
+        : proposed;
       if (submissionKey) queryClient.setQueryData(["table-submission", submissionKey], request);
       else setLegacySubmission(request);
-      if (isOffline()) return "queued";
+      if (queueLocally) return "queued";
       try {
         await withRequestTimeout(signal => apiPost<Order>(`/tables/${table.id}/items`, {
           order_id: request.orderId, client_ref: request.ref, items: JSON.parse(request.payload),
@@ -449,6 +451,9 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     onSuccess: (result) => {
       setReviewOpen(false);
       if (result === "queued") {
+        setPending([]);
+        setAdding(false);
+        void syncTableSubmissions();
         toast.info("Itens salvos neste dispositivo. Envio pendente de conexão.");
         return;
       }
@@ -465,17 +470,6 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
       invalidateTables();
     },
   });
-
-  const { mutate: sendItems, isPending: sending, error: sendError } = send;
-  const durableSubmission = submissionQuery.data;
-  useEffect(() => {
-    const reconnected = wasOffline.current && !offline;
-    wasOffline.current = offline;
-    if (reconnected && submissionKey && durableSubmission && !sending &&
-      !(sendError instanceof ApiError && sendError.status < 500)) {
-      sendItems();
-    }
-  }, [offline, submissionKey, durableSubmission, sending, sendError, sendItems]);
 
   const removeItems = useMutation({
     mutationFn: async (r: RemoveRequest) => {

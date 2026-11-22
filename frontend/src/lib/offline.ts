@@ -6,6 +6,8 @@ import { ApiError, apiGet, apiPost } from "./api";
 import { queryClient } from "./queryClient";
 import type { Product, QuickSaleIn } from "./types";
 import { deviceTag, kv } from "./desktop";
+import { clearTableSubmission, listAutomaticTableSubmissions, pauseAutomaticTableSubmission, readTableSubmission } from "./table-submission";
+import { withRequestTimeout } from "./request-timeout";
 
 import { contextToken, queueKeys, sameContext, sameQueuedRequest, validContext, type QueueContext } from "./queue-context";
 import { reconcileLegacyPreview, type LegacyReviewItem } from "./legacy-reconciliation";
@@ -20,9 +22,12 @@ export function setQueueContext(context: QueueContext | null) {
   activeContext = context ? { ...context } : null;
   ({ KEY, REJ_KEY, ARCHIVE_KEY, LOG_KEY, MENU_KEY } = queueKeys(activeContext));
   emit();
-  if (context && cachedQueue.length && !isOffline()) {
+  if (context && !isOffline()) {
     setTimeout(() => {
-      if (sameContext(activeContext, context)) void backgroundSync();
+      if (sameContext(activeContext, context)) {
+        if (cachedQueue.length) void backgroundSync();
+        void syncTableSubmissions();
+      }
     }, 0);
   }
 }
@@ -119,6 +124,7 @@ export function setForcedOffline(v: boolean) {
   forced = v;
   kv.set("pdv_force_offline", v ? "1" : "0");
   emit();
+  if (!isOffline()) void syncTableSubmissions();
 }
 export function enqueue(sale: QueuedSale) {
   if (!activeContext) throw new Error("Entre novamente para confirmar estabelecimento, servidor e operador antes de salvar offline");
@@ -294,6 +300,58 @@ window.addEventListener("storage", (event) => {
     if (event.key === KEY && read().length && !isOffline()) void backgroundSync();
   }
 });
-window.addEventListener("online", () => { emit(); void backgroundSync(); });
+window.addEventListener("online", () => { emit(); void backgroundSync(); void syncTableSubmissions(); });
 window.addEventListener("offline", emit);
-setInterval(() => { if (read().length) void backgroundSync(); }, 60_000);
+setInterval(() => {
+  if (read().length) void backgroundSync();
+  void syncTableSubmissions();
+}, 60_000);
+
+let syncingTableSubmissions = false;
+export async function syncTableSubmissions() {
+  const context = activeContext;
+  if (!context || isOffline() || syncingTableSubmissions || typeof indexedDB === "undefined") return;
+  syncingTableSubmissions = true;
+  const canSend = () => sameContext(context, activeContext) && !isOffline();
+  const flush = async () => {
+    if (!canSend()) return;
+    for (const { key, tableId, submission } of await listAutomaticTableSubmissions(context)) {
+      if (!canSend()) break;
+      const saved = await readTableSubmission(key);
+      if (!saved?.autoSync || saved.ref !== submission.ref || !canSend()) continue;
+      try {
+        await withRequestTimeout(signal => apiPost(`/tables/${encodeURIComponent(tableId)}/items`, {
+          order_id: saved.orderId, client_ref: saved.ref, items: JSON.parse(saved.payload), sync_context: context,
+        }, signal), 15_000);
+      } catch (error) {
+        if (!(error instanceof ApiError) || [401, 408, 425, 429].includes(error.status) || error.status >= 500) break;
+        const remaining = await pauseAutomaticTableSubmission(key, saved.ref);
+        if (canSend()) {
+          queryClient.setQueryData(["table-submission", key], remaining);
+          toast.error("Envio de mesa preservado. Abra a mesa para revisar a recusa do servidor.");
+        }
+        continue;
+      }
+      const remaining = await clearTableSubmission(key, saved.ref);
+      if (canSend()) {
+        queryClient.setQueryData(["table-submission", key], remaining);
+        for (const queryKey of [["tables"], ["table-order"], ["table-item-progress"], ["dashboard"]]) {
+          void queryClient.invalidateQueries({ queryKey });
+        }
+        toast.success("Itens pendentes enviados para preparo.");
+      }
+    }
+  };
+
+  try {
+    if (navigator.locks?.request) {
+      await navigator.locks.request(`apollo-table-sync:${contextToken(context)}`, flush);
+    } else {
+      await flush();
+    }
+  } catch (error) {
+    console.warn("Não foi possível sincronizar a fila de mesas.", error);
+  } finally {
+    syncingTableSubmissions = false;
+  }
+}
