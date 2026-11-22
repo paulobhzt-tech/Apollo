@@ -1,11 +1,11 @@
-name: P48 isolated Web PWA acceptance
+name: P48/P49 isolated Web PWA acceptance
 on:
   push:
-    branches: [audit/p48-correcao-vps-offline-liberacao]
-    paths: ['.github/workflows/p48-web-audit.yml', '.github/p48-request.txt']
+    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final]
+    paths: ['.github/workflows/p48-web-audit.yml', '.github/p48-request.txt', 'frontend/**', 'backend/**', 'tests/**']
   workflow_dispatch:
 concurrency:
-  group: apollo-p48-final-acceptance
+  group: apollo-web-acceptance-${{ github.ref }}
   cancel-in-progress: true
 permissions:
   contents: read
@@ -278,7 +278,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Apollo-P48-experimental-evidence
+          name: Apollo-experimental-evidence-${{ github.sha }}
           path: |
             evidence/
             frontend/dist/
@@ -288,13 +288,14 @@ jobs:
 
   publish-execution-receipt:
     needs: baseline
-    if: always()
+    if: ${{ always() && github.ref == 'refs/heads/audit/p48-correcao-vps-offline-liberacao' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write
       actions: read
     steps:
-      - name: Record this isolated execution and its jobs on P46 only
+      - name: Record this isolated execution on P48 only
+        if: github.ref == 'refs/heads/audit/p48-correcao-vps-offline-liberacao'
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.run_id }}
@@ -333,7 +334,8 @@ jobs:
       contents: write
       actions: read
     steps:
-      - name: Record this isolated execution and its jobs on P46 only
+      - name: Record this isolated execution on P48 only
+        if: github.ref == 'refs/heads/audit/p48-correcao-vps-offline-liberacao'
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.run_id }}

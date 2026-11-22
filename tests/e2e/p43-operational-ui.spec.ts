@@ -1,4 +1,7 @@
-import {test,expect,Page} from '@playwright/test';
+import {test,expect,chromium,firefox,webkit,Page} from '@playwright/test';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
 const base='https://127.0.0.1:8001';
 async function login(page:Page) {
   await page.goto(base);
@@ -115,9 +118,20 @@ test('UI operational shift: tables, shared customers, transfer, comanda, mixed p
     } finally {await context.close();}
   }
 });
-test('UI offline sale persists after browser restart, reconnects once and reconciles stock and cash',async({browser},info)=>{
+test('UI offline sale persists in a real browser profile across process restart and reconciles stock and cash',async({browserName},info)=>{
   test.setTimeout(180000);
-  let context=await browser.newContext({...info.project.use,baseURL:base,ignoreHTTPSErrors:true});
+  const profile=await mkdtemp(path.join(tmpdir(),'apollo-offline-profile-'));
+  const browserType={chromium,firefox,webkit}[browserName];
+  const launch=()=>browserType.launchPersistentContext(profile,{
+    ...info.project.use,
+    ...info.project.use.launchOptions,
+    baseURL:base,
+    ignoreHTTPSErrors:true,
+  });
+  let context=await launch().catch(async error=>{
+    await rm(profile,{recursive:true,force:true});
+    throw error;
+  });
   let page=await context.newPage();
   page.setDefaultTimeout(15000);
   page.on('dialog',d=>d.accept());
@@ -144,13 +158,12 @@ test('UI offline sale persists after browser restart, reconnects once and reconc
     expect(queued).toHaveLength(1);
     const payload=queued[0].payload;
     await info.attach('offline-queued',{body:await page.screenshot(),contentType:'image/png'});
-    // Carry actual browser persistence into a fresh process context; never inject a sale.
-    const state=await context.storageState();
+    // Reopen the same on-disk profile without exporting or restoring storageState.
     await context.close();
-    context=await browser.newContext({...info.project.use,baseURL:base,ignoreHTTPSErrors:true,storageState:state});
+    context=await launch();
     page=await context.newPage();
     page.setDefaultTimeout(15000);
-  page.on('dialog',d=>d.accept());
+    page.on('dialog',d=>d.accept());
     await page.goto(base);
     expect(await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('pdv_offline_queue:v3:'))
       .flatMap(k=>JSON.parse(localStorage.getItem(k)||'[]')).length)).toBe(1);
@@ -166,15 +179,23 @@ test('UI offline sale persists after browser restart, reconnects once and reconc
     expect((await read('/cash/current')).expected_cash).toBe(10);
     await page.goto(base+'/caixa');
     await page.getByTestId('cash-counted-input').fill('10,00');
+    const closing=page.waitForResponse(r=>r.url().endsWith('/api/cash/close')&&r.request().method()==='POST');
     await page.getByTestId('cash-close-button').click();
+    const response=await closing;
+    expect(response.ok()).toBe(true);
+    const receipt=await response.json();
+    expect(receipt.difference).toBe(0);
     await expect(page.getByTestId('cash-open-panel')).toBeVisible();
-    await info.attach('offline-result',{body:JSON.stringify({reference:payload.client_ref,order:paid.order.id,stock_before:before,stock_after:before-1}),contentType:'application/json'});
+    await info.attach('offline-result',{body:JSON.stringify({reference:payload.client_ref,order:paid.order.id,stock_before:before,stock_after:before-1,difference:receipt.difference}),contentType:'application/json'});
   }finally {
     try {
       const r=await context.request.get(base+'/api/cash/current');
       const cash=r.ok()?await r.json():null;
       if(cash?.id) await context.request.post(base+'/api/cash/close',{headers:{Origin:base},
         data:{counted_amount:cash.expected_cash,expected_session_id:cash.id,note:'P43 disposable test cleanup'}});
-    } finally {await context.close();}
+    } finally {
+      await context.close();
+      await rm(profile,{recursive:true,force:true});
+    }
   }
 });
