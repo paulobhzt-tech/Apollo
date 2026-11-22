@@ -1,8 +1,7 @@
-name: P48 build identity and read-only public comparison
+name: P49 build identity and read-only public comparison
 on:
   push:
-    branches: [audit/p48-correcao-vps-offline-liberacao]
-    paths: ['.github/workflows/p48-integrity.yml']
+    branches: [audit/p49-offline-vps-homologacao-final]
 permissions:
   contents: read
 jobs:

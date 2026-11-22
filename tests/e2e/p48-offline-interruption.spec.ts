@@ -5,11 +5,16 @@ import path from 'node:path';
 
 test('P48 offline navigation with real server interruption and no network emulation', async ({ page }, testInfo) => {
   const root = path.resolve('../frontend/dist');
+  let upstreamUnavailable = false;
   const server = createServer({
     key: await readFile('/tmp/apollo-p41-tls/server.key'),
     cert: await readFile('/tmp/apollo-p41-tls/server.crt'),
   }, async (req, res) => {
     const url = new URL(req.url || '/', 'https://localhost');
+    if (upstreamUnavailable) {
+      res.writeHead(503, { 'Content-Type': 'text/plain' }).end('Upstream unavailable');
+      return;
+    }
     const target = url.pathname === '/sw.js' ? 'sw.js'
       : url.pathname === '/manifest.webmanifest' ? 'manifest.webmanifest'
       : url.pathname === '/offline.html' ? 'offline.html'
@@ -33,6 +38,15 @@ test('P48 offline navigation with real server interruption and no network emulat
   try {
     await page.goto(base);
     await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)), { timeout: 20000 }).toBe(true);
+    upstreamUnavailable = true;
+    await page.goto(base + '/pdv');
+    await expect(page.getByRole('heading', { name: 'Apollo sem conexão' })).toBeVisible();
+    const api = await page.goto(base + '/api');
+    expect(api?.status()).toBe(503);
+    await expect(page.getByText('Upstream unavailable')).toBeVisible();
+    upstreamUnavailable = false;
+    await page.goto(base);
+    await expect(page.getByRole('heading', { name: 'Apollo sem conexão' })).toHaveCount(0);
     await new Promise<void>((resolve, reject) => {
       server.close(error => error ? reject(error) : resolve());
       server.closeAllConnections();
@@ -41,7 +55,7 @@ test('P48 offline navigation with real server interruption and no network emulat
     await expect(page.getByRole('heading', { name: 'Apollo sem conexão' })).toBeVisible();
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Apollo sem conexão' })).toBeVisible();
-    await testInfo.attach('scope', { body: 'Real loopback HTTPS server stopped, using the same disposable TLS certificate as the operational tests. Public fallback only, no offline sales or physical iPhone approval.', contentType: 'text/plain' });
+    await testInfo.attach('scope', { body: 'HTTP 503 and recovery followed by a real loopback HTTPS server stop, using the same disposable TLS certificate as the operational tests. Public fallback only, no offline sales or physical iPhone approval.', contentType: 'text/plain' });
   } finally {
     server.closeAllConnections();
     server.close();

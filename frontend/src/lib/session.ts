@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { setQueueContext } from "./offline";
 import { queryClient } from "./queryClient";
 import { apiPost } from "./api";
+import { withRequestTimeout } from "./request-timeout";
 import { toast } from "sonner";
 import { desktop } from "./desktop";
 
@@ -74,7 +75,7 @@ export function useSessionLock() {
 if (freshBrowserTab) {
   // Revoke a browser session restored into a newly opened tab. The tab stays
   // locked if the server is unavailable; its saved username is unaffected.
-  void apiPost("/auth/logout", undefined, AbortSignal.timeout(5000)).catch(() => undefined);
+  void withRequestTimeout((signal) => apiPost("/auth/logout", undefined, signal), 5000).catch(() => undefined);
 }
 
 export function beginSession(): void {
@@ -97,7 +98,7 @@ export function endSession(): void {
   setLock(true);
   setQueueContext(null);
   queryClient.clear();
-  logout = apiPost("/auth/logout", undefined, AbortSignal.timeout(5000))
+  logout = withRequestTimeout((signal) => apiPost("/auth/logout", undefined, signal), 5000)
     .catch(() => undefined)
     .finally(() => { logout = undefined; });
 }

@@ -1,6 +1,7 @@
 import { useQuery, type QueryFunctionContext } from "@tanstack/react-query";
 import { setQueueContext, type QueueContext } from "./offline";
 import { apiGet } from "./api";
+import { withRequestTimeout } from "./request-timeout";
 import { isDesktop, kv } from "./desktop";
 import type { Employee, Role } from "./types";
 
@@ -9,10 +10,10 @@ export async function bindOperatorQueue(operator: Employee, sessionSignal?: Abor
   sessionSignal?.throwIfAborted();
   setQueueContext(null);
   try {
-    const timeout = AbortSignal.timeout(5000);
-    const signal = sessionSignal ? AbortSignal.any([sessionSignal, timeout]) : timeout;
-    const context = await apiGet<QueueContext>("/auth/sync-context", signal);
-    if (!signal.aborted && context.operator_id === operator.id) setQueueContext(context);
+    await withRequestTimeout(async (signal) => {
+      const context = await apiGet<QueueContext>("/auth/sync-context", signal);
+      if (!signal.aborted && context.operator_id === operator.id) setQueueContext(context);
+    }, 5000, sessionSignal);
   } catch {
     // Older servers still work online. Their queues remain unbound.
   }

@@ -1,3 +1,4 @@
+import { withRequestTimeout } from "@/lib/request-timeout";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -54,7 +55,7 @@ export default function Login() {
     mutationFn: async (credentials: {pin?: string; username?: string; password?: string; employee_id?: string}) => {
       setError("");
       await waitForLogout();
-      return apiPost<Employee>("/auth/login", credentials, AbortSignal.timeout(10000));
+      return withRequestTimeout((signal) => apiPost<Employee>("/auth/login", credentials, signal), 10000);
     },
     onSuccess: async (emp, credentials) => {
       if (rememberOperator && credentials.username) localStorage.setItem("apollo-login-username", credentials.username.trim());

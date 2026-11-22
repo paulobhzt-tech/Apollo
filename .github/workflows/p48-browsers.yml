@@ -1,8 +1,7 @@
-name: P48 browser engine operational matrix
+name: P48/P49 browser engine operational matrix
 on:
   push:
-    branches: [audit/p48-correcao-vps-offline-liberacao]
-    paths: ['.github/workflows/p48-browsers.yml', 'tests/e2e/p48-offline-interruption.spec.ts']
+    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final]
   workflow_dispatch:
 permissions:
   contents: read
@@ -11,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chrome, msedge, android, webkit]
+        browser: [chromium, firefox, chrome, msedge, android, webkit]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
@@ -84,7 +83,7 @@ jobs:
         run: |
           set -o pipefail
           cd tests
-          npx playwright test --config=p47.config.ts p48-offline-interruption.spec.ts --output=test-results/p48-interruption 2>&1 | tee ../evidence/interruption.log
+          npx playwright test --config=p47.config.ts p48-offline-interruption.spec.ts --output=test-results/p48-interruption --reporter=list 2>&1 | tee ../evidence/interruption.log
       - name: Record scope
         if: always()
         run: |
