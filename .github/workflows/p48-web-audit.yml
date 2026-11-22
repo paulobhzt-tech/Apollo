@@ -5,7 +5,7 @@ on:
     paths: ['.github/workflows/p48-web-audit.yml', '.github/p48-request.txt', 'frontend/**', 'backend/**', 'tests/**']
   workflow_dispatch:
 concurrency:
-  group: apollo-web-acceptance-${{ github.ref }}
+  group: apollo-web-acceptance-${{ github.ref }}-${{ github.ref_name == 'audit/p57-correcao-vps-offline-liberacao' && github.sha || 'branch' }}
   cancel-in-progress: true
 permissions:
   contents: read

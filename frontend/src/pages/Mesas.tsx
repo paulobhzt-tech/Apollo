@@ -464,7 +464,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
       }
       setLegacySubmission(null);
       void itemProgress.refetch();
-      toast.success("Pedido enviado para preparo");
+      toast.success("Pedido enviado para preparo", { style: { pointerEvents: "none" } });
       setPending([]);
       setAdding(false);
       invalidateTables();
