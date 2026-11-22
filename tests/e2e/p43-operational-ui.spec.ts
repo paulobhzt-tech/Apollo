@@ -78,6 +78,24 @@ test('UI operational shift: tables, shared customers, transfer, comanda, mixed p
     await noOverflow(page);
     await page.getByTestId('transfer-select').click();
     await page.getByRole('option',{name:new RegExp('Mesa '+(start+1)+'$','i')}).click();
+    if (process.env.APOLLO_P57_ONLINE_GUARD === '1') {
+      const operations: string[] = [];
+      const observe = (request: import('@playwright/test').Request) => {
+        if (request.method() === 'POST' && /\/(transfer|cancel|pay)$/.test(new URL(request.url()).pathname)) operations.push(request.url());
+      };
+      page.on('request', observe);
+      await context.setOffline(true);
+      await expect(page.getByTestId('table-online-required')).toBeVisible();
+      for (const testId of ['transfer-button', 'table-cancel-button', 'close-table-button']) {
+        await expect(page.getByTestId(testId)).toBeDisabled();
+      }
+      await expect(page.getByRole('button', {name: 'Dividir por cliente ou itens'})).toBeDisabled();
+      expect(operations).toEqual([]);
+      await context.setOffline(false);
+      await expect(page.getByTestId('transfer-button')).toBeEnabled();
+      expect(operations).toEqual([]);
+      page.off('request', observe);
+    }
     await page.getByTestId('transfer-button').click();
     await expect(page.getByTestId('table-sheet')).toBeHidden();
     await page.getByTestId('table-card-'+(start+1)).click();
@@ -103,6 +121,14 @@ test('UI operational shift: tables, shared customers, transfer, comanda, mixed p
     await page.getByTestId('cash-toggle-blind').click();
     await expect(page.getByTestId('cash-expected')).toContainText('110,00');
     await page.getByTestId('cash-counted-input').fill('110,00');
+    if (process.env.APOLLO_P57_ONLINE_GUARD === '1') {
+      await context.setOffline(true);
+      await expect(page.getByTestId('cash-online-required')).toBeVisible();
+      await expect(page.getByTestId('cash-close-button')).toBeDisabled();
+      await expect(page.getByTestId('cash-move-button')).toBeDisabled();
+      await context.setOffline(false);
+      await expect(page.getByTestId('cash-close-button')).toBeEnabled();
+    }
     const closing=page.waitForResponse(r=>r.url().endsWith('/api/cash/close')&&r.request().method()==='POST');
     await page.getByTestId('cash-close-button').click();
     const result=await (await closing).json();

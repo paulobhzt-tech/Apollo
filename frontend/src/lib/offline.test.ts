@@ -232,3 +232,30 @@ it("preserves electronic payments for review without replaying or blocking the n
   expect(JSON.parse(storage.get(REJECTED_KEY)!)).toEqual([expect.objectContaining({ payload: expect.objectContaining({ client_ref: "lost-pix" }) })]);
   expect(() => offline.retryRejected("lost-pix")).toThrow("Confirme o recebimento");
 });
+
+
+it.each(["/tables/1/transfer", "/tables/1/cancel", "/tables/1/pay", "/tables/1/partial-bill/pay", "/cash/close"])(
+  "blocks %s offline and requires a fresh action after reconnection",
+  async (path) => {
+    const { onlineOperation, onlineMutation } = await import("./offline");
+    vi.stubGlobal("navigator", { onLine: false });
+    const send = () => post(path, {});
+    expect(onlineMutation).toEqual({ networkMode: "always", retry: false });
+    await expect(onlineOperation(send)).rejects.toMatchObject({ body: { detail: expect.stringContaining("Nenhuma solicitação foi enviada") } });
+    vi.stubGlobal("navigator", { onLine: true });
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(post).not.toHaveBeenCalled();
+    await onlineOperation(send);
+    expect(post).toHaveBeenCalledTimes(1);
+  },
+);
+
+it("reports an uncertain server response without retrying", async () => {
+  const { onlineOperation } = await import("./offline");
+  post.mockRejectedValue(new TypeError("connection closed"));
+  await expect(onlineOperation(() => post("/cash/close"))).rejects.toMatchObject({
+    body: { detail: expect.stringContaining("confira o estado no servidor") },
+  });
+  await vi.advanceTimersByTimeAsync(60000);
+  expect(post).toHaveBeenCalledTimes(1);
+});

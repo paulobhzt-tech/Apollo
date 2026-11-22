@@ -9,6 +9,7 @@ import { cashAmount, formatCurrencyTyping } from "@/lib/catalog-form";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { onlineMutation, onlineOperation, useOffline } from "@/lib/offline";
 import { apiGet, apiPost } from "@/lib/api";
 import { brl, errMsg, fmtDateTime, payLabel } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
@@ -19,6 +20,7 @@ import { Panel } from "./Dashboard";
 const inv = () => { void queryClient.invalidateQueries({ queryKey: ["cash"] }); void queryClient.invalidateQueries({ queryKey: ["dashboard"] }); };
 
 export default function Caixa() {
+  const { offline } = useOffline();
   const current = useQuery({ queryKey: ["cash", "current"], queryFn: () => apiGet<CashSession | null>("/cash/current"), refetchInterval: 15000 });
   const history = useQuery({ queryKey: ["cash", "history"], queryFn: () => apiGet<CashSession[]>("/cash/history") });
   const [opening, setOpening] = useState("0,00");
@@ -38,22 +40,25 @@ export default function Caixa() {
   const movementAmount = cashAmount(moveAmt);
   const countedAmount = cashAmount(counted);
 
-  const open = useMutation({ mutationFn: () => apiPost<CashSession>("/cash/open", { opening_amount: openingAmount, note: openingNote.trim() }), onSuccess: () => { toast.success("Caixa aberto"); setOpeningNote(""); inv(); }, onError: onErr });
+  const open = useMutation({ ...onlineMutation, mutationFn: () => onlineOperation(() => apiPost<CashSession>("/cash/open", { opening_amount: openingAmount, note: openingNote.trim() })), onSuccess: () => { toast.success("Caixa aberto"); setOpeningNote(""); inv(); }, onError: onErr });
   const moveReference = useRef<{ fingerprint: string; reference: string } | null>(null);
   const move = useMutation({
+    ...onlineMutation,
     mutationFn: () => {
       const payload = { type: moveType, amount: movementAmount, note: moveNote.trim(), expected_session_id: s?.id };
       const fingerprint = JSON.stringify(payload);
       if (moveReference.current?.fingerprint !== fingerprint) {
         moveReference.current = { fingerprint, reference: crypto.randomUUID() };
       }
-      return apiPost<CashSession>("/cash/movement", { ...payload, client_ref: moveReference.current.reference });
+      const request = { ...payload, client_ref: moveReference.current.reference };
+      return onlineOperation(() => apiPost<CashSession>("/cash/movement", request));
     },
     onSuccess: () => { moveReference.current = null; toast.success(moveType === "sangria" ? "Sangria registrada" : "Suprimento registrado"); setMoveAmt(""); setMoveNote(""); inv(); },
     onError: onErr,
   });
   const close = useMutation({
-    mutationFn: () => apiPost<CashSession>("/cash/close", { counted_amount: countedAmount, note: closingNote.trim(), expected_session_id: s?.id, expected_financial_revision: s?.financial_revision }),
+    ...onlineMutation,
+    mutationFn: () => onlineOperation(() => apiPost<CashSession>("/cash/close", { counted_amount: countedAmount, note: closingNote.trim(), expected_session_id: s?.id, expected_financial_revision: s?.financial_revision })),
     onSuccess: (s) => { toast.success(`Caixa fechado · diferença ${brl(s.difference)}`); setCounted(""); setClosingNote(""); setBlind(true); inv(); setPrinting(s); },
     onError: onErr,
   });
@@ -62,6 +67,7 @@ export default function Caixa() {
   return (
     <AppShell roles={["caixa"]}>
       <PageHeader title="Controle de Caixa" subtitle="Abertura, sangria, suprimento e fechamento com conferência cega" />
+      {offline && <p role="status" data-testid="cash-online-required" className="mb-3 text-sm text-amber-300">Abertura, movimentos e fechamento de caixa exigem conexão.</p>}
       {current.isError && <div role="alert" className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">Não foi possível consultar o estado do caixa. Verifique a conexão antes de abrir ou fechar um turno. <Button size="sm" variant="outline" onClick={() => void current.refetch()}>Tentar novamente</Button></div>}
       {current.isLoading ? <p role="status" className="text-sm text-zinc-400">Consultando caixa…</p> : current.isError ? null : !s ? (
         <div className="max-w-md rounded-2xl border border-white/5 bg-panel p-6" data-testid="cash-open-panel">
@@ -71,7 +77,7 @@ export default function Caixa() {
           <Input id="cash-opening" value={opening} onChange={(e) => setOpening(formatCurrencyTyping(e.target.value))} inputMode="decimal" className="mt-1 font-mono" data-testid="cash-opening-input" />
           <Label htmlFor="cash-opening-note" className="mt-3 block text-xs text-zinc-400">Observações da abertura</Label>
           <Textarea id="cash-opening-note" maxLength={500} value={openingNote} onChange={(event) => setOpeningNote(event.target.value)} className="mt-1" />
-          <Button className="mt-4 h-12 w-full" onClick={() => open.mutate()} disabled={updating || openingAmount === null} data-testid="cash-open-button"><LockKeyholeOpen /> Abrir caixa</Button>
+          <Button className="mt-4 h-12 w-full" onClick={() => open.mutate()} disabled={offline || updating || openingAmount === null} data-testid="cash-open-button"><LockKeyholeOpen /> Abrir caixa</Button>
         </div>
       ) : (
         <>
@@ -105,7 +111,7 @@ export default function Caixa() {
               <Input aria-label="Valor da movimentação" placeholder="Valor" value={moveAmt} onChange={(e) => setMoveAmt(formatCurrencyTyping(e.target.value))} inputMode="decimal" className="mt-3 font-mono" data-testid="cash-move-amount-input" />
               <Input aria-label="Motivo da movimentação" placeholder="Motivo" value={moveNote} onChange={(e) => setMoveNote(e.target.value)} className="mt-2" data-testid="cash-move-note-input" />
               <p className="mt-1 text-xs text-zinc-500">Informe um valor positivo e o motivo da movimentação.</p>
-              <Button className="mt-3 h-11 w-full" disabled={updating || movementAmount === null || movementAmount <= 0 || moveNote.trim().length < (moveType === "sangria" ? 3 : 1)} onClick={() => move.mutate()} data-testid="cash-move-button">Registrar</Button>
+              <Button className="mt-3 h-11 w-full" disabled={offline || updating || movementAmount === null || movementAmount <= 0 || moveNote.trim().length < (moveType === "sangria" ? 3 : 1)} onClick={() => move.mutate()} data-testid="cash-move-button">Registrar</Button>
               <ul className="mt-3 space-y-1 text-xs">
                 {s.movements.map((m, i) => (
                   <li key={i} className="flex justify-between text-zinc-400"><span>{m.type} · {m.note || "—"}</span><span className={cn("font-mono", m.type === "sangria" ? "text-red-300" : "text-emerald-300")}>{brl(m.amount)}</span></li>
@@ -117,7 +123,7 @@ export default function Caixa() {
               <Input aria-label="Valor contado em reais" placeholder="Valor contado (R$)" value={counted} onChange={(e) => setCounted(formatCurrencyTyping(e.target.value))} inputMode="decimal" className="mt-3 font-mono" data-testid="cash-counted-input" />
               <Label htmlFor="cash-closing-note" className="mt-3 block text-xs text-zinc-400">Observações do fechamento</Label>
               <Textarea id="cash-closing-note" maxLength={500} value={closingNote} onChange={(event) => setClosingNote(event.target.value)} className="mt-1" />
-              <Button variant="destructive" className="mt-3 h-11 w-full" disabled={updating || countedAmount === null} onClick={() => window.confirm("Confirmar fechamento do caixa?") && close.mutate()} data-testid="cash-close-button"><LockKeyhole /> Fechar caixa</Button>
+              <Button variant="destructive" className="mt-3 h-11 w-full" disabled={offline || updating || countedAmount === null} onClick={() => window.confirm("Confirmar fechamento do caixa?") && close.mutate()} data-testid="cash-close-button"><LockKeyhole /> Fechar caixa</Button>
             </Panel>
           </div>
         </>

@@ -60,3 +60,9 @@ python deploy/vps/verify-public-build.py frontend/dist/build-integrity.json \
 ```
 
 Execute da raiz do repositório, com o manifesto do build aprovado no CI. A conferência usa GET por HTTPS e rejeita redirecionamento, manifesto servido como HTML, commit divergente e arquivos faltantes ou alterados. O resultado mede a identidade pública dos arquivos. A aprovação administrativa exige evidência separada da identidade do serviço, réplica do MongoDB, credenciais e volumes exclusivos de homologação, backup e rollback exercitado.
+
+## Apache na homologação
+
+`apache-web.conf` é um trecho versionado para o VirtualHost HTTPS da homologação. Defina `APOLLO_DOCUMENT_ROOT` como o diretório exclusivo do build conferido e `APOLLO_BACKEND_ORIGIN` como a origem do backend exclusivo, sem barra no fim. O trecho requer `mod_proxy`, `mod_proxy_http`, `mod_rewrite`, `mod_headers`, `mod_mime`, `mod_dir` e `mod_authz_core`.
+
+O fallback atende navegações GET e HEAD. Arquivos estáticos faltantes e erros de API mantêm o status original. Antes de qualquer troca autorizada do diretório público, verifique a árvore em um diretório de release separado com `node frontend/scripts/verify-build.mjs DIRETORIO_DO_BUILD`. O verificador rejeita arquivos extras e hashes divergentes. Preserve o diretório anterior para rollback. O ensaio do CI usa Apache descartável e dados fictícios.

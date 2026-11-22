@@ -120,6 +120,21 @@ function subscribe(l: () => void) {
 }
 
 export const isOffline = () => forced || !navigator.onLine;
+
+export const onlineMutation = { networkMode: "always", retry: false } as const;
+
+export async function onlineOperation<T>(operation: () => Promise<T>): Promise<T> {
+  if (isOffline()) throw new ApiError(0, { detail: "Esta operação exige conexão. Nenhuma solicitação foi enviada." });
+  try {
+    return await operation();
+  } catch (error) {
+    if (error instanceof TypeError || (error instanceof ApiError && [502, 503, 504].includes(error.status))) {
+      throw new ApiError(0, { detail: "Resultado não confirmado. Ao reconectar, confira o estado no servidor antes de tentar novamente." });
+    }
+    throw error;
+  }
+}
+
 export function setForcedOffline(v: boolean) {
   forced = v;
   kv.set("pdv_force_offline", v ? "1" : "0");

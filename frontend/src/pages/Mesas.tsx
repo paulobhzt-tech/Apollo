@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ApiError, apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { withRequestTimeout } from "@/lib/request-timeout";
-import { isOffline, useOffline } from "@/lib/offline";
+import { isOffline, onlineMutation, onlineOperation, useOffline } from "@/lib/offline";
 import { clearTableSubmission, pauseAutomaticTableSubmission, readTableSubmission, reserveTableSubmission, tableSubmissionKey, type TableSubmission } from "@/lib/table-submission";
 import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, uid } from "@/lib/format";
 import { useOperatorDraft } from "@/lib/operator-draft";
@@ -477,40 +477,47 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   });
 
   const removeItems = useMutation({
+    ...onlineMutation,
     mutationFn: async (r: RemoveRequest) => {
-      for (const l of r.lines) await apiPost<Order>(`/tables/${table!.id}/items/${l.id}/cancel`, { reason: r.reason, manager_pin: r.manager_pin, qty: l.qty });
+      for (const l of r.lines) await onlineOperation(() => apiPost<Order>(`/tables/${table!.id}/items/${l.id}/cancel`, { reason: r.reason, manager_pin: r.manager_pin, qty: l.qty }));
     },
     onSuccess: (_d, r) => { toast.success(`${r.lines.reduce((s, l) => s + l.qty, 0)} un. apagada(s)`); setRemoving(null); invalidateTables(); },
     onError: (e) => { onErr(e); invalidateTables(); },
   });
   const status = useMutation({
-    mutationFn: (s: string) => apiPatch<Table>(`/tables/${table!.id}/status`, { status: s }),
+    ...onlineMutation,
+    mutationFn: (s: string) => onlineOperation(() => apiPatch<Table>(`/tables/${table!.id}/status`, { status: s })),
     onSuccess: () => invalidateTables(),
     onError: onErr,
   });
   const release = useMutation({
-    mutationFn: () => apiPost<Table>(`/tables/${table!.id}/release`),
+    ...onlineMutation,
+    mutationFn: () => onlineOperation(() => apiPost<Table>(`/tables/${table!.id}/release`)),
     onSuccess: () => { toast.success(`${tableLabel(table!)} liberada`); invalidateTables(); onClose(); },
     onError: onErr,
   });
   const cancelTable = useMutation({
-    mutationFn: (b: { reason: string; manager_pin?: string }) => apiPost<Table>(`/tables/${table!.id}/cancel`, b),
+    ...onlineMutation,
+    mutationFn: (b: { reason: string; manager_pin?: string }) => onlineOperation(() => apiPost<Table>(`/tables/${table!.id}/cancel`, b)),
     onSuccess: () => { toast.success(`${tableLabel(table!)} cancelada e liberada`); invalidateTables(); onClose(); },
     onError: onErr,
   });
   const clearCall = useMutation({ mutationFn: () => apiPost<Table>(`/tables/${table!.id}/clear-call`), onSuccess: invalidateTables });
   const transfer = useMutation({
-    mutationFn: (targetId: string) => apiPost<Table>(`/tables/${table.id}/transfer`, { target_table_id: targetId }),
+    ...onlineMutation,
+    mutationFn: (targetId: string) => onlineOperation(() => apiPost<Table>(`/tables/${table.id}/transfer`, { target_table_id: targetId })),
     onSuccess: (t) => { toast.success(`Atendimento transferido para ${tableLabel(t)}`); setTransferTo(""); invalidateTables(); onClose(); },
     onError: (error) => { onErr(error); invalidateTables(); },
   });
   const merge = useMutation({
-    mutationFn: () => apiPost<Table>(`/tables/${table!.id}/merge`, { target_table_id: mergeTo }),
+    ...onlineMutation,
+    mutationFn: () => onlineOperation(() => apiPost<Table>(`/tables/${table!.id}/merge`, { target_table_id: mergeTo })),
     onSuccess: (t) => { toast.success(`Comandas reunidas em ${tableLabel(t)}`); setMergeTo(""); invalidateTables(); onClose(); },
     onError: onErr,
   });
   const pay = useMutation({
-    mutationFn: (p: PayIn) => apiPost<SaleResult>(`/tables/${table!.id}/pay`, p),
+    ...onlineMutation,
+    mutationFn: (p: PayIn) => onlineOperation(() => apiPost<SaleResult>(`/tables/${table!.id}/pay`, p)),
     onSuccess: (r) => {
       toast.success(`${tableLabel(table!)} fechada${r.order.change ? ` · Troco ${brl(r.order.change)}` : ""}`);
       setPayOpen(false); invalidateTables();
@@ -585,7 +592,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
       {original && product && <DropdownMenuItem onClick={() => {
         copySentItem(original, product, original.qty, true);
       }}>Duplicar e editar</DropdownMenuItem>}
-      <DropdownMenuItem onClick={() => setRemoving(group)}>{item ? "Diminuir / cancelar com justificativa" : "Cancelar itens do grupo"}</DropdownMenuItem>
+      <DropdownMenuItem disabled={offline} onClick={() => setRemoving(group)}>{item ? "Diminuir / cancelar com justificativa" : "Cancelar itens do grupo"}</DropdownMenuItem>
       {!item && <DropdownMenuItem onClick={() => setGrouped(false)}>Ver lançamentos individuais</DropdownMenuItem>}
     </ItemActions>;
   };
@@ -638,7 +645,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                   <Button className="w-full" onClick={() => openT.mutate()} disabled={openT.isPending} data-testid="open-table-button">Abrir {table.kind === "comanda" ? "comanda" : "mesa"}</Button>
                   <div className="flex flex-wrap gap-2">
                     {(["livre", "ocupada", "reservada"] as const).map((st) => (
-                      <Button key={st} size="sm" variant={table.status === st ? "default" : "outline"} disabled={status.isPending}
+                      <Button key={st} size="sm" variant={table.status === st ? "default" : "outline"} disabled={offline || status.isPending}
                         onClick={() => status.mutate(st)} data-testid={`table-status-${st}`}>{STATUS[st].label}</Button>
                     ))}
                   </div>
@@ -741,6 +748,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     <Button className="mt-4 h-auto min-h-12" onClick={() => { setProductSearch(""); setAdding(true); document.querySelector<HTMLInputElement>('[data-testid="table-product-search"]')?.focus(); }} data-testid="add-items-button"><Plus className="size-4" /> Adicionar produtos</Button>
                   )}
 
+                  {offline && <p role="status" data-testid="table-online-required" className="mt-3 text-sm text-amber-300">Transferência, cancelamento e recebimento exigem conexão.</p>}
                   {submission && <Button className="mt-2" onClick={() => setReviewOpen(true)}>Conferir envio pendente</Button>}
                   <div className="mt-3 grid gap-2 @min-[35rem]:grid-cols-2">
                     <Button variant="outline" onClick={() => setPreBill("view")} disabled={!items.some((i) => !i.cancelled)} data-testid="request-bill-button">
@@ -749,20 +757,20 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     <Button variant="outline" onClick={() => setPreBill("print")} disabled={!items.some((i) => !i.cancelled)}>
                       <Printer className="size-4" /> Pré-conta e impressão
                     </Button>
-                    {me?.role === "garcom" && <Button className="h-auto min-h-12" variant="outline" onClick={() => { if (window.confirm("Solicitar fechamento desta conta ao caixa?")) status.mutate("conta"); }} disabled={status.isPending || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || table.status === "conta"} data-testid="waiter-request-close"><Receipt className="size-4" /> {table.status === "conta" ? "Conta solicitada" : "Solicitar fechamento"}</Button>}
-                    {["admin", "caixa"].includes(me?.role ?? "") && <Button className="h-auto min-h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
+                    {me?.role === "garcom" && <Button className="h-auto min-h-12" variant="outline" onClick={() => { if (window.confirm("Solicitar fechamento desta conta ao caixa?")) status.mutate("conta"); }} disabled={offline || status.isPending || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || table.status === "conta"} data-testid="waiter-request-close"><Receipt className="size-4" /> {table.status === "conta" ? "Conta solicitada" : "Solicitar fechamento"}</Button>}
+                    {["admin", "caixa"].includes(me?.role ?? "") && <Button className="h-auto min-h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={offline || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
                       <Receipt className="size-4" /> PAGAMENTO
                     </Button>}
                   </div>
-                  {["admin", "caixa"].includes(me?.role ?? "") && <Button className="mt-2 w-full" variant="outline" disabled={pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled)} onClick={() => setPartialOpen(true)}>Dividir por cliente ou itens</Button>}
+                  {["admin", "caixa"].includes(me?.role ?? "") && <Button className="mt-2 w-full" variant="outline" disabled={offline || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled)} onClick={() => setPartialOpen(true)}>Dividir por cliente ou itens</Button>}
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <Select value={transferTarget?.id ?? ""} onValueChange={(v: string) => setTransferTo(v)} disabled={!transferTargets.length || transfer.isPending}>
+                    <Select value={transferTarget?.id ?? ""} onValueChange={(v: string) => setTransferTo(v)} disabled={offline || !transferTargets.length || transfer.isPending}>
                       <SelectTrigger className="min-w-0 flex-1" data-testid="transfer-select"><SelectValue placeholder="Transferir para…">{(v) => v ? (() => { const x = tables.find((t) => t.id === v); return x ? tableLabel(x) : ""; })() : "Transferir para…"}</SelectValue></SelectTrigger>
                       <SelectContent>
                         {transferTargets.map((t) => <SelectItem key={t.id} value={t.id}>{tableLabel(t)}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" disabled={pendingConfirmation || !!pending.length || transfer.isPending || !transferTarget} onClick={() => {
+                    <Button variant="outline" disabled={offline || pendingConfirmation || !!pending.length || transfer.isPending || !transferTarget} onClick={() => {
                       if (transferTarget && window.confirm(`Transferir o atendimento de ${tableLabel(table)} para ${tableLabel(transferTarget)}?`)) {
                         transfer.mutate(transferTarget.id);
                       }
@@ -775,19 +783,19 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                         <SelectTrigger className="min-w-0 flex-1" data-testid="merge-select"><SelectValue placeholder="Mesa de destino">{(v) => v ? (() => { const x = tables.find(t => t.id === v); return x ? tableLabel(x) : ""; })() : "Mesa de destino"}</SelectValue></SelectTrigger>
                         <SelectContent>{tables.filter(t => t.id !== table.id && !!t.order_id).map(t => <SelectItem key={t.id} value={t.id}>{tableLabel(t)}</SelectItem>)}</SelectContent>
                       </Select>
-                      <Button variant="outline" data-testid="merge-button" disabled={pendingConfirmation || !!pending.length || !mergeTo || merge.isPending} onClick={() => { const dst = tables.find(t => t.id === mergeTo); if (dst && window.confirm(`Juntar ${tableLabel(table)} em ${tableLabel(dst)}? Os itens serão transferidos e a mesa de origem será liberada.`)) merge.mutate(); }}>Juntar</Button>
+                      <Button variant="outline" data-testid="merge-button" disabled={offline || pendingConfirmation || !!pending.length || !mergeTo || merge.isPending} onClick={() => { const dst = tables.find(t => t.id === mergeTo); if (dst && window.confirm(`Juntar ${tableLabel(table)} em ${tableLabel(dst)}? Os itens serão transferidos e a mesa de origem será liberada.`)) merge.mutate(); }}>Juntar</Button>
                     </div>
                     <p className="text-xs text-zinc-500">Disponível para caixa e administrador. Requer banco de dados com transações.</p>
                   </div>}
                   <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
-                    <Button size="sm" variant="outline" disabled={status.isPending}
+                    <Button size="sm" variant="outline" disabled={offline || status.isPending}
                       onClick={() => status.mutate(table.status === "conta" ? "ocupada" : "conta")} data-testid="table-toggle-status-button">
                       {table.status === "conta" ? "Voltar p/ ocupada" : "Marcar conta"}
                     </Button>
-                    <Button size="sm" variant="outline" disabled={pendingConfirmation || !!pending.length || release.isPending || items.some((i) => !i.cancelled)}
+                    <Button size="sm" variant="outline" disabled={offline || pendingConfirmation || !!pending.length || release.isPending || items.some((i) => !i.cancelled)}
                       title={items.some((i) => !i.cancelled) ? "Só libera sem consumo: feche a conta ou cancele" : ""}
                       onClick={() => release.mutate()} data-testid="table-release-button">Liberar</Button>
-                    <Button size="sm" variant="destructive" disabled={pendingConfirmation || !!pending.length || cancelTable.isPending} data-testid="table-cancel-button" onClick={() => {
+                    <Button size="sm" variant="destructive" disabled={offline || pendingConfirmation || !!pending.length || cancelTable.isPending} data-testid="table-cancel-button" onClick={() => {
                       const reason = window.prompt(`Motivo do cancelamento de ${tableLabel(table)}:`);
                       if (!reason || reason.trim().length < 3) return;
                       const manager_pin = canCancel(me) ? undefined : window.prompt("Sem permissão. PIN do gerente para autorizar:") ?? "";
@@ -827,7 +835,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
       )}
       {table && <PartialBillDialog key={table.id} table={table} items={items} open={partialOpen} onClose={() => setPartialOpen(false)} />}
       <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} items={o?.items.filter((item) => !item.cancelled)} defaultService={10}
-        title={`Fechamento · ${table ? tableLabel(table) : ""}`} pending={pay.isPending} onConfirm={(p) => pay.mutate(p)} />
+        title={`Fechamento · ${table ? tableLabel(table) : ""}`} pending={pay.isPending} connectionRequired={offline} onConfirm={(p) => pay.mutate(p)} />
       <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />
       {editingDraft && <DraftItemDialog line={editingDraft} onClose={() => setEditingDraft(null)} onSave={(line) => {
         if (pending.some((entry) => entry.key === line.key)) updateDraft(line);
@@ -897,6 +905,7 @@ interface PartialBillPreview {
 }
 
 function PartialBillDialog({ table, items, open, onClose }: { table: Table; items: Order["items"]; open: boolean; onClose: () => void }) {
+  const { offline } = useOffline();
   const tableId = table.id;
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [selectedCustomer, setSelectedCustomer] = useState("");
@@ -936,15 +945,16 @@ function PartialBillDialog({ table, items, open, onClose }: { table: Table; item
     onError: (e) => toast.error(errMsg(e)),
   });
   const payment = useMutation({
+    ...onlineMutation,
     mutationFn: ({ payment: p, quote }: { payment: PayIn; quote: PartialBillPreview }) =>
-      apiPost<SaleResult>(`/tables/${tableId}/partial-bill/pay`, {
+      onlineOperation(() => apiPost<SaleResult>(`/tables/${tableId}/partial-bill/pay`, {
         quantities: Object.fromEntries(quote.items.map(item => [item.item_id, item.qty])),
         payment: { ...p, emit_invoice: false },
         client_ref: clientRef,
         customer_name: selectedCustomer,
         expected_order_id: quote.order_id,
         expected_subtotal: quote.subtotal,
-      }),
+      })),
     onSuccess: (result) => {
       toast.success(`Pagamento parcial registrado: ${brl(result.order.total)}`);
       if (getReceiptPref()) void printSimpleReceipt(result.order);
@@ -1000,7 +1010,7 @@ function PartialBillDialog({ table, items, open, onClose }: { table: Table; item
         </div>}
       </DialogContent>
     </Dialog>
-    <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} items={preview?.items} defaultService={10} partialMode title="Recebimento parcial (não fiscal)" pending={payment.isPending} onConfirm={(p) => { if (preview) payment.mutate({ payment: p, quote: preview }); }} />
+    <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} items={preview?.items} defaultService={10} partialMode title="Recebimento parcial (não fiscal)" pending={payment.isPending} connectionRequired={offline} onConfirm={(p) => { if (preview) payment.mutate({ payment: p, quote: preview }); }} />
     </>
   );
 }
