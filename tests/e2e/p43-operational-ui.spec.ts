@@ -105,7 +105,9 @@ test('UI operational shift: tables, shared customers, transfer, comanda, mixed p
     if (process.env.APOLLO_P58_PAYMENT_REVIEW === '1') {
       const paymentPath = /\/api\/tables\/[^/]+\/pay$/;
       let submittedOrderId: string | undefined;
+      let paymentUrl: string | undefined;
       await page.route(paymentPath, async route => {
+        paymentUrl = route.request().url();
         submittedOrderId = route.request().postDataJSON().expected_order_id;
         await route.abort('connectionreset');
       }, { times: 1 });
@@ -118,6 +120,12 @@ test('UI operational shift: tables, shared customers, transfer, comanda, mixed p
         await review.click();
         expect((await (await reading).json()).id).toBe(submittedOrderId);
       });
+      expect(paymentUrl).toBeTruthy();
+      const stale = await context.request.post(paymentUrl!, {
+        headers: { Origin: base },
+        data: { payments: [{ method: 'dinheiro', amount: 10 }], emit_invoice: false, expected_order_id: crypto.randomUUID() },
+      });
+      expect(stale.status()).toBe(409);
       await page.getByTestId('close-table-button').click();
     }
     await pay(page,true, process.env.APOLLO_P57_ONLINE_GUARD !== '1' ? undefined : async () => {

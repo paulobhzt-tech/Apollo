@@ -40,13 +40,17 @@ test('manifest, static application cache and emulated offline boundary',async({p
    contentType: 'application/json',
  });
  const navigation = await page.goto(base + '/pdv').catch(async error => {
+   console.log(JSON.stringify({ browser: info.project.use.browserName, ...beforeNavigation, navigationError: String(error) }));
    await info.attach('emulation-navigation-error', {body: String(error), contentType: 'text/plain'});
    throw error;
  });
- await info.attach('emulation', { body: JSON.stringify({
+ const emulation = {
    browser: info.project.use.browserName, ...beforeNavigation,
-   status: navigation?.status(), fallback: await navigation?.headerValue('x-apollo-offline-fallback'),
- }), contentType: 'application/json' });
+   status: navigation?.status(), fromServiceWorker: navigation?.fromServiceWorker(),
+   fallback: await navigation?.headerValue('x-apollo-offline-fallback'),
+ };
+ console.log(JSON.stringify(emulation));
+ await info.attach('emulation', { body: JSON.stringify(emulation), contentType: 'application/json' });
  expect(await navigation?.headerValue('x-apollo-offline-fallback')).toBe('shell');
  await expect(page.getByLabel('Usuário',{exact:true})).toBeVisible();
  expect(await page.evaluate(async () => {
