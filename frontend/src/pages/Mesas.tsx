@@ -19,8 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ApiError, apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { withRequestTimeout } from "@/lib/request-timeout";
-import { isOffline, syncTableSubmissions, useOffline } from "@/lib/offline";
-import { clearTableSubmission, readTableSubmission, reserveTableSubmission, tableSubmissionKey, type TableSubmission } from "@/lib/table-submission";
+import { isOffline, useOffline } from "@/lib/offline";
+import { clearTableSubmission, readTableSubmission, reserveTableSubmission, retryAutomaticTableSubmission, tableSubmissionKey, type TableSubmission } from "@/lib/table-submission";
 import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, uid } from "@/lib/format";
 import { useOperatorDraft } from "@/lib/operator-draft";
 import { queryClient } from "@/lib/queryClient";
@@ -440,6 +440,11 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
         if (error instanceof ApiError && [400, 422].includes(error.status) && submissionKey) {
           const remaining = await clearTableSubmission(submissionKey, request.ref);
           queryClient.setQueryData(["table-submission", submissionKey], remaining);
+        } else if (submissionKey && (!(error instanceof ApiError)
+          || [401, 408, 425, 429].includes(error.status) || error.status >= 500)) {
+          const remaining = await retryAutomaticTableSubmission(submissionKey, request.ref);
+          queryClient.setQueryData(["table-submission", submissionKey], remaining);
+          return "queued";
         }
         throw error;
       }
@@ -453,7 +458,6 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
       if (result === "queued") {
         setPending([]);
         setAdding(false);
-        void syncTableSubmissions();
         toast.info("Itens salvos neste dispositivo. Envio pendente de conexão.");
         return;
       }

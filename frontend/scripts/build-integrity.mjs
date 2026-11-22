@@ -20,6 +20,27 @@ async function files(dir) {
   }
   return found;
 }
+// The worker is generated from the public build, with no runtime HTML or API
+// responses in its cache. Each build owns a distinct, complete asset set.
+const workerPath = path.join(root, 'sw.js');
+const worker = await readFile(workerPath, 'utf8');
+const publicFiles = (await files(root))
+  .map(file => '/' + path.relative(root, file).split(path.sep).join('/'))
+  .filter(file => file.startsWith('/assets/'));
+publicFiles.push('/index.html', '/offline.html', '/manifest.webmanifest', '/apple-touch-icon.png');
+publicFiles.sort();
+const version = createHash('sha256');
+version.update(worker);
+const precache = {};
+for (const file of publicFiles) {
+  const digest = createHash('sha256').update(await readFile(path.join(root, file))).digest('base64');
+  precache[file] = 'sha256-' + digest;
+  version.update(file).update(digest);
+}
+await writeFile(workerPath, worker
+  .replace('/* BUILD_CACHE */ null', JSON.stringify('apollo-public-v5-' + version.digest('hex')))
+  .replace('/* BUILD_ASSETS */ null', JSON.stringify(precache)));
+
 const hashes = {};
 for (const file of (await files(root)).sort()) {
   const name = path.relative(root, file).split(path.sep).join('/');

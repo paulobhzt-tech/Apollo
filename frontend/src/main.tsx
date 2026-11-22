@@ -20,7 +20,7 @@ createRoot(document.getElementById('root')!).render(
 )
 
 
-// Register only in production over secure contexts; no offline sales are queued yet.
+// The production worker caches the public application build over HTTPS.
 if (import.meta.env.PROD && 'serviceWorker' in navigator && window.isSecureContext) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(error => {

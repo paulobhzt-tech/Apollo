@@ -1,7 +1,7 @@
-name: P48/P49 browser engine operational matrix
+name: Apollo six-profile browser operational matrix
 on:
   push:
-    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao]
+    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao]
   workflow_dispatch:
 permissions:
   contents: read
@@ -87,12 +87,12 @@ jobs:
       - name: Record scope
         if: always()
         run: |
-          echo "P48 browser $P47_BROWSER on disposable Linux runner. Android and iPhone are emulated. Local self-signed TLS ignored by browser contexts; public VPS TLS is a separate check. No physical installation, real hardware, production requests or VPS login." > evidence/SCOPE.txt
+          echo "Apollo browser $P47_BROWSER on disposable Linux runner. Android and iPhone are emulated. Disposable TLS CA installed; browser contexts also ignore local TLS errors; public VPS TLS is a separate check. No physical installation, real hardware, production requests or VPS login." > evidence/SCOPE.txt
           find evidence -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Apollo-P48-browser-${{ matrix.browser }}
+          name: Apollo-browser-${{ matrix.browser }}
           path: |
             evidence/
             tests/test-results/p47/

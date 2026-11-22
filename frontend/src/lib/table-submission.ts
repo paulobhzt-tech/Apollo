@@ -101,3 +101,6 @@ export function listAutomaticTableSubmissions(context: QueueContext): Promise<{ 
 
 export const pauseAutomaticTableSubmission = (key: string, ref: string) =>
   access(key, "readwrite", previous => previous?.ref === ref ? { ...previous, autoSync: false } : previous);
+
+export const retryAutomaticTableSubmission = (key: string, ref: string) =>
+  access(key, "readwrite", previous => previous?.ref === ref ? { ...previous, autoSync: true } : previous);

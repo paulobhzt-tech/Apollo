@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 const base = 'https://127.0.0.1:8001';
-test('public offline notice survives navigation; private API and authenticated HTML stay uncached', async ({browser}, info) => {
+test('public application shell survives navigation; private API stays uncached', async ({browser}, info) => {
   const context = await browser.newContext({ignoreHTTPSErrors:false});
   try {
     const page = await context.newPage();
@@ -15,14 +15,17 @@ test('public offline notice survives navigation; private API and authenticated H
       }
       return result.sort();
     });
-    expect(cached).toEqual(['/manifest.webmanifest','/offline.html']);
+    expect(cached).toContain('/index.html');
+    expect(cached.filter(path => !path.startsWith('/assets/'))).toEqual([
+      '/apple-touch-icon.png', '/index.html', '/manifest.webmanifest', '/offline.html',
+    ]);
     await context.setOffline(true);
-    await page.goto(base+'/pdv');
-    await expect(page.getByRole('heading',{name:'Apollo sem conexão'})).toBeVisible();
-    await expect(page.getByText('Esta tela não permite registrar vendas.',{exact:false})).toBeVisible();
+    const navigation = await page.goto(base+'/pdv');
+    expect(await navigation?.headerValue('x-apollo-offline-fallback')).toBe('shell');
+    await expect(page.getByLabel('Usuário',{exact:true})).toBeVisible();
     expect(await page.evaluate(async()=>{try {await fetch('/api/auth/me');return true;} catch {return false;}})).toBe(false);
     await page.reload();
-    await expect(page.getByRole('heading',{name:'Apollo sem conexão'})).toBeVisible();
+    await expect(page.getByLabel('Usuário',{exact:true})).toBeVisible();
     await info.attach('offline-public-notice',{body:await page.screenshot(),contentType:'image/png'});
     await context.setOffline(false);
     await page.reload();

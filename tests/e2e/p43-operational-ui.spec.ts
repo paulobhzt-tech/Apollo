@@ -3,7 +3,7 @@ import {mkdtemp,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {createServer,request as httpsRequest} from 'node:https';
 import path from 'node:path';
-const base='https://127.0.0.1:8001';
+const base = process.env.APOLLO_E2E_BASE_URL || 'https://127.0.0.1:8001';
 async function login(page:Page, origin=base) {
   await page.goto(origin);
   await page.getByLabel('Usuário',{exact:true}).fill('p40admin');
@@ -216,7 +216,7 @@ test('table items recover after restart and queued items sync outside the table'
     const chunks: Buffer[] = [];
     if (drop) incoming.on('data', chunk => chunks.push(chunk));
     const upstream = httpsRequest({
-      hostname: '127.0.0.1', port: 8001, path: incoming.url, method: incoming.method,
+      hostname: new URL(base).hostname, port: new URL(base).port, path: incoming.url, method: incoming.method,
       headers: incoming.headers, ca,
     }, response => {
       if (drop) {
@@ -274,7 +274,7 @@ test('table items recover after restart and queued items sync outside the table'
     dropResponse = true;
     await page.getByTestId('waiter-confirm-send').click();
     await expect.poll(() => committedStatus).toBe(200);
-    await expect(page.getByTestId('waiter-confirm-send')).toBeEnabled();
+    await expect(page.getByText('Itens salvos neste dispositivo. Envio pendente de conexão.')).toBeVisible();
     expect(await stock()).toBe(before - 1);
     expect(original).toEqual(expect.objectContaining({ sync_context: expect.any(Object), client_ref: expect.any(String) }));
 
@@ -282,16 +282,14 @@ test('table items recover after restart and queued items sync outside the table'
     dropResponse = false;
     context = await launch();
     page = await context.newPage();
-    await login(page, origin);
-    await page.goto(origin + '/mesas');
-    await page.getByTestId('table-card-' + number).click();
-    await page.getByRole('button', { name: 'Conferir envio pendente' }).click();
-    await expect(page.getByText('Envio recuperado deste dispositivo.', { exact: false })).toBeVisible();
     const replay = page.waitForResponse(response => itemsEndpoint.test(response.url()) && response.request().method() === 'POST');
-    await page.getByTestId('waiter-confirm-send').click();
+    await login(page, origin);
     const response = await replay;
     expect(response.ok()).toBe(true);
     expect(response.request().postDataJSON()).toEqual(original);
+    expect(new URL(page.url()).pathname).not.toBe('/mesas');
+    await page.goto(origin + '/mesas');
+    await page.getByTestId('table-card-' + number).click();
     await expect(page.getByRole('button', { name: 'Conferir envio pendente' })).toHaveCount(0);
     expect(await stock()).toBe(before - 1);
     const postsBeforeOffline = itemPosts;
