@@ -72,6 +72,7 @@ async def current_user(request: Request) -> dict:
         raise HTTPException(401, "Sessão expirada")
     if emp.get("must_change_password") and request.url.path not in ("/auth/first-password", "/api/auth/first-password", "/auth/logout", "/api/auth/logout"):
         raise HTTPException(403, "É obrigatório alterar a senha inicial antes de usar o PDV")
+    request.state.session_expires_at = s["expires_at"]
     return emp
 
 

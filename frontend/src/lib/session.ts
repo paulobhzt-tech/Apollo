@@ -7,6 +7,7 @@ import { apiPost } from "./api";
 import { withRequestTimeout } from "./request-timeout";
 import { toast } from "sonner";
 import { desktop } from "./desktop";
+import { lockOfflineTables } from "./offline-table-vault";
 
 const LOCK_KEY = "apollo-operator-locked";
 const SESSION_CHANGE_KEY = "apollo-session-change";
@@ -79,6 +80,7 @@ if (freshBrowserTab) {
 }
 
 export function beginSession(): void {
+  lockOfflineTables();
   setQueueContext(null);
   queryClient.clear();
   setLock(false);
@@ -95,6 +97,7 @@ export function endSession(): void {
     toast.info("Aguarde a operação em andamento para trocar de operador.");
     return;
   }
+  lockOfflineTables();
   setLock(true);
   setQueueContext(null);
   queryClient.clear();

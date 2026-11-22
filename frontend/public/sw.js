@@ -1,7 +1,7 @@
 /* Only the static, public build is cached. API and session data stay out of CacheStorage. */
 const CACHE = /* BUILD_CACHE */ null;
 const ASSETS = /* BUILD_ASSETS */ null;
-const SHELL_ROUTES = new Set(['/', '/login', '/pdv', '/mesas', '/comanda-mobile']);
+const SHELL_ROUTES = new Set(['/', '/login', '/pdv', '/mesas', '/comanda-mobile', '/mesas-offline']);
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {

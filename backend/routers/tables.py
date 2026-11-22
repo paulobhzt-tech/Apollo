@@ -1,18 +1,20 @@
 import hashlib
 import json
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from pydantic import BaseModel, ConfigDict, Field
+from pymongo.errors import DuplicateKeyError
 
 from lib.audit import audit_event
 from lib.cash_scope import cash_scope, claim_cash, independent_cash
 from lib.auth import cancel_authorizer, current_user, require
 from lib.db import client, db
-from lib.sync_identity import validate_sync_context
+from lib.sync_identity import sync_context, validate_sync_context
 from lib.orders import (build_items, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods, validate_payment_details,
                         refresh_totals)
 from models.schemas import (SaleQuantity, AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, OrderItem, PayIn, SaleResult, Table, TableIn,
-                            TableStatusIn, TableUpdate, TransferIn, table_label)
+                            OrderItemIn, SyncContext, TableStatusIn, TableUpdate, TransferIn, table_label)
 
 from routers.operations import with_order_transaction
 
@@ -204,7 +206,7 @@ async def add_items(id: str, body: AddItemsIn, user: dict = Depends(require(*STA
     return await with_order_transaction(lambda session: apply_add_items(id, body, user, session=session))
 
 
-async def apply_add_items(id: str, body: AddItemsIn, user: dict, *, session=None):
+async def apply_add_items(id: str, body: AddItemsIn, user: dict, *, session=None, expected_prices=None):
     options = {"session": session} if session is not None else {}
     t = await get_table(id, **options)
     if body.client_ref and not body.order_id:
@@ -237,6 +239,8 @@ async def apply_add_items(id: str, body: AddItemsIn, user: dict, *, session=None
     else:
         order = await get_or_open_order(t, user, **options)
     items = await build_items(body.items, channel="comanda")
+    if expected_prices is not None and any(item.unit_price != price for item, price in zip(items, expected_prices)):
+        raise HTTPException(409, "Preço alterado desde o preparo do pedido. Revise o envio.")
     customers = t.get("customers") or ([t["customer_name"]] if t.get("customer_name") else [])
     for entry, item in zip(body.items, items):
         guest = entry.customer_name.strip()
@@ -266,6 +270,81 @@ async def apply_add_items(id: str, body: AddItemsIn, user: dict, *, session=None
     if body.client_ref:
         await db.orders.update_one({"id": order["id"]}, {"$set": {f"{batch_field}.complete": True, f"{batch_field}.stage": "complete"}}, **options)
     return updated
+
+
+@router.get("/offline/table-profile")
+async def offline_table_profile(request: Request, response: Response, user: dict = Depends(require("caixa"))):
+    response.headers["Cache-Control"] = "no-store"
+    products = await db.products.find(
+        {"active": True}, {"_id": 0, "id": 1, "name": 1, "price": 1, "options": 1, "channels": 1},
+    ).sort("name", 1).to_list(2000)
+    tables = await db.tables.find({}, {"_id": 0, "number": 1, "kind": 1, "name": 1, "status": 1}).to_list(1000)
+    return {
+        "context": await sync_context(user),
+        "operator": user["name"],
+        "expires_at": min(request.state.session_expires_at, datetime.now(timezone.utc) + timedelta(hours=8)),
+        "products": [{"id": item["id"], "name": item["name"], "price": item["price"]} for item in products
+                     if not any(group.get("required") for group in item.get("options", []))
+                     and "comanda" in item.get("channels", ["comanda"])],
+        "tables": tables,
+    }
+
+
+class OfflineTableItemIn(OrderItemIn):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_price: float = Field(ge=0, allow_inf_nan=False)
+
+
+class OfflineTableIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    client_ref: str = Field(min_length=16, max_length=128)
+    sync_context: SyncContext
+    table: TableIn
+    items: list[OfflineTableItemIn] = Field(min_length=1, max_length=100)
+
+
+class OfflineTableReceipt(BaseModel):
+    table_id: str
+    order_id: str
+
+
+@router.post("/offline/tables", response_model=OfflineTableReceipt)
+async def sync_offline_table(body: OfflineTableIn, user: dict = Depends(require("caixa"))):
+    await validate_sync_context(body.sync_context, user)
+    key = hashlib.sha256(json.dumps([body.sync_context.model_dump(), body.client_ref]).encode()).hexdigest()
+    fingerprint = hashlib.sha256(body.model_dump_json().encode()).hexdigest()
+
+    def receipt(record):
+        if record["fingerprint"] != fingerprint:
+            raise HTTPException(409, "Referência já usada com dados diferentes.")
+        return {"table_id": record["table_id"], "order_id": record["order_id"]}
+
+    async def apply(session):
+        if session is None:
+            raise HTTPException(503, "Sincronização de mesas exige transações no banco.")
+        options = {"session": session}
+        previous = await db.offline_table_receipts.find_one({"_id": key}, **options)
+        if previous:
+            return receipt(previous)
+        table = Table(**body.table.model_dump()).model_dump()
+        await db.tables.insert_one(dict(table), **options)
+        order = await get_or_open_order(table, user, **options)
+        await apply_add_items(table["id"], AddItemsIn(
+            order_id=order["id"], client_ref=body.client_ref, items=[OrderItemIn.model_validate(item.model_dump(exclude={"expected_price"})) for item in body.items],
+        ), user, expected_prices=[item.expected_price for item in body.items], **options)
+        record = {"_id": key, "fingerprint": fingerprint, "table_id": table["id"], "order_id": order["id"]}
+        await db.offline_table_receipts.insert_one(record, **options)
+        return receipt(record)
+
+    try:
+        return await with_order_transaction(apply)
+    except DuplicateKeyError:
+        previous = await db.offline_table_receipts.find_one({"_id": key})
+        if previous:
+            return receipt(previous)
+        raise HTTPException(409, "Já existe mesa ou comanda com este número. Revise o envio.") from None
 
 
 @router.post("/tables/{id}/items/{item_id}/cancel", response_model=Order)

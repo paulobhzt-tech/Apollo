@@ -1,6 +1,6 @@
 import { withRequestTimeout } from "@/lib/request-timeout";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ChevronDown, Delete, Flame, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -113,6 +113,7 @@ export default function Login() {
             <p className="font-semibold text-foreground" data-testid="login-brand">Apollo PDV</p>
             <DialogTitle className="text-2xl font-semibold text-foreground">Bem-vindo de volta</DialogTitle>
             <p className="text-sm text-muted-foreground">Acesse sua conta para continuar</p>
+            <Link to="/mesas-offline" className="text-sm underline">Mesas e comandas offline</Link>
           </header>
           {mode === "pin" && operators.length > 0 && operators.every((p) => p.pin_enabled === false)
             ? <p role="status" className="mt-3 text-sm text-amber-700 dark:text-amber-300">Nenhum operador ativo tem PIN neste servidor. Use usuário e senha.</p>

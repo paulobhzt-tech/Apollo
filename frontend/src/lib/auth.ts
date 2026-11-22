@@ -1,6 +1,7 @@
 import { useQuery, type QueryFunctionContext } from "@tanstack/react-query";
 import { setQueueContext, type QueueContext } from "./offline";
-import { apiGet } from "./api";
+import { lockOfflineTables } from "./offline-table-vault";
+import { ApiError, apiGet } from "./api";
 import { withRequestTimeout } from "./request-timeout";
 import { isDesktop, kv } from "./desktop";
 import type { Employee, Role } from "./types";
@@ -30,7 +31,10 @@ async function fetchMe({ signal }: QueryFunctionContext): Promise<Employee> {
     await bindOperatorQueue(me, signal);
     return me;
   } catch (e) {
-    if (!signal.aborted) setQueueContext(null);
+    if (!signal.aborted) {
+      setQueueContext(null);
+      if (e instanceof ApiError && [401, 403].includes(e.status)) lockOfflineTables();
+    }
     // Do not grant access just because this computer remembers an operator.
     // An offline PIN verification flow is required before allowing offline access.
     throw e;

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import Login from "@/pages/Login";
+import OfflineTables from "@/pages/OfflineTables";
 import Auditoria from "@/pages/Auditoria";
 import ApolloIA from "@/pages/ApolloIA";
 import Dashboard from "@/pages/Dashboard";
@@ -77,6 +78,7 @@ export default function App() {
     <DemoNotice />
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/mesas-offline" element={<OfflineTables />} />
       <Route path="/cardapio/:tableId" element={<Cardapio />} />
       <Route path="/pedir" element={<PedirDelivery />} />
       <Route element={<AuthenticatedRoutes />}>
