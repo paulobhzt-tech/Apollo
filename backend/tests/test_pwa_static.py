@@ -19,11 +19,14 @@ def test_pwa_files_and_registration_exist():
 
 def test_service_worker_never_caches_private_pages_or_api():
     sw = SW.read_text()
-    assert "PUBLIC_ASSETS = ['/manifest.webmanifest', '/offline.html']" in sw
-    assert "url.pathname === '/manifest.webmanifest'" in sw
-    assert "req.method !== 'GET'" in sw
-    assert "url.origin !== self.location.origin" in sw
-    assert "caches.match('/')" not in sw
+    assert "const ASSETS = /* BUILD_ASSETS */ null" in sw
+    assert "Object.entries(ASSETS)" in sw
+    assert "Object.hasOwn(ASSETS, pathname)" in sw
+    assert "request.method !== 'GET'" in sw
+    assert "origin !== self.location.origin" in sw
+    assert "pathname === '/api' || pathname.startsWith('/api/')" in sw
+    assert "credentials: 'omit'" in sw
+    assert "integrity," in sw
     assert "cache.put(" not in sw
 
 

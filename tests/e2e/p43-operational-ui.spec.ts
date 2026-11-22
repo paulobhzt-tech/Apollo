@@ -1,12 +1,12 @@
-import {test,expect,chromium,firefox,webkit,Page} from '@playwright/test';
+import {test,expect,chromium,firefox,webkit,request,Page} from '@playwright/test';
 import {mkdtemp,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {createServer,request as httpsRequest} from 'node:https';
 import path from 'node:path';
 const base = process.env.APOLLO_E2E_BASE_URL || 'https://127.0.0.1:8001';
-async function login(page:Page, origin=base) {
+async function login(page:Page, origin=base, username='p40admin') {
   await page.goto(origin);
-  await page.getByLabel('Usuário',{exact:true}).fill('p40admin');
+  await page.getByLabel('Usuário',{exact:true}).fill(username);
   await page.getByLabel('Senha',{exact:true}).fill('P40-Fictitious-Password!');
   const response=page.waitForResponse(r=>r.url().endsWith('/api/auth/login')&&r.request().method()==='POST');
   await page.getByRole('button',{name:'Entrar',exact:true}).click();
@@ -202,6 +202,7 @@ test('UI offline sale persists in a real browser profile across process restart 
 });
 
 test('table items recover after restart and queued items sync outside the table', async ({ browserName }, info) => {
+  test.setTimeout(240_000);
   const [key, cert, ca] = await Promise.all(['server.key', 'server.crt', 'apollo-local-ca.crt']
     .map(file => readFile('/tmp/apollo-p41-tls/' + file)));
   const itemsEndpoint = /\/api\/tables\/[^/]+\/items$/;
@@ -249,22 +250,25 @@ test('table items recover after restart and queued items sync outside the table'
     ignoreHTTPSErrors: true,
   });
   let context: Awaited<ReturnType<typeof launch>> | undefined;
+  let auditContext: Awaited<ReturnType<typeof request.newContext>> | undefined;
   try {
     context = await launch();
     let page = await context.newPage();
-    await login(page, origin);
+    const auditor = await request.newContext({baseURL: base, ignoreHTTPSErrors: true, extraHTTPHeaders: {Origin: base}});
+    auditContext = auditor;
+    expect((await auditor.post('/api/auth/login', {data: {
+      username: 'p40admin', password: 'P40-Fictitious-Password!',
+    }})).ok()).toBe(true);
     const stock = async () => {
-      const response = await context!.request.get(origin + '/api/ingredients');
+      const response = await auditor.get('/api/ingredients');
       expect(response.ok()).toBe(true);
       return (await response.json()).find((item: { id: string }) => item.id === 'p40ing').stock;
     };
     const before = await stock();
     const number = info.project.name === 'desktop' ? '9581' : '9582';
-    await page.goto(origin + '/mesas');
-    await page.getByTestId('new-table-open-button').click();
-    await page.getByTestId('new-table-number').fill(number);
-    await page.getByTestId('new-table-qty').fill('1');
-    await page.getByTestId('new-table-save').click();
+    const table = await auditor.post('/api/tables', { data: { number: Number(number) } });
+    expect(table.ok()).toBe(true);
+    await login(page, origin, 'p40garcom');
     await page.getByTestId('table-card-' + number).click();
     await page.getByTestId('open-table-button').click();
     await page.getByTestId('add-items-button').click();
@@ -283,12 +287,11 @@ test('table items recover after restart and queued items sync outside the table'
     context = await launch();
     page = await context.newPage();
     const replay = page.waitForResponse(response => itemsEndpoint.test(response.url()) && response.request().method() === 'POST');
-    await login(page, origin);
+    await login(page, origin, 'p40garcom');
     const response = await replay;
     expect(response.ok()).toBe(true);
     expect(response.request().postDataJSON()).toEqual(original);
     expect(new URL(page.url()).pathname).not.toBe('/mesas');
-    await page.goto(origin + '/mesas');
     await page.getByTestId('table-card-' + number).click();
     await expect(page.getByRole('button', { name: 'Conferir envio pendente' })).toHaveCount(0);
     expect(await stock()).toBe(before - 1);
@@ -302,18 +305,27 @@ test('table items recover after restart and queued items sync outside the table'
     await expect(page.getByText('Envio salvo neste dispositivo. Aguardando conexão.', { exact: true })).toBeVisible();
     expect(itemPosts).toBe(postsBeforeOffline);
 
+    const sales = await runConcurrentCashiers();
+    expect(await page.evaluate(() => navigator.onLine)).toBe(false);
+    expect(itemPosts).toBe(postsBeforeOffline);
+    expect(await stock()).toBe(before - 26);
+    await info.attach('concurrent-offline-waiter-and-cashiers', {
+      body: JSON.stringify({ ...sales, waiterHadNoNetwork: true, postsFromWaiterDuringSales: 0 }),
+      contentType: 'application/json',
+    });
+
     await context.close();
     context = await launch();
     page = await context.newPage();
     const resynced = page.waitForResponse(response => itemsEndpoint.test(response.url()) && response.request().method() === 'POST');
-    await login(page, origin);
+    await login(page, origin, 'p40garcom');
     const synced = await resynced;
     expect(synced.ok()).toBe(true);
     expect(synced.request().postDataJSON().client_ref).not.toBe((original as { client_ref: string }).client_ref);
     await expect(page.getByRole('button', { name: 'Conferir envio pendente' })).toHaveCount(0);
     expect(new URL(page.url()).pathname).not.toBe("/mesas");
     expect(itemPosts).toBe(postsBeforeOffline + 1);
-    expect(await stock()).toBe(before - 2);
+    expect(await stock()).toBe(before - 27);
     await info.attach('table-offline-reconnection', {
       body: JSON.stringify({ itemPostsBeforeOffline: postsBeforeOffline, itemPostsAfterReconnect: itemPosts, stockAfterReconnect: await stock() }),
       contentType: 'application/json',
@@ -325,6 +337,7 @@ test('table items recover after restart and queued items sync outside the table'
   } finally {
     try {
       await context?.close();
+      await auditContext?.dispose();
     } finally {
       proxy.close();
       proxy.closeAllConnections();
@@ -332,3 +345,50 @@ test('table items recover after restart and queued items sync outside the table'
     }
   }
 });
+
+async function runConcurrentCashiers() {
+  const cashiers = await Promise.all([1, 2].map(() => request.newContext({
+    baseURL: base, ignoreHTTPSErrors: true, extraHTTPHeaders: { Origin: base },
+  })));
+  const post = async (index: number, path: string, data: object) => {
+    const response = await cashiers[index].post('/api' + path, { data });
+    expect(response.ok(), path + ' HTTP ' + response.status()).toBe(true);
+    return response.json();
+  };
+  try {
+    const shifts = await Promise.all(cashiers.map(async (_, index) => {
+      await post(index, '/auth/login', { username: 'p40caixa' + (index + 1), password: 'P40-Fictitious-Password!' });
+      return post(index, '/cash/open', { opening_amount: 0 });
+    }));
+    expect(shifts[0].id).not.toBe(shifts[1].id);
+    const prefix = crypto.randomUUID();
+    const orders = await Promise.all(Array.from({ length: 25 }, async (_, sale) => {
+      const index = sale % 2;
+      const payload = {
+        client_ref: prefix + '-' + sale,
+        items: [{ product_id: 'p40product', qty: 1 }],
+        payments: [{ method: 'dinheiro', amount: 5 }, { method: 'pix', amount: 5 }],
+        emit_invoice: false,
+        send_to_kitchen: false,
+      };
+      const first = await post(index, '/pdv/sale', payload);
+      const replay = await post(index, '/pdv/sale', payload);
+      expect(first.order.cash_session_id).toBe(shifts[index].id);
+      expect(replay.order.id).toBe(first.order.id);
+      return first.order.id;
+    }));
+    expect(new Set(orders).size).toBe(25);
+    const closed = await Promise.all(shifts.map(async (shift, index) => {
+      const counted = index === 0 ? 65 : 60;
+      const response = await cashiers[index].get('/api/cash/current');
+      expect(response.ok()).toBe(true);
+      const current = await response.json();
+      expect(current.totals_by_method).toEqual({ dinheiro: counted, pix: counted });
+      return post(index, '/cash/close', { expected_session_id: shift.id, counted_amount: counted });
+    }));
+    expect(closed.map(shift => shift.difference)).toEqual([0, 0]);
+    return { orders, replays: 25, cashDifferences: closed.map(shift => shift.difference) };
+  } finally {
+    await Promise.all(cashiers.map(cashier => cashier.dispose()));
+  }
+}
