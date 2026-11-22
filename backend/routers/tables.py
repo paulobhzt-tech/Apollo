@@ -279,11 +279,13 @@ async def offline_table_profile(request: Request, response: Response, user: dict
         {"active": True}, {"_id": 0, "id": 1, "name": 1, "price": 1, "options": 1, "channels": 1},
     ).sort("name", 1).to_list(2000)
     tables = await db.tables.find({}, {"_id": 0, "number": 1, "kind": 1, "name": 1, "status": 1}).to_list(1000)
+    issued_at = datetime.now(timezone.utc)
     return {
         "context": await sync_context(user),
         "operator": user["name"],
-        "expires_at": min(request.state.session_expires_at, datetime.now(timezone.utc) + timedelta(hours=8)),
-        "products": [{"id": item["id"], "name": item["name"], "price": item["price"]} for item in products
+        "issued_at": issued_at,
+        "expires_at": min(request.state.session_expires_at, issued_at + timedelta(hours=8)),
+        "products": [{"id": item["id"], "name": item["name"], "price": round(item["price"], 2)} for item in products
                      if not any(group.get("required") for group in item.get("options", []))
                      and "comanda" in item.get("channels", ["comanda"])],
         "tables": tables,

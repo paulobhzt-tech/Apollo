@@ -75,6 +75,13 @@ test('cold start with HTTPS stopped, encrypted drafts, authenticated replay and 
     await page.reload();
     await unlock(password);
     await expect(page.getByRole('heading', { name: 'Pedidos pendentes (2)' })).toBeVisible();
+    await page.getByRole('button', { name: 'Fechar cofre' }).click();
+    await page.clock.setFixedTime(new Date(Date.now() + 9 * 3_600_000));
+    await unlock(password);
+    await expect(page.getByRole('status')).toContainText('renovar o acesso local');
+    await page.clock.setFixedTime(new Date());
+    await unlock(password);
+    await expect(page.getByRole('heading', { name: 'Pedidos pendentes (2)' })).toBeVisible();
     await info.attach('cold-offline', { body: await page.screenshot(), contentType: 'image/png' });
 
     await start(address.port);
@@ -96,6 +103,8 @@ test('cold start with HTTPS stopped, encrypted drafts, authenticated replay and 
     const [replayA, replayB] = await Promise.all([post(original), post(original)]);
     expect(replayA.ok() && replayB.ok()).toBe(true);
     expect(await replayA.json()).toEqual(await replayB.json());
+    const foreign = { ...original, sync_context: { ...original.sync_context, operator_id: 'p40garcom' } };
+    expect((await post(foreign)).status()).toBe(403);
     const changed = { ...original, items: [{ ...original.items[0], expected_price: 999 }] };
     expect((await post(changed)).status()).toBe(409);
     expect((await post({ ...changed, client_ref: crypto.randomUUID(), table: { ...original.table, number: 9593 } })).status()).toBe(409);
@@ -103,6 +112,12 @@ test('cold start with HTTPS stopped, encrypted drafts, authenticated replay and 
     expect((await tables.json()).filter((table: { number: number }) => [9591, 9592, 9593].includes(table.number))
       .map((table: { number: number }) => table.number).sort()).toEqual([9591, 9592]);
     expect(await readStock()).toBe(initial - 2);
+    await page.getByRole('button', { name: 'Apagar cofre vazio' }).click();
+    await expect(page.getByRole('status')).toContainText('Cofre local apagado');
+    await stop();
+    await page.reload();
+    await unlock(password);
+    await expect(page.getByRole('status')).toContainText('preparar ou renovar');
     await info.attach('reconciliation', { body: JSON.stringify({ initial, final: initial - 2, replayIds: await replayA.json() }), contentType: 'application/json' });
   } finally {
     await context?.close();

@@ -26,9 +26,25 @@ test('manifest, static application cache and emulated offline boundary',async({p
    '/apple-touch-icon.png', '/index.html', '/manifest.webmanifest', '/offline.html',
  ]);
  await context.setOffline(true);
- const navigation = await page.goto(base + '/pdv');
+ const beforeNavigation = await page.evaluate(async () => {
+   const online = navigator.onLine;
+   try {
+     const response = await fetch('/api/', {cache: 'no-store'});
+     return {online, directApiStatus: response.status};
+   } catch {
+     return {online, directApiStatus: null};
+   }
+ });
+ await info.attach('emulation-network-probe', {
+   body: JSON.stringify({browser: info.project.use.browserName, ...beforeNavigation}),
+   contentType: 'application/json',
+ });
+ const navigation = await page.goto(base + '/pdv').catch(async error => {
+   await info.attach('emulation-navigation-error', {body: String(error), contentType: 'text/plain'});
+   throw error;
+ });
  await info.attach('emulation', { body: JSON.stringify({
-   browser: info.project.use.browserName, online: await page.evaluate(() => navigator.onLine),
+   browser: info.project.use.browserName, ...beforeNavigation,
    status: navigation?.status(), fallback: await navigation?.headerValue('x-apollo-offline-fallback'),
  }), contentType: 'application/json' });
  expect(await navigation?.headerValue('x-apollo-offline-fallback')).toBe('shell');

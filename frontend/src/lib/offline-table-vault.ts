@@ -3,6 +3,7 @@ import type { QueueContext } from "./queue-context";
 export interface OfflineTableProfile {
   context: QueueContext;
   operator: string;
+  issued_at: string;
   expires_at: string;
   products: { id: string; name: string; price: number }[];
   tables: { number: number; kind: "mesa" | "comanda"; name: string; status: string }[];
@@ -71,4 +72,21 @@ export async function writeTableVault(vault: TableVault, passphrase: string, pre
   });
   if (conflict) throw new Error("O registro mudou em outra aba. Reabra o cofre.");
   return { key, envelope };
+}
+
+
+export async function deleteEmptyTableVault(previous: Envelope) {
+  let conflict = false;
+  await transaction("readwrite", store => {
+    const read = store.get("vault");
+    read.onsuccess = () => {
+      if (read.result?.revision !== previous.revision) {
+        conflict = true;
+        return;
+      }
+      store.delete("vault");
+    };
+    return read;
+  });
+  if (conflict) throw new Error("O registro mudou em outra aba. Reabra o cofre.");
 }

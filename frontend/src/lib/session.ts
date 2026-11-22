@@ -76,7 +76,10 @@ export function useSessionLock() {
 if (freshBrowserTab) {
   // Revoke a browser session restored into a newly opened tab. The tab stays
   // locked if the server is unavailable; its saved username is unaffected.
-  void withRequestTimeout((signal) => apiPost("/auth/logout", undefined, signal), 5000).catch(() => undefined);
+  logout = withRequestTimeout((signal) => apiPost("/auth/logout", undefined, signal), 5000)
+    .then(lockOfflineTables)
+    .catch(() => undefined)
+    .finally(() => { logout = undefined; });
 }
 
 export function beginSession(): void {

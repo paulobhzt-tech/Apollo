@@ -5,14 +5,15 @@ import { brl } from "@/lib/format";
 import { withRequestTimeout } from "@/lib/request-timeout";
 import { sameContext } from "@/lib/queue-context";
 import {
-  lockOfflineTables, openTableVault, readTableVault, TABLE_VAULT_LOCK, writeTableVault,
+  deleteEmptyTableVault, lockOfflineTables, openTableVault, readTableVault, TABLE_VAULT_LOCK, writeTableVault,
   type OfflineTableDraft, type OfflineTableProfile, type TableVault,
 } from "@/lib/offline-table-vault";
 
 type Session = Awaited<ReturnType<typeof writeTableVault>> & { vault: TableVault; lock: string | null };
 
 function active(profile: OfflineTableProfile) {
-  return Date.parse(profile.expires_at) > Date.now();
+  const now = Date.now();
+  return Date.parse(profile.issued_at) <= now + 60_000 && now < Date.parse(profile.expires_at);
 }
 
 export default function OfflineTables() {
@@ -140,15 +141,22 @@ export default function OfflineTables() {
       const online = await apiGet<OfflineTableProfile>("/offline/table-profile");
       if (!sameContext(online.context, session.vault.profile.context)) throw new Error("O operador ou estabelecimento mudou.");
       let current = session;
+      const conflicts: string[] = [];
       for (const draft of session.vault.pending) {
         check(current);
-        await apiPost("/offline/tables", { ...draft, sync_context: online.context });
+        try {
+          await withRequestTimeout(signal => apiPost("/offline/tables", { ...draft, sync_context: online.context }, signal), 15000);
+        } catch (error) {
+          if (!(error instanceof ApiError) || error.status !== 409) throw error;
+          conflicts.push(`${draft.table.kind} ${draft.table.number}`);
+          continue;
+        }
         current = await persist(current, {
           ...current.vault, profile: online,
           pending: current.vault.pending.filter(row => row.client_ref !== draft.client_ref),
         });
       }
-      setMessage("Envios confirmados pelo servidor.");
+      setMessage(conflicts.length ? `Envios preservados para revisão: ${conflicts.join(", ")}.` : "Envios confirmados pelo servidor.");
     });
   }
 
@@ -189,6 +197,15 @@ export default function OfflineTables() {
           <ul>{session.vault.pending.map(draft => <li key={draft.client_ref}>{draft.table.kind} {draft.table.number} · {draft.items.length} linha(s)</li>)}</ul>
           <button className="rounded border p-2" disabled={busy || !session.vault.pending.length} onClick={sync}>Enviar após reconectar</button>
           <button className="ml-2 rounded border p-2" disabled={busy} onClick={() => { setSession(undefined); setItems([]); }}>Fechar cofre</button>
+          {!session.vault.pending.length && !items.length && <button className="ml-2 rounded border p-2" disabled={busy} onClick={() => void run(async () => {
+            check(session);
+            const online = await apiGet<OfflineTableProfile>("/offline/table-profile");
+            if (!sameContext(online.context, session.vault.profile.context)) throw new Error("Valide o operador do cofre para limpar.");
+            await deleteEmptyTableVault(session.envelope);
+            lockOfflineTables();
+            setSession(undefined);
+            setMessage("Cofre local apagado.");
+          })}>Apagar cofre vazio</button>}
         </>
       )}
     </main>
