@@ -2,13 +2,13 @@ import hashlib
 import json
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, ConfigDict, Field
 from pymongo.errors import DuplicateKeyError
 
 from lib.audit import audit_event
 from lib.cash_scope import cash_scope, claim_cash, independent_cash
-from lib.auth import cancel_authorizer, current_user, require
+from lib.auth import authenticated_identity, cancel_authorizer, current_user, require
 from lib.db import client, db
 from lib.sync_identity import sync_context, validate_sync_context
 from lib.orders import (build_items, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods, validate_payment_details,
@@ -273,7 +273,10 @@ async def apply_add_items(id: str, body: AddItemsIn, user: dict, *, session=None
 
 
 @router.get("/offline/table-profile")
-async def offline_table_profile(request: Request, response: Response, user: dict = Depends(require("caixa"))):
+async def offline_table_profile(response: Response, identity: tuple = Depends(authenticated_identity)):
+    user, session_expires_at = identity
+    if user["role"] not in ("admin", "caixa"):
+        raise HTTPException(403, "Cofre local disponível para caixa e administrador.")
     response.headers["Cache-Control"] = "no-store"
     products = await db.products.find(
         {"active": True}, {"_id": 0, "id": 1, "name": 1, "price": 1, "options": 1, "channels": 1},
@@ -284,7 +287,7 @@ async def offline_table_profile(request: Request, response: Response, user: dict
         "context": await sync_context(user),
         "operator": user["name"],
         "issued_at": issued_at,
-        "expires_at": min(request.state.session_expires_at, issued_at + timedelta(hours=8)),
+        "expires_at": min(session_expires_at, issued_at + timedelta(hours=8)),
         "products": [{"id": item["id"], "name": item["name"], "price": round(item["price"], 2)} for item in products
                      if not any(group.get("required") for group in item.get("options", []))
                      and "comanda" in item.get("channels", ["comanda"])],

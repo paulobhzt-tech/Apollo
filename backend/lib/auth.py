@@ -57,7 +57,7 @@ async def create_session(employee_id: str, credential_version: str | None = None
     return token
 
 
-async def current_user(request: Request) -> dict:
+async def authenticated_identity(request: Request) -> tuple[dict, datetime]:
     token = request.cookies.get(COOKIE)
     if not token:
         raise HTTPException(401, "Não autenticado")
@@ -72,8 +72,12 @@ async def current_user(request: Request) -> dict:
         raise HTTPException(401, "Sessão expirada")
     if emp.get("must_change_password") and request.url.path not in ("/auth/first-password", "/api/auth/first-password", "/auth/logout", "/api/auth/logout"):
         raise HTTPException(403, "É obrigatório alterar a senha inicial antes de usar o PDV")
-    request.state.session_expires_at = s["expires_at"]
-    return emp
+    return emp, s["expires_at"]
+
+
+async def current_user(request: Request) -> dict:
+    user, _ = await authenticated_identity(request)
+    return user
 
 
 def require(*roles: str):
