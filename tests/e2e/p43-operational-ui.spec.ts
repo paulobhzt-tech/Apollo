@@ -206,10 +206,13 @@ test('confirmed table items survive a lost server response and browser process r
     .map(file => readFile('/tmp/apollo-p41-tls/' + file)));
   const itemsEndpoint = /\/api\/tables\/[^/]+\/items$/;
   let dropResponse = false;
+  let itemPosts = 0;
   let original: unknown;
   let committedStatus: number | undefined;
   const proxy = createServer({ key, cert }, (incoming, outgoing) => {
-    const drop = dropResponse && incoming.method === 'POST' && itemsEndpoint.test(incoming.url ?? '');
+    const submitsItems = incoming.method === 'POST' && itemsEndpoint.test(incoming.url ?? '');
+    if (submitsItems) itemPosts++;
+    const drop = dropResponse && submitsItems;
     const chunks: Buffer[] = [];
     if (drop) incoming.on('data', chunk => chunks.push(chunk));
     const upstream = httpsRequest({
@@ -291,8 +294,30 @@ test('confirmed table items survive a lost server response and browser process r
     expect(response.request().postDataJSON()).toEqual(original);
     await expect(page.getByRole('button', { name: 'Conferir envio pendente' })).toHaveCount(0);
     expect(await stock()).toBe(before - 1);
+    const postsBeforeOffline = itemPosts;
+    await page.getByTestId('add-items-button').click();
+    await page.locator('[data-testid^="product-card-"]').filter({ hasText: 'Espetinho P40' }).click();
+    await page.getByTestId('send-to-kitchen-button').click();
+    await context.setOffline(true);
+    await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false);
+    await page.getByTestId('waiter-confirm-send').click();
+    await expect(page.getByText('Envio salvo neste dispositivo. Aguardando conexão.', { exact: true })).toBeVisible();
+    expect(itemPosts).toBe(postsBeforeOffline);
+
+    const resynced = page.waitForResponse(response => itemsEndpoint.test(response.url()) && response.request().method() === 'POST');
+    await context.setOffline(false);
+    const synced = await resynced;
+    expect(synced.ok()).toBe(true);
+    expect(synced.request().postDataJSON().client_ref).not.toBe((original as { client_ref: string }).client_ref);
+    await expect(page.getByRole('button', { name: 'Conferir envio pendente' })).toHaveCount(0);
+    expect(itemPosts).toBe(postsBeforeOffline + 1);
+    expect(await stock()).toBe(before - 2);
+    await info.attach('table-offline-reconnection', {
+      body: JSON.stringify({ itemPostsBeforeOffline: postsBeforeOffline, itemPostsAfterReconnect: itemPosts, stockAfterReconnect: await stock() }),
+      contentType: 'application/json',
+    });
     await info.attach('table-recovery', {
-      body: JSON.stringify({ stockBefore: before, stockAfterReplay: await stock(), repeatedSameRequest: true }),
+      body: JSON.stringify({ stockBefore: before, stockAfterReplay: before - 1, repeatedSameRequest: true }),
       contentType: 'application/json',
     });
   } finally {

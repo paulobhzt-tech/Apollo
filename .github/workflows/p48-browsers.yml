@@ -1,7 +1,7 @@
 name: P48/P49 browser engine operational matrix
 on:
   push:
-    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final]
+    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao]
   workflow_dispatch:
 permissions:
   contents: read

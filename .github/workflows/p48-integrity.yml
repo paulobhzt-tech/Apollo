@@ -1,7 +1,7 @@
 name: P49 build identity and read-only public comparison
 on:
   push:
-    branches: [audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final]
+    branches: [audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao]
 permissions:
   contents: read
 jobs:

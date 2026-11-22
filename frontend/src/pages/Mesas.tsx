@@ -1,5 +1,5 @@
 import SaleQuantityInput from "@/components/SaleQuantityInput";
-import { type SetStateAction, useEffect, useState } from "react";
+import { type SetStateAction, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRightLeft, Bell, Clock, Ellipsis, Minus, Pencil, Plus, Printer, QrCode, Receipt, RefreshCw, Search, Send, Trash2, Users } from "lucide-react";
@@ -18,7 +18,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ApiError, apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import { useMe } from "@/lib/auth";
-import { useOffline } from "@/lib/offline";
+import { withRequestTimeout } from "@/lib/request-timeout";
+import { isOffline, useOffline } from "@/lib/offline";
 import { clearTableSubmission, readTableSubmission, reserveTableSubmission, tableSubmissionKey, type TableSubmission } from "@/lib/table-submission";
 import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, uid } from "@/lib/format";
 import { useOperatorDraft } from "@/lib/operator-draft";
@@ -372,7 +373,8 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const setPending = onDraftChange;
   const [adding, setAdding] = useState(!!draft?.length);
   const [reviewOpen, setReviewOpen] = useState(false);
-  const { context } = useOffline();
+  const { context, offline } = useOffline();
+  const wasOffline = useRef(offline);
   const [legacySubmission, setLegacySubmission] = useOperatorDraft<TableSubmission | null>(
     `apollo-table-send:${me?.id}:${table.id}:${table.order_id}`, null);
   const submissionKey = context && context.operator_id === me?.id && table.order_id
@@ -422,14 +424,16 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
         throw new Error("Confira o envio anterior antes de editar os itens.");
       }
       const proposed = submission ?? { ref: uid(), orderId: table.order_id, payload };
+      if (isOffline() && !submissionKey) throw new Error("Valide seu acesso online antes de salvar um envio neste dispositivo.");
       const request = submissionKey ? await reserveTableSubmission(submissionKey, proposed) : proposed;
       if (submissionKey) queryClient.setQueryData(["table-submission", submissionKey], request);
       else setLegacySubmission(request);
+      if (isOffline()) return "queued";
       try {
-        await apiPost<Order>(`/tables/${table.id}/items`, {
+        await withRequestTimeout(signal => apiPost<Order>(`/tables/${table.id}/items`, {
           order_id: request.orderId, client_ref: request.ref, items: JSON.parse(request.payload),
           ...(submissionKey ? { sync_context: context } : {}),
-        });
+        }, signal), 15_000);
       } catch (error) {
         if (error instanceof ApiError && [400, 422].includes(error.status) && submissionKey) {
           const remaining = await clearTableSubmission(submissionKey, request.ref);
@@ -442,13 +446,36 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
         queryClient.setQueryData(["table-submission", submissionKey], remaining);
       }
     },
-    onSuccess: () => { setLegacySubmission(null); void itemProgress.refetch(); toast.success("Pedido enviado para preparo"); setReviewOpen(false); setPending([]); setAdding(false); invalidateTables(); },
+    onSuccess: (result) => {
+      setReviewOpen(false);
+      if (result === "queued") {
+        toast.info("Itens salvos neste dispositivo. Envio pendente de conexão.");
+        return;
+      }
+      setLegacySubmission(null);
+      void itemProgress.refetch();
+      toast.success("Pedido enviado para preparo");
+      setPending([]);
+      setAdding(false);
+      invalidateTables();
+    },
     onError: (error) => {
       if (!submissionKey && error instanceof ApiError && [400, 401, 403, 422].includes(error.status)) setLegacySubmission(null);
       onErr(error);
       invalidateTables();
     },
   });
+
+  const { mutate: sendItems, isPending: sending, error: sendError } = send;
+  const durableSubmission = submissionQuery.data;
+  useEffect(() => {
+    const reconnected = wasOffline.current && !offline;
+    wasOffline.current = offline;
+    if (reconnected && submissionKey && durableSubmission && !sending &&
+      !(sendError instanceof ApiError && sendError.status < 500)) {
+      sendItems();
+    }
+  }, [offline, submissionKey, durableSubmission, sending, sendError, sendItems]);
 
   const removeItems = useMutation({
     mutationFn: async (r: RemoveRequest) => {
@@ -674,7 +701,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                   </div>
 
                   {submissionQuery.isError && <p role="alert" className="mt-4 text-sm text-red-500">Não foi possível verificar o envio salvo neste dispositivo.</p>}
-                  {submission && <p role="status" className="mt-4 text-sm text-amber-600 dark:text-amber-300">Envio aguardando confirmação. Reabra a revisão e repita o mesmo envio para conferir o resultado.</p>}
+                  {submission && <p role="status" className="mt-4 text-sm text-amber-600 dark:text-amber-300">{offline ? "Envio salvo neste dispositivo. Aguardando conexão." : "Envio aguardando confirmação. Confira ou reenvie os mesmos itens."}</p>}
                   {adding ? (
                     <fieldset disabled={send.isPending || !!submission} className="mt-4 min-w-0 space-y-3 rounded-2xl border border-primary/20 bg-panel p-3">
                       <ProductGrid products={visibleProducts} categories={categories.data ?? []} onAdd={addPending} compact />
