@@ -14,7 +14,7 @@ from lib.sync_identity import sync_context, validate_sync_context
 from lib.orders import (build_items, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods, validate_payment_details,
                         refresh_totals)
 from models.schemas import (SaleQuantity, AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, OrderItem, PayIn, SaleResult, Table, TableIn,
-                            OrderItemIn, SyncContext, TableStatusIn, TableUpdate, TransferIn, table_label)
+                            OrderItemIn, SyncContext, TablePayIn, TableStatusIn, TableUpdate, TransferIn, table_label)
 
 from routers.operations import with_order_transaction
 
@@ -739,13 +739,15 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
 
 
 @router.post("/tables/{id}/pay", response_model=SaleResult)
-async def pay_table(id: str, body: PayIn, user: dict = Depends(require("caixa"))):
+async def pay_table(id: str, body: TablePayIn, user: dict = Depends(require("caixa"))):
     return await with_order_transaction(lambda session: apply_pay_table(id, body, user, session=session))
 
 
-async def apply_pay_table(id: str, body: PayIn, user: dict, *, session=None):
+async def apply_pay_table(id: str, body: TablePayIn, user: dict, *, session=None):
     options = {"session": session} if session is not None else {}
     t = await get_table(id, **options)
+    if body.expected_order_id is not None and body.expected_order_id != t.get("order_id"):
+        raise HTTPException(409, "A comanda mudou. Consulte a mesa antes de cobrar.")
     order = await db.orders.find_one({"id": t.get("order_id")}, {"_id": 0}, **options) if t.get("order_id") else None
     if not order:
         raise HTTPException(400, "Mesa sem comanda aberta")

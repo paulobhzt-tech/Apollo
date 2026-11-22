@@ -9,7 +9,7 @@ import { cashAmount, formatCurrencyTyping } from "@/lib/catalog-form";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { onlineMutation, onlineOperation, useOffline } from "@/lib/offline";
+import { onlineMutation, onlineOperation, UncertainOperationError, useOffline } from "@/lib/offline";
 import { apiGet, apiPost } from "@/lib/api";
 import { brl, errMsg, fmtDateTime, payLabel } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
@@ -33,7 +33,28 @@ export default function Caixa() {
   const [blind, setBlind] = useState(true);
   const [printing, setPrinting] = useState<CashSession | null>(null);
   useEffect(() => { if (!printing) return; const t = setTimeout(() => { window.print(); setPrinting(null); }, 100); return () => clearTimeout(t); }, [printing]);
-  const onErr = (e: unknown) => toast.error(errMsg(e));
+  const [needsReview, setNeedsReview] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const onErr = (e: unknown) => {
+    if (e instanceof UncertainOperationError) setNeedsReview(true);
+    toast.error(errMsg(e));
+  };
+  const consult = async () => {
+    setChecking(true);
+    try {
+      const [turn, ledger] = await Promise.all([
+        current.refetch({ throwOnError: true }),
+        history.refetch({ throwOnError: true }),
+      ]);
+      if (!turn.isSuccess || !ledger.isSuccess) return;
+      setNeedsReview(false);
+      toast.info("Caixa atualizado. Confira as movimentações e o histórico antes de continuar.");
+    } catch (error) {
+      onErr(error);
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const s = current.isError ? null : current.data;
   const openingAmount = cashAmount(opening);
@@ -63,11 +84,15 @@ export default function Caixa() {
     onError: onErr,
   });
 
-  const updating = open.isPending || move.isPending || close.isPending;
+  const updating = needsReview || open.isPending || move.isPending || close.isPending;
   return (
     <AppShell roles={["caixa"]}>
       <PageHeader title="Controle de Caixa" subtitle="Abertura, sangria, suprimento e fechamento com conferência cega" />
       {offline && <p role="status" data-testid="cash-online-required" className="mb-3 text-sm text-amber-300">Abertura, movimentos e fechamento de caixa exigem conexão.</p>}
+      {needsReview && <div role="alert" className="mb-4 rounded-md border border-white/15 p-3">
+        Resultado incerto. Consulte o caixa e o histórico antes de repetir a operação.
+        <Button size="sm" variant="outline" className="ml-2" disabled={offline || checking} onClick={() => void consult()}>Consultar servidor</Button>
+      </div>}
       {current.isError && <div role="alert" className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">Não foi possível consultar o estado do caixa. Verifique a conexão antes de abrir ou fechar um turno. <Button size="sm" variant="outline" onClick={() => void current.refetch()}>Tentar novamente</Button></div>}
       {current.isLoading ? <p role="status" className="text-sm text-zinc-400">Consultando caixa…</p> : current.isError ? null : !s ? (
         <div className="max-w-md rounded-2xl border border-white/5 bg-panel p-6" data-testid="cash-open-panel">
