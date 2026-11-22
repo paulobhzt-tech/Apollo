@@ -178,13 +178,15 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
     const stockAfter = await ingredientStock();
     expect(stockAfter).toBe(initialStock - 26);
     await page.getByRole('button', { name: 'Fechar cofre' }).click();
+    await stop();
     await waiter.close();
     waiter = await launchWaiter();
     page = waiter.pages()[0] ?? await waiter.newPage();
-    await page.goto(origin + '/mesas-offline');
+    expect(await (await page.goto(origin + '/mesas-offline'))?.headerValue('x-apollo-offline-fallback')).toBe('shell');
     await unlock();
-    await expect(pending(1)).toBeVisible();
+    await expect(pending(1)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText('Revisão necessária (HTTP 409)', { exact: false })).toBeVisible();
+    await info.attach('conflict-after-offline-restart', { body: await page.screenshot(), contentType: 'image/png' });
 
     const balanced = [];
     for (const [index, client] of cashiers.entries()) {
