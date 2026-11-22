@@ -5,12 +5,13 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const backend = 'https://127.0.0.1:8001';
+const backendPort = Number(process.env.APOLLO_P58_BACKEND_PORT ?? 8001);
+const backend = `https://127.0.0.1:${backendPort}`;
 const fixturePassword = 'P40-Fictitious-Password!';
 const vaultPassword = 'P58-Cofre-Ficticio-Longo';
 
 async function json(response: APIResponse) {
-  expect(response.ok(), `${response.status()} ${response.url()}`).toBe(true);
+  if (!response.ok()) throw new Error(`${response.status()} ${response.url()}: ${await response.text()}`);
   return response.json();
 }
 
@@ -19,8 +20,9 @@ const post = async (client: APIRequestContext, pathname: string, data: object) =
 
 test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains and replays drafts', async ({}, info) => {
   test.setTimeout(180_000);
-  expect(process.env.DB_NAME).toBe('apollo_p40_browser_fictitious');
-  expect(process.env.MONGO_URL).toMatch(/^mongodb:\/\/127\.0\.0\.1:27017\//);
+  expect(process.env.DB_NAME).toBe('apollo_p40_browser_p58_integrated');
+  expect(Number.isInteger(backendPort) && backendPort > 0 && backendPort <= 65535).toBe(true);
+  expect(process.env.MONGO_URL).toMatch(/^mongodb:\/\/127\.0\.0\.1:\d+\//);
   const tls = '/tmp/apollo-p41-tls';
   const [key, cert, ca] = await Promise.all(['server.key', 'server.crt', 'apollo-local-ca.crt'].map(name => readFile(join(tls, name))));
   let lostResponses = 0;
@@ -68,7 +70,7 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
       .find((ingredient: { id: string }) => ingredient.id === 'p40ing').stock;
     const initialStock = await ingredientStock();
     const tables = [];
-    for (const [number, kind] of [[9581, 'mesa'], [9582, 'comanda'], [9583, 'mesa']] as const) {
+    for (const [number, kind] of [[9821, 'mesa'], [9822, 'comanda'], [9823, 'mesa']] as const) {
       tables.push(await post(cashiers[0], '/tables', { number, kind }));
     }
     waiter = await launchWaiter();
