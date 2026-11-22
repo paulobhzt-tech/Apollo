@@ -15,6 +15,14 @@ class NoRedirect(HTTPRedirectHandler):
         return None
 
 
+PUBLIC_MIME = {
+    ".html": {"text/html"},
+    ".js": {"text/javascript", "application/javascript"},
+    ".css": {"text/css"},
+    ".webmanifest": {"application/manifest+json", "application/json"},
+}
+
+
 def check_build(origin, expected, fetch):
     results = []
     problems = []
@@ -43,16 +51,23 @@ def check_build(origin, expected, fetch):
     if not matches:
         problems.append("Identidade do manifesto público diverge do build esperado.")
 
-    for path, filename in [("/login", "index.html"), ("/sw.js", "sw.js"), ("/manifest.webmanifest", "manifest.webmanifest")]:
-        fetch_checked(path)
+    def verify_asset(path, filename):
+        mime, _ = fetch_checked(path)
         if results[-1].get("sha256") != expected["files"][filename]:
             problems.append(f"Hash divergente em {path}.")
+        allowed = PUBLIC_MIME.get(Path(filename).suffix)
+        if mime and allowed and mime not in allowed:
+            problems.append(f"Tipo de conteúdo incompatível em {path}.")
+
+    essential = {"/login": "index.html", "/sw.js": "sw.js", "/manifest.webmanifest": "manifest.webmanifest"}
+    for path, filename in essential.items():
+        verify_asset(path, filename)
 
     if matches:
-        for filename, digest in sorted(expected["files"].items()):
-            fetch_checked("/" + filename)
-            if results[-1].get("sha256") != digest:
-                problems.append(f"Hash divergente em /{filename}.")
+        for filename in sorted(expected["files"]):
+            path = "/" + filename
+            if path not in essential:
+                verify_asset(path, filename)
 
     return {
         "origin": origin,

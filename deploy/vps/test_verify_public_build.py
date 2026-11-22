@@ -21,6 +21,7 @@ class PublicBuildTests(unittest.TestCase):
         self.remote = {**self.expected}
         self.missing = set()
         self.mime = "application/json"
+        self.asset_mimes = {".html": "text/html", ".js": "application/javascript", ".webmanifest": "application/manifest+json"}
 
     def fetch(self, url):
         path = url.removeprefix(ORIGIN).lstrip("/")
@@ -30,7 +31,7 @@ class PublicBuildTests(unittest.TestCase):
             return self.mime, json.dumps(self.remote).encode()
         if path == "login":
             path = "index.html"
-        return "application/octet-stream", self.files[path]
+        return self.asset_mimes[Path(path).suffix], self.files[path]
 
     def test_matching_public_assets_do_not_attest_isolation(self):
         report = check_build(ORIGIN, self.expected, self.fetch)
@@ -51,6 +52,10 @@ class PublicBuildTests(unittest.TestCase):
         report = check_build(ORIGIN, self.expected, self.fetch)
         self.assertFalse(report["public_build_matches"])
         self.assertIn("Hash divergente em /assets/main.js.", report["problems"])
+
+    def test_correct_hash_with_unusable_worker_content_type_blocks(self):
+        self.asset_mimes[".js"] = "text/html"
+        self.assertIn("Tipo de conteúdo incompatível em /sw.js.", check_build(ORIGIN, self.expected, self.fetch)["problems"])
 
 
 if __name__ == "__main__":
