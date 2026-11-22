@@ -20,7 +20,7 @@ import { ApiError, apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/ap
 import { useMe } from "@/lib/auth";
 import { withRequestTimeout } from "@/lib/request-timeout";
 import { isOffline, useOffline } from "@/lib/offline";
-import { clearTableSubmission, readTableSubmission, reserveTableSubmission, retryAutomaticTableSubmission, tableSubmissionKey, type TableSubmission } from "@/lib/table-submission";
+import { clearTableSubmission, pauseAutomaticTableSubmission, readTableSubmission, reserveTableSubmission, tableSubmissionKey, type TableSubmission } from "@/lib/table-submission";
 import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, uid } from "@/lib/format";
 import { useOperatorDraft } from "@/lib/operator-draft";
 import { queryClient } from "@/lib/queryClient";
@@ -426,7 +426,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
       const queueLocally = isOffline();
       if (queueLocally && !submissionKey) throw new Error("Valide seu acesso online antes de salvar um envio neste dispositivo.");
       const request = submissionKey
-        ? await reserveTableSubmission(submissionKey, { ...proposed, autoSync: proposed.autoSync || queueLocally })
+        ? await reserveTableSubmission(submissionKey, { ...proposed, autoSync: true })
         : proposed;
       if (submissionKey) queryClient.setQueryData(["table-submission", submissionKey], request);
       else setLegacySubmission(request);
@@ -437,14 +437,14 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
           ...(submissionKey ? { sync_context: context } : {}),
         }, signal), 15_000);
       } catch (error) {
-        if (error instanceof ApiError && [400, 422].includes(error.status) && submissionKey) {
-          const remaining = await clearTableSubmission(submissionKey, request.ref);
+        if (submissionKey) {
+          if (!(error instanceof ApiError) || [401, 408, 425, 429].includes(error.status) || error.status >= 500) {
+            return "queued";
+          }
+          const remaining = [400, 422].includes(error.status)
+            ? await clearTableSubmission(submissionKey, request.ref)
+            : await pauseAutomaticTableSubmission(submissionKey, request.ref);
           queryClient.setQueryData(["table-submission", submissionKey], remaining);
-        } else if (submissionKey && (!(error instanceof ApiError)
-          || [401, 408, 425, 429].includes(error.status) || error.status >= 500)) {
-          const remaining = await retryAutomaticTableSubmission(submissionKey, request.ref);
-          queryClient.setQueryData(["table-submission", submissionKey], remaining);
-          return "queued";
         }
         throw error;
       }

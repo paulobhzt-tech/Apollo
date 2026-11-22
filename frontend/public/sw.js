@@ -28,11 +28,15 @@ self.addEventListener('activate', event => {
 
 async function navigate(request, pathname) {
   let networkResponse;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    networkResponse = await fetch(request, { cache: 'no-store' });
+    networkResponse = await fetch(request, { cache: 'no-store', signal: controller.signal });
     if (![502, 503, 504].includes(networkResponse.status)) return networkResponse;
   } catch {
     // Transport failure takes the same path as a gateway outage.
+  } finally {
+    clearTimeout(timeout);
   }
 
   const cache = await caches.open(CACHE);
