@@ -60,6 +60,11 @@ jobs:
         run: |
           set -o pipefail
           python local-server/gerar-certificado.py /tmp/apollo-p41-tls 127.0.0.1
+          if test "$GITHUB_REF_NAME" = audit/p55-correcao-final-offline-vps-operacional; then
+            APOLLO_TEST_TLS_SPKI="$(openssl x509 -in /tmp/apollo-p41-tls/server.crt -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl base64)"
+            export APOLLO_TEST_TLS_SPKI
+            printf 'APOLLO_TEST_TLS_SPKI=%s\n' "$APOLLO_TEST_TLS_SPKI" >> "$GITHUB_ENV"
+          fi
           sudo cp /tmp/apollo-p41-tls/apollo-local-ca.crt /usr/local/share/ca-certificates/apollo-p48.crt
           sudo update-ca-certificates
           sudo apt-get install -y libnss3-tools

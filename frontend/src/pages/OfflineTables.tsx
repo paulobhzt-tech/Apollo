@@ -36,6 +36,7 @@ export default function OfflineTables() {
     const lock = () => {
       setSession(undefined);
       setItems([]);
+      setTarget("");
       setMessage("Acesso local bloqueado. Abra o cofre novamente.");
     };
     const storage = (event: StorageEvent) => {
@@ -213,11 +214,11 @@ export default function OfflineTables() {
             <ul>{session.vault.profile.tables.map(table => <li key={table.kind + table.number}>{table.kind} {table.number} · {table.name} · {table.status}</li>)}</ul>
           </details>
           <form onSubmit={save} className="space-y-3">
-            <label className="block">Atendimento <select value={target} onChange={e => setTarget(e.target.value)}>
+            <div><label className="block" htmlFor="offline-table-target">Atendimento</label><select id="offline-table-target" value={target} onChange={e => setTarget(e.target.value)}>
               <option value="">{session.vault.profile.can_create === false ? "Selecione um atendimento" : "Nova mesa ou comanda"}</option>
               {session.vault.profile.tables.filter(row => row.id && row.order_id && row.status === "ocupada").map(row =>
                 <option key={row.id} value={row.id}>{row.kind} {row.number}</option>)}
-            </select></label>
+            </select></div>
             {!target && session.vault.profile.can_create !== false && <>
             <label>Tipo <select value={kind} onChange={e => setKind(e.target.value === "mesa" ? "mesa" : "comanda")}><option value="mesa">Mesa</option><option value="comanda">Comanda</option></select></label>
             <label className="block">Número <input required type="number" min="1" max="999999" value={number} onChange={e => setNumber(e.target.value)} /></label>
@@ -238,7 +239,7 @@ export default function OfflineTables() {
           <h2 className="text-lg font-semibold">Pedidos pendentes ({session.vault.pending.length})</h2>
           <ul>{session.vault.pending.map(draft => <li key={draft.client_ref}>{draft.table.kind} {draft.table.number} · {draft.items.length} linha(s)</li>)}</ul>
           <button className="rounded border p-2" disabled={busy || !session.vault.pending.length} onClick={() => sync()}>Enviar após reconectar</button>
-          <button className="ml-2 rounded border p-2" disabled={busy} onClick={() => { setSession(undefined); setItems([]); }}>Fechar cofre</button>
+          <button className="ml-2 rounded border p-2" disabled={busy} onClick={() => { setSession(undefined); setItems([]); setTarget(""); }}>Fechar cofre</button>
           {!session.vault.pending.length && !items.length && <button className="ml-2 rounded border p-2" disabled={busy} onClick={() => void run(async () => {
             check(session);
             const online = await apiGet<OfflineTableProfile>("/offline/table-profile");

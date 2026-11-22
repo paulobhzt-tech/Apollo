@@ -37,6 +37,7 @@ test(`P55 ${actor} reopens encrypted drafts and replays automatically after HTTP
   try {
     context = await launch();
     let page = context.pages()[0] ?? await context.newPage();
+    page.setDefaultTimeout(20_000);
     const login = async (username: string = actor) => {
       await page.goto(origin + '/login');
       await page.getByLabel('Usuário', { exact: true }).fill(username);
@@ -91,6 +92,7 @@ test(`P55 ${actor} reopens encrypted drafts and replays automatically after HTTP
     await stop();
     context = await launch();
     page = context.pages()[0] ?? await context.newPage();
+    page.setDefaultTimeout(20_000);
     expect(await (await page.goto(origin + '/mesas-offline'))?.headerValue('x-apollo-offline-fallback')).toBe('shell');
     await unlock('errada');
     await expect(page.getByRole('status')).toContainText('Senha local inválida');
