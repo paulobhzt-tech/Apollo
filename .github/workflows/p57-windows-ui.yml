@@ -25,24 +25,8 @@ jobs:
           npm ci --no-audit --no-fund
           npx playwright install chromium
       - name: Exercise operator access, lock and desktop layouts
-        shell: pwsh
-        run: |
-          $preview = Start-Process node -ArgumentList 'node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port','3000','--strictPort' -WorkingDirectory frontend -PassThru
-          try {
-            $ready = $false
-            foreach ($i in 1..30) {
-              try {
-                $response = Invoke-WebRequest -Uri http://localhost:3000/ -TimeoutSec 2
-                if ($response.StatusCode -eq 200) { $ready = $true; break }
-              } catch { Start-Sleep -Seconds 1 }
-            }
-            if (-not $ready) { throw 'Preview unavailable' }
-            Set-Location tests
-            npx playwright test operator-session.spec.ts --project=desktop --grep 'login, recuperação|bloqueio continua|faixa, tema, zoom|menu compacto' --trace on
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          } finally {
-            Stop-Process -Id $preview.Id -ErrorAction SilentlyContinue
-          }
+        working-directory: tests
+        run: npx playwright test --config=p57-windows.config.ts operator-session.spec.ts --project=desktop --grep 'login, recuperação|bloqueio continua|faixa, tema, zoom|menu compacto' --trace on
       - uses: actions/upload-artifact@v4
         if: always()
         with:
