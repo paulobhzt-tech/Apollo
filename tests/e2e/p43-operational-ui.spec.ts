@@ -259,12 +259,13 @@ test('table items recover after restart and queued items sync outside the table'
     expect((await auditor.post('/api/auth/login', {data: {
       username: 'p40admin', password: 'P40-Fictitious-Password!',
     }})).ok()).toBe(true);
-    const stock = async () => {
+    const stock = async (ingredientId = 'p40ing') => {
       const response = await auditor.get('/api/ingredients');
       expect(response.ok()).toBe(true);
-      return (await response.json()).find((item: { id: string }) => item.id === 'p40ing').stock;
+      return (await response.json()).find((item: { id: string }) => item.id === ingredientId).stock;
     };
     const before = await stock();
+    const counterStockBefore = await stock('p41ingportion');
     const number = info.project.name === 'desktop' ? '9581' : '9582';
     const table = await auditor.post('/api/tables', { data: { number: Number(number) } });
     expect(table.ok()).toBe(true);
@@ -308,9 +309,14 @@ test('table items recover after restart and queued items sync outside the table'
     const sales = await runConcurrentCashiers();
     expect(await page.evaluate(() => navigator.onLine)).toBe(false);
     expect(itemPosts).toBe(postsBeforeOffline);
-    expect(await stock()).toBe(before - 26);
+    expect(await stock()).toBe(before - 1);
+    const counterStockAfter = await stock('p41ingportion');
+    expect(counterStockAfter).toBeCloseTo(counterStockBefore - 10, 6);
     await info.attach('concurrent-offline-waiter-and-cashiers', {
-      body: JSON.stringify({ ...sales, waiterHadNoNetwork: true, postsFromWaiterDuringSales: 0 }),
+      body: JSON.stringify({
+        ...sales, waiterHadNoNetwork: true, postsFromWaiterDuringSales: 0,
+        counterStockBefore, counterStockAfter,
+      }),
       contentType: 'application/json',
     });
 
@@ -325,7 +331,8 @@ test('table items recover after restart and queued items sync outside the table'
     await expect(page.getByRole('button', { name: 'Conferir envio pendente' })).toHaveCount(0);
     expect(new URL(page.url()).pathname).not.toBe("/mesas");
     expect(itemPosts).toBe(postsBeforeOffline + 1);
-    expect(await stock()).toBe(before - 27);
+    expect(await stock()).toBe(before - 2);
+    expect(await stock('p41ingportion')).toBe(counterStockAfter);
     await info.attach('table-offline-reconnection', {
       body: JSON.stringify({ itemPostsBeforeOffline: postsBeforeOffline, itemPostsAfterReconnect: itemPosts, stockAfterReconnect: await stock() }),
       contentType: 'application/json',
@@ -366,8 +373,8 @@ async function runConcurrentCashiers() {
       const index = sale % 2;
       const payload = {
         client_ref: prefix + '-' + sale,
-        items: [{ product_id: 'p40product', qty: 1 }],
-        payments: [{ method: 'dinheiro', amount: 5 }, { method: 'pix', amount: 5 }],
+        items: [{ product_id: 'p41portion', qty: 1 }],
+        payments: [{ method: 'dinheiro', amount: 5 }, { method: 'pix', amount: 10 }],
         emit_invoice: false,
         send_to_kitchen: false,
       };
@@ -383,7 +390,7 @@ async function runConcurrentCashiers() {
       const response = await cashiers[index].get('/api/cash/current');
       expect(response.ok()).toBe(true);
       const current = await response.json();
-      expect(current.totals_by_method).toEqual({ dinheiro: counted, pix: counted });
+      expect(current.totals_by_method).toEqual({ dinheiro: counted, pix: counted * 2 });
       return post(index, '/cash/close', { expected_session_id: shift.id, counted_amount: counted });
     }));
     expect(closed.map(shift => shift.difference)).toEqual([0, 0]);
