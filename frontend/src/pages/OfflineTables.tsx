@@ -22,7 +22,7 @@ export default function OfflineTables() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const operation = useRef(false);
-  const conflicting = useRef(new Set<string>());
+  const syncLifetime = useRef<AbortController | null>(null);
   const [target, setTarget] = useState("");
   const [number, setNumber] = useState("");
   const [kind, setKind] = useState<"mesa" | "comanda">("mesa");
@@ -32,8 +32,16 @@ export default function OfflineTables() {
   const [items, setItems] = useState<OfflineTableDraft["items"]>([]);
 
   useEffect(() => {
+    const controller = new AbortController();
+    syncLifetime.current = controller;
+    return () => { syncLifetime.current?.abort(); syncLifetime.current = null; };
+  }, []);
+
+  useEffect(() => {
     if (!session) return;
     const lock = () => {
+      syncLifetime.current?.abort();
+      syncLifetime.current = new AbortController();
       setSession(undefined);
       setItems([]);
       setTarget("");
@@ -50,13 +58,14 @@ export default function OfflineTables() {
     };
   }, [session]);
 
-  async function run(action: () => Promise<void>) {
+  async function run(action: () => Promise<void>, signal?: AbortSignal) {
     if (operation.current) return;
     operation.current = true;
     setBusy(true);
     setMessage("");
     try { await action(); }
     catch (error) {
+      if (signal?.aborted) return;
       if (error instanceof ApiError && [401, 403].includes(error.status)) {
         lockOfflineTables();
         setSession(undefined);
@@ -147,11 +156,14 @@ export default function OfflineTables() {
   }
 
   function sync(automatic = false) {
-    if (!session || !session.vault.pending.some(draft => !automatic || !conflicting.current.has(draft.client_ref))) return;
+    const signal = syncLifetime.current?.signal;
+    if (!session || !signal || signal.aborted) return;
+    const candidates = session.vault.pending.filter(draft => !automatic || !draft.review);
+    if (!candidates.length) return;
     void run(async () => {
       let online: OfflineTableProfile;
       try {
-        online = await withRequestTimeout(signal => apiGet<OfflineTableProfile>("/offline/table-profile", signal), 5000);
+        online = await withRequestTimeout(requestSignal => apiGet<OfflineTableProfile>("/offline/table-profile", requestSignal), 5000, signal);
       } catch (error) {
         if (automatic && (error instanceof TypeError || (error instanceof DOMException && error.name === "AbortError")
           || (error instanceof ApiError && [502, 503, 504].includes(error.status)))) return;
@@ -159,30 +171,35 @@ export default function OfflineTables() {
       }
       if (!sameContext(online.context, session.vault.profile.context)) throw new Error("O operador ou estabelecimento mudou.");
       let current = session;
-      const conflicts: string[] = [];
-      for (const draft of session.vault.pending) {
-        if (automatic && conflicting.current.has(draft.client_ref)) continue;
+      for (const draft of candidates) {
+        signal.throwIfAborted();
         check(current);
         try {
-          await withRequestTimeout(signal => apiPost("/offline/tables", { ...draft, sync_context: online.context }, signal), 15000);
+          const { review: _review, ...payload } = draft;
+          await withRequestTimeout(requestSignal => apiPost("/offline/tables", { ...payload, sync_context: online.context }, requestSignal), 15000, signal);
         } catch (error) {
           if (!(error instanceof ApiError) || ![400, 409, 422].includes(error.status)) throw error;
-          conflicting.current.add(draft.client_ref);
-          conflicts.push(`${draft.table.kind} ${draft.table.number}`);
+          signal.throwIfAborted();
+          current = await persist(current, {
+            ...current.vault,
+            pending: current.vault.pending.map(row => row.client_ref === draft.client_ref
+              ? { ...row, review: { status: error.status } } : row),
+          });
           continue;
         }
-        conflicting.current.delete(draft.client_ref);
+        signal.throwIfAborted();
         current = await persist(current, {
           ...current.vault, profile: online,
           pending: current.vault.pending.filter(row => row.client_ref !== draft.client_ref),
         });
       }
-      setMessage(conflicts.length ? `Envios preservados para revisão: ${conflicts.join(", ")}.` : "Envios confirmados pelo servidor.");
-    });
+      const hasReview = current.vault.pending.some(draft => draft.review);
+      setMessage(hasReview ? "Há pedidos preservados para revisão." : "Envios confirmados pelo servidor.");
+    }, signal);
   }
 
   const reconnect = useEffectEvent(() => sync(true));
-  const hasPending = Boolean(session?.vault.pending.length);
+  const hasPending = Boolean(session?.vault.pending.some(draft => !draft.review));
   useEffect(() => {
     if (!hasPending) return;
     // Upstream recovery can happen without an online event when Wi-Fi stays connected.
@@ -237,7 +254,7 @@ export default function OfflineTables() {
             <button className="rounded border p-2" disabled={busy || !items.length || (!target && session.vault.profile.can_create === false)}>Salvar pedido no dispositivo</button>
           </form>
           <h2 className="text-lg font-semibold">Pedidos pendentes ({session.vault.pending.length})</h2>
-          <ul>{session.vault.pending.map(draft => <li key={draft.client_ref}>{draft.table.kind} {draft.table.number} · {draft.items.length} linha(s)</li>)}</ul>
+          <ul>{session.vault.pending.map(draft => <li key={draft.client_ref}>{draft.table.kind} {draft.table.number} · {draft.items.length} linha(s){draft.review && ` · Revisão necessária (HTTP ${draft.review.status})`}</li>)}</ul>
           <button className="rounded border p-2" disabled={busy || !session.vault.pending.length} onClick={() => sync()}>Enviar após reconectar</button>
           <button className="ml-2 rounded border p-2" disabled={busy} onClick={() => { setSession(undefined); setItems([]); setTarget(""); }}>Fechar cofre</button>
           {!session.vault.pending.length && !items.length && <button className="ml-2 rounded border p-2" disabled={busy} onClick={() => void run(async () => {

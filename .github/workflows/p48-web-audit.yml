@@ -1,7 +1,7 @@
 name: P48/P49 isolated Web PWA acceptance
 on:
   push:
-    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao, audit/p54-offline-integral-vps-validacao-final, audit/p55-correcao-final-offline-vps-operacional]
+    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao, audit/p54-offline-integral-vps-validacao-final, audit/p55-correcao-final-offline-vps-operacional, audit/p56-validacao-vps-offline-operacional]
     paths: ['.github/workflows/p48-web-audit.yml', '.github/p48-request.txt', 'frontend/**', 'backend/**', 'tests/**']
   workflow_dispatch:
 concurrency:

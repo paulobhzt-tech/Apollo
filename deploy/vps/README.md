@@ -51,3 +51,12 @@ Após publicar e validar HTTPS, configure a variável GitHub Actions `PDV_SERVER
 - Não há acesso remoto automático ou deploy nesta etapa.
 - O domínio, a VPS e o banco em produção precisam ser confirmados após a liberação do serviço.
 - O modo offline do desktop ainda exige validação própria. Evite depender dele em horário de caixa até que seja homologado.
+
+## Conferência pública de um build auditado
+
+```bash
+python deploy/vps/verify-public-build.py frontend/dist/build-integrity.json \
+  --origin https://homologacao.apollo-pdv.com
+```
+
+Execute da raiz do repositório, com o manifesto do build aprovado no CI. A conferência usa GET por HTTPS e rejeita redirecionamento, manifesto servido como HTML, commit divergente e arquivos faltantes ou alterados. O resultado mede a identidade pública dos arquivos. A aprovação administrativa exige evidência separada da identidade do serviço, réplica do MongoDB, credenciais e volumes exclusivos de homologação, backup e rollback exercitado.

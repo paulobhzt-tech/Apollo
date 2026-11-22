@@ -13,6 +13,7 @@ export interface OfflineTableDraft {
   client_ref: string;
   table: { number: number; kind: "mesa" | "comanda"; name: string; seats: number };
   existing?: { table_id: string; order_id: string };
+  review?: { status: number };
   items: { product_id: string; qty: number; notes: string; expected_price: number }[];
 }
 export interface TableVault { profile: OfflineTableProfile; pending: OfflineTableDraft[] }

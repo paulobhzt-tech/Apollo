@@ -154,6 +154,28 @@ test(`P55 ${actor} reopens encrypted drafts and replays automatically after HTTP
     expect((await tables.json()).filter((table: { number: number }) => [baseNumber, baseNumber + 1, baseNumber + 2].includes(table.number))
       .map((table: { number: number }) => table.number).sort()).toEqual(own ? [] : [baseNumber, baseNumber + 1]);
     expect(await readCount()).toBe(final);
+    if (actor === 'p40admin' && process.env.APOLLO_P56_REVIEW === '1') {
+      const collisionNumber = baseNumber + 2;
+      expect((await serverPost('/tables', { number: collisionNumber, kind: 'mesa' })).ok()).toBe(true);
+      await save('mesa', String(collisionNumber));
+      await expect(page.getByText('Revisão necessária (HTTP 409)', { exact: false })).toBeVisible({timeout: 30_000});
+
+      let attempts = 0;
+      page.on('request', req => {
+        if (req.method() === 'POST' && req.url().endsWith('/api/offline/tables')) attempts++;
+      });
+      await page.reload();
+      await unlock(password);
+      await expect(page.getByText('Revisão necessária (HTTP 409)', { exact: false })).toBeVisible();
+      await page.waitForTimeout(11_000); // A complete automatic retry interval after reopen.
+      expect(attempts).toBe(0);
+      const manual = page.waitForResponse(res => res.request().method() === 'POST' && res.url().endsWith('/api/offline/tables'));
+      await page.getByRole('button', {name: 'Enviar após reconectar'}).click();
+      expect((await manual).status()).toBe(409);
+      await expect(page.getByRole('heading', {name: 'Pedidos pendentes (1)'})).toBeVisible();
+      expect(await readCount()).toBe(final);
+      return;
+    }
     await page.getByRole('button', { name: 'Apagar cofre vazio' }).click();
     await expect(page.getByRole('status')).toContainText('Cofre local apagado');
     await stop();
