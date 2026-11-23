@@ -4,6 +4,7 @@ import { createServer, request } from 'node:https';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 
 const backendPort = Number(process.env.APOLLO_P58_BACKEND_PORT ?? 8001);
 const backend = `https://127.0.0.1:${backendPort}`;
@@ -173,12 +174,6 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
     await post(cashiers[0], `/tables/${tables[1].id}/transfer`, { target_table_id: tables[2].id });
 
     const receipts = new Map<string, object>();
-    page.on('request', req => {
-      if (req.method() === 'POST' && req.url().endsWith('/api/offline/tables')) {
-        const body = req.postDataJSON();
-        receipts.set(body.existing.table_id, body);
-      }
-    });
     const oldCache = await page.evaluate(async () => (await caches.keys()).find(key => key.startsWith('apollo-public-')));
     expect(oldCache).toBeTruthy();
     const newCache = oldCache + '-upgrade-fixture';
@@ -188,8 +183,25 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
     holdOfflineSync = true;
     await start(address.port);
     await page.evaluate(async () => { await (await navigator.serviceWorker.ready).update(); });
-    await expect.poll(() => page.evaluate(async () => (await caches.keys()).filter(key => key.startsWith('apollo-public-'))))
-      .toEqual([newCache]);
+    const publicCaches = () => page.evaluate(async () =>
+      (await caches.keys()).filter(key => key.startsWith('apollo-public-')).sort());
+    await expect.poll(() => page.evaluate(async () => Boolean((await navigator.serviceWorker.ready).waiting))).toBe(true);
+    await expect.poll(publicCaches).toEqual([oldCache, newCache].sort());
+    await expect(pending(2)).toBeVisible();
+
+    // Release the old worker's clients while the fixture still holds sync.
+    await Promise.all(waiter.pages().map(tab => tab.close()));
+    await delay(3000);
+    page = await waiter.newPage();
+    page.on('request', req => {
+      if (req.method() === 'POST' && req.url().endsWith('/api/offline/tables')) {
+        const body = req.postDataJSON();
+        receipts.set(body.existing.table_id, body);
+      }
+    });
+    await page.goto(origin + '/mesas-offline');
+    await expect.poll(publicCaches).toEqual([newCache]);
+    await unlock();
     await expect(pending(2)).toBeVisible();
     holdOfflineSync = false;
     await expect(pending(1)).toBeVisible({ timeout: 45_000 });
