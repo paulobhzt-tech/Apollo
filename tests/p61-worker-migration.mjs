@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium, firefox, webkit } from '@playwright/test';
@@ -10,12 +10,17 @@ const dist = new URL('../frontend/dist/', import.meta.url);
 const worker = await readFile(new URL('sw.js', dist), 'utf8');
 const cache = /const CACHE = "([^"]+)";/.exec(worker)?.[1];
 assert.ok(cache);
-const legacy = `
-self.addEventListener('install', event => event.waitUntil(caches.open('apollo-public-v2')));
-self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));`;
+const legacy = execFileSync('git', [
+  'show', 'fd3a66fd19a94d8bad09d754f9f2a5f6dee4a506:frontend/public/sw.js',
+], { cwd: new URL('../', import.meta.url) });
 let updating = false;
+let upstreamUnavailable = false;
 const server = createServer(async (request, response) => {
   try {
+    if (upstreamUnavailable) {
+      response.writeHead(503);
+      return response.end();
+    }
     const pathname = new URL(request.url, 'http://localhost').pathname;
     if (pathname === '/sw.js') {
       response.writeHead(200, { 'content-type': 'application/javascript', 'cache-control': 'no-store' });
@@ -83,9 +88,8 @@ try {
     };
   }));
   assert.deepEqual(saved, submission);
-  // Close the listener to emulate a real interruption without Playwright's offline routing.
-  server.closeAllConnections();
-  await new Promise(resolve => server.close(resolve));
+  // A local gateway outage exercises fallback without browser-specific emulation.
+  upstreamUnavailable = true;
   const offline = await reopened.goto(origin + '/login');
   assert.equal(offline.headers()['x-apollo-offline-fallback'], 'shell');
   await reopened.getByRole('button', { name: 'Entrar', exact: true }).waitFor();
