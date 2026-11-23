@@ -19,6 +19,8 @@ services:
     build:
       context: ../..
       dockerfile: Dockerfile
+      args:
+        APOLLO_SOURCE_COMMIT: ${APOLLO_SOURCE_COMMIT:-}
     restart: unless-stopped
     depends_on:
       - mongo

@@ -1,9 +1,14 @@
 FROM node:22-bookworm-slim AS frontend-build
 WORKDIR /src/frontend
-COPY frontend/package.json ./
-RUN corepack enable && yarn install --non-interactive
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --legacy-peer-deps --no-audit --no-fund
 COPY frontend/ ./
-RUN yarn build
+ARG APOLLO_SOURCE_COMMIT
+ARG RENDER_GIT_COMMIT
+RUN export APOLLO_SOURCE_COMMIT="${APOLLO_SOURCE_COMMIT:-${RENDER_GIT_COMMIT:-}}" \
+    && test -n "$APOLLO_SOURCE_COMMIT" \
+    && npm run build \
+    && EXPECTED_COMMIT="$APOLLO_SOURCE_COMMIT" node scripts/verify-build.mjs
 
 FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 SERVE_FRONTEND_DIR=/app/web

@@ -21,6 +21,8 @@ cd Apollo/deploy/vps
 cp .env.example .env
 chmod 600 .env
 # Edite .env com domínio real e segredos fortes exclusivos (não os envie no chat).
+test -z "$(git status --porcelain)"
+export APOLLO_SOURCE_COMMIT="$(git rev-parse HEAD)"
 docker compose --env-file .env config --quiet
 docker compose --env-file .env up -d --build
 docker compose ps

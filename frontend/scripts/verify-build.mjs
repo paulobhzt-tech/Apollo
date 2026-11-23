@@ -11,6 +11,12 @@ if (process.env.EXPECTED_MANIFEST) {
 const manifest = JSON.parse(manifestBytes);
 if (manifest.schema !== 1 || !/^[a-f0-9]{40}$/.test(manifest.commit)) throw new Error('Invalid manifest');
 if (process.env.EXPECTED_COMMIT && manifest.commit !== process.env.EXPECTED_COMMIT) throw new Error('Unexpected commit');
+// Older audited releases use schema 1 without an artifact identifier.
+if (manifest.artifact !== undefined) {
+  const hashes = Object.fromEntries(Object.entries(manifest.files).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
+  const artifact = createHash('sha256').update(JSON.stringify([manifest.commit, hashes])).digest('hex');
+  if (manifest.artifact !== artifact) throw new Error('Invalid artifact identifier');
+}
 const expected = Object.keys(manifest.files).sort();
 if (!expected.includes('index.html') || !expected.includes('sw.js')) throw new Error('Incomplete build');
 const actual = [];

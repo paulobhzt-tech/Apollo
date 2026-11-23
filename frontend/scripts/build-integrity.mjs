@@ -5,10 +5,13 @@ import path from 'node:path';
 
 const root = path.resolve('dist');
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
-const commit = git('rev-parse', 'HEAD');
+// Docker excludes Git metadata. Its build caller supplies the source revision.
+const suppliedCommit = process.env.APOLLO_SOURCE_COMMIT;
+const commit = suppliedCommit || git('rev-parse', 'HEAD');
 if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('Invalid source commit');
-const dirty = git('status', '--porcelain', '--untracked-files=no');
-if (dirty) throw new Error('Refusing provenance for modified tracked sources');
+if (!suppliedCommit && git('status', '--porcelain', '--untracked-files=no')) {
+  throw new Error('Refusing provenance for modified tracked sources');
+}
 async function files(dir) {
   const entries = await readdir(dir, { withFileTypes: true });
   const found = [];
@@ -51,9 +54,8 @@ const manifest = {
   schema: 1,
   application: 'Apollo PDV 3.0.1',
   commit,
-  sourceDate: git('show', '-s', '--format=%cI', 'HEAD'),
-  workflowRun: process.env.GITHUB_RUN_ID || null,
-  workflowAttempt: process.env.GITHUB_RUN_ATTEMPT || null,
+  version: '3.0.1',
+  artifact: createHash('sha256').update(JSON.stringify([commit, hashes])).digest('hex'),
   files: hashes,
   scope: 'Build identity only; does not attest deployment, backend compatibility or operational approval.'
 };
