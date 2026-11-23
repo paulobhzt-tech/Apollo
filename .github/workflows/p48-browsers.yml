@@ -114,6 +114,14 @@ jobs:
           set -o pipefail
           cd tests
           npx playwright test --config=p47.config.ts p48-offline-interruption.spec.ts --output=test-results/p48-interruption --reporter=list 2>&1 | tee ../evidence/interruption.log
+      - name: Minimal offline emulation diagnostic
+        if: ${{ !cancelled() && github.ref_name == 'audit/p59-desbloqueio-vps-build-pwa-homologacao' && (matrix.browser == 'firefox' || matrix.browser == 'webkit' || matrix.browser == 'chromium') }}
+        run: |
+          set -o pipefail
+          cp /etc/os-release evidence/os-release.txt
+          cd tests
+          npx playwright --version | tee ../evidence/playwright-version.txt
+          npx playwright test --config=p47.config.ts p59-emulation-probe.spec.ts --output=test-results/p59-emulation --reporter=list 2>&1 | tee ../evidence/p59-emulation.log
       - name: Record scope
         if: always()
         run: |
@@ -130,4 +138,5 @@ jobs:
             tests/test-results/p55-vault/
             tests/test-results/p48-interruption/
             tests/test-results/p58-integrated/
+            tests/test-results/p59-emulation/
           retention-days: 14
