@@ -26,7 +26,17 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
   const tls = '/tmp/apollo-p41-tls';
   const [key, cert, ca] = await Promise.all(['server.key', 'server.crt', 'apollo-local-ca.crt'].map(name => readFile(join(tls, name))));
   let lostResponses = 0;
+  let upgradeWorker: string | undefined;
+  let holdOfflineSync = false;
   const server = createServer({ key, cert }, (incoming, outgoing) => {
+    if (incoming.url === '/sw.js' && upgradeWorker) {
+      outgoing.writeHead(200, { 'Content-Type': 'application/javascript', 'Cache-Control': 'no-store' }).end(upgradeWorker);
+      return;
+    }
+    if (holdOfflineSync && incoming.method === 'POST' && incoming.url === '/api/offline/tables') {
+      outgoing.destroy();
+      return;
+    }
     const upstream = request(backend + incoming.url, { method: incoming.method, headers: incoming.headers, ca }, response => {
       if (!lostResponses && incoming.method === 'POST' && incoming.url === '/api/offline/tables' && response.statusCode === 200) {
         response.once('end', () => { lostResponses++; outgoing.destroy(); });
@@ -163,7 +173,19 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
         receipts.set(body.existing.table_id, body);
       }
     });
+    const oldCache = await page.evaluate(async () => (await caches.keys()).find(key => key.startsWith('apollo-public-')));
+    expect(oldCache).toBeTruthy();
+    const newCache = oldCache + '-upgrade-fixture';
+    const workerSource = await readFile(join(process.cwd(), '../frontend/dist/sw.js'), 'utf8');
+    expect(workerSource).toContain(JSON.stringify(oldCache));
+    upgradeWorker = workerSource.replace(JSON.stringify(oldCache), JSON.stringify(newCache));
+    holdOfflineSync = true;
     await start(address.port);
+    await page.evaluate(async () => { await (await navigator.serviceWorker.ready).update(); });
+    await expect.poll(() => page.evaluate(async () => (await caches.keys()).filter(key => key.startsWith('apollo-public-'))))
+      .toEqual([newCache]);
+    await expect(pending(2)).toBeVisible();
+    holdOfflineSync = false;
     await expect(pending(1)).toBeVisible({ timeout: 45_000 });
     await expect(page.getByText('Revisão necessária (HTTP 409)', { exact: false })).toBeVisible();
     expect(lostResponses).toBe(1);
@@ -198,7 +220,33 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
       expect(closed.difference).toBe(0);
       balanced.push({ operator: operators[index], sales: salesCount, cash: closed.expected_cash, difference: closed.difference });
     }
-    const evidence = { sales: 25, saleRequests: 50, registers: balanced, offlineOrders: 1, conflicts: 1, lostResponses, initialStock, stockAfter };
+    const kitchenTicket = (await json(await cashiers[0].get('/api/print/queue?stations=cozinha')))
+      .find((ticket: { order_id: string }) => ticket.order_id === order.id);
+    expect(kitchenTicket.items).toHaveLength(1);
+
+    const admin = await playwrightRequest.newContext({ baseURL: backend, ignoreHTTPSErrors: true, extraHTTPHeaders: { Origin: backend } });
+    clients.push(admin);
+    await post(admin, '/auth/login', { username: 'p40admin', password: fixturePassword });
+    const lotBalance = async () => (await json(await admin.get('/api/inventory/lots')))
+      .find((lot: { id: string }) => lot.id === 'p40lot').remaining_qty;
+    const startingLot = await lotBalance();
+    const stockShift = await post(cashiers[0], '/cash/open', { opening_amount: 0 });
+    const stockProof = (await post(cashiers[0], '/pdv/sale', {
+      client_ref: salePrefix + '-lot-20',
+      expected_cash_session_id: stockShift.id,
+      items: [{ product_id: 'p40product', qty: 20 }],
+      payments: [{ method: 'dinheiro', amount: 200 }],
+      emit_invoice: false, send_to_kitchen: false,
+    })).order;
+    expect(stockProof.cmv).toBe(80);
+    expect(await ingredientStock()).toBe(stockAfter - 20);
+    expect(await lotBalance()).toBe(startingLot - 20);
+    await post(admin, `/orders/${stockProof.id}/cancel`, { reason: 'Estorno fictício de lote P58' });
+    expect(await ingredientStock()).toBe(stockAfter);
+    expect(await lotBalance()).toBe(startingLot);
+    const stockShiftClosed = await post(cashiers[0], '/cash/close', { expected_session_id: stockShift.id, counted_amount: 0 });
+    expect(stockShiftClosed.difference).toBe(0);
+    const evidence = { updatedWorker: true, kitchenTickets: 1, lotSale: { units: 20, cost: 80, startingLot, restoredLot: await lotBalance() }, sales: 25, saleRequests: 50, registers: balanced, offlineOrders: 1, conflicts: 1, lostResponses, initialStock, stockAfter };
     console.log(JSON.stringify(evidence));
     await info.attach('p58-reconciliation', { body: JSON.stringify(evidence), contentType: 'application/json' });
   } finally {

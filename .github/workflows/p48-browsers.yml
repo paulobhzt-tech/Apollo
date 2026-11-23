@@ -129,4 +129,5 @@ jobs:
             tests/test-results/p54-vault/
             tests/test-results/p55-vault/
             tests/test-results/p48-interruption/
+            tests/test-results/p58-integrated/
           retention-days: 14
