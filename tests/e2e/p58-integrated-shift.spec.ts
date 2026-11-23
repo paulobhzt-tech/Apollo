@@ -29,9 +29,14 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
   let lostResponses = 0;
   let upgradeWorker: string | undefined;
   let holdOfflineSync = false;
+  let apiUnavailable = false;
   const server = createServer({ key, cert }, (incoming, outgoing) => {
     if (incoming.url === '/sw.js' && upgradeWorker) {
       outgoing.writeHead(200, { 'Content-Type': 'application/javascript', 'Cache-Control': 'no-store' }).end(upgradeWorker);
+      return;
+    }
+    if (apiUnavailable && incoming.url?.startsWith('/api/')) {
+      outgoing.writeHead(503).end();
       return;
     }
     if (holdOfflineSync && incoming.method === 'POST' && incoming.url === '/api/offline/tables') {
@@ -189,7 +194,8 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
     await expect.poll(publicCaches).toEqual([oldCache, newCache].sort());
     await expect(pending(2)).toBeVisible();
 
-    // Release the old worker's clients while the fixture still holds sync.
+    // The static upstream can update while the operator's API is still unavailable.
+    apiUnavailable = true;
     await Promise.all(waiter.pages().map(tab => tab.close()));
     await delay(3000);
     page = await waiter.newPage();
@@ -203,6 +209,7 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
     await expect.poll(publicCaches).toEqual([newCache]);
     await unlock();
     await expect(pending(2)).toBeVisible();
+    apiUnavailable = false;
     holdOfflineSync = false;
     await expect(pending(1)).toBeVisible({ timeout: 45_000 });
     await expect(page.getByText('Revisão necessária (HTTP 409)', { exact: false })).toBeVisible();
