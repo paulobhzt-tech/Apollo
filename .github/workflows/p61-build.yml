@@ -51,9 +51,13 @@ jobs:
       - name: Empacotar e calcular checksums
         if: always()
         run: |
+          set -euo pipefail
+          git archive --format=zip -o evidence/Apollo-P61-source.zip "$GITHUB_SHA"
+          cp docs/homologacao/P60-APOLLO-3.0.1.md evidence/Procedimento-ativacao-rollback.md
           if test -f evidence/docker-web/build-integrity.json; then
             cp evidence/docker-web/build-integrity.json evidence/build-integrity.json
-            tar -czf evidence/Apollo-P61-Web-PWA.tar.gz -C evidence/docker-web .
+            tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner \
+              -C evidence/docker-web -cf - . | gzip -n > evidence/Apollo-P61-Web-PWA.tar.gz
           fi
           (cd evidence && find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
@@ -65,3 +69,5 @@ jobs:
             evidence/*.log
             evidence/*.json
             evidence/*.tar.gz
+            evidence/*.zip
+            evidence/*.md
