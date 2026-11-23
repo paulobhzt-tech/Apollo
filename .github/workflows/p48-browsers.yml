@@ -106,6 +106,20 @@ jobs:
             done
             curl --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS https://127.0.0.1:8001/api/ >/dev/null
             npx playwright test --config=p47.config.ts p58-integrated-shift.spec.ts --output=test-results/p58-integrated --reporter=list 2>&1 | tee ../evidence/p58-integrated.log || result=1
+            if test "$result" = 0 && test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao; then
+              python ../backend/p59_shift_snapshot.py | tee ../evidence/p59-before-restart.json
+              kill "$backend_pid"
+              wait "$backend_pid" || true
+              (cd ../backend && exec python -m uvicorn server:app --host 127.0.0.1 --port 8001 --ssl-keyfile /tmp/apollo-p41-tls/server.key --ssl-certfile /tmp/apollo-p41-tls/server.crt) > ../evidence/p59-restarted-backend.log 2>&1 &
+              backend_pid=$!
+              for i in $(seq 1 30); do
+                if curl --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS https://127.0.0.1:8001/api/ > ../evidence/p59-restarted-health.json; then break; fi
+                sleep 1
+              done
+              curl --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS https://127.0.0.1:8001/api/ >/dev/null
+              python ../backend/p59_shift_snapshot.py | tee ../evidence/p59-after-restart.json
+              cmp ../evidence/p59-before-restart.json ../evidence/p59-after-restart.json
+            fi
           fi
           exit "$result"
       - name: Real server interruption diagnostic (separate from emulated offline)
