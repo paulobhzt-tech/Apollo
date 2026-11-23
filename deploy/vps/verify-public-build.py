@@ -5,7 +5,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
@@ -30,11 +30,16 @@ def check_build(origin, expected, fetch):
     def fetch_checked(path):
         try:
             mime, body = fetch(origin + path)
+        except HTTPError as error:
+            with error:
+                results.append({"path": path, "http_status": error.code, "mime": error.headers.get_content_type()})
+            problems.append(f"HTTP {error.code} em {path}.")
+            return "", b""
         except (URLError, OSError, ValueError) as error:
             results.append({"path": path, "error": type(error).__name__})
             problems.append(f"Falha de leitura em {path}.")
             return "", b""
-        results.append({"path": path, "mime": mime, "sha256": hashlib.sha256(body).hexdigest()})
+        results.append({"path": path, "http_status": 200, "mime": mime, "sha256": hashlib.sha256(body).hexdigest()})
         return mime, body
 
     mime, body = fetch_checked("/build-integrity.json")
@@ -52,16 +57,28 @@ def check_build(origin, expected, fetch):
         problems.append("Identidade do manifesto público diverge do build esperado.")
 
     def verify_asset(path, filename):
-        mime, _ = fetch_checked(path)
+        mime, body = fetch_checked(path)
         if results[-1].get("sha256") != expected["files"][filename]:
             problems.append(f"Hash divergente em {path}.")
         allowed = PUBLIC_MIME.get(Path(filename).suffix)
         if mime and allowed and mime not in allowed:
             problems.append(f"Tipo de conteúdo incompatível em {path}.")
+        if filename == "sw.js" and path == "/sw.js":
+            match = re.search(rb"""(?:'|")(?P<cache>apollo-public-v[0-9]+(?:-[a-f0-9]{64})?)(?:'|")""", body)
+            results[-1]["worker_cache"] = match["cache"].decode("ascii") if match else None
 
     essential = {"/login": "index.html", "/sw.js": "sw.js", "/manifest.webmanifest": "manifest.webmanifest"}
     for path, filename in essential.items():
         verify_asset(path, filename)
+
+    manifest_result, login_result = results[0], results[1]
+    manifest_served_login = (
+        manifest_result.get("mime") == login_result.get("mime") == "text/html"
+        and manifest_result.get("sha256") is not None
+        and manifest_result["sha256"] == login_result.get("sha256")
+    )
+    if manifest_served_login:
+        problems.append("O corpo HTML do manifesto público é idêntico ao de /login.")
 
     if matches:
         for filename in sorted(expected["files"]):
@@ -74,6 +91,7 @@ def check_build(origin, expected, fetch):
         "expected_commit": expected["commit"],
         "public_claimed_commit": remote.get("commit"),
         "public_build_matches": not problems,
+        "manifest_served_login_html": manifest_served_login,
         "administrative_isolation_verified": False,
         "problems": problems,
         "requests": results,
@@ -113,7 +131,7 @@ def main():
     opener = build_opener(NoRedirect())
 
     def fetch(url):
-        request = Request(url, headers={"Cache-Control": "no-cache", "Accept-Encoding": "identity", "User-Agent": "Apollo-P56-public-verification"})
+        request = Request(url, headers={"Cache-Control": "no-cache", "Accept-Encoding": "identity", "User-Agent": "Apollo-P59-public-verification"})
         with opener.open(request, timeout=8) as response:
             limit = 10 * 1024 * 1024
             body = response.read(limit + 1)

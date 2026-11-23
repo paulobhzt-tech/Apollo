@@ -1,9 +1,10 @@
 import hashlib
 import json
+from email.message import Message
 import unittest
 from pathlib import Path
 from runpy import run_path
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 
 check_build = run_path(str(Path(__file__).with_name("verify-public-build.py")))["check_build"]
 ORIGIN = "https://homologacao.example"
@@ -41,6 +42,30 @@ class PublicBuildTests(unittest.TestCase):
     def test_html_instead_of_manifest_blocks_even_with_matching_static_files(self):
         self.mime = "text/html"
         self.assertFalse(check_build(ORIGIN, self.expected, self.fetch)["public_build_matches"])
+
+    def test_identical_login_html_and_legacy_worker_are_reported(self):
+        def fetch(url):
+            if url.endswith("/build-integrity.json"):
+                return "text/html", self.files["index.html"]
+            if url.endswith("/sw.js"):
+                return "application/javascript", b'const CACHE = "apollo-public-v2";'
+            return self.fetch(url)
+        report = check_build(ORIGIN, self.expected, fetch)
+        self.assertTrue(report["manifest_served_login_html"])
+        self.assertFalse(report["public_build_matches"])
+        self.assertEqual(report["requests"][2]["worker_cache"], "apollo-public-v2")
+
+    def test_http_status_differentiates_missing_manifest(self):
+        def fetch(url):
+            if url.endswith("/build-integrity.json"):
+                headers = Message()
+                headers["Content-Type"] = "text/html"
+                raise HTTPError(url, 404, "Missing", headers, None)
+            return self.fetch(url)
+        report = check_build(ORIGIN, self.expected, fetch)
+        self.assertEqual(report["requests"][0]["http_status"], 404)
+        self.assertFalse(report["manifest_served_login_html"])
+        self.assertFalse(report["public_build_matches"])
 
     def test_wrong_commit_blocks_even_with_matching_static_files(self):
         self.remote["commit"] = "b" * 40

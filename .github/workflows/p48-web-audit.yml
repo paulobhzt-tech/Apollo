@@ -1,11 +1,11 @@
 name: P48/P49 isolated Web PWA acceptance
 on:
   push:
-    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao, audit/p54-offline-integral-vps-validacao-final, audit/p55-correcao-final-offline-vps-operacional, audit/p56-validacao-vps-offline-operacional, audit/p57-correcao-vps-offline-liberacao, audit/p58-correcao-definitiva-vps-pwa-homologacao]
+    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao, audit/p54-offline-integral-vps-validacao-final, audit/p55-correcao-final-offline-vps-operacional, audit/p56-validacao-vps-offline-operacional, audit/p57-correcao-vps-offline-liberacao, audit/p58-correcao-definitiva-vps-pwa-homologacao, audit/p59-desbloqueio-vps-build-pwa-homologacao]
     paths: ['.github/workflows/p48-web-audit.yml', '.github/p48-request.txt', 'frontend/**', 'backend/**', 'tests/**']
   workflow_dispatch:
 concurrency:
-  group: apollo-web-acceptance-${{ github.ref }}-${{ (github.ref_name == 'audit/p57-correcao-vps-offline-liberacao' || github.ref_name == 'audit/p58-correcao-definitiva-vps-pwa-homologacao') && github.sha || 'branch' }}
+  group: apollo-web-acceptance-${{ github.ref }}-${{ (github.ref_name == 'audit/p57-correcao-vps-offline-liberacao' || github.ref_name == 'audit/p58-correcao-definitiva-vps-pwa-homologacao' || github.ref_name == 'audit/p59-desbloqueio-vps-build-pwa-homologacao') && github.sha || 'branch' }}
   cancel-in-progress: true
 permissions:
   contents: read
