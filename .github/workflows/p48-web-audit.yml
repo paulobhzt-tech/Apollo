@@ -274,8 +274,12 @@ jobs:
             find frontend/dist -type f -print0 | sort -z | xargs -0 sha256sum > evidence/web-SHA256SUMS.txt
           fi
           python tools/p46-report.py
-          git archive --format=zip -o evidence/Apollo-P46-source.zip HEAD
-          git bundle create evidence/Apollo-P46-history.bundle HEAD
+          if test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final; then
+            git archive --format=zip -o evidence/Apollo-P46-source.zip HEAD -- . ':(exclude)backend/backups'
+          else
+            git archive --format=zip -o evidence/Apollo-P46-source.zip HEAD
+            git bundle create evidence/Apollo-P46-history.bundle HEAD
+          fi
           find evidence -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         if: always()
