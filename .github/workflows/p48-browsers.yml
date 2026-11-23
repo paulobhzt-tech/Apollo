@@ -1,7 +1,7 @@
 name: Apollo six-profile browser operational matrix
 on:
   push:
-    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao, audit/p54-offline-integral-vps-validacao-final, audit/p55-correcao-final-offline-vps-operacional, audit/p56-validacao-vps-offline-operacional, audit/p57-correcao-vps-offline-liberacao, audit/p58-correcao-definitiva-vps-pwa-homologacao, audit/p59-desbloqueio-vps-build-pwa-homologacao, audit/p60-validacao-administrativa-vps-build-publico]
+    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao, audit/p54-offline-integral-vps-validacao-final, audit/p55-correcao-final-offline-vps-operacional, audit/p56-validacao-vps-offline-operacional, audit/p57-correcao-vps-offline-liberacao, audit/p58-correcao-definitiva-vps-pwa-homologacao, audit/p59-desbloqueio-vps-build-pwa-homologacao, audit/p60-validacao-administrativa-vps-build-publico, audit/p61-correcao-build-vps-homologacao-final]
   workflow_dispatch:
 permissions:
   contents: read
@@ -129,7 +129,7 @@ jobs:
           cd tests
           npx playwright test --config=p47.config.ts p48-offline-interruption.spec.ts --output=test-results/p48-interruption --reporter=list 2>&1 | tee ../evidence/interruption.log
       - name: Minimal offline emulation diagnostic
-        if: ${{ !cancelled() && (github.ref_name == 'audit/p59-desbloqueio-vps-build-pwa-homologacao' || github.ref_name == 'audit/p60-validacao-administrativa-vps-build-publico') && (matrix.browser == 'firefox' || matrix.browser == 'webkit' || matrix.browser == 'chromium') }}
+        if: ${{ !cancelled() && (github.ref_name == 'audit/p59-desbloqueio-vps-build-pwa-homologacao' || (github.ref_name == 'audit/p60-validacao-administrativa-vps-build-publico' || github.ref_name == 'audit/p61-correcao-build-vps-homologacao-final')) && (matrix.browser == 'firefox' || matrix.browser == 'webkit' || matrix.browser == 'chromium') }}
         run: |
           set -o pipefail
           cp /etc/os-release evidence/os-release.txt

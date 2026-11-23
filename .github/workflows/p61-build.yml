@@ -1,0 +1,67 @@
+name: P61 - Integridade Web e imagem Docker
+
+on:
+  push:
+    branches: [audit/p61-correcao-build-vps-homologacao-final]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Identificar e comparar com P60
+        run: |
+          mkdir -p evidence
+          git rev-parse HEAD > evidence/commit.txt
+          git diff --check bad73cce3d9b4e1e9e5442bddd46f9d6bf40cab9 HEAD
+          git diff --stat bad73cce3d9b4e1e9e5442bddd46f9d6bf40cab9 HEAD > evidence/p60-comparison.txt
+      - name: Reproduzir a imagem a partir do SHA em contexto limpo
+        run: |
+          set -euo pipefail
+          git archive "$GITHUB_SHA" | docker build --build-arg APOLLO_SOURCE_COMMIT="$GITHUB_SHA" -t apollo-p61-ci -
+          container="$(docker create apollo-p61-ci)"
+          trap 'docker rm "$container"' EXIT
+          mkdir -p evidence/docker-web
+          docker cp "$container:/app/web/." evidence/docker-web/
+          EXPECTED_COMMIT="$GITHUB_SHA" node frontend/scripts/verify-build.mjs evidence/docker-web
+      - name: Verificar build independente e rota Apache isolada
+        run: |
+          set -euo pipefail
+          npm ci --prefix frontend --legacy-peer-deps --no-audit --no-fund
+          npm run --prefix frontend build
+          diff -qr frontend/dist evidence/docker-web
+          npm ci --prefix tests --no-audit --no-fund
+          (cd tests && npx playwright install --with-deps chromium)
+          git worktree add --detach "$RUNNER_TEMP/apollo-p60" bad73cce3d9b4e1e9e5442bddd46f9d6bf40cab9
+          ln -s "$GITHUB_WORKSPACE/frontend/node_modules" "$RUNNER_TEMP/apollo-p60/frontend/node_modules"
+          npm run --prefix "$RUNNER_TEMP/apollo-p60/frontend" build
+          APOLLO_TEST_PREVIOUS_COMMIT=bad73cce3d9b4e1e9e5442bddd46f9d6bf40cab9 \
+          APOLLO_TEST_PREVIOUS_BUILD="$RUNNER_TEMP/apollo-p60/frontend/dist" \
+          bash deploy/vps/test-apache-web.sh 2>&1 | tee evidence/apache-rollback.log
+      - name: Empacotar e calcular checksums
+        if: always()
+        run: |
+          if test -f evidence/docker-web/build-integrity.json; then
+            cp evidence/docker-web/build-integrity.json evidence/build-integrity.json
+            tar -czf evidence/Apollo-P61-Web-PWA.tar.gz -C evidence/docker-web .
+          fi
+          (cd evidence && find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Apollo-P61-Web-${{ github.sha }}
+          path: |
+            evidence/*.txt
+            evidence/*.log
+            evidence/*.json
+            evidence/*.tar.gz
