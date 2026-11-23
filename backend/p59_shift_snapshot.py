@@ -6,7 +6,7 @@ from pymongo import MongoClient
 
 name = os.environ["DB_NAME"]
 uri = os.environ["MONGO_URL"]
-if name != "apollo_p40_browser_p58_integrated" or not uri.startswith("mongodb://127.0.0.1:"):
+if name != "apollo_p40_browser_p58_integrated" or uri != "mongodb://127.0.0.1:27017/?replicaSet=rs0":
     raise SystemExit("P59 snapshot requires the disposable loopback shift database")
 
 with MongoClient(uri, serverSelectionTimeoutMS=3000) as client:
