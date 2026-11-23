@@ -78,10 +78,11 @@ try {
   await page.evaluate(async () => (await navigator.serviceWorker.ready).update());
   await page.waitForFunction(async () => (await navigator.serviceWorker.ready).waiting !== null);
   assert.deepEqual((await page.evaluate(() => caches.keys())).sort(), ['apollo-public-v2', cache].sort());
-  await Promise.all(context.pages().map(tab => tab.close()));
-  // A rapid reopen may attach a new client to the old worker before activation.
-  await delay(3000);
   const activated = await context.newPage();
+  await Promise.all(context.pages().filter(tab => tab !== activated).map(tab => tab.close()));
+  // Give the old worker time to release its clients. Keep an about:blank tab
+  // open so engines that exit after the last window closes stay running.
+  await delay(3000);
   await activated.goto(origin);
   await activated.waitForFunction(async name => {
     const registration = await navigator.serviceWorker.ready;
