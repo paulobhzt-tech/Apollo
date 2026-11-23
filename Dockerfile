@@ -4,6 +4,8 @@ COPY frontend/ ./
 ARG APOLLO_SOURCE_COMMIT
 ARG RENDER_GIT_COMMIT
 RUN --mount=type=secret,id=build_ca \
+    --mount=type=tmpfs,target=/src/frontend/node_modules,size=1073741824 \
+    --mount=type=tmpfs,target=/root/.npm,size=536870912 \
     if [ -f /run/secrets/build_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/build_ca; fi; \
     export APOLLO_SOURCE_COMMIT="${APOLLO_SOURCE_COMMIT:-${RENDER_GIT_COMMIT:-}}" \
     && test -n "$APOLLO_SOURCE_COMMIT" \

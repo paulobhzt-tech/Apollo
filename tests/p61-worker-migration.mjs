@@ -4,6 +4,7 @@ import { createServer } from 'node:https';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { chromium, firefox, webkit } from '@playwright/test';
 
 const dist = new URL('../frontend/dist/', import.meta.url);
@@ -77,7 +78,9 @@ try {
   await page.evaluate(async () => (await navigator.serviceWorker.ready).update());
   await page.waitForFunction(async () => (await navigator.serviceWorker.ready).waiting !== null);
   assert.deepEqual((await page.evaluate(() => caches.keys())).sort(), ['apollo-public-v2', cache].sort());
-  await page.close();
+  await Promise.all(context.pages().map(tab => tab.close()));
+  // A rapid reopen may attach a new client to the old worker before activation.
+  await delay(3000);
   const activated = await context.newPage();
   await activated.goto(origin);
   await activated.waitForFunction(async name => {

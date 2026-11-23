@@ -3,31 +3,19 @@ const CACHE = /* BUILD_CACHE */ null;
 const ASSETS = /* BUILD_ASSETS */ null;
 const SHELL_ROUTES = new Set(['/', '/login', '/pdv', '/mesas', '/comanda-mobile', '/mesas-offline']);
 
-let cacheRepair;
-
-function populate(cache) {
-  return cache.addAll(Object.entries(ASSETS).map(([url, integrity]) => new Request(url, {
-    cache: 'reload',
-    credentials: 'omit',
-    redirect: 'error',
-    integrity,
-  })));
-}
-
 self.addEventListener('install', event => {
   // Let open tabs finish with the worker and assets they loaded.
   event.waitUntil((async () => {
     if (!CACHE || !ASSETS) throw new Error('Apollo: missing build asset list');
-    await populate(await caches.open(CACHE));
+    const cache = await caches.open(CACHE);
+    await cache.addAll(Object.entries(ASSETS).map(([url, integrity]) => new Request(url, {
+      cache: 'reload',
+      credentials: 'omit',
+      redirect: 'error',
+      integrity,
+    })));
   })());
 });
-
-async function repairCache() {
-  const cache = await caches.open(CACHE);
-  const entries = await cache.keys();
-  if (entries.length === Object.keys(ASSETS).length) return;
-  await populate(cache);
-}
 
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
@@ -73,17 +61,7 @@ self.addEventListener('fetch', event => {
       pathname === '/api' || pathname.startsWith('/api/')) return;
 
   if (request.mode === 'navigate') {
-    const navigation = navigate(request, pathname);
-    event.respondWith(navigation);
-    event.waitUntil(navigation.then(response => {
-      if (!response.ok || response.headers.has('x-apollo-offline-fallback')) return;
-      // A browser may discard CacheStorage while retaining the registration.
-      // Rebuild from verified static files when the origin is reachable again.
-      cacheRepair ??= repairCache().catch(error => {
-        console.warn('Apollo: offline cache repair failed', error);
-      }).finally(() => { cacheRepair = undefined; });
-      return cacheRepair;
-    }));
+    event.respondWith(navigate(request, pathname));
   } else if (Object.hasOwn(ASSETS, pathname)) {
     event.respondWith(caches.open(CACHE).then(cache => cache.match(pathname)).then(response => response || fetch(request, {
       cache: 'reload',
