@@ -2,11 +2,13 @@
 set -euo pipefail
 scratch="$(mktemp -d)"
 container="apollo-p57-apache-$$"
+backup=
 backend_pid=
 cleanup() {
   docker rm -f "$container" >/dev/null 2>&1 || true
   if [[ -n "$backend_pid" ]]; then kill "$backend_pid" 2>/dev/null || true; fi
   rm -rf "$scratch"
+  if [[ -n "$backup" ]]; then rm -rf "$backup"; fi
 }
 trap cleanup EXIT
 build_dir="$(realpath "${APOLLO_TEST_BUILD:-frontend/dist}")"
@@ -81,40 +83,51 @@ mv "$scratch/audited-build-integrity.json" "$APOLLO_TEST_BUILD/build-integrity.j
 # Only the isolated container uses this disposable release pointer.
 if [[ -n "${APOLLO_TEST_PREVIOUS_BUILD:-}" ]]; then
     previous_commit="${APOLLO_TEST_PREVIOUS_COMMIT:?Missing previous release SHA}"
-    mkdir "$scratch/previous"
-    cp -a "$APOLLO_TEST_PREVIOUS_BUILD/." "$scratch/previous/"
-    cp "$scratch/previous/build-integrity.json" "$scratch/previous-audited.json"
-    cp "$scratch/site/build-integrity.json" "$scratch/candidate-audited.json"
+    backup="$(mktemp -d)"
+    prior="$scratch/$previous_commit"
+    candidate="$scratch/$APOLLO_TEST_COMMIT"
+    mkdir "$prior"
+    cp -a "$APOLLO_TEST_PREVIOUS_BUILD/." "$prior/"
+    mv "$scratch/site" "$candidate"
+    cp "$prior/build-integrity.json" "$backup/previous-audited.json"
+    cp "$candidate/build-integrity.json" "$backup/candidate-audited.json"
+    cp "$scratch/vhost.conf" "$backup/vhost.conf"
+    cp "$template" "$backup/apache-web.conf"
+    tar -C "$prior" -cf "$backup/previous.tar" .
+    (cd "$backup"
+     sha256sum previous.tar vhost.conf apache-web.conf > SHA256SUMS
+     sha256sum -c SHA256SUMS)
+    mkdir "$backup/restore-check"
+    tar -C "$backup/restore-check" -xf "$backup/previous.tar"
+    EXPECTED_COMMIT="$previous_commit" EXPECTED_MANIFEST="$backup/previous-audited.json" \
+        node frontend/scripts/verify-build.mjs "$backup/restore-check"
+    ln -s "$previous_commit" "$scratch/next"
+    mv -T "$scratch/next" "$scratch/live"
+    APOLLO_TEST_COMMIT="$previous_commit" APOLLO_TEST_BUILD="$prior" python deploy/vps/test-apache-web.py
+    docker exec "$container" httpd -t
 
-    switch_lab_release() {
-        ln -s "$1" "$scratch/next"
-        mv -T "$scratch/next" "$scratch/live"
-    }
-
-    EXPECTED_COMMIT="$previous_commit" EXPECTED_MANIFEST="$scratch/previous-audited.json" \
-        node frontend/scripts/verify-build.mjs "$scratch/previous"
-    switch_lab_release previous
-    APOLLO_TEST_COMMIT="$previous_commit" APOLLO_TEST_BUILD="$scratch/previous" python deploy/vps/test-apache-web.py
-    printf 'Rollback lab [%s] [%s] previous=%s\n' "$(date -u +%FT%TZ)" "$(id -un)" "$previous_commit"
-
-    cp -a "$scratch/site" "$scratch/corrupt"
-    printf '\nchanged\n' >> "$scratch/corrupt/index.html"
-    if EXPECTED_MANIFEST="$scratch/candidate-audited.json" node frontend/scripts/verify-build.mjs "$scratch/corrupt"; then
-        echo 'Rollback lab: invalid package unexpectedly passed' >&2
-        exit 1
+    switch=(python deploy/vps/switch-verified-release.py "$scratch")
+    if "${switch[@]}" "$APOLLO_TEST_COMMIT" "$previous_commit" "$backup/candidate-audited.json" "$backup/previous-audited.json"; then
+        echo 'Stale expected pointer unexpectedly passed' >&2; exit 1
     fi
-    APOLLO_TEST_COMMIT="$previous_commit" APOLLO_TEST_BUILD="$scratch/previous" python deploy/vps/test-apache-web.py
-    EXPECTED_COMMIT="$APOLLO_TEST_COMMIT" EXPECTED_MANIFEST="$scratch/candidate-audited.json" \
-        node frontend/scripts/verify-build.mjs "$scratch/site"
-    switch_lab_release site
-    python deploy/vps/test-apache-web.py
-    printf 'Rollback lab [%s] [%s] candidate=%s\n' "$(date -u +%FT%TZ)" "$(id -un)" "$APOLLO_TEST_COMMIT"
-
-    # Simulate a post-switch publication failure, leaving the previous tree intact.
-    mv "$scratch/site/build-integrity.json" "$scratch/failed-manifest.json"
+    cp "$candidate/index.html" "$backup/index.html"
+    printf '\nchanged\n' >> "$candidate/index.html"
+    if "${switch[@]}" "$previous_commit" "$APOLLO_TEST_COMMIT" "$backup/previous-audited.json" "$backup/candidate-audited.json"; then
+        echo 'Invalid candidate unexpectedly passed' >&2; exit 1
+    fi
+    test "$(readlink "$scratch/live")" = "$previous_commit"
+    cp "$backup/index.html" "$candidate/index.html"
+    "${switch[@]}" "$previous_commit" "$APOLLO_TEST_COMMIT" "$backup/previous-audited.json" "$backup/candidate-audited.json"
+    APOLLO_TEST_BUILD="$candidate" python deploy/vps/test-apache-web.py
+    APOLLO_TEST_BUILD="$candidate" node tests/apache-worker.mjs
+    if "${switch[@]}" "$APOLLO_TEST_COMMIT" "$previous_commit" "$backup/candidate-audited.json" "$backup/restore-check/build-integrity.json.bad"; then
+        echo 'Missing rollback reference unexpectedly passed' >&2; exit 1
+    fi
+    mv "$candidate/build-integrity.json" "$backup/failed-manifest.json"
     test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18057/build-integrity.json)" = 404
-    switch_lab_release previous
-    APOLLO_TEST_COMMIT="$previous_commit" APOLLO_TEST_BUILD="$scratch/previous" python deploy/vps/test-apache-web.py
+    "${switch[@]}" "$APOLLO_TEST_COMMIT" "$previous_commit" "$backup/candidate-audited.json" "$backup/previous-audited.json" --rollback
+    APOLLO_TEST_COMMIT="$previous_commit" APOLLO_TEST_BUILD="$prior" python deploy/vps/test-apache-web.py
+    APOLLO_TEST_BUILD="$prior" node tests/apache-worker.mjs
     printf 'Rollback lab [%s] [%s] restored=%s after candidate manifest HTTP 404\n' \
         "$(date -u +%FT%TZ)" "$(id -un)" "$previous_commit"
 fi

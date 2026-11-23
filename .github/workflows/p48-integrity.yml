@@ -89,7 +89,7 @@ jobs:
           npm ci --prefix tests --no-audit --no-fund
           (cd tests && npx playwright install --with-deps chromium)
           if { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico; }; then
-            previous=65ca1e25b73536770db45d0d88e724ffda8284bc
+            previous=c33c1d23b1fb5f56dee02c70af26e2df1851e9e0
             git worktree add --detach "$RUNNER_TEMP/p59-previous" "$previous"
             ln -s "$GITHUB_WORKSPACE/frontend/node_modules" "$RUNNER_TEMP/p59-previous/frontend/node_modules"
             (cd "$RUNNER_TEMP/p59-previous/frontend" && npm run build)
