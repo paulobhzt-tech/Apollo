@@ -1,7 +1,7 @@
 name: P49 build identity and read-only public comparison
 on:
   push:
-    branches: [audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao, audit/p54-offline-integral-vps-validacao-final, audit/p55-correcao-final-offline-vps-operacional, audit/p56-validacao-vps-offline-operacional, audit/p57-correcao-vps-offline-liberacao, audit/p58-vps-validacao-operacional-final]
+    branches: [audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao, audit/p54-offline-integral-vps-validacao-final, audit/p55-correcao-final-offline-vps-operacional, audit/p56-validacao-vps-offline-operacional, audit/p57-correcao-vps-offline-liberacao, audit/p58-correcao-definitiva-vps-pwa-homologacao]
 permissions:
   contents: read
 jobs:
@@ -70,14 +70,14 @@ jobs:
           Path('evidence/public-comparison.json').write_text(json.dumps({'source':manifest['commit'],'public':rows,'vps_commit':'NOT PROVEN','isolation':'NOT PROVEN','deployment':'NOT EXECUTED'},indent=2))
           print(json.dumps(rows,indent=2))
       - name: P57 Apache isolated static and proxy routing
-        if: github.ref_name == 'audit/p57-correcao-vps-offline-liberacao' || github.ref_name == 'audit/p58-vps-validacao-operacional-final'
+        if: github.ref_name == 'audit/p57-correcao-vps-offline-liberacao' || github.ref_name == 'audit/p58-correcao-definitiva-vps-pwa-homologacao'
         run: |
           set -o pipefail
           npm ci --prefix tests --no-audit --no-fund
           (cd tests && npx playwright install --with-deps chromium)
           bash deploy/vps/test-apache-web.sh 2>&1 | tee evidence/p57-apache.log
       - name: Public build gate, read-only
-        if: github.ref_name == 'audit/p56-validacao-vps-offline-operacional' || github.ref_name == 'audit/p57-correcao-vps-offline-liberacao' || github.ref_name == 'audit/p58-vps-validacao-operacional-final'
+        if: github.ref_name == 'audit/p56-validacao-vps-offline-operacional' || github.ref_name == 'audit/p57-correcao-vps-offline-liberacao' || github.ref_name == 'audit/p58-correcao-definitiva-vps-pwa-homologacao'
         run: |
           python deploy/vps/test_verify_public_build.py
           python deploy/vps/verify-public-build.py frontend/dist/build-integrity.json > evidence/public-build-gate.json
