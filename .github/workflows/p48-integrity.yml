@@ -27,6 +27,7 @@ jobs:
           npm run build
           EXPECTED_COMMIT="$GITHUB_SHA" node scripts/verify-build.mjs
           cp dist/build-integrity.json ../evidence/build-first.json
+          mv dist "$RUNNER_TEMP/apollo-first-dist"
           npm run build
           cmp dist/build-integrity.json ../evidence/build-first.json
           EXPECTED_COMMIT="$GITHUB_SHA" node scripts/verify-build.mjs
@@ -45,7 +46,19 @@ jobs:
           if node scripts/verify-build.mjs; then exit 1; fi
           mv /tmp/p48-sw.js dist/sw.js
           if EXPECTED_COMMIT=0000000000000000000000000000000000000000 node scripts/verify-build.mjs; then exit 1; fi
-          EXPECTED_COMMIT="$GITHUB_SHA" node scripts/verify-build.mjs
+          node --input-type=module - <<'JS'
+          import { readFile, writeFile, appendFile } from 'node:fs/promises';
+          import { createHash } from 'node:crypto';
+          await appendFile('dist/index.html', '\nmodified with recalculated hash\n');
+          const manifest = JSON.parse(await readFile('dist/build-integrity.json'));
+          manifest.files['index.html'] = createHash('sha256').update(await readFile('dist/index.html')).digest('hex');
+          await writeFile('dist/build-integrity.json', JSON.stringify(manifest));
+          JS
+          node scripts/verify-build.mjs
+          if EXPECTED_MANIFEST=../evidence/build-first.json node scripts/verify-build.mjs; then exit 1; fi
+          cp "$RUNNER_TEMP/apollo-first-dist/index.html" dist/index.html
+          cp ../evidence/build-first.json dist/build-integrity.json
+          EXPECTED_COMMIT="$GITHUB_SHA" EXPECTED_MANIFEST=../evidence/build-first.json node scripts/verify-build.mjs
           echo 'Altered, extra, missing files and wrong commit rejected; restored build verified' > ../evidence/negative-tests.txt
       - name: Public HTTPS reads without authentication or writes
         shell: python

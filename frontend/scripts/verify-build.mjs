@@ -3,7 +3,12 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 
 const root = path.resolve(process.argv[2] || 'dist');
-const manifest = JSON.parse(await readFile(path.join(root, 'build-integrity.json'), 'utf8'));
+const manifestBytes = await readFile(path.join(root, 'build-integrity.json'));
+if (process.env.EXPECTED_MANIFEST) {
+  const auditedManifest = await readFile(process.env.EXPECTED_MANIFEST);
+  if (!manifestBytes.equals(auditedManifest)) throw new Error('Build manifest differs from audited artifact');
+}
+const manifest = JSON.parse(manifestBytes);
 if (manifest.schema !== 1 || !/^[a-f0-9]{40}$/.test(manifest.commit)) throw new Error('Invalid manifest');
 if (process.env.EXPECTED_COMMIT && manifest.commit !== process.env.EXPECTED_COMMIT) throw new Error('Unexpected commit');
 const expected = Object.keys(manifest.files).sort();

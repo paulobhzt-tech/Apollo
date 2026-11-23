@@ -66,3 +66,14 @@ Execute da raiz do repositório, com o manifesto do build aprovado no CI. A conf
 `apache-web.conf` é um trecho versionado para o VirtualHost HTTPS da homologação. Defina `APOLLO_DOCUMENT_ROOT` como o diretório exclusivo do build conferido e `APOLLO_BACKEND_ORIGIN` como a origem do backend exclusivo, sem barra no fim. O trecho requer `mod_proxy`, `mod_proxy_http`, `mod_rewrite`, `mod_headers`, `mod_mime`, `mod_dir` e `mod_authz_core`.
 
 O fallback atende navegações GET e HEAD. Arquivos estáticos faltantes e erros de API mantêm o status original. Antes de qualquer troca autorizada do diretório público, verifique a árvore em um diretório de release separado com `node frontend/scripts/verify-build.mjs DIRETORIO_DO_BUILD`. O verificador rejeita arquivos extras e hashes divergentes. Preserve o diretório anterior para rollback. O ensaio do CI usa Apache descartável e dados fictícios.
+
+## Conferência do pacote antes da troca
+
+Mantenha o manifesto extraído do artefato de CI aprovado em um caminho separado da árvore que será publicada. Use o SHA da execução aprovada.
+
+```bash
+EXPECTED_COMMIT=SHA_APROVADO EXPECTED_MANIFEST=CAMINHO_DO_MANIFESTO_AUDITADO \
+  node frontend/scripts/verify-build.mjs DIRETORIO_DO_BUILD
+```
+
+Em caso de erro, interrompa a troca. A conferência rejeita inclusive uma árvore adulterada cujo manifesto foi recalculado para parecer consistente. Para homologação isolada e autorizada, mantenha duas árvores de release independentes. Registre o DocumentRoot e a árvore vigente antes de mudar o apontamento, preserve seu manifesto e verifique o retorno do manifesto, do worker e de `/login` após a troca. Em caso de rollback, recoloque o apontamento anterior e rode o verificador público contra o manifesto daquela versão. A troca do build não requer restaurar o MongoDB.
