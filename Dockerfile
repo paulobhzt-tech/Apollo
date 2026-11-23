@@ -1,14 +1,13 @@
 FROM node:22-bookworm-slim AS frontend-build
 WORKDIR /src/frontend
-COPY frontend/package.json frontend/package-lock.json ./
-RUN --mount=type=secret,id=build_ca \
-    if [ -f /run/secrets/build_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/build_ca; fi; \
-    npm ci --legacy-peer-deps --no-audit --no-fund
 COPY frontend/ ./
 ARG APOLLO_SOURCE_COMMIT
 ARG RENDER_GIT_COMMIT
-RUN export APOLLO_SOURCE_COMMIT="${APOLLO_SOURCE_COMMIT:-${RENDER_GIT_COMMIT:-}}" \
+RUN --mount=type=secret,id=build_ca \
+    if [ -f /run/secrets/build_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/build_ca; fi; \
+    export APOLLO_SOURCE_COMMIT="${APOLLO_SOURCE_COMMIT:-${RENDER_GIT_COMMIT:-}}" \
     && test -n "$APOLLO_SOURCE_COMMIT" \
+    && npm ci --legacy-peer-deps --no-audit --no-fund \
     && npm run build \
     && EXPECTED_COMMIT="$APOLLO_SOURCE_COMMIT" node scripts/verify-build.mjs
 

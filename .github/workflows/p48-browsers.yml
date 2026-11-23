@@ -58,11 +58,6 @@ jobs:
           else
             npx playwright install --with-deps "$P47_BROWSER"
           fi
-      - name: Legacy PWA update and browser restart
-        if: github.ref_name == 'audit/p61-correcao-build-vps-homologacao-final' && (matrix.browser == 'chromium' || matrix.browser == 'firefox' || matrix.browser == 'webkit')
-        run: |
-          set -o pipefail
-          node tests/p61-worker-migration.mjs "$P47_BROWSER" 2>&1 | tee evidence/p61-worker-migration.log
       - name: Start real backend and run operational browser tests
         run: |
           set -o pipefail
@@ -129,6 +124,11 @@ jobs:
             fi
           fi
           exit "$result"
+      - name: Legacy PWA update and browser restart
+        if: ${{ !cancelled() && github.ref_name == 'audit/p61-correcao-build-vps-homologacao-final' && (matrix.browser == 'chromium' || matrix.browser == 'firefox' || matrix.browser == 'webkit') }}
+        run: |
+          set -o pipefail
+          node tests/p61-worker-migration.mjs "$P47_BROWSER" 2>&1 | tee evidence/p61-worker-migration.log
       - name: Real server interruption diagnostic (separate from emulated offline)
         if: ${{ !cancelled() }}
         run: |

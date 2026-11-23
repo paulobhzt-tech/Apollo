@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { createServer } from 'node:http';
+import { createServer } from 'node:https';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -15,7 +15,10 @@ const legacy = execFileSync('git', [
 ], { cwd: new URL('../', import.meta.url) });
 let updating = false;
 let upstreamUnavailable = false;
-const server = createServer(async (request, response) => {
+const server = createServer({
+  cert: await readFile('/tmp/apollo-p41-tls/server.crt'),
+  key: await readFile('/tmp/apollo-p41-tls/server.key'),
+}, async (request, response) => {
   try {
     if (upstreamUnavailable) {
       response.writeHead(503);
@@ -34,7 +37,7 @@ const server = createServer(async (request, response) => {
     const body = await readFile(new URL(name, dist));
     const type = name.endsWith('.html') ? 'text/html' : name.endsWith('.js') ? 'text/javascript' :
       name.endsWith('.css') ? 'text/css' : 'application/octet-stream';
-    response.writeHead(200, { 'content-type': type });
+    response.writeHead(200, { 'content-type': type, 'cache-control': 'no-store' });
     response.end(body);
   } catch {
     response.writeHead(404);
@@ -42,16 +45,21 @@ const server = createServer(async (request, response) => {
   }
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-const origin = 'http://127.0.0.1:' + server.address().port;
+const origin = 'https://127.0.0.1:' + server.address().port;
 const engines = { chromium, firefox, webkit };
 const profile = await mkdtemp(join(tmpdir(), 'apollo-p61-'));
 const browserType = engines[process.argv[2] || 'chromium'];
+const spki = process.env.APOLLO_TEST_TLS_SPKI;
+const launch = () => browserType.launchPersistentContext(profile, {
+  ignoreHTTPSErrors: true,
+  args: spki && browserType === chromium ? ['--ignore-certificate-errors-spki-list=' + spki] : [],
+});
 const submission = { ref: 'p61-fictitious', orderId: 'p61-order', payload: '[]', autoSync: true };
 let context;
 
 try {
-  context = await browserType.launchPersistentContext(profile);
-  const page = await context.newPage();
+  context = await launch();
+  const page = context.pages()[0] ?? await context.newPage();
   await page.goto(origin);
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
   await page.evaluate(value => new Promise((resolve, reject) => {
@@ -69,14 +77,25 @@ try {
   await page.evaluate(async () => (await navigator.serviceWorker.ready).update());
   await page.waitForFunction(async () => (await navigator.serviceWorker.ready).waiting !== null);
   assert.deepEqual((await page.evaluate(() => caches.keys())).sort(), ['apollo-public-v2', cache].sort());
+  await page.close();
+  const activated = await context.newPage();
+  await activated.goto(origin);
+  await activated.waitForFunction(async name => {
+    const registration = await navigator.serviceWorker.ready;
+    const keys = await caches.keys();
+    return navigator.serviceWorker.controller === registration.active &&
+      keys.length === 1 && keys[0] === name &&
+      Boolean(await (await caches.open(name)).match('/index.html'));
+  }, cache);
   await context.close();
 
-  context = await browserType.launchPersistentContext(profile);
-  const reopened = await context.newPage();
+  context = await launch();
+  const reopened = context.pages()[0] ?? await context.newPage();
   await reopened.goto(origin);
   await reopened.waitForFunction(async name => {
     const keys = await caches.keys();
-    return navigator.serviceWorker.controller && keys.length === 1 && keys[0] === name;
+    return navigator.serviceWorker.controller && keys.length === 1 && keys[0] === name &&
+      Boolean(await (await caches.open(name)).match('/index.html'));
   }, cache);
   const saved = await reopened.evaluate(() => new Promise((resolve, reject) => {
     const open = indexedDB.open('apollo-table-submissions', 1);
