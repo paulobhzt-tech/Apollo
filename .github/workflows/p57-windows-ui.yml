@@ -1,8 +1,8 @@
 name: Apollo P57 Windows virtual UI
 on:
   push:
-    branches: [audit/p57-correcao-vps-offline-liberacao, audit/p58-correcao-definitiva-vps-pwa-homologacao, audit/p59-desbloqueio-vps-build-pwa-homologacao]
-    paths: ['.github/workflows/p57-windows-ui.yml', 'frontend/**', 'tests/**', 'backend/**']
+    branches: [audit/p57-correcao-vps-offline-liberacao, audit/p58-correcao-definitiva-vps-pwa-homologacao, audit/p59-desbloqueio-vps-build-pwa-homologacao, audit/p60-validacao-administrativa-vps-build-publico]
+    paths: ['.github/workflows/p57-windows-ui.yml', 'frontend/**', 'tests/**', 'backend/**', 'deploy/vps/**']
 permissions:
   contents: read
 jobs:
