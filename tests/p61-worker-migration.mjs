@@ -90,8 +90,9 @@ try {
   assert.deepEqual(saved, submission);
   // A local gateway outage exercises fallback without browser-specific emulation.
   upstreamUnavailable = true;
-  const offline = await reopened.goto(origin + '/login');
-  assert.equal(offline.headers()['x-apollo-offline-fallback'], 'shell');
+  const offline = await reopened.goto(origin + '/pdv');
+  assert.equal(await offline.headerValue('x-apollo-offline-fallback'), 'shell',
+    `Unexpected navigation response ${offline.status()} ${offline.url()}`);
   await reopened.getByRole('button', { name: 'Entrar', exact: true }).waitFor();
   console.log(browserType.name(), 'legacy cache migrated, pending IndexedDB submission preserved, offline login shell rendered');
 } finally {

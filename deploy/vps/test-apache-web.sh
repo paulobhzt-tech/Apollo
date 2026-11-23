@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 022
 scratch="$(mktemp -d)"
 container="apollo-p57-apache-$$"
 backup=
@@ -19,6 +20,7 @@ mkdir "$scratch/site"
 chmod 755 "$scratch"
 ln -s site "$scratch/live"
 cp -a "$build_dir/." "$scratch/site/"
+chmod -R a+rX "$scratch/site"
 export APOLLO_TEST_BUILD="$scratch/site"
 
 python - <<'PY' &
@@ -88,6 +90,7 @@ if [[ -n "${APOLLO_TEST_PREVIOUS_BUILD:-}" ]]; then
     candidate="$scratch/$APOLLO_TEST_COMMIT"
     mkdir "$prior"
     cp -a "$APOLLO_TEST_PREVIOUS_BUILD/." "$prior/"
+    chmod -R a+rX "$prior"
     mv "$scratch/site" "$candidate"
     cp "$prior/build-integrity.json" "$backup/previous-audited.json"
     cp "$candidate/build-integrity.json" "$backup/candidate-audited.json"
