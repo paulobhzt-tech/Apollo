@@ -13,7 +13,7 @@ self.addEventListener('install', event => {
       redirect: 'error',
       integrity,
     })));
-    await self.skipWaiting();
+    // Let open tabs finish with the worker and assets they loaded.
   })());
 });
 
@@ -63,6 +63,11 @@ self.addEventListener('fetch', event => {
   if (request.mode === 'navigate') {
     event.respondWith(navigate(request, pathname));
   } else if (Object.hasOwn(ASSETS, pathname)) {
-    event.respondWith(caches.open(CACHE).then(cache => cache.match(pathname)).then(response => response || fetch(request)));
+    event.respondWith(caches.open(CACHE).then(cache => cache.match(pathname)).then(response => response || fetch(request, {
+      cache: 'reload',
+      credentials: 'omit',
+      redirect: 'error',
+      integrity: ASSETS[pathname],
+    })));
   }
 });

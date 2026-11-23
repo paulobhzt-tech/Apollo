@@ -22,7 +22,7 @@ createRoot(document.getElementById('root')!).render(
 
 // The production worker caches the public application build over HTTPS.
 if (import.meta.env.PROD && 'serviceWorker' in navigator && window.isSecureContext) {
-  navigator.serviceWorker.register('/sw.js').catch(error => {
+  navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(error => {
     console.warn('Apollo PWA: registro do service worker indisponível', error)
   })
 }

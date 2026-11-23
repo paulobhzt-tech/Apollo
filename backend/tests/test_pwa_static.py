@@ -12,7 +12,7 @@ PDV = ROOT / "frontend" / "src" / "pages" / "Pdv.tsx"
 def test_pwa_files_and_registration_exist():
     assert SW.is_file() and MANIFEST.is_file()
     main = MAIN.read_text()
-    assert "navigator.serviceWorker.register('/sw.js')" in main
+    assert "navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })" in main
     assert "import.meta.env.PROD" in main
     assert "window.isSecureContext" in main
 
