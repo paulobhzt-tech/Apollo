@@ -1,4 +1,4 @@
-import { chromium, expect, request as playwrightRequest, test } from '@playwright/test';
+import { chromium, devices, expect, request as playwrightRequest, test } from '@playwright/test';
 import type { APIRequestContext, APIResponse } from '@playwright/test';
 import { createServer, request } from 'node:https';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -63,6 +63,7 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
     if (!address || typeof address === 'string') throw new Error('Missing disposable HTTPS listener');
     const origin = `https://127.0.0.1:${address.port}`;
     const launchWaiter = () => chromium.launchPersistentContext(profile, {
+      ...devices['Pixel 5'],
       ...info.project.use.launchOptions,
       ignoreHTTPSErrors: true,
     });
@@ -76,9 +77,10 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
     const sessions = await Promise.all(cashiers.map(client => post(client, '/cash/open', { opening_amount: 0 })));
     expect(new Set(sessions.map(session => session.id)).size).toBe(2);
     expect(sessions.map(session => session.opened_by_id)).toEqual(operators);
-    const ingredientStock = async () => (await json(await cashiers[0].get('/api/ingredients')))
-      .find((ingredient: { id: string }) => ingredient.id === 'p40ing').stock;
+    const ingredientStock = async (id = 'p40ing') => (await json(await cashiers[0].get('/api/ingredients')))
+      .find((ingredient: { id: string }) => ingredient.id === id).stock;
     const initialStock = await ingredientStock();
+    const initialBeverageStock = await ingredientStock('p41ingdrink');
     const tables = [];
     for (const [number, kind] of [[9821, 'mesa'], [9822, 'comanda'], [9823, 'mesa']] as const) {
       tables.push(await post(cashiers[0], '/tables', { number, kind }));
@@ -132,6 +134,10 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
       await page.getByLabel('Atendimento', { exact: true }).selectOption(table.id);
       await page.getByLabel('Produto').selectOption('p40product');
       await page.getByRole('button', { name: 'Adicionar item' }).click();
+      if (table.id === tables[0].id) {
+        await page.getByLabel('Produto').selectOption('p41drink');
+        await page.getByRole('button', { name: 'Adicionar item' }).click();
+      }
       await page.getByRole('button', { name: 'Salvar pedido no dispositivo' }).click();
       await expect(page.getByRole('status')).toContainText('Pedido gravado');
     }
@@ -191,7 +197,7 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
     expect(lostResponses).toBe(1);
     expect(receipts.size).toBe(2);
     const order = await json(await cashiers[0].get(`/api/tables/${tables[0].id}/order`));
-    expect(order.items).toHaveLength(1);
+    expect(order.items.map((item: { product_id: string }) => item.product_id).sort()).toEqual(['p40product', 'p41drink']);
     expect(order.items[0].ordered_by).toBe('p40garcom');
     expect(Date.parse(order.items[0].ordered_at)).toBeGreaterThanOrEqual(firstSaleAt - 1000);
     expect(order.payments).toEqual([]);
@@ -199,6 +205,8 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
     expect(moved.items).toEqual([]);
     const stockAfter = await ingredientStock();
     expect(stockAfter).toBe(initialStock - 26);
+    const beverageStockAfter = await ingredientStock('p41ingdrink');
+    expect(beverageStockAfter).toBe(initialBeverageStock - 1);
     await page.getByRole('button', { name: 'Fechar cofre' }).click();
     await stop();
     await waiter.close();
@@ -220,9 +228,11 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
       expect(closed.difference).toBe(0);
       balanced.push({ operator: operators[index], sales: salesCount, cash: closed.expected_cash, difference: closed.difference });
     }
-    const kitchenTicket = (await json(await cashiers[0].get('/api/print/queue?stations=cozinha')))
-      .find((ticket: { order_id: string }) => ticket.order_id === order.id);
-    expect(kitchenTicket.items).toHaveLength(1);
+    for (const station of ['cozinha', 'bar']) {
+      const tickets = await json(await cashiers[0].get('/api/print/queue?stations=' + station));
+      const ticket = tickets.find((entry: { order_id: string }) => entry.order_id === order.id);
+      expect(ticket?.items.filter((item: { station: string }) => item.station === station)).toHaveLength(1);
+    }
 
     const admin = await playwrightRequest.newContext({ baseURL: backend, ignoreHTTPSErrors: true, extraHTTPHeaders: { Origin: backend } });
     clients.push(admin);
@@ -246,7 +256,7 @@ test('P58 two cashiers reconcile 25 sales while a disconnected waiter retains an
     expect(await lotBalance()).toBe(startingLot);
     const stockShiftClosed = await post(cashiers[0], '/cash/close', { expected_session_id: stockShift.id, counted_amount: 0 });
     expect(stockShiftClosed.difference).toBe(0);
-    const evidence = { updatedWorker: true, kitchenTickets: 1, lotSale: { units: 20, cost: 80, startingLot, restoredLot: await lotBalance() }, sales: 25, saleRequests: 50, registers: balanced, offlineOrders: 1, conflicts: 1, lostResponses, initialStock, stockAfter };
+    const evidence = { updatedWorker: true, printStations: ['cozinha', 'bar'], beverageStockAfter, lotSale: { units: 20, cost: 80, startingLot, restoredLot: await lotBalance() }, sales: 25, saleRequests: 50, registers: balanced, offlineOrders: 1, conflicts: 1, lostResponses, initialStock, stockAfter };
     console.log(JSON.stringify(evidence));
     await info.attach('p58-reconciliation', { body: JSON.stringify(evidence), contentType: 'application/json' });
   } finally {
