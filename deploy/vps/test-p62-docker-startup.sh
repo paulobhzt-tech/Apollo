@@ -21,7 +21,7 @@ trap cleanup EXIT
 docker image inspect --format '{{.Id}} {{.Os}}/{{.Architecture}}' "$image" > "$evidence/candidate-image.txt"
 docker network create "$name" > /dev/null
 docker run -d --network "$name" --name "$mongo" mongo:7 --replSet rs0 --bind_ip_all
-docker image inspect --format '{{.Id}} {{join .RepoDigests ","}}' mongo:7 > "$evidence/mongo-image.txt"
+docker image inspect --format '{{.Id}} {{json .RepoDigests}}' mongo:7 > "$evidence/mongo-image.txt"
 
 wait_for() {
   local attempt
