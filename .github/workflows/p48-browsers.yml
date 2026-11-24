@@ -1,7 +1,7 @@
 name: Apollo six-profile browser operational matrix
 on:
   push:
-    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao, audit/p54-offline-integral-vps-validacao-final, audit/p55-correcao-final-offline-vps-operacional, audit/p56-validacao-vps-offline-operacional, audit/p57-correcao-vps-offline-liberacao, audit/p58-correcao-definitiva-vps-pwa-homologacao, audit/p59-desbloqueio-vps-build-pwa-homologacao, audit/p60-validacao-administrativa-vps-build-publico, audit/p61-correcao-build-vps-homologacao-final]
+    branches: [audit/p48-correcao-vps-offline-liberacao, audit/p49-offline-vps-homologacao-final, audit/p50-correcao-offline-vps-liberacao-final, audit/p51-offline-total-vps-homologacao, audit/p52-pwa-offline-integral-vps-validacao, audit/p53-correcao-offline-vps-homologacao, audit/p54-offline-integral-vps-validacao-final, audit/p55-correcao-final-offline-vps-operacional, audit/p56-validacao-vps-offline-operacional, audit/p57-correcao-vps-offline-liberacao, audit/p58-correcao-definitiva-vps-pwa-homologacao, audit/p59-desbloqueio-vps-build-pwa-homologacao, audit/p60-validacao-administrativa-vps-build-publico, audit/p61-correcao-build-vps-homologacao-final, audit/p62-rollback-docker-homologacao]
   workflow_dispatch:
 permissions:
   contents: read
@@ -62,7 +62,7 @@ jobs:
         run: |
           set -o pipefail
           python local-server/gerar-certificado.py /tmp/apollo-p41-tls 127.0.0.1
-          if test "$GITHUB_REF_NAME" = audit/p55-correcao-final-offline-vps-operacional || test "$GITHUB_REF_NAME" = audit/p56-validacao-vps-offline-operacional || test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao || test "$GITHUB_REF_NAME" = audit/p58-correcao-definitiva-vps-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico || test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final; }; }; then
+          if test "$GITHUB_REF_NAME" = audit/p55-correcao-final-offline-vps-operacional || test "$GITHUB_REF_NAME" = audit/p56-validacao-vps-offline-operacional || test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao || test "$GITHUB_REF_NAME" = audit/p58-correcao-definitiva-vps-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico || { test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final || test "$GITHUB_REF_NAME" = audit/p62-rollback-docker-homologacao; }; }; }; then
             APOLLO_TEST_TLS_SPKI="$(openssl x509 -in /tmp/apollo-p41-tls/server.crt -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl base64)"
             export APOLLO_TEST_TLS_SPKI
             printf 'APOLLO_TEST_TLS_SPKI=%s\n' "$APOLLO_TEST_TLS_SPKI" >> "$GITHUB_ENV"
@@ -84,18 +84,18 @@ jobs:
             sleep 1
           done
           curl --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS https://127.0.0.1:8001/api/ >/dev/null
-          if test "$GITHUB_REF_NAME" = audit/p56-validacao-vps-offline-operacional || test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao || test "$GITHUB_REF_NAME" = audit/p58-correcao-definitiva-vps-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico || test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final; }; }; then export APOLLO_P56_REVIEW=1; fi
-          if test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao || test "$GITHUB_REF_NAME" = audit/p58-correcao-definitiva-vps-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico || test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final; }; }; then export APOLLO_P57_ONLINE_GUARD=1; fi
-          if { test "$GITHUB_REF_NAME" = audit/p58-correcao-definitiva-vps-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico || test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final; }; }; } && test "$P47_BROWSER" = chromium; then export APOLLO_P58_PAYMENT_REVIEW=1; fi
+          if test "$GITHUB_REF_NAME" = audit/p56-validacao-vps-offline-operacional || test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao || test "$GITHUB_REF_NAME" = audit/p58-correcao-definitiva-vps-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico || { test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final || test "$GITHUB_REF_NAME" = audit/p62-rollback-docker-homologacao; }; }; }; then export APOLLO_P56_REVIEW=1; fi
+          if test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao || test "$GITHUB_REF_NAME" = audit/p58-correcao-definitiva-vps-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico || { test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final || test "$GITHUB_REF_NAME" = audit/p62-rollback-docker-homologacao; }; }; }; then export APOLLO_P57_ONLINE_GUARD=1; fi
+          if { test "$GITHUB_REF_NAME" = audit/p58-correcao-definitiva-vps-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico || { test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final || test "$GITHUB_REF_NAME" = audit/p62-rollback-docker-homologacao; }; }; }; } && test "$P47_BROWSER" = chromium; then export APOLLO_P58_PAYMENT_REVIEW=1; fi
           result=0
           npx playwright test --config=p47.config.ts p43-operational-ui.spec.ts p47-browser.spec.ts 2>&1 | tee ../evidence/browser.log || result=1
           if test "$GITHUB_REF_NAME" = audit/p54-offline-integral-vps-validacao-final; then
             npx playwright test --config=p47.config.ts p54-offline-tables.spec.ts --output=test-results/p54-vault --reporter=list 2>&1 | tee ../evidence/p54-vault.log || result=1
           fi
-          if test "$GITHUB_REF_NAME" = audit/p55-correcao-final-offline-vps-operacional || test "$GITHUB_REF_NAME" = audit/p56-validacao-vps-offline-operacional || test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao || test "$GITHUB_REF_NAME" = audit/p58-correcao-definitiva-vps-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico || test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final; }; }; then
+          if test "$GITHUB_REF_NAME" = audit/p55-correcao-final-offline-vps-operacional || test "$GITHUB_REF_NAME" = audit/p56-validacao-vps-offline-operacional || test "$GITHUB_REF_NAME" = audit/p57-correcao-vps-offline-liberacao || test "$GITHUB_REF_NAME" = audit/p58-correcao-definitiva-vps-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico || { test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final || test "$GITHUB_REF_NAME" = audit/p62-rollback-docker-homologacao; }; }; }; then
             npx playwright test --config=p47.config.ts p55-offline-tables.spec.ts --output=test-results/p55-vault --reporter=list 2>&1 | tee ../evidence/p55-vault.log || result=1
           fi
-          if { test "$GITHUB_REF_NAME" = audit/p58-correcao-definitiva-vps-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico || test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final; }; }; } && test "$P47_BROWSER" = chromium; then
+          if { test "$GITHUB_REF_NAME" = audit/p58-correcao-definitiva-vps-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico || { test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final || test "$GITHUB_REF_NAME" = audit/p62-rollback-docker-homologacao; }; }; }; } && test "$P47_BROWSER" = chromium; then
             kill "$backend_pid"
             wait "$backend_pid" || true
             export DB_NAME=apollo_p40_browser_p58_integrated
@@ -108,7 +108,7 @@ jobs:
             done
             curl --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS https://127.0.0.1:8001/api/ >/dev/null
             npx playwright test --config=p47.config.ts p58-integrated-shift.spec.ts --output=test-results/p58-integrated --reporter=list 2>&1 | tee ../evidence/p58-integrated.log || result=1
-            if test "$result" = 0 && { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico || test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final; }; }; then
+            if test "$result" = 0 && { test "$GITHUB_REF_NAME" = audit/p59-desbloqueio-vps-build-pwa-homologacao || { test "$GITHUB_REF_NAME" = audit/p60-validacao-administrativa-vps-build-publico || { test "$GITHUB_REF_NAME" = audit/p61-correcao-build-vps-homologacao-final || test "$GITHUB_REF_NAME" = audit/p62-rollback-docker-homologacao; }; }; }; then
               python ../backend/p59_shift_snapshot.py | tee ../evidence/p59-before-restart.json
               kill "$backend_pid"
               wait "$backend_pid" || true
@@ -125,7 +125,7 @@ jobs:
           fi
           exit "$result"
       - name: Legacy PWA update and browser restart
-        if: ${{ !cancelled() && github.ref_name == 'audit/p61-correcao-build-vps-homologacao-final' && (matrix.browser == 'chromium' || matrix.browser == 'firefox' || matrix.browser == 'webkit') }}
+        if: ${{ !cancelled() && (github.ref_name == 'audit/p61-correcao-build-vps-homologacao-final' || github.ref_name == 'audit/p62-rollback-docker-homologacao') && (matrix.browser == 'chromium' || matrix.browser == 'firefox' || matrix.browser == 'webkit') }}
         run: |
           set -o pipefail
           node tests/p61-worker-migration.mjs "$P47_BROWSER" 2>&1 | tee evidence/p61-worker-migration.log
@@ -136,7 +136,7 @@ jobs:
           cd tests
           npx playwright test --config=p47.config.ts p48-offline-interruption.spec.ts --output=test-results/p48-interruption --reporter=list 2>&1 | tee ../evidence/interruption.log
       - name: Minimal offline emulation diagnostic
-        if: ${{ !cancelled() && (github.ref_name == 'audit/p59-desbloqueio-vps-build-pwa-homologacao' || (github.ref_name == 'audit/p60-validacao-administrativa-vps-build-publico' || github.ref_name == 'audit/p61-correcao-build-vps-homologacao-final')) && (matrix.browser == 'firefox' || matrix.browser == 'webkit' || matrix.browser == 'chromium') }}
+        if: ${{ !cancelled() && (github.ref_name == 'audit/p59-desbloqueio-vps-build-pwa-homologacao' || (github.ref_name == 'audit/p60-validacao-administrativa-vps-build-publico' || (github.ref_name == 'audit/p61-correcao-build-vps-homologacao-final' || github.ref_name == 'audit/p62-rollback-docker-homologacao'))) && (matrix.browser == 'firefox' || matrix.browser == 'webkit' || matrix.browser == 'chromium') }}
         run: |
           set -o pipefail
           cp /etc/os-release evidence/os-release.txt

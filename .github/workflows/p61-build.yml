@@ -2,7 +2,7 @@ name: P61 - Integridade Web e imagem Docker
 
 on:
   push:
-    branches: [audit/p61-correcao-build-vps-homologacao-final]
+    branches: [audit/p61-correcao-build-vps-homologacao-final, audit/p62-rollback-docker-homologacao]
   workflow_dispatch:
 
 permissions:
@@ -34,6 +34,9 @@ jobs:
           mkdir -p evidence/docker-web
           docker cp "$container:/app/web/." evidence/docker-web/
           EXPECTED_COMMIT="$GITHUB_SHA" node frontend/scripts/verify-build.mjs evidence/docker-web
+      - name: Inicializar candidata Docker com MongoDB descartável
+        if: github.ref_name == 'audit/p62-rollback-docker-homologacao'
+        run: bash deploy/vps/test-p62-docker-startup.sh apollo-p61-ci evidence
       - name: Verificar build independente e rota Apache isolada
         run: |
           set -euo pipefail
