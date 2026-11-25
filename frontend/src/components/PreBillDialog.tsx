@@ -45,6 +45,12 @@ export default function PreBillDialog({ table, order, open, printEnabled = true,
     : (share ? `Parte: ${brl(share.amount)} · Restante: ${brl(share.remaining)}` : "");
   const qtyTotal = groups.reduce((s, g) => s + g.qty, 0);
   const pix = settings.data?.pix_key;
+  const company = settings.data?.trade_name || settings.data?.company_name || "Apollo PDV";
+  const shareText = [
+    company, `Pré-conta · ${table.kind === "mesa" ? "Mesa" : "Comanda"} ${table.number}`,
+    ...displayLines.map((line) => `${line.qty} × ${line.name} · ${brl(line.total)}`),
+    `Subtotal: ${brl(subtotal)}`, ...(service ? [`Serviço: ${brl(fee)}`] : []), `Total: ${brl(total)}`, splitLabel,
+  ].filter(Boolean).join("\n");
 
   const print = async () => {
     const pr = printers.data?.find((p) => p.active && p.purpose === "caixa");
@@ -63,7 +69,7 @@ export default function PreBillDialog({ table, order, open, printEnabled = true,
       .sep { border-top: 1px dashed #000; margin: 4px 0; } .tot { font-size: 16px; font-weight: bold; }
       .row { display: flex; justify-content: space-between; }
     </style></head><body>
-      <h1>ESPETERIA CHURRAS BUGUER</h1>${settings.data?.address ? `<div class="c">${esc(settings.data.address)}</div>` : ""}
+      <h1>${esc(company)}</h1>${settings.data?.address ? `<div class="c">${esc(settings.data.address)}</div>` : ""}
       <div class="sep"></div><h2>PRÉ-CONTA · ${esc(tableLabel(table))}</h2>
       <div class="c">${table.opened_at ? `Aberta ${fmtDateTime(table.opened_at)} · ` : ""}${table.waiter_name ? `Garçom: ${esc(table.waiter_name)}` : ""}</div>
       <div class="sep"></div><table><tr><td><b>Item</b></td><td class="r"><b>Unit.</b></td><td class="r"><b>Total</b></td></tr>${rows}</table>
@@ -119,6 +125,10 @@ export default function PreBillDialog({ table, order, open, printEnabled = true,
         </div>
         {splitMode !== "people" && shareInput.trim() && !share && <p role="status" className="text-sm text-muted-foreground">Informe uma parte maior que zero e dentro do total.</p>}
         <p className="text-xs text-muted-foreground">Prévia para conferência. O recebimento é registrado no caixa.</p>
+        {!!groups.length && <a className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted"
+          href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer">
+          Compartilhar pré-conta pelo WhatsApp
+        </a>}
         {printEnabled && <Button className="h-11" onClick={() => void print()} disabled={!groups.length} data-testid="prebill-print-button"><PrinterIcon className="size-4" /> Imprimir pré-conta</Button>}
       </DialogContent>
     </Dialog>
