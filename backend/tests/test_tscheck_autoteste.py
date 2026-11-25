@@ -1,4 +1,6 @@
 """Auto teste refactor: POST /api/selftest returns 11 server checks + auth enforcement."""
+from contextlib import closing
+
 from .conftest import seeded_operator_client
 
 
@@ -22,6 +24,6 @@ def test_selftest_admin_ok():
 
 
 def test_selftest_non_admin_forbidden():
-    with seeded_operator_client("p40caixa1") as client:
+    with closing(seeded_operator_client("p40caixa1")) as client:
         response = client.post("/selftest")
         assert response.status_code == 403, response.text

@@ -29,6 +29,20 @@ def test_pdv_sale_pix_emits_nfce_with_44_digit_access_key():
         assert inv["doc_type"] == "nfce"
         assert len(inv["access_key"]) == 44, f"access_key wrong length: {inv['access_key']}"
         assert inv["access_key"].isdigit()
+
+        card = {"pos_terminal": "POS de teste", "authorization_code": "ABC-12", "nsu": "000013"}
+        payload.update(client_ref=f"{client_ref}-card", emit_invoice=False, payments=[
+            {"method": "debito", "amount": prod["price"], "brand": "visa", "details": card},
+        ])
+        card_result = c.post("/pdv/sale", json=payload)
+        assert card_result.status_code == 200, card_result.text
+        order = card_result.json()["order"]
+        assert all(order["payments"][0]["details"][key] == value for key, value in card.items())
+        event = next(event for event in order["audit_events"] if event["action"] == "payment_recorded")
+        assert event["values"]["card_transactions"] == [{"index": 0, "method": "debito", **card}]
+        replay = c.post("/pdv/sale", json=payload)
+        assert replay.status_code == 200, replay.text
+        assert replay.json()["order"]["id"] == order["id"]
     finally:
         current = c.get("/cash/current").json()
         if current and current.get("id"):

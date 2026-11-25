@@ -61,11 +61,11 @@ As referências estão numeradas na ordem de envio. Os destinos abaixo identific
 | 55 | Buscar cliente no atendimento, estado inicial | Mesas. Cadastro por nome no pedido existente. Busca e vínculo por ID do cadastro pendentes. |
 | 56 | Novo cliente | Clientes. Formulário existente. Endereços múltiplos e abertura no atendimento pendentes. |
 | 57 | Buscar cliente no atendimento, resultados | Clientes. Pesquisa existente. Seletor integrado à operação pendente. |
-| 58 | Mais opções do atendimento | Mesas. Consulta de conta, impressão e alternância da exibição implementadas. WhatsApp, recálculo e demais comandos precisam de validação separada. |
+| 58 | Mais opções do atendimento | Mesas. Consulta de conta, impressão e alternância da exibição implementadas. A pré-conta abre uma mensagem de WhatsApp para revisão e envio manual. Recálculo e demais comandos pendentes. |
 | 59 | Trocar pedido de destino ou canal | Mesas. Transferência entre mesas e comandas existente. Mudança de canal pendente. |
 | 60 | Prévia do cupom | Mesas. Pré-conta e impressão existentes. |
 | 61 | Transferir ou copiar itens selecionados | Mesas. Há transferência de atendimento e junção de contas. Transferência parcial entre atendimentos exige operação própria de movimentação. |
-| 62 | Delivery, pesquisa e lista de pedidos | Delivery. Operação existente. Revisão da disposição e dos filtros pendente. |
+| 62 | Delivery, pesquisa e lista de pedidos | Delivery. Busca por número, cliente e canal, com informação de disponibilidade real dos provedores. |
 
 ## Pagamentos
 
@@ -76,5 +76,5 @@ As referências estão numeradas na ordem de envio. Os destinos abaixo identific
 | 65 | Dinheiro e valores rápidos | Preenchimento pelo saldo, valores rápidos, soma com Shift e limpeza do valor. |
 | 66 | Visão parcial do lançamento PIX | Mesmo seletor de valores com validação do limite da conta. |
 | 67 | PIX manual, chave e transação | Chaves cadastradas, ID da transação e conferência manual pelo operador. |
-| 68 | Crédito e seleção de bandeira | Bandeiras configuradas, referência do comprovante e observação. POS, autorização e NSU em campos independentes seguem pendentes. |
-| 69 | Débito e seleção de bandeira | Mesmos controles do crédito, com registro como débito. Integração com terminal de pagamento segue pendente. |
+| 68 | Crédito e seleção de bandeira | Bandeiras configuradas, referência do comprovante e observação. POS, autorização e NSU manuais, com validação, persistência e auditoria. |
+| 69 | Débito e seleção de bandeira | Mesmos controles do crédito, com registro auditado como débito. A integração com um terminal físico depende de homologação específica. |
