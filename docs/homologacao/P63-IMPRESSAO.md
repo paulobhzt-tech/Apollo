@@ -95,3 +95,8 @@ Em 25/11/2026, no computador da Espeteria, o operador executou o script de homol
 ### Viabilidade do agente C# leve — teste presencial
 
 Em 25/11/2026 o operador confirmou .NET Framework Release 533509 e compilador Framework64/v4.0.30319/csc.exe no Windows 11 Pro. Um executável de laboratório C# compilado localmente com System.Drawing.dll enumerou a Epson TM-T20X Receipt, OneNote e Microsoft Print to PDF, com WorkingSet64 de 17,18 MB. Um processo PowerShell independente medido anteriormente apresentou 65,55 MB. São medições pontuais de programas diferentes, não benchmark equivalente de agentes completos. O teste C# não imprime, não estabelece conexão com VPS, não permanece residente e não valida fila ou segurança. A meta de até 50 MB em repouso continua pendente de medição do agente integrado. Nenhuma alteração no Consumer ou produção foi solicitada.
+
+
+### Impressão C# — primeira submissão no Windows da Espeteria
+
+Em 25/11/2026, o operador compilou ApolloPrintTest.cs localmente com csc.exe e System.Drawing.dll e executou o programa de laboratório. PrintDocument.Print() retornou sem exceção para a fila EPSON TM-T20X Receipt, uma via, papel personalizado 315 × 394 centésimos de polegada, com medição pontual de WorkingSet64 de 37,68 MB após a chamada. A saída física, corte e acentos ainda aguardam confirmação específica do operador. Não se trata de agente residente ou integrado: autenticação, HTTPS, fila durável em C#, reconciliação e desempenho sustentado não foram testados. Nenhuma alteração em produção ou Consumer foi solicitada.
