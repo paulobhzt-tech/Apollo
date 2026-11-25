@@ -90,17 +90,18 @@ test("adapts the cash and stock records and keeps their actions reachable at 175
   await page.reload();
   await page.getByTestId("cash-move-type-suprimento").click();
   await page.getByTestId("cash-move-amount-input").fill("1000");
-  await page.getByTestId("cash-move-note-input").fill("Suprimento fictício P64.2");
+  const note = `Suprimento fictício P64.2 ${Date.now()}`;
+  await page.getByTestId("cash-move-note-input").fill(note);
   await page.getByTestId("cash-move-button").click();
   const movements = page.getByRole("table", { name: "Movimentações manuais do turno" });
-  await expect(movements).toContainText("Suprimento fictício P64.2");
+  await expect(movements).toContainText(note);
 
   await page.getByRole("button", { name: "Recolher atalhos" }).click();
   await expect(page.locator("#apollo-ribbon-shortcuts")).toBeHidden();
   await page.getByRole("button", { name: "Mostrar atalhos" }).click();
   await expect(page.locator("#apollo-ribbon-shortcuts")).toBeVisible();
   await page.getByLabel("Zoom da interface", { exact: true }).selectOption("175");
-  const movementRow = movements.getByRole("row").filter({ hasText: "Suprimento fictício P64.2" });
+  const movementRow = movements.getByRole("row").filter({ hasText: note });
   await expect(movementRow.locator(".apollo-cell-label").first()).toBeVisible();
   expect(await movements.evaluate((table) => table.scrollWidth <= table.clientWidth + 2)).toBe(true);
   await movementRow.screenshot({ path: info.outputPath("caixa-adaptativo.png") });

@@ -185,6 +185,8 @@
     position: absolute;
     width: 1px;
     height: 1px;
+    inset-inline-start: 0;
+    overflow: clip;
     clip-path: inset(50%);
   }
   .apollo-adaptive-table [data-slot="table"],
