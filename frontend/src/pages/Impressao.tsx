@@ -7,13 +7,14 @@ import { Panel } from "./Dashboard";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { apiGet, apiPost } from "@/lib/api";
+import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { envName, useEnvironments } from "@/lib/environments";
-import { fmtTime } from "@/lib/format";
+import { errMsg, fmtTime } from "@/lib/format";
 import { printHtml, ticketHtml } from "@/lib/printTicket";
 import { isDesktop } from "@/lib/desktop";
 import { queryClient } from "@/lib/queryClient";
-import type { KitchenTicket, Printer } from "@/lib/types";
+import type { KitchenTicket, PrintAttempt, Printer, PrintOutcome } from "@/lib/types";
+import { useMe } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const LS = "print-station-config";
@@ -22,6 +23,7 @@ const loadCfg = (): DeviceCfg => { try { return { stations: [], auto: false, ...
 
 export default function Impressao() {
   const envs = useEnvironments();
+  const me = useMe();
   const printers = useQuery({ queryKey: ["printers"], queryFn: () => apiGet<Printer[]>("/printers") });
   const [cfg, setCfg] = useState<DeviceCfg>(loadCfg);
   const [log, setLog] = useState<{ id: string; text: string; at: string }[]>([]);
@@ -37,20 +39,41 @@ export default function Impressao() {
   });
   const recent = useQuery({ queryKey: ["print-recent"], queryFn: () => apiGet<KitchenTicket[]>("/print/recent"), refetchInterval: 8000 });
 
+  const unresolved = useQuery({ queryKey: ["print-unresolved"], queryFn: () => apiGet<KitchenTicket[]>("/print/unresolved"), refetchInterval: 8000 });
+  const displayedTickets = new Map([...unresolved.data ?? [], ...recent.data ?? []].map((ticket) => [ticket.id, ticket]));
+
   const printerFor = (station: string) => printers.data?.find((p) => p.active && p.purpose === station);
 
-  const printOne = async (t: KitchenTicket, station: string) => {
+  const printOne = async (t: KitchenTicket, station: string, automatic = false) => {
     const pr = printerFor(station);
     if (!pr) throw new Error(`Cadastre uma impressora ativa para ${envName(envs.data, station)}`);
     if (isDesktop() && !pr.device_name) throw new Error(`Selecione a impressora Windows para ${envName(envs.data, station)}`);
-    if (t.printed.includes(station)) {
-      await apiPost(`/kds/tickets/${t.id}/reprint-authorization`, { station });
+    const reprint = t.printed.includes(station);
+    if (reprint) await apiPost(`/kds/tickets/${t.id}/reprint-authorization`, { station });
+    const html = ticketHtml(t, station, envName(envs.data, station), pr.paper, reprint);
+    let attempt: PrintAttempt | null = null;
+    if (!reprint) {
+      try {
+        attempt = await apiPost<PrintAttempt>(`/kds/tickets/${t.id}/print-attempt`, { station });
+      } catch (error) {
+        if (automatic && error instanceof ApiError && error.status === 409) return;
+        throw error;
+      }
     }
-    await printHtml(ticketHtml(t, station, envName(envs.data, station), pr?.paper), pr?.copies ?? 1, pr);
-    if (!isDesktop() && !window.confirm("O ticket saiu corretamente na impressora? Confirme somente após conferir o papel.")) {
-      throw new Error("Impressão não confirmada. O ticket permanece pendente; confira antes de tentar novamente.");
+    const result = (outcome: PrintOutcome) => apiPost<KitchenTicket>(
+      `/kds/tickets/${t.id}/print-result`, { station, attempt_id: attempt?.id, outcome },
+    );
+    const desktopPrint = isDesktop();
+    try {
+      await printHtml(html, pr.copies, pr);
+      if (!desktopPrint && !window.confirm("O ticket saiu corretamente na impressora? Confirme após conferir o papel.")) {
+        throw new Error("Resultado indeterminado. Solicite a conferência do administrador.");
+      }
+    } catch (error) {
+      if (attempt) await result("indeterminate").catch(() => undefined);
+      throw error;
     }
-    const confirmed = await apiPost<KitchenTicket>(`/kds/tickets/${t.id}/printed`, { station });
+    const confirmed = attempt ? await result(desktopPrint ? "spooler_accepted" : "operator_confirmed") : t;
     queryClient.setQueriesData<KitchenTicket[]>({ queryKey: ["print-queue"] },
       (tickets) => tickets?.map((ticket) => ticket.id === confirmed.id ? confirmed : ticket));
     setLog((l) => [{ id: `${t.id}-${station}-${Date.now()}`, text: `${envName(envs.data, station)} · ${t.label} (#${t.order_number})${pr ? ` → ${pr.name}` : ""}`, at: new Date().toISOString() }, ...l].slice(0, 30));
@@ -69,7 +92,7 @@ export default function Impressao() {
             const current = latest.current;
             if (!current.auto) return;
             if (current.autoKeys.includes(station) && !t.printed.includes(station)) {
-              await current.printOne(t, station);
+              await current.printOne(t, station, true);
             }
           }
         }
@@ -85,6 +108,20 @@ export default function Impressao() {
       }
     })();
   }, [queue.data, cfg.auto]);
+
+  const reviewAttempt = async (ticket: KitchenTicket, attempt: PrintAttempt, printed: boolean) => {
+    const question = printed ? "O papel deste setor foi conferido e o ticket está correto?"
+      : "O ticket não saiu e não há nenhuma cópia pendente na fila do Windows? Confirmar libera uma nova tentativa.";
+    if (!window.confirm(question)) return;
+    try {
+      await apiPost(`/kds/tickets/${ticket.id}/print-review`, { station: attempt.station, attempt_id: attempt.id, printed });
+      void queryClient.invalidateQueries({ queryKey: ["print-queue"] });
+      void queryClient.invalidateQueries({ queryKey: ["print-recent"] });
+      void queryClient.invalidateQueries({ queryKey: ["print-unresolved"] });
+    } catch (error) {
+      toast.error(errMsg(error));
+    }
+  };
 
   const toggleAuto = () => {
     const auto = !latest.current.auto;
@@ -124,34 +161,56 @@ export default function Impressao() {
               {cfg.auto ? `Imprimindo automaticamente · ${queue.data?.length ?? 0} na fila` : "Impressão automática desligada"}
             </div>
           </Panel>
-          <Panel title="Impressão sem janela (recomendado)">
+          <Panel title="Impressão pelo Windows">
             <p className="mb-2 text-xs text-amber-300">Cadastre uma impressora ativa para cada ambiente em Configurações → Impressoras. No Windows, selecione também o nome exato da impressora instalada. Sem essa configuração, a impressão automática fica bloqueada para evitar envio ao dispositivo errado.</p>
             <p className="text-xs leading-relaxed text-zinc-400">
-              {isDesktop() ? "Aplicativo Apollo PDV: os tickets saem direto na impressora do Windows escolhida em Configurações → Impressoras, sem janela." : <>Instale o aplicativo <b>Apollo PDV</b> para Windows para imprimir direto, ou defina a impressora térmica como padrão e abra o Chrome com a opção <code className="rounded bg-white/10 px-1 font-mono text-zinc-200">--kiosk-printing</code> no atalho.</>}
-              Assim os tickets saem direto, sem a janela de confirmação. Para imprimir em várias impressoras, use um computador/tablet por ambiente ou um perfil do Chrome para cada impressora.
+              {isDesktop() ? "Aplicativo Apollo PDV: os tickets saem direto na impressora do Windows escolhida em Configurações → Impressoras, sem janela." : "No navegador, selecione a impressora na janela de impressão e confira o papel antes de confirmar. Use o Apollo PDV para Windows para enviar diretamente à fila configurada."}
             </p>
           </Panel>
         </div>
         <div className="space-y-4">
-          <Panel title="Impresso agora há pouco (nesta sessão)">
+          <Panel title="Envios recentes nesta sessão">
             <ul className="space-y-1.5" data-testid="print-log">
               {log.map((l) => <li key={l.id} className="flex justify-between text-sm text-zinc-200"><span><PrinterIcon className="mr-2 inline size-3.5 text-primary" />{l.text}</span><span className="font-mono text-xs text-zinc-500">{fmtTime(l.at)}</span></li>)}
               {!log.length && <li className="text-sm text-zinc-500">Nada impresso ainda.</li>}
             </ul>
           </Panel>
-          <Panel title="Pedidos recentes · reimprimir">
+          <Panel title="Pedidos recentes e tentativas para conferência">
             <div className="space-y-2">
-              {(recent.data ?? []).map((t) => {
+              {Array.from(displayedTickets.values(), (t) => {
                 const stations = [...new Set(t.items.filter((i) => i.print_ticket !== false).map((i) => i.station))];
                 return (
                   <div key={t.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-white/5 px-3 py-2" data-testid={`print-recent-${t.order_number}`}>
                     <span className="min-w-40 flex-1 text-sm text-white">{t.label} <span className="font-mono text-xs text-zinc-500">#{t.order_number} · {fmtTime(t.created_at)}</span></span>
-                    {stations.map((s) => (
-                      <Button key={s} size="xs" variant={t.printed.includes(s) ? "outline" : "default"} onClick={() => void printOne(t, s).then(() => queryClient.invalidateQueries({ queryKey: ["print-recent"] })).catch((err: unknown) => toast.error(err instanceof Error ? err.message : "Falha na impressão"))}
-                        data-testid={`print-reprint-${t.order_number}-${s}`}>
-                        <RotateCcw className="size-3" /> {envName(envs.data, s)}{t.printed.includes(s) ? " ✓" : ""}
-                      </Button>
-                    ))}
+                    {stations.map((s) => {
+                      const attempt = t.print_attempts?.find((entry) => entry.station === s);
+                      const needsReview = attempt?.state === "indeterminate" ||
+                        (attempt?.state === "processing" && Date.now() - Date.parse(attempt.started_at) >= 300_000);
+                      const status = needsReview ? "Conferência necessária"
+                        : attempt?.state === "processing" ? "Em processamento"
+                        : attempt?.state === "spooler_accepted" ? "Aceito pelo spooler"
+                        : attempt?.state === "operator_confirmed" ? "Conferido no papel"
+                        : t.printed.includes(s) ? "Envio registrado" : "Aguardando";
+                      return (
+                        <div key={s} className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline">{envName(envs.data, s)} · {status}</Badge>
+                          {needsReview && attempt && me.data?.role === "admin" && (
+                            <>
+                              <Button size="xs" variant="outline" onClick={() => void reviewAttempt(t, attempt, true)}>Confirmar saída</Button>
+                              <Button size="xs" variant="outline" onClick={() => void reviewAttempt(t, attempt, false)}>Liberar tentativa</Button>
+                            </>
+                          )}
+                          {(!attempt || t.printed.includes(s)) && (
+                            <Button size="xs" variant={t.printed.includes(s) ? "outline" : "default"}
+                              onClick={() => void printOne(t, s).catch((error: unknown) => toast.error(errMsg(error)))
+                                .finally(() => queryClient.invalidateQueries({ queryKey: ["print-recent"] }))}
+                              data-testid={`print-reprint-${t.order_number}-${s}`}>
+                              <RotateCcw className="size-3" /> {t.printed.includes(s) ? "Reimprimir" : "Imprimir"}
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
                     {!stations.length && <span className="text-xs text-zinc-500">sem itens para imprimir</span>}
                   </div>
                 );

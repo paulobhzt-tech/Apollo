@@ -173,6 +173,15 @@ export interface QuickSaleIn extends PayIn {
 export interface SaleResult { order: Order; invoice: Invoice | null }
 
 export interface KitchenItem { name: string; qty: number; notes: string; station: Station; options: string[]; print_ticket: boolean; customer_name?: string }
+export type PrintOutcome = "spooler_accepted" | "operator_confirmed" | "indeterminate";
+export interface PrintAttempt {
+  id: string;
+  station: string;
+  actor_id: string;
+  started_at: string;
+  finished_at: string | null;
+  state: "processing" | PrintOutcome;
+}
 export interface KitchenTicket {
   id: string;
   order_id: string;
@@ -182,6 +191,7 @@ export interface KitchenTicket {
   items: KitchenItem[];
   status: "novo" | "preparo" | "pronto" | "entregue";
   printed: string[];
+  print_attempts?: PrintAttempt[];
   created_at: string;
   updated_at: string;
 }

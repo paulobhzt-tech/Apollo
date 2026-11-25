@@ -4,7 +4,7 @@ import type { KitchenTicket, Printer } from "@/lib/types";
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
 
 /** Ticket HTML for one environment (only that environment's printable items). */
-export function ticketHtml(t: KitchenTicket, station: string, envLabel: string, paper: Printer["paper"] = "80mm") {
+export function ticketHtml(t: KitchenTicket, station: string, envLabel: string, paper: Printer["paper"] = "80mm", reprint = false) {
   const items = t.items.filter((i) => i.station === station && i.print_ticket !== false);
   const width = paper === "A4" ? "190mm" : paper === "58mm" ? "54mm" : "76mm";
   const time = new Date(t.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -24,7 +24,7 @@ export function ticketHtml(t: KitchenTicket, station: string, envLabel: string, 
     .op { font-size: 13px; padding-left: 10px; font-weight: bold; }
     .ob { font-size: 13px; padding-left: 10px; text-decoration: underline; }
   </style></head><body><h1>${esc(envLabel)}</h1><h2>${esc(t.label)}</h2>
-  <div class="meta">Pedido #${t.order_number} · ${time}</div>${rows}<p style="text-align:center;font-size:11px">Apollo PDV</p></body></html>`;
+  <div class="meta">Pedido #${t.order_number} · ${time}${reprint ? " · REIMPRESSÃO" : ""}</div>${rows}<p style="text-align:center;font-size:11px">Apollo PDV</p></body></html>`;
 }
 
 /** Desktop app: silent print straight to the chosen Windows printer. Browser: hidden iframe (print dialog unless --kiosk-printing). */

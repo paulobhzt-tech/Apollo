@@ -453,6 +453,18 @@ class KitchenItem(BaseModel):
     print_ticket: bool = True
 
 
+PrintOutcome = Literal["spooler_accepted", "operator_confirmed", "indeterminate"]
+
+
+class PrintAttempt(BaseModel):
+    id: str
+    station: str
+    actor_id: str
+    started_at: datetime
+    state: Literal["processing", "spooler_accepted", "operator_confirmed", "indeterminate"]
+    finished_at: datetime | None = None
+
+
 class KitchenTicket(BaseModel):
     audit_events: list[dict] = Field(default_factory=list)
     id: str = Field(default_factory=_id)
@@ -462,13 +474,24 @@ class KitchenTicket(BaseModel):
     source: Source
     items: list[KitchenItem]
     status: Literal["novo", "preparo", "pronto", "entregue"] = "novo"
-    printed: list[str] = []  # environment keys already printed
+    printed: list[str] = []  # terminal dispatch or operator confirmation, including legacy tickets
+    print_attempts: list[PrintAttempt] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)
 
 
 class TicketPrintedIn(BaseModel):
     station: str = Field(min_length=1)
+
+
+class PrintResultIn(TicketPrintedIn):
+    attempt_id: str = Field(min_length=1, max_length=64)
+    outcome: PrintOutcome
+
+
+class PrintReviewIn(TicketPrintedIn):
+    attempt_id: str = Field(min_length=1, max_length=64)
+    printed: bool
 
 
 class TicketStatusIn(BaseModel):
