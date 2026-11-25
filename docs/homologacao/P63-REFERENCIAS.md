@@ -58,13 +58,13 @@ As referências estão numeradas na ordem de envio. Os destinos abaixo identific
 | 52 | Atendimento, detalhes, ações e pagamento | Mesas. Rodapé fixo e ações rápidas ligadas à conta e à exibição existentes. |
 | 53 | Catálogo de lançamento e busca | Mesas e PDV. Categorias laterais em tela larga, cartões e lista. |
 | 54 | Catálogo filtrado por categoria | Mesas e PDV. Filtro real, fotos cadastradas e favoritos. |
-| 55 | Buscar cliente no atendimento, estado inicial | Mesas. Cadastro por nome no pedido existente. Busca e vínculo por ID do cadastro pendentes. |
+| 55 | Buscar cliente no atendimento, estado inicial | Mesas. Busca por nome e vínculo por ID do cadastro no pedido, com trilha de auditoria. |
 | 56 | Novo cliente | Clientes. Formulário existente. Endereços múltiplos e abertura no atendimento pendentes. |
-| 57 | Buscar cliente no atendimento, resultados | Clientes. Pesquisa existente. Seletor integrado à operação pendente. |
-| 58 | Mais opções do atendimento | Mesas. Consulta de conta, impressão e alternância da exibição implementadas. A pré-conta abre uma mensagem de WhatsApp para revisão e envio manual. Recálculo e demais comandos pendentes. |
+| 57 | Buscar cliente no atendimento, resultados | Clientes. Seletor integrado ao atendimento, com resultado da consulta ao cadastro. |
+| 58 | Mais opções do atendimento | Mesas. Consulta de conta, impressão e alternância da exibição implementadas. A pré-conta abre uma mensagem de WhatsApp para revisão e envio manual. Revisão do lançamento, vínculo de cadastro, cópia e transferência de itens e acesso administrativo à auditoria. Recálculo e demais comandos específicos pendentes. |
 | 59 | Trocar pedido de destino ou canal | Mesas. Transferência entre mesas e comandas existente. Mudança de canal pendente. |
 | 60 | Prévia do cupom | Mesas. Pré-conta e impressão existentes. |
-| 61 | Transferir ou copiar itens selecionados | Mesas. Há transferência de atendimento e junção de contas. Transferência parcial entre atendimentos exige operação própria de movimentação. |
+| 61 | Transferir ou copiar itens selecionados | Mesas. Transferência e cópia de lançamentos selecionados entre atendimentos abertos, com confirmação pelo caixa. Exige MongoDB transacional. Itens legados sem rastreabilidade exigem revisão administrativa. |
 | 62 | Delivery, pesquisa e lista de pedidos | Delivery. Busca por número, cliente e canal, com informação de disponibilidade real dos provedores. |
 
 ## Pagamentos

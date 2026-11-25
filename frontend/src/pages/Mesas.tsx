@@ -1,6 +1,6 @@
 import SaleQuantityInput from "@/components/SaleQuantityInput";
 import { type SetStateAction, useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRightLeft, Bell, Clock, Ellipsis, Minus, Pencil, Plus, Printer, QrCode, Receipt, RefreshCw, Search, Send, Trash2, Users } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -24,7 +24,7 @@ import { clearTableSubmission, pauseAutomaticTableSubmission, readTableSubmissio
 import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, uid } from "@/lib/format";
 import { useOperatorDraft } from "@/lib/operator-draft";
 import { queryClient } from "@/lib/queryClient";
-import type { Category, ChosenOption, Invoice, KitchenTicket, Order, OrderItem, PayIn, Product, SaleResult, Table, TableIn } from "@/lib/types";
+import type { Category, ChosenOption, Invoice, KitchenTicket, OkOut, Order, OrderItem, PayIn, Product, SaleResult, Table, TableIn } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { groupItems } from "@/lib/group";
 import PreBillDialog from "@/components/PreBillDialog";
@@ -369,6 +369,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   clock: number; table: Table; onClose: () => void; onQr: (t: Table) => void; qrOpen: boolean;
   tables: Table[]; canDelete: boolean; draft?: Pending[]; onDraftChange: (items: SetStateAction<Pending[]>) => void;
 }) {
+  const navigate = useNavigate();
   const { data: me } = useMe();
   const order = useQuery({
     queryKey: ["table-order", table.id, table.order_id],
@@ -656,6 +657,9 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem disabled={!items.some((item) => !item.cancelled)} onClick={() => setPreBill("view")}>Consultar conta</DropdownMenuItem>
                     <DropdownMenuItem disabled={!items.some((item) => !item.cancelled)} onClick={() => setPreBill("print")}>Imprimir conferência</DropdownMenuItem>
+                    {pending.length > 0 && <DropdownMenuItem disabled={busy || pendingConfirmation} onClick={() => setReviewOpen(true)}>Revisar lançamento</DropdownMenuItem>}
+                    {me?.role === "admin" && o && <DropdownMenuItem disabled={busy || editingCustomers}
+                      onClick={() => navigate(`/auditoria?registro=${encodeURIComponent(o.id)}`)}>Consultar auditoria do atendimento</DropdownMenuItem>}
                     <DropdownMenuItem disabled={offline || !o || busy} onClick={() => setCustomerSearchOpen(true)}>
                       {o?.registered_customer_id ? "Trocar cliente cadastrado" : "Vincular cliente cadastrado"}
                     </DropdownMenuItem>

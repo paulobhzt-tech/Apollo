@@ -23,8 +23,9 @@ test('links a registered customer and moves and copies selected items without du
 
   const customerName = 'Cliente P63 ' + randomUUID();
   const customer = await post('/customers', { name: customerName });
-  const origin = await post('/tables', { number: 9631, kind: 'mesa' });
-  const destination = await post('/tables', { number: 9632, kind: 'comanda' });
+  const number = 90000 + Math.floor(Math.random() * 4900) * 2;
+  const origin = await post('/tables', { number, kind: 'mesa' });
+  const destination = await post('/tables', { number: number + 1, kind: 'comanda' });
   const source = await post('/tables/' + origin.id + '/open', {});
   const target = await post('/tables/' + destination.id + '/open', {});
   const order = await post('/tables/' + origin.id + '/items', {
@@ -37,7 +38,7 @@ test('links a registered customer and moves and copies selected items without du
   const originalStock = (await read('/ingredients')).find((row: { id: string }) => row.id === 'p40ing').stock;
 
   await page.goto(base + '/mesas');
-  await page.getByTestId('table-card-9631').click();
+  await page.getByTestId('table-card-' + number).click();
   const more = page.getByRole('button', { name: 'Mais opções', exact: true });
   await more.click();
   await page.getByRole('menuitem', { name: 'Vincular cliente cadastrado' }).click();

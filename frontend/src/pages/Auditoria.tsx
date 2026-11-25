@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import AppShell, { PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ const LABELS: Record<string, string> = {
   counter_sale_created: "Venda criada", payment_recorded: "Pagamento registrado", partial_payment_recorded: "Pagamento parcial",
   order_cancelled: "Pedido cancelado", item_cancelled: "Item cancelado", item_refunded: "Estorno de item",
   cash_opened: "Caixa aberto", cash_closed: "Caixa fechado", cash_sangria: "Sangria", cash_suprimento: "Suprimento",
+  registered_customer_linked: "Cliente cadastrado vinculado", table_items_copied: "Itens copiados",
+  table_items_transferred: "Itens transferidos",
   kds_status_changed: "Etapa da cozinha/bar",
 };
 const VALUE_LABELS: Record<string, string> = { amount: "Valor", total: "Total", discount: "Desconto", service_fee: "Serviço", change: "Troco", difference: "Diferença", counted_amount: "Contado", opening_amount: "Abertura", expected_cash: "Saldo esperado", from: "Antes", to: "Depois", item_id: "Item", qty: "Quantidade", method: "Forma", brand: "Bandeira" };
@@ -19,8 +22,10 @@ interface Entry { source: string; record_id: string; integrity: string; event: {
 export default function Auditoria() {
   const { data: me } = useMe();
   const [action, setAction] = useState("");
-  const [record, setRecord] = useState("");
-  const [filter, setFilter] = useState("");
+  const [params] = useSearchParams();
+  const initialRecord = params.get("registro")?.slice(0, 128) ?? "";
+  const [record, setRecord] = useState(initialRecord);
+  const [filter, setFilter] = useState(initialRecord);
   const audit = useQuery({ queryKey: ["operational-audit", action, filter], enabled: me?.role === "admin",
     queryFn: () => apiGet<{ events: Entry[]; signing_configured: boolean }>(`/audit/operations?limit=100&action=${encodeURIComponent(action)}&record_id=${encodeURIComponent(filter)}`) });
   const alerts = useQuery({ queryKey: ["audit-alerts"], enabled: me?.role === "admin", queryFn: () => apiGet<{ alerts: { id: string; severity: string; reason: string; actor: { id: string; name: string }; count: number }[]; sample_size: number; sample_limit_reached: boolean }>("/audit/alerts") });
