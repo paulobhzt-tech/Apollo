@@ -81,9 +81,10 @@ jobs:
           node --check scripts/build-web.js
           node --check main.js
           node --check preload.js
+          $tokens = $null
           $errors = $null
           [System.Management.Automation.Language.Parser]::ParseFile(
-            (Join-Path (Get-Location) 'scripts/diagnosticar-impressoras.ps1'), [ref]$null, [ref]$errors
+            (Join-Path (Get-Location) 'scripts/diagnosticar-impressoras.ps1'), [ref]$tokens, [ref]$errors
           ) | Out-Null
           if ($errors) { throw ($errors | Out-String) }
       - name: Testar deteccao do servidor e atualizacao da configuracao
@@ -140,7 +141,6 @@ jobs:
             desktop/dist/Apollo-PDV-Setup.exe
             desktop/dist/latest.yml
             desktop/dist/*.blockmap
-            desktop/scripts/diagnosticar-impressoras.ps1
           if-no-files-found: error
           retention-days: 14
       - name: Publicar logs da homologacao Windows
