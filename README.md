@@ -1,0 +1,22 @@
+# Apollo PDV 3.0.1 — consolidação operacional P63
+
+**Candidata de laboratório.** Código em `feat/p63-final-consolidacao-operacional`, commit [99d3760a5f3202d8372b5c47da041dc03b969bc8](https://github.com/paulobhzt-tech/Apollo/commit/99d3760a5f3202d8372b5c47da041dc03b969bc8). A base integrada é `6795a35d4b7d7a6d539fb5fa6da3b66b25f84f11`, que já contém `b3b470a`, os três registros físicos e a correção de vias. As branches de interface, Docker e rollback P62 são ancestrais. A branch de evidências anterior tem histórico próprio de artefatos.
+
+## Código e evidências
+
+- As mudanças preservam a serialização no processo Electron e as duas submissões de uma via na TM-T20X. O cadastro permite habilitar cálculo de comprimento para 58 e 80 mm em uma fila nomeada. O Chromium mede o corpo com JavaScript da página desativado. O perfil usa 100 mm de mínimo e 297 mm de limite por página. Medição inválida encerra o envio antes do spooler.
+- O ensaio Docker cria uma instância MongoDB em rede descartável, inicia a base anterior, faz backup sintético, valida a candidata, reinicia, volta à imagem anterior e restaura em uma nova base. A API, o HTML servido, o SHA do build e os marcadores de persistência são conferidos em cada etapa relevante.
+- O [diff completo](https://github.com/paulobhzt-tech/Apollo/compare/6795a35...99d3760) traz os commits e arquivos alterados.
+- Verificação local com 67 testes Vitest, 8 testes Pytest de impressão, fila e autorização com MongoDB descartável e 26 testes Node de Electron/desktop. O manifesto Web local verificou 37 arquivos.
+- [Renderização simulada](impressao-simulada.jsonl) de 1, 3, 10, 20, 50 e 100 itens em 58 e 80 mm. Extração de PDF conferiu identificadores, acentos e total nas 12 combinações. [Comprovante curto](pdf/80mm-1.pdf) · [Comprovante paginado](pdf/80mm-100.pdf). Para repetir com Chromium e pdftotext no Linux, instale dependências de `tests` no checkout da candidata e rode `node ensaio-renderizacao.cjs /caminho/do/Apollo ./pdf-gerado`.
+- [Regressão térmica em Windows](https://github.com/paulobhzt-tech/Apollo/actions/runs/45555162146) · [Bateria geral](https://github.com/paulobhzt-tech/Apollo/actions/runs/45555162176) · [Validação CI de segurança e build](https://github.com/paulobhzt-tech/Apollo/actions/runs/45555162011) · [Playwright e screenshots](https://github.com/paulobhzt-tech/Apollo/actions/runs/45555184246).
+
+## Artefatos e operação
+
+- [Docker, rollback, Web/PWA, manifestos e logs do ensaio](https://github.com/paulobhzt-tech/Apollo/actions/runs/45555175931/artifacts/14995871609). O ensaio passou. A restauração registrou 18 documentos recuperados e zero falhas.
+- [Instalador Windows de teste](https://github.com/paulobhzt-tech/Apollo/actions/runs/45555179871/artifacts/14995542036) · [Logs Windows](https://github.com/paulobhzt-tech/Apollo/actions/runs/45555179871) · [SHA-256 dos artefatos](SHA256-ARTEFATOS.txt).
+- [Guia de instalação, Epson e auditoria da VPS](INSTALACAO-E-HOMOLOGACAO.md) · [Controle de aceitação](ACEITACAO.md).
+
+## Ponto de continuidade
+
+O P0 continua aberto. A Central usa a janela do Apollo no Windows. O Print Bridge independente, o estado recuperável por via e a contingência offline de impressão permanecem pendentes. A evidência física do proprietário é do PowerShell. A homologação pelo Apollo depende da Epson no Windows autorizado e inclui corte, falha entre vias, comprovantes longos e todos os setores. A VPS depende de acesso administrativo e prova de isolamento. Estoque, financeiro e carga integrada ainda precisam da execução completa do cenário da Espeteria com dados fictícios. Consulte o controle de aceitação para as áreas de gestão e expansão sem evidência nesta etapa.

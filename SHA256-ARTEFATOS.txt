@@ -1,0 +1,5 @@
+Commit de origem: 99d3760a5f3202d8372b5c47da041dc03b969bc8
+bb298d95decaf8aa8cbaeed8941b28a15b1589fd7e9cc96fab0150eb347f4f94  Apollo-P63-Docker-99d3760a5f3202d8372b5c47da041dc03b969bc8.zip (ZIP do Actions)
+ebd39b1d3a5ddd5ac6b9070b92ecbe704306e465c1b590f71226196a6262b6ad  Apollo-PDV-Setup-test.zip (ZIP do Actions)
+ID da imagem candidata: sha256:25968d1cac2a895b37d3dc22baefdbdad58bda926612e9c9e6f547cc886bb8e3
+Dentro do ZIP Docker, SHA256SUMS.txt, SHA256WEB.txt e SHA256ROLLBACK.txt identificam cada arquivo empacotado.
