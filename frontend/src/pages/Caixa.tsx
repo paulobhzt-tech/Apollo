@@ -22,7 +22,15 @@ const inv = () => { void queryClient.invalidateQueries({ queryKey: ["cash"] }); 
 export default function Caixa() {
   const { offline } = useOffline();
   const current = useQuery({ queryKey: ["cash", "current"], queryFn: () => apiGet<CashSession | null>("/cash/current"), refetchInterval: 15000 });
-  const history = useQuery({ queryKey: ["cash", "history"], queryFn: () => apiGet<CashSession[]>("/cash/history") });
+  const [historyStart, setHistoryStart] = useState("");
+  const [historyEnd, setHistoryEnd] = useState("");
+  const validHistory = !historyStart || !historyEnd || historyStart <= historyEnd;
+  const historyParams = new URLSearchParams({ start: historyStart, end: historyEnd });
+  const history = useQuery({
+    queryKey: ["cash", "history", historyStart, historyEnd],
+    queryFn: () => apiGet<CashSession[]>(`/cash/history?${historyParams}`),
+    enabled: validHistory,
+  });
   const [opening, setOpening] = useState("0,00");
   const [openingNote, setOpeningNote] = useState("");
   const [closingNote, setClosingNote] = useState("");
@@ -42,11 +50,11 @@ export default function Caixa() {
   const consult = async () => {
     setChecking(true);
     try {
-      const [turn, ledger] = await Promise.all([
+      const [turn] = await Promise.all([
         current.refetch({ throwOnError: true }),
-        history.refetch({ throwOnError: true }),
+        queryClient.fetchQuery({ queryKey: ["cash", "history", "", ""], queryFn: () => apiGet<CashSession[]>("/cash/history") }),
       ]);
-      if (!turn.isSuccess || !ledger.isSuccess) return;
+      if (!turn.isSuccess) return;
       setNeedsReview(false);
       toast.info("Caixa atualizado. Confira as movimentações e o histórico antes de continuar.");
     } catch (error) {
@@ -106,6 +114,10 @@ export default function Caixa() {
         </div>
       ) : (
         <>
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <span className="rounded-md bg-emerald-500/15 px-3 py-1 text-sm font-medium text-emerald-300">Caixa aberto</span>
+            <span className="text-sm text-muted-foreground">Turno {s.id.slice(0, 8)}</span>
+          </div>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat label="Aberto por" value={s.opened_by_name.split(" ")[0]} hint={fmtDateTime(s.opened_at)} testid="cash-opened-by" />
             <Stat label="Vendas no turno" value={String(s.sales_count)} hint={brl(s.sales_total)} testid="cash-sales-count" />
@@ -137,11 +149,6 @@ export default function Caixa() {
               <Input aria-label="Motivo da movimentação" placeholder="Motivo" value={moveNote} onChange={(e) => setMoveNote(e.target.value)} className="mt-2" data-testid="cash-move-note-input" />
               <p className="mt-1 text-xs text-zinc-500">Informe um valor positivo e o motivo da movimentação.</p>
               <Button className="mt-3 h-11 w-full" disabled={offline || updating || movementAmount === null || movementAmount <= 0 || moveNote.trim().length < (moveType === "sangria" ? 3 : 1)} onClick={() => move.mutate()} data-testid="cash-move-button">Registrar</Button>
-              <ul className="mt-3 space-y-1 text-xs">
-                {s.movements.map((m, i) => (
-                  <li key={i} className="flex justify-between text-zinc-400"><span>{m.type} · {m.note || "—"}</span><span className={cn("font-mono", m.type === "sangria" ? "text-red-300" : "text-emerald-300")}>{brl(m.amount)}</span></li>
-                ))}
-              </ul>
             </Panel>
             <Panel title="Fechamento" actions={<Button size="xs" variant="outline" onClick={() => setPrinting(s)} data-testid="cash-print-partial"><Printer className="size-3" /> Imprimir parcial</Button>}>
               <p className="text-sm text-zinc-400">Conte o dinheiro na gaveta e informe o valor.</p>
@@ -151,14 +158,38 @@ export default function Caixa() {
               <Button variant="destructive" className="mt-3 h-11 w-full" disabled={offline || updating || countedAmount === null} onClick={() => window.confirm("Confirmar fechamento do caixa?") && close.mutate()} data-testid="cash-close-button"><LockKeyhole /> Fechar caixa</Button>
             </Panel>
           </div>
+          <Panel title="Movimentações manuais do turno" className="mt-4">
+            <Table aria-label="Movimentações manuais do turno">
+              <TableHeader><TableRow><TableHead>Data e hora</TableHead><TableHead>Tipo</TableHead><TableHead>Operador</TableHead><TableHead>Motivo</TableHead><TableHead className="text-right">Entrada</TableHead><TableHead className="text-right">Saída</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {s.movements.map((movement, index) => <TableRow key={`${movement.at}-${index}`}>
+                  <TableCell>{fmtDateTime(movement.at)}</TableCell>
+                  <TableCell>{movement.type === "sangria" ? "Sangria" : "Suprimento"}</TableCell>
+                  <TableCell>{movement.by_name}</TableCell>
+                  <TableCell className="min-w-40 whitespace-normal break-words">{movement.note}</TableCell>
+                  <TableCell className="text-right">{movement.type === "suprimento" ? brl(movement.amount) : "—"}</TableCell>
+                  <TableCell className="text-right">{movement.type === "sangria" ? brl(movement.amount) : "—"}</TableCell>
+                </TableRow>)}
+                {!s.movements.length && <TableRow><TableCell colSpan={6} className="text-muted-foreground">Nenhuma movimentação manual neste turno.</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </Panel>
         </>
       )}
-      <h3 className="mb-3 mt-8 text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-400">Turnos anteriores</h3>
-      <div className="rounded-2xl border border-white/5 bg-panel">
-        <Table>
+      <Panel title="Turnos anteriores" className="mt-6">
+        <div className="mb-4 flex flex-wrap items-end gap-3">
+          <Label className="grid gap-1">Fechados a partir de<Input type="date" value={historyStart} onChange={(event) => setHistoryStart(event.target.value)} /></Label>
+          <Label className="grid gap-1">Fechados até<Input type="date" value={historyEnd} onChange={(event) => setHistoryEnd(event.target.value)} /></Label>
+          <Button variant="outline" onClick={() => { setHistoryStart(""); setHistoryEnd(""); }}>Limpar datas</Button>
+        </div>
+        {!validHistory && <p role="alert" className="text-sm text-amber-300">A data inicial deve ser igual ou anterior à final.</p>}
+        {validHistory && history.isLoading && <p role="status" className="text-sm text-muted-foreground">Consultando turnos…</p>}
+        {validHistory && history.isError && <p role="alert" className="text-sm text-red-300">{errMsg(history.error)}</p>}
+        {validHistory && !history.isError && history.data && <Table aria-label="Turnos anteriores">
           <TableHeader><TableRow><TableHead>Abertura</TableHead><TableHead>Fechamento</TableHead><TableHead>Operador</TableHead><TableHead className="text-right">Vendas</TableHead><TableHead className="text-right">Esperado</TableHead><TableHead className="text-right">Contado</TableHead><TableHead className="text-right">Diferença</TableHead><TableHead /></TableRow></TableHeader>
           <TableBody>
-            {(history.data ?? []).map((h) => (
+            {!history.data.length && <TableRow><TableCell colSpan={8} className="text-muted-foreground">Nenhum turno encerrado no período.</TableCell></TableRow>}
+            {history.data.map((h) => (
               <TableRow key={h.id} data-testid={`cash-history-${h.id}`}>
                 <TableCell className="text-xs">{fmtDateTime(h.opened_at)}</TableCell>
                 <TableCell className="text-xs">{fmtDateTime(h.closed_at)}</TableCell>
@@ -167,12 +198,13 @@ export default function Caixa() {
                 <TableCell className="text-right font-mono">{brl(h.expected_cash)}</TableCell>
                 <TableCell className="text-right font-mono">{brl(h.counted_amount ?? 0)}</TableCell>
                 <TableCell className={cn("text-right font-mono", h.difference < 0 ? "text-red-300" : h.difference > 0 ? "text-amber-300" : "text-emerald-300")}>{brl(h.difference)}</TableCell>
-                <TableCell className="text-right"><Button size="icon-xs" variant="ghost" onClick={() => setPrinting(h)} data-testid={`cash-print-${h.id}`}><Printer /></Button></TableCell>
+                <TableCell className="text-right"><Button size="icon-xs" variant="ghost" aria-label="Imprimir fechamento" onClick={() => setPrinting(h)} data-testid={`cash-print-${h.id}`}><Printer /></Button></TableCell>
               </TableRow>
             ))}
           </TableBody>
-        </Table>
-      </div>
+        </Table>}
+        {history.data?.length === 60 && <p className="mt-3 text-sm text-muted-foreground">Exibindo os 60 fechamentos mais recentes do período.</p>}
+      </Panel>
       {printing && <ClosingReport s={printing} />}
     </AppShell>
   );

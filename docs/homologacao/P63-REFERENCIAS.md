@@ -28,12 +28,12 @@ As referências estão numeradas na ordem de envio. Os destinos abaixo identific
 | 22 | Histórico de pedidos | Histórico de Vendas. Consulta existente. Representação de pedidos abertos na mesma grade pendente. |
 | 23 | Histórico por item | Histórico de Vendas. Tela analítica por item pendente. |
 | 24 | Ranking por colaborador | Painel e Funcionários. Relatório dedicado e filtros pendentes. |
-| 25 | Histórico de abertura e fechamento | Caixa. Histórico existente. Grade e filtros específicos pendentes. |
+| 25 | Histórico de abertura e fechamento | Caixa. Grade de turnos com filtro de fechamento aplicado no servidor, preservando o escopo do operador. Cenários de intervalo vazio e inválido no teste visual. |
 | 26 | Visão geral Meu Negócio | Painel e Financeiro. Indicadores próprios do Apollo existentes. |
 | 27 | Visão geral Meu Delivery | Delivery. Painel analítico dedicado pendente. |
 | 28 | Recebimentos de pedidos e fiado | Caixa, Financeiro e Fiado. Visão unificada pendente. |
 | 29 | Resumo financeiro por data | Financeiro. Grade de saldo previsto e realizado por período pendente. |
-| 30 | DRE simplificado anual | Financeiro. DRE existente. Comparação anual em grade pendente. |
+| 30 | DRE simplificado anual | Financeiro. Comparação do ano selecionado com o anterior, usando o DRE do servidor. Grade com receita, CMV, comissões e resultado. Séries mensais pendentes. |
 | 31 | Posição de estoque por data | Estoque. Posição histórica equivalente pendente. |
 | 32 | Navegação de aplicativos | Apps. Módulos Apollo existentes. Integrações de hardware e serviços específicos pendentes. |
 | 33 | Navegação de configurações sobre o salão | Configurações e Mesas. Impressoras agora ficam em Configurações. |
@@ -53,7 +53,7 @@ As referências estão numeradas na ordem de envio. Os destinos abaixo identific
 | 47 | Login com operador preenchido | Login. Memorizar usuário e mostrar senha existentes. |
 | 48 | Aviso de senha memorizada | Login. A preferência do Apollo guarda o usuário. |
 | 49 | Navegação Principal | Atalhos para as funções operacionais existentes. |
-| 50 | Caixa aberto, movimentação e resumo | Caixa. Abertura, lançamentos, conferência e fechamento existentes. Revisão visual pendente. |
+| 50 | Caixa aberto, movimentação e resumo | Caixa. Estado do turno, resumo de pagamentos, sangria, suprimento, conferência e tabela de movimentações manuais. Detalhamento de cada venda na grade pendente. |
 | 51 | Mesas livres e pedidos em andamento | Mesas. Controles de consumo, tempo e tamanho dos cartões implementados. |
 | 52 | Atendimento, detalhes, ações e pagamento | Mesas. Rodapé fixo e ações rápidas ligadas à conta e à exibição existentes. |
 | 53 | Catálogo de lançamento e busca | Mesas e PDV. Categorias laterais em tela larga, cartões e lista. |
@@ -78,3 +78,38 @@ As referências estão numeradas na ordem de envio. Os destinos abaixo identific
 | 67 | PIX manual, chave e transação | Chaves cadastradas, ID da transação e conferência manual pelo operador. |
 | 68 | Crédito e seleção de bandeira | Bandeiras configuradas, referência do comprovante e observação. POS, autorização e NSU manuais, com validação, persistência e auditoria. |
 | 69 | Débito e seleção de bandeira | Mesmos controles do crédito, com registro auditado como débito. A integração com um terminal físico depende de homologação específica. |
+
+## Verificação administrativa da homologação
+
+O manifesto público consultado por HTTPS informa o Apollo PDV 3.0.1 e o SHA `e4d4e1acbc1be7777913df802011580e27d7ccdd`. A sessão de trabalho não apresentou console, identidade de saída ou credencial administrativa da VPS. A publicação está condicionada à comprovação de isolamento, ao backup e ao ensaio de recuperação da instalação identificada no host.
+
+No console já autorizado, use os comandos abaixo com os nomes e caminhos confirmados pelo administrador. Saídas com topologia ou nomes de contas devem ficar no canal administrativo.
+
+```bash
+# Identificar o VirtualHost carregado, seu arquivo e os listeners.
+apachectl -S
+ss -lntp
+
+# Verificar arquivos selecionados pelo DocumentRoot e permissões de toda a cadeia.
+readlink -f -- "$P63_WEB_ROOT"
+namei -l -- "$P63_WEB_ROOT"
+stat -c '%A %U:%G %n' -- "$P63_WEB_ROOT" "$P63_BUILD_ROOT" "$P63_BACKUP_DIR"
+sha256sum -- "$P63_WEB_ROOT/build-integrity.json" "$P63_WEB_ROOT/sw.js" "$P63_WEB_ROOT/index.html"
+
+# Backend gerenciado pelo systemd.
+systemctl show "$P63_BACKEND_UNIT" -p Id -p ActiveState -p MainPID -p User -p Group -p WorkingDirectory -p EnvironmentFiles
+
+# Para serviços em Docker, repetir por contêiner já identificado.
+docker inspect --format '{{.Name}} {{.Image}} {{.Config.User}} {{json .HostConfig.PortBindings}}' "$P63_CONTAINER"
+docker inspect --format '{{range .Mounts}}{{println .Type .Name .Source .Destination .RW}}{{end}}' "$P63_CONTAINER"
+docker inspect --format '{{range $name, $network := .NetworkSettings.Networks}}{{println $name $network.NetworkID}}{{end}}' "$P63_CONTAINER"
+
+# Confirmar TLS e o manifesto servido.
+openssl s_client -connect homologacao.apollo-pdv.com:443 -servername homologacao.apollo-pdv.com -verify_hostname homologacao.apollo-pdv.com -verify_return_error </dev/null
+curl --fail --silent --show-error https://homologacao.apollo-pdv.com/build-integrity.json
+
+# Inventariar os backups dedicados já existentes por tamanho e data.
+find "$P63_BACKUP_DIR" -maxdepth 1 -type f -printf '%f %s bytes %TY-%Tm-%Td %TH:%TM\n'
+```
+
+Confira a origem efetiva de cada regra do VirtualHost e compare o proxy, o serviço, o banco e o namespace, as identidades e permissões de serviço, as redes, as montagens e os diretórios de fila e impressão com o inventário administrativo de produção. Inspecione localmente as referências das variáveis e dos segredos. Registre somente quais recursos são exclusivos, quais são compartilhados e a evidência redigida de cada conclusão. Uma conexão administrativa MongoDB já ativa permite verificar as funções da conta com `db.runCommand({ connectionStatus: 1, showPrivileges: true })`. Mantenha usuários e privilégios no console e confirme os recursos autorizados. Preserve a versão instalada e teste a leitura do backup e a restauração em destino descartável antes de qualquer troca. O procedimento de troca de estáticos fica em [P60](./P60-APOLLO-3.0.1.md#procedimento-de-ativação-e-rollback).

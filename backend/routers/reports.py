@@ -220,6 +220,8 @@ async def dre(start: Optional[str] = None, end: Optional[str] = None, _: dict = 
     if s >= e:
         raise HTTPException(400, "Data inicial deve ser anterior à final")
     orders = await paid_between(s, e)
+    if len(orders) == 50000:
+        raise HTTPException(422, "Limite de vendas atingido. Consulte um período menor.")
     gross = round(sum(o["subtotal"] + o.get("service_fee", 0) + o.get("delivery_fee", 0) for o in orders), 2)
     discounts = round(sum(o.get("discount", 0) for o in orders), 2)
     mfees = round(sum(o.get("marketplace_fee", 0) for o in orders), 2)
@@ -243,10 +245,14 @@ async def dre(start: Optional[str] = None, end: Optional[str] = None, _: dict = 
                                     "pct": emp["commission_pct"], "commission": round(sales * emp["commission_pct"] / 100, 2)})
     commissions = round(sum(c["commission"] for c in commission_list), 2)
     exps = await db.expenses.find({"date": {"$gte": start, "$lte": end}}, {"_id": 0}).to_list(5000)
+    if len(exps) == 5000:
+        raise HTTPException(422, "Limite de despesas atingido. Consulte um período menor.")
     exp_cat: dict[str, float] = {}
     for x in exps:
         exp_cat[x["category"]] = exp_cat.get(x["category"], 0) + x["amount"]
     paid_bills = await db.bills.find({"status": "pago", "paid_date": {"$gte": start, "$lte": end}}, {"_id": 0}).to_list(10000)
+    if len(paid_bills) == 10000:
+        raise HTTPException(422, "Limite de contas atingido. Consulte um período menor.")
     bills_paid = 0.0
     other_revenue = 0.0
     for b in paid_bills:

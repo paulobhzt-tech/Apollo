@@ -16,7 +16,7 @@ from lib.cash_scope import cash_scope, independent_cash, claim_cash, prepare_cas
 from lib.auth import cancel_authorizer, current_user, require
 from lib.sync_identity import validate_sync_context
 from lib.db import db
-from lib.orders import (MARKET_FEES, build_items, create_ticket, current_cash, emit_invoice, finalize_payment,
+from lib.orders import (MARKET_FEES, build_items, create_ticket, current_cash, day_bounds, emit_invoice, finalize_payment,
                         fiado_reverse, free_table, method_totals, move_stock, new_order, now, pay_key, refresh_totals)
 from models.schemas import (CancelIn, CashCloseIn, CashMovement, CashMoveIn, CashOpenIn, CashSession,
                             DeliveryStatusIn, EmitInvoiceIn, Invoice, KitchenTicket, Order, OrderItem,
@@ -479,10 +479,23 @@ async def cash_current(user: dict = Depends(require("caixa"))):
 
 
 @router.get("/cash/history", response_model=list[CashSession])
-async def cash_history(user: dict = Depends(require("caixa"))):
+async def cash_history(user: dict = Depends(require("caixa")), start: str = "", end: str = ""):
     query = {"status": "fechado"}
     if independent_cash() and user.get("role") != "admin":
         query["opened_by_id"] = user["id"]
+    if start or end:
+        try:
+            lower = day_bounds(start)[0] if start else None
+            upper = day_bounds(end)[1] if end else None
+            if lower and upper and lower >= upper:
+                raise ValueError
+        except ValueError:
+            raise HTTPException(422, "Intervalo de fechamento inválido") from None
+        query["closed_at"] = {}
+        if lower is not None:
+            query["closed_at"]["$gte"] = lower
+        if upper is not None:
+            query["closed_at"]["$lt"] = upper
     return await db.cash_sessions.find(query, {"_id": 0}).sort("closed_at", -1).to_list(60)
 
 

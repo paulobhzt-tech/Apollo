@@ -43,6 +43,27 @@ for (const theme of ['dark', 'light'] as const) {
         await capture(route || 'painel');
       });
     }
+    if (theme === 'dark') {
+      for (const width of [390, 768, 1366]) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(base + '/caixa');
+        const start = page.getByLabel('Fechados a partir de');
+        const end = page.getByLabel('Fechados até');
+        await expect(start).toBeVisible();
+        await start.fill('2001-01-03');
+        await end.fill('2001-01-02');
+        await expect(page.getByRole('alert')).toContainText('A data inicial deve');
+        await end.fill('2001-01-03');
+        await expect(page.getByText('Nenhum turno encerrado no período.')).toBeVisible();
+        await capture(`caixa-periodo-${width}`);
+
+        await page.goto(base + '/financeiro');
+        await page.getByRole('button', { name: 'Comparar anos' }).click();
+        const annual = page.getByRole('table', { name: 'Comparação anual do DRE' });
+        await expect(annual.getByRole('row')).toHaveCount(6);
+        await capture(`dre-anual-${width}`);
+      }
+    }
     expect(errors).toEqual([]);
   });
 }

@@ -306,11 +306,53 @@ function OpeningWeekdays({ dre }: { dre?: Dre }) {
   </details>;
 }
 
+const annualLines = [
+  ["Receita bruta", "gross_revenue"],
+  ["Receita líquida", "net_revenue"],
+  ["CMV", "cmv"],
+  ["Comissões", "commissions"],
+  ["Lucro líquido", "net_profit"],
+] as const;
+
+function AnnualDre({ year }: { year: number }) {
+  const period = (value: number) => apiGet<Dre>(`/reports/dre?start=${String(value).padStart(4, "0")}-01-01&end=${String(value).padStart(4, "0")}-12-31`);
+  const comparison = useQuery({
+    queryKey: ["dre", "annual", year],
+    queryFn: async () => Promise.all([period(year - 1), period(year)]),
+  });
+
+  const results = comparison.isError ? undefined : comparison.data;
+
+  return <Panel title="Comparação anual do DRE" className="mb-5">
+    {comparison.isLoading && <p role="status" className="text-sm text-muted-foreground">Consultando a comparação anual…</p>}
+    {comparison.isError && <p role="alert" className="text-sm text-red-400">{errMsg(comparison.error)}</p>}
+    {results && <Table aria-label="Comparação anual do DRE">
+      <TableHeader><TableRow>
+        <TableHead>Indicador</TableHead>
+        <TableHead className="text-right">{year - 1}</TableHead>
+        <TableHead className="text-right">{year}</TableHead>
+        <TableHead className="text-right">Diferença</TableHead>
+      </TableRow></TableHeader>
+      <TableBody>{annualLines.map(([label, field]) => {
+        const [previous, selected] = results;
+        return <TableRow key={field}>
+          <TableCell>{label}</TableCell>
+          <TableCell className="text-right">{brl(previous[field])}</TableCell>
+          <TableCell className="text-right">{brl(selected[field])}</TableCell>
+          <TableCell className="text-right">{brl(selected[field] - previous[field])}</TableCell>
+        </TableRow>;
+      })}</TableBody>
+    </Table>}
+  </Panel>;
+}
+
 export default function Financeiro() {
   const now = new Date();
+  const [showAnnual, setShowAnnual] = useState(false);
   const [start, setStart] = useState(isoLocal(new Date(now.getFullYear(), now.getMonth(), 1)));
   const [end, setEnd] = useState(isoLocal(now));
   const validPeriod = !!start && !!end && start <= end;
+  const comparisonYear = validPeriod && /^\d{4}-\d{2}-\d{2}$/.test(end) ? Number(end.slice(0, 4)) : 0;
   const dre = useQuery({ queryKey: ["dre", start, end], queryFn: () => apiGet<Dre>(`/reports/dre?start=${start}&end=${end}`), enabled: validPeriod });
   const d = dre.isError ? undefined : dre.data;
   const intelligence = useQuery({ queryKey: ["sales-intelligence", start, end], queryFn: () => apiGet<{ top: { product_id: string; name: string; qty: number; revenue: number }[]; least: { product_id: string; name: string; qty: number; revenue: number }[]; unsold: { id: string; name: string }[]; note: string }>(`/reports/sales-intelligence?start=${start}&end=${end}`), enabled: validPeriod });
@@ -323,14 +365,16 @@ export default function Financeiro() {
         <>
           <Button size="sm" variant="outline" onClick={() => preset(7)} data-testid="dre-preset-7">7 dias</Button>
           <Button size="sm" variant="outline" onClick={() => preset(30)} data-testid="dre-preset-30">30 dias</Button>
-          <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} className="w-40" data-testid="dre-start-input" />
-          <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="w-40" data-testid="dre-end-input" />
+          <Input aria-label="Início do período financeiro" type="date" value={start} onChange={(e) => setStart(e.target.value)} className="w-40" data-testid="dre-start-input" />
+          <Input aria-label="Fim do período financeiro" type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="w-40" data-testid="dre-end-input" />
+          <Button size="sm" variant="outline" aria-pressed={showAnnual} disabled={comparisonYear < 2} onClick={() => setShowAnnual(!showAnnual)}>Comparar anos</Button>
         </>
       } />
       {(!start || !end) && <p role="status" className="mb-4 text-sm text-muted-foreground">Informe as duas datas para consultar o período.</p>}
       {start > end && <p role="alert" className="mb-4 text-sm text-amber-300">A data inicial não pode ser posterior à data final.</p>}
       {validPeriod && dre.isLoading && <p role="status" className="mb-4 text-sm text-muted-foreground">Carregando o DRE do período…</p>}
       {dre.isError && <p role="alert" className="mb-4 text-sm text-red-400">{errMsg(dre.error)}</p>}
+      {showAnnual && comparisonYear >= 2 && <AnnualDre year={comparisonYear} />}
       <OperatingCosts dre={d} />
       <BreakEvenPanel dre={d} />
       <OpeningWeekdays dre={d} />
