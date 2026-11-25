@@ -64,6 +64,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
     return list.filter((m) => m.active && (!partialMode || m.key !== "fiado")).sort((a, b) => a.sort - b.sort).map((m) => ({ m: m.key, label: m.name, icon: ICONS[m.key] ?? Ticket }));
   }, [cfg.data, partialMode]);
   const [amount, setAmount] = useState("");
+  const [cardFields, setCardFields] = useState({ pos_terminal: "", authorization_code: "", nsu: "" });
   const [brand, setBrand] = useState<CardBrand | null>(null);
   const isCard = method === "credito" || method === "debito";
   const [fiadoId, setFiadoId] = useState("");
@@ -98,9 +99,13 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
   const availableBrands = settings.data?.card_brands ?? BRANDS;
   const duplicatePix = method === "pix" && payments.some((payment) => payment.method === "pix" &&
     payment.details?.reference.trim().toLowerCase() === reference.trim().toLowerCase());
+  const cardCodesValid = [cardFields.authorization_code, cardFields.nsu].every((code) => /^[a-z0-9._/-]*$/i.test(code.trim()));
+  const cardDetails = isCard ? {
+    pos_terminal: cardFields.pos_terminal.trim(), authorization_code: cardFields.authorization_code.trim(), nsu: cardFields.nsu.trim(),
+  } : {};
   const canAdd = !pending && validDiscount && methodsReady && roundedValue > 0 && remaining > 0 &&
     (method === "dinheiro" || roundedValue <= remaining) &&
-    (!isCard || (brand !== null && availableBrands.includes(brand))) && (method !== "fiado" || !!fiadoCust) &&
+    (!isCard || (brand !== null && availableBrands.includes(brand) && cardCodesValid)) && (method !== "fiado" || !!fiadoCust) &&
     (method !== "pix" || (pixReceived && !!reference.trim() && !duplicatePix));
 
   function updateAmount(next: number) {
@@ -111,13 +116,15 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
   function selectMethod(next: PayMethod) {
     if (next === method) return;
     setMethod(next);
+    setCardFields({ pos_terminal: "", authorization_code: "", nsu: "" });
     setConfirmedPixAmount(null);
     setReference("");
   }
 
   function add() {
     if (!canAdd) return;
-    const details = method === "pix" || note.trim() || reference.trim() ? {
+    const details = method === "pix" || note.trim() || reference.trim() || Object.values(cardDetails).some(Boolean) ? {
+      ...cardDetails,
       note: note.trim(), reference: reference.trim(),
       pix_key_label: method === "pix" ? pixKey?.label ?? "" : "",
       pix_received: method === "pix" && pixReceived,
@@ -125,6 +132,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
     setPayments((current) => [...current, { method, amount: roundedValue, brand: isCard ? brand : null, details }]);
     setAmount("");
     setNote("");
+    setCardFields({ pos_terminal: "", authorization_code: "", nsu: "" });
     setReference("");
     setConfirmedPixAmount(null);
   }
@@ -181,6 +189,19 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
                 ))}
               </div>
               {!brand && <p className="text-xs text-amber-300">Selecione a bandeira para adicionar o pagamento.</p>}
+              <div className="grid gap-2 sm:grid-cols-2">
+                {([
+                  ["pos_terminal", "Terminal POS", 80], ["authorization_code", "Nº de autorização", 40], ["nsu", "NSU", 40],
+                ] as const).map(([field, label, limit]) => (
+                  <label className="block text-xs text-muted-foreground" key={field}>
+                    {label}
+                    <Input className="mt-1" disabled={pending} maxLength={limit} value={cardFields[field]}
+                      onChange={(event) => setCardFields((current) => ({ ...current, [field]: event.target.value }))} />
+                  </label>
+                ))}
+              </div>
+              {!cardCodesValid && <p role="alert" className="text-xs text-destructive">Use letras, números ou os sinais . _ / - na autorização e no NSU.</p>}
+
             </div>
           )}
           {method === "fiado" && (
@@ -265,6 +286,9 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
             {payments.map((p, i) => (
               <div key={i} className="flex items-center justify-between rounded-lg bg-panel px-3 py-2 text-sm" data-testid={`payment-line-${i}`}>
                 <span className="min-w-0 break-words">{payLabel(p.method, p.brand)}
+                  {p.details?.pos_terminal && <small className="block text-muted-foreground">POS {p.details.pos_terminal}</small>}
+                  {p.details?.authorization_code && <small className="block text-muted-foreground">Aut. {p.details.authorization_code}</small>}
+                  {p.details?.nsu && <small className="block text-muted-foreground">NSU {p.details.nsu}</small>}
                   {p.details?.reference && <small className="block text-zinc-400">Ref. {p.details.reference}</small>}
                 </span>
                 <span className="flex items-center gap-2 font-mono">

@@ -318,6 +318,15 @@ async def emit_invoice(order: dict, doc_type: str = "nfce", cpf: str = "", *, se
     return inv
 
 
+def card_payment_audit(pay: PayIn) -> dict:
+    entries = []
+    for index, payment in enumerate(pay.payments):
+        metadata = payment.details.card_metadata() if payment.details else {}
+        if metadata:
+            entries.append({"index": index, "method": payment.method, **metadata})
+    return {"card_transactions": entries} if entries else {}
+
+
 def validate_payment_details(pay: PayIn) -> None:
     references = set()
     for payment in pay.payments:
@@ -381,7 +390,7 @@ async def finalize_payment(order: dict, pay: PayIn, actor: dict | None = None, *
             "payment_recorded", actor or {}, correlation=order.get("client_ref") or "",
             reason=pay.discount_reason.strip(),
             values={**{k: upd[k] for k in ("total", "discount", "service_fee", "change")},
-                    "payment_methods": [payment.method for payment in pay.payments]},
+                    "payment_methods": [payment.method for payment in pay.payments], **card_payment_audit(pay)},
         )}}, **_session_args(session),
     )
     if result.modified_count != 1:

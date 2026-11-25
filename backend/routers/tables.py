@@ -11,7 +11,7 @@ from lib.cash_scope import cash_scope, claim_cash, independent_cash
 from lib.auth import authenticated_identity, cancel_authorizer, current_user, require
 from lib.db import client, db
 from lib.sync_identity import sync_context, validate_sync_context
-from lib.orders import (build_items, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods, validate_payment_details,
+from lib.orders import (build_items, card_payment_audit, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods, validate_payment_details,
                         refresh_totals)
 from models.schemas import (SaleQuantity, AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, OrderItem, PayIn, SaleResult, Table, TableIn,
                             OrderItemIn, SyncContext, TablePayIn, TableStatusIn, TableUpdate, TransferIn, table_label)
@@ -721,7 +721,7 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
                     waiter_name=order.get("waiter_name", ""),
                     audit_events=[audit_event("partial_payment_recorded", user, correlation=body.client_ref, reason=body.payment.discount_reason.strip(),
                         values={"total": total, "discount": body.payment.discount, "service_fee": service_fee,
-                                "change": max(0, change)})],
+                                "change": max(0, change), **card_payment_audit(body.payment)})],
                     cmv=round(sum(i["qty"] * i.get("unit_cost", 0) for i in chosen), 2)).model_dump()
                 receipt["parent_order_id"] = order["id"]
                 receipt["partial_table_id"] = id

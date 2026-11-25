@@ -4,7 +4,7 @@ from decimal import Decimal
 from datetime import datetime, timezone
 from typing import Annotated, Literal, Optional
 
-from pydantic import AfterValidator, BaseModel, BeforeValidator, Field, StringConstraints, model_validator
+from pydantic import AfterValidator, BaseModel, BeforeValidator, Field, StringConstraints, model_serializer, model_validator
 
 
 def _id() -> str:
@@ -316,12 +316,35 @@ class PaymentDetails(BaseModel):
     pix_key_label: str = Field(default="", max_length=80)
     pix_received: bool = False
 
+    pos_terminal: Annotated[str, StringConstraints(strip_whitespace=True, max_length=80)] = ""
+    authorization_code: Annotated[str, StringConstraints(strip_whitespace=True, max_length=40, pattern=r"^[A-Za-z0-9._/-]*$")] = ""
+    nsu: Annotated[str, StringConstraints(strip_whitespace=True, max_length=40, pattern=r"^[A-Za-z0-9._/-]*$")] = ""
+
+    def card_metadata(self) -> dict[str, str]:
+        return {field: value for field in ("pos_terminal", "authorization_code", "nsu")
+                if (value := getattr(self, field))}
+
+    @model_serializer(mode="wrap")
+    def preserve_legacy_details(self, handler):
+        data = handler(self)
+        # Blank new fields must not change fingerprints of already recorded payments.
+        for field in ("pos_terminal", "authorization_code", "nsu"):
+            if not data.get(field):
+                data.pop(field, None)
+        return data
+
 
 class Payment(BaseModel):
     method: PayMethod
     amount: float = Field(gt=0, allow_inf_nan=False)
     brand: Optional[CardBrand] = None
     details: Optional[PaymentDetails] = None
+
+    @model_validator(mode="after")
+    def validate_card_metadata(self):
+        if self.details and self.details.card_metadata() and self.method not in ("credito", "debito"):
+            raise ValueError("POS, autorização e NSU são exclusivos de crédito e débito")
+        return self
 
 
 class Refund(BaseModel):

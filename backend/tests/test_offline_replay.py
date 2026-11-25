@@ -142,6 +142,34 @@ def test_payment_details_keep_legacy_sale_fingerprint_compatible():
     assert operations.sale_fingerprint(body) != bound
 
 
+def test_card_metadata_is_optional_validated_and_auditable():
+    from pydantic import ValidationError
+    from lib.orders import card_payment_audit
+    from models.schemas import Payment
+
+    legacy_details = {"reference": "REF", "note": "", "pix_key_label": "", "pix_received": False}
+    legacy = Payment(method="credito", amount=10, brand="visa", details=legacy_details)
+    assert legacy.model_dump()["details"] == legacy_details
+
+    card = Payment(method="debito", amount=10, brand="visa",
+                   details={"pos_terminal": " Caixa 1 ", "authorization_code": "A-1", "nsu": "000012"})
+    assert card.model_dump()["details"]["nsu"] == "000012"
+    assert card.details.pos_terminal == "Caixa 1"
+    body = sale_body()
+    body.payments = [card]
+    assert card_payment_audit(body) == {"card_transactions": [
+        {"index": 0, "method": "debito", "pos_terminal": "Caixa 1", "authorization_code": "A-1", "nsu": "000012"},
+    ]}
+    fingerprint = operations.sale_fingerprint(body)
+    card.details.nsu = "000013"
+    assert operations.sale_fingerprint(body) != fingerprint
+
+    with pytest.raises(ValidationError):
+        Payment(method="pix", amount=10, details={"nsu": "012"})
+    with pytest.raises(ValidationError):
+        Payment(method="credito", amount=10, details={"authorization_code": "código com espaço"})
+
+
 @pytest.mark.asyncio
 async def test_paid_sale_with_pending_stock_cannot_be_acknowledged_as_complete():
     operations.db.orders.find_one.return_value = {
