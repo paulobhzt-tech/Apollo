@@ -66,3 +66,15 @@ As referências estão numeradas na ordem de envio. Os destinos abaixo identific
 | 60 | Prévia do cupom | Mesas. Pré-conta e impressão existentes. |
 | 61 | Transferir ou copiar itens selecionados | Mesas. Há transferência de atendimento e junção de contas. Transferência parcial entre atendimentos exige operação própria de movimentação. |
 | 62 | Delivery, pesquisa e lista de pedidos | Delivery. Operação existente. Revisão da disposição e dos filtros pendente. |
+
+## Pagamentos
+
+| Ref. | Tela e elemento observado | Situação no Apollo |
+| ---: | --- | --- |
+| 63 | Cliente selecionado no fiado | Seleção por ID, consulta de saldo e ação explícita de adicionar o lançamento ao cliente escolhido. |
+| 64 | Formas de pagamento e resumo | Formas configuradas, conferência, divisão por pessoas, taxas e descontos. Total pago, saldo e troco visíveis no rodapé. |
+| 65 | Dinheiro e valores rápidos | Preenchimento pelo saldo, valores rápidos, soma com Shift e limpeza do valor. |
+| 66 | Visão parcial do lançamento PIX | Mesmo seletor de valores com validação do limite da conta. |
+| 67 | PIX manual, chave e transação | Chaves cadastradas, ID da transação e conferência manual pelo operador. |
+| 68 | Crédito e seleção de bandeira | Bandeiras configuradas, referência do comprovante e observação. POS, autorização e NSU em campos independentes seguem pendentes. |
+| 69 | Débito e seleção de bandeira | Mesmos controles do crédito, com registro como débito. Integração com terminal de pagamento segue pendente. |

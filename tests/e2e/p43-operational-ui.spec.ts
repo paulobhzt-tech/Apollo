@@ -26,7 +26,14 @@ async function pay(page:Page,mixed=false, beforeConfirm?: () => Promise<void>, a
   const service=page.getByTestId('payment-service-checkbox');
   if(await service.isVisible()) await service.uncheck();
   if(mixed) {
-    await page.getByTestId('payment-amount-input').fill('5,00');
+    const amount = page.getByTestId('payment-amount-input');
+    await dialog.getByRole('button', { name: /R\$\s*5,00/ }).click();
+    await dialog.getByRole('button', { name: /R\$\s*2,00/ }).click({ modifiers: ['Shift'] });
+    await expect(amount).toHaveValue('7,00');
+    await dialog.getByRole('button', { name: 'Zerar valor' }).click();
+    await expect(amount).toHaveValue('0,00');
+    await dialog.getByRole('button', { name: /R\$\s*5,00/ }).click();
+    await expect(amount).toHaveValue('5,00');
     await page.getByTestId('payment-add-button').click();
     await page.getByTestId('payment-method-credito').click();
     await page.getByTestId('card-brand-visa').click();
@@ -34,6 +41,7 @@ async function pay(page:Page,mixed=false, beforeConfirm?: () => Promise<void>, a
   await page.getByTestId('payment-add-button').click();
   await expect(page.getByTestId('payment-remaining')).toContainText('0,00');
   await noOverflow(page);
+  await expect(page.getByTestId('payment-confirm-button')).toBeInViewport();
   await beforeConfirm?.();
   await page.getByTestId('payment-confirm-button').click();
   await afterConfirm?.();

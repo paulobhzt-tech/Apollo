@@ -38,7 +38,7 @@ interface Props {
 export default function PaymentDialog(props: Props) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-h-[94dvh] overflow-y-auto border-white/10 bg-elevated sm:max-w-[min(95vw,70rem)]" data-testid="payment-dialog">
+      <DialogContent className="flex max-h-[94dvh] flex-col gap-0 overflow-hidden border-border bg-elevated p-0 sm:max-w-[min(95vw,70rem)]" data-testid="payment-dialog">
         {props.open && <PaymentBody {...props} />}
       </DialogContent>
     </Dialog>
@@ -70,12 +70,14 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
   const customers = useQuery({ queryKey: ["customers"], queryFn: () => apiGet<FiadoCustomer[]>("/customers"), enabled: method === "fiado" });
   const fiadoCust = customers.data?.find((c) => c.id === fiadoId);
   const [discount, setDiscount] = useState("");
+  const [discountPercent, setDiscountPercent] = useState("");
   const [service, setService] = useState(defaultService > 0);
   const [splitN, setSplitN] = useState("1");
   const [emit, setEmit] = useState(!partialMode);
   const [docType, setDocType] = useState<"nfce" | "nfe">("nfce");
   const [cpf, setCpf] = useState("");
 
+  const percentageDiscount = previewBillShare(subtotal, "percentage", discountPercent);
   const discountAmount = discount.trim() ? cashAmount(discount) : 0;
   const validDiscount = discountAmount !== null && discountAmount >= 0 && discountAmount <= subtotal;
   const disc = validDiscount ? discountAmount : 0;
@@ -98,10 +100,16 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
     payment.details?.reference.trim().toLowerCase() === reference.trim().toLowerCase());
   const canAdd = !pending && validDiscount && methodsReady && roundedValue > 0 && remaining > 0 &&
     (method === "dinheiro" || roundedValue <= remaining) &&
-    (!isCard || (brand !== null && availableBrands.includes(brand))) && (method !== "fiado" || !!fiadoId) &&
+    (!isCard || (brand !== null && availableBrands.includes(brand))) && (method !== "fiado" || !!fiadoCust) &&
     (method !== "pix" || (pixReceived && !!reference.trim() && !duplicatePix));
 
+  function updateAmount(next: number) {
+    setAmount(next.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    setConfirmedPixAmount(null);
+  }
+
   function selectMethod(next: PayMethod) {
+    if (next === method) return;
     setMethod(next);
     setConfirmedPixAmount(null);
     setReference("");
@@ -133,11 +141,13 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
 
   return (
     <>
-      <DialogHeader>
+      <DialogHeader className="shrink-0 border-b border-border px-4 py-3 pr-12 sm:px-5 sm:pr-14">
         <DialogTitle className="font-heading text-xl text-foreground">{title}</DialogTitle>
       </DialogHeader>
-      <div className="grid min-w-0 gap-4 md:grid-cols-[10rem_minmax(0,1fr)] xl:grid-cols-[10rem_minmax(0,1fr)_minmax(17rem,1fr)]">
-          <nav aria-label="Formas de pagamento" className="grid content-start grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-1">
+      <div className="@container min-h-0 min-w-0 overflow-y-auto overscroll-contain p-3 sm:p-4">
+        <div className="grid min-w-0 gap-3 @min-[36rem]:grid-cols-[10rem_minmax(0,1fr)] @min-[59rem]:grid-cols-[10rem_minmax(0,1.3fr)_minmax(15rem,1fr)]">
+          <nav aria-label="Formas de pagamento" className="grid content-start grid-cols-2 gap-2 @min-[36rem]:grid-cols-1">
+            <p className="col-span-full text-xs font-semibold text-muted-foreground">Formas de pagamento</p>
             {METHODS.map(({ m, label, icon: Icon }) => (
               <button
                 key={m}
@@ -147,8 +157,8 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
                 aria-pressed={method === m}
                 data-testid={`payment-method-${m}`}
                 className={cn(
-                  "flex min-w-0 items-center gap-2 rounded-xl border px-2 py-3 text-xs font-medium transition-colors duration-150 active:scale-95",
-                  method === m ? "border-primary bg-primary/15 text-primary" : "border-white/8 bg-panel text-zinc-300 hover:border-white/20",
+                  "flex min-h-11 min-w-0 items-center gap-2 rounded-lg border px-2 py-3 text-left text-xs font-medium wrap-anywhere transition-colors duration-150 active:scale-95",
+                  method === m ? "border-primary bg-primary/15 text-primary" : "border-border bg-panel text-foreground hover:bg-muted",
                 )}
               >
                 <Icon className="size-5 shrink-0 text-primary" aria-hidden="true" />
@@ -163,7 +173,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
               <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Bandeira do cartão</p>
               <div className="grid grid-cols-3 gap-2">
                 {availableBrands.map((b) => (
-                  <button key={b} type="button" onClick={() => setBrand(b)} data-testid={`card-brand-${b}`}
+                  <button key={b} type="button" onClick={() => setBrand(b)} aria-pressed={brand === b} disabled={pending} data-testid={`card-brand-${b}`}
                     className={cn("flex items-center justify-center gap-2 rounded-xl border px-2 py-2.5 text-sm font-semibold transition-colors duration-150 active:scale-95",
                       brand === b ? "border-primary bg-primary/15 text-white" : "border-white/8 bg-panel text-zinc-300 hover:border-white/20")}>
                     <span className="h-3 w-5 rounded-sm" style={{ background: BRAND_COLOR[b] }} />{BRAND_LABEL[b]}
@@ -187,20 +197,32 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
               </Select>
               {hasFiadoPayment && <p className="text-xs text-muted-foreground">Para trocar o cliente, remova os lançamentos em fiado.</p>}
               {fiadoCust && fiadoCust.credit_limit > 0 && <p className="text-xs text-zinc-500">Limite disponível: {brl(fiadoCust.credit_limit - fiadoCust.balance)}</p>}
+              {customers.isError && <p role="alert" className="text-xs text-destructive">Não foi possível consultar os clientes.</p>}
               {customers.data?.length === 0 && <p className="text-xs text-amber-300">Cadastre clientes em “Conta Fiado”.</p>}
             </div>
           )}
-          <div className="flex flex-wrap gap-2">
-            <Input aria-label="Valor do pagamento" inputMode="decimal" placeholder={brl(remaining)} value={amount}
-              onChange={(event) => { setAmount(formatCurrencyTyping(event.target.value)); setConfirmedPixAmount(null); }} onKeyDown={(event) => { if (event.key === "Enter") add(); }}
-              data-testid="payment-amount-input" className="min-w-28 flex-1 font-mono" />
-            <Button variant="outline" disabled={!remaining} onClick={() => { setAmount(remaining.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })); setConfirmedPixAmount(null); }}>Usar saldo</Button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {[2, 5, 10, 20, 50, 100].map((quick) => (
-              <Button key={quick} variant="outline" size="sm" disabled={method !== "dinheiro" && quick > remaining}
-                onClick={() => { setAmount(quick.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })); setConfirmedPixAmount(null); }} className="font-mono">{brl(quick)}</Button>
-            ))}
+          <div className="space-y-2">
+            <Label htmlFor="payment-entry-amount">Valor do pagamento</Label>
+            <Input id="payment-entry-amount" inputMode="decimal" placeholder={brl(remaining)} value={amount}
+              disabled={pending} onChange={(event) => { setAmount(formatCurrencyTyping(event.target.value)); setConfirmedPixAmount(null); }}
+              onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); add(); } }}
+              data-testid="payment-amount-input" className="h-12 text-right font-mono text-xl tabular-nums" />
+            <Button className="w-full justify-between" variant="outline" disabled={!remaining || pending} onClick={() => updateAmount(remaining)}>
+              Usar saldo <span className="font-mono">{brl(remaining)}</span>
+            </Button>
+            <div className="grid grid-cols-2 gap-2" aria-label="Valores rápidos">
+              {[2, 5, 10, 20, 50, 100].map((quick) => (
+                <Button key={quick} variant="outline" size="sm" disabled={pending || (method !== "dinheiro" && quick > remaining)}
+                  onClick={(event) => {
+                    const cents = event.shiftKey ? Math.round((cashAmount(amount) ?? 0) * 100) + quick * 100 : quick * 100;
+                    if (Number.isSafeInteger(cents)) updateAmount(cents / 100);
+                  }} className="min-w-0 font-mono">{brl(quick)}</Button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground">Segure Shift ao clicar para somar.</p>
+              <Button size="xs" variant="ghost" disabled={!amount || pending} onClick={() => updateAmount(0)}>Zerar valor</Button>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Input aria-label="Percentual do total" className="w-28" inputMode="decimal" placeholder="% do total"
@@ -230,11 +252,11 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
           <label className="block text-sm">Observação do pagamento
             <Input className="mt-1" maxLength={300} value={note} onChange={(event) => setNote(event.target.value)} />
           </label>
-          <Button className="w-full" disabled={!canAdd} onClick={add} data-testid="payment-add-button">Adicionar pagamento</Button>
+          <Button className="w-full" disabled={!canAdd} onClick={add} data-testid="payment-add-button">{method === "fiado" ? "Adicionar fiado para o cliente" : "Adicionar pagamento"}</Button>
           </section>
 
-          <section className="min-w-0 space-y-4 rounded-xl border border-white/10 bg-panel p-4 md:col-start-2 xl:col-start-auto" aria-label="Resumo do pedido">
-            <h3 className="text-base font-semibold">Resumo do pedido</h3>
+          <section className="min-w-0 space-y-4 rounded-xl border border-white/10 bg-panel p-4 @min-[36rem]:col-start-2 @min-[59rem]:col-start-2" aria-label="Resumo do pedido">
+            <h3 className="text-base font-semibold">Conferência, taxas e descontos</h3>
             {items.length > 0 && <ul className="max-h-32 space-y-1 overflow-y-auto text-sm text-zinc-300">
               {items.map((item, index) => <li key={index}>{item.qty} × {item.name}</li>)}
             </ul>}
@@ -256,13 +278,23 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-zinc-400">Desconto (R$)</Label>
-              <Input inputMode="decimal" value={discount} onChange={(e) => setDiscount(formatCurrencyTyping(e.target.value))} className="mt-1 font-mono" data-testid="payment-discount-input" />
+              <Label htmlFor="payment-discount" className="text-xs text-zinc-400">Desconto (R$)</Label>
+              <Input id="payment-discount" inputMode="decimal" value={discount} onChange={(e) => setDiscount(formatCurrencyTyping(e.target.value))} className="mt-1 font-mono" data-testid="payment-discount-input" />
             </div>
             <div>
-              <Label className="text-xs text-zinc-400">Dividir por</Label>
-              <Input inputMode="numeric" value={splitN} onChange={(e) => setSplitN(e.target.value)} className="mt-1 font-mono" data-testid="payment-split-input" />
+              <Label htmlFor="payment-split" className="text-xs text-zinc-400">Dividir por pessoas</Label>
+              <Input id="payment-split" inputMode="numeric" value={splitN} onChange={(e) => setSplitN(e.target.value)} className="mt-1 font-mono" data-testid="payment-split-input" />
             </div>
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <div>
+              <Label htmlFor="payment-discount-percent" className="text-xs text-muted-foreground">Desconto (%)</Label>
+              <Input id="payment-discount-percent" className="mt-1 w-28" inputMode="decimal" value={discountPercent}
+                onChange={(event) => setDiscountPercent(event.target.value)} />
+            </div>
+            <Button size="sm" variant="outline" disabled={!percentageDiscount || pending} onClick={() => {
+              if (percentageDiscount) setDiscount(percentageDiscount.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            }}>Aplicar desconto</Button>
           </div>
           {!validDiscount && <p role="alert" className="text-sm text-red-300">Informe um desconto entre zero e o subtotal.</p>}
           {disc > 0 && <label className="block text-sm">Justificativa do desconto
@@ -301,7 +333,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
             )}
           </div>
           </section>
-          <section aria-label="Resumo dos totais" className="min-w-0 space-y-4 self-start rounded-xl border border-border bg-panel p-4 md:col-start-2 xl:sticky xl:top-0 xl:col-start-3">
+          <section aria-label="Resumo dos totais" className="min-w-0 space-y-4 self-start rounded-xl border border-border bg-panel p-4 @min-[36rem]:col-start-2 @min-[59rem]:sticky @min-[59rem]:top-0 @min-[59rem]:col-start-3 @min-[59rem]:row-start-1 @min-[59rem]:row-span-2">
             <h3 className="font-semibold text-foreground">Resumo dos totais</h3>
             {fiadoCust && <p className="break-words text-sm text-muted-foreground">{fiadoCust.name} · Saldo da conta fiado {brl(fiadoCust.balance)}</p>}
           <dl className="space-y-1.5 text-sm">
@@ -318,9 +350,15 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
             <progress id="payment-progress" value={settled} max={100} className="block w-full accent-primary" />
           </div>
           </section>
+        </div>
       </div>
-      <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-3">
-        <p role="status" className="mr-auto self-center text-sm text-muted-foreground">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-elevated px-3 py-2 sm:px-4">
+        <div className="mr-auto flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <span>Total pago <strong className="font-mono text-foreground">{brl(paid)}</strong></span>
+          <span>Falta pagar <strong className="font-mono text-foreground">{brl(remaining)}</strong></span>
+          {change > 0 && <span>Troco <strong className="font-mono text-foreground">{brl(change)}</strong></span>}
+        </div>
+        <p role="status" className="basis-full text-xs text-muted-foreground">
           {connectionRequired ? "Reconecte para confirmar o pagamento." : review ? "Resultado incerto. Consulte o servidor antes de confirmar novamente." : pending ? "Aguardando confirmação do servidor." : canConfirm ? "Valores conferidos. Confirme para registrar o pagamento." :
             remaining > 0 ? `Falta lançar ${brl(remaining)}.` : "Confira os lançamentos e a justificativa do desconto, quando aplicável."}
         </p>
