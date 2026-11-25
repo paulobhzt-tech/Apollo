@@ -40,13 +40,18 @@ switch ($Action) {
         Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
     }
     'Status' {
-        $info = if ($task) { Get-ScheduledTaskInfo -TaskName $taskName }
+        $state = 'Unregistered'
+        $lastResult = $null
+        if ($task) {
+            $state = $task.State
+            $lastResult = (Get-ScheduledTaskInfo -TaskName $taskName).LastTaskResult
+        }
         [pscustomobject]@{
             Profile = $Profile
-            State = if ($task) { $task.State } else { 'Unregistered' }
-            LastResult = if ($info) { $info.LastTaskResult }
-            Pending = Test-Path -LiteralPath (Join-Path $root 'pending.json')
-            Log = Join-Path $root 'agent.log'
+            State = $state
+            LastResult = $lastResult
+            Pending = (Test-Path -LiteralPath (Join-Path $root 'pending.json'))
+            Log = (Join-Path $root 'agent.log')
         }
     }
 }

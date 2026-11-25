@@ -25,6 +25,25 @@ jobs:
           }
           Add-Type -Path desktop/scripts/ApolloAgentReceipt.cs -ReferencedAssemblies System.Drawing
           if (-not [ApolloAgentReceipt].GetMethod('Submit')) { throw 'Método de impressão indisponível.' }
+      - name: Exercitar registro e remoção do autoinício em perfil fictício
+        if: github.ref_name == 'feat/p64-4-liberacao-final-apollo'
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $profileName = 'ci-' + $env:GITHUB_RUN_ID
+          $profileDir = Join-Path $env:LOCALAPPDATA "ApolloPrintAgent/profiles/$profileName"
+          New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
+          Set-Content -LiteralPath (Join-Path $profileDir 'terminal.json') -Value '{}'
+          $helper = './desktop/scripts/apollo-print-agent-task.ps1'
+          try {
+            & $helper -Action Register -Profile $profileName
+            $status = & $helper -Action Status -Profile $profileName
+            if ($status.State -eq 'Unregistered' -or $status.Pending) { throw 'Tarefa nao registrada corretamente.' }
+            & $helper -Action Remove -Profile $profileName
+            if ((& $helper -Action Status -Profile $profileName).State -ne 'Unregistered') { throw 'Tarefa residual.' }
+          } finally {
+            Remove-Item -LiteralPath $profileDir -Recurse -Force
+          }
       - name: Empacotar agente de homologação e gerar SHA-256
         shell: powershell
         run: |

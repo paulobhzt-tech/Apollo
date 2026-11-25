@@ -1,3 +1,4 @@
+import ReleaseDiagnostics from "@/components/ReleaseDiagnostics";
 import PrintAgentSettings from "@/components/PrintAgentSettings";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -49,7 +50,7 @@ export default function Config() {
         <TabsContent value="backup" className="mt-4"><Backup flash={params.get("drive")} /></TabsContent>
         <TabsContent value="autoteste" className="mt-4"><SelfTest /></TabsContent>
         <TabsContent value="sync" className="mt-4"><SyncPanel /></TabsContent>
-        <TabsContent value="sistema" className="mt-4"><SystemPanel /></TabsContent>
+        <TabsContent value="sistema" className="mt-4"><ReleaseDiagnostics /><SystemPanel /></TabsContent>
       </Tabs>
     </AppShell>
   );
