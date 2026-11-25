@@ -66,18 +66,18 @@ function Clientes() {
   return (
     <>
       <Toolbar search={search} setSearch={setSearch} onNew={() => setEditing("new")} label="Novo cliente" testid="customer" />
-      <div className="overflow-hidden rounded-2xl border border-white/5 bg-panel">
-        <Table>
+      <div className="rounded-2xl border border-white/5 bg-panel">
+        <Table stacked aria-label="Clientes">
           <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Contato</TableHead><TableHead>CPF / CNPJ</TableHead><TableHead className="text-right">Limite fiado</TableHead><TableHead className="text-right">Deve</TableHead><TableHead /></TableRow></TableHeader>
           <TableBody>
             {list.map((c) => (
               <TableRow key={c.id} data-testid={`customer-row-${c.id}`}>
-                <TableCell><p className="font-medium text-white">{c.name}</p>{c.address && <p className="text-xs text-zinc-500">{c.address}</p>}</TableCell>
-                <TableCell className="text-zinc-300">{c.phone || "—"}{c.email && <span className="block text-xs text-zinc-500">{c.email}</span>}</TableCell>
-                <TableCell className="font-mono text-xs text-zinc-400">{c.cpf || c.cnpj || "—"}</TableCell>
-                <TableCell className="text-right font-mono text-zinc-400">{c.credit_limit ? brl(c.credit_limit) : "—"}</TableCell>
-                <TableCell className={cn("text-right font-mono", c.balance > 0.009 ? "text-red-300" : "text-zinc-500")}>{brl(c.balance)}</TableCell>
-                <TableCell className="text-right">
+                <TableCell label="Cliente"><p className="font-medium text-white">{c.name}</p>{c.address && <p className="text-xs text-zinc-500">{c.address}</p>}</TableCell>
+                <TableCell label="Contato" className="text-zinc-300">{c.phone || "—"}{c.email && <span className="block text-xs text-zinc-500">{c.email}</span>}</TableCell>
+                <TableCell label="CPF / CNPJ" className="font-mono text-xs text-zinc-400">{c.cpf || c.cnpj || "—"}</TableCell>
+                <TableCell label="Limite fiado" className="text-right font-mono text-zinc-400">{c.credit_limit ? brl(c.credit_limit) : "—"}</TableCell>
+                <TableCell label="Deve" className={cn("text-right font-mono", c.balance > 0.009 ? "text-red-300" : "text-zinc-500")}>{brl(c.balance)}</TableCell>
+                <TableCell label="Ações" className="text-right">
                   <Button size="icon-sm" variant="ghost" onClick={() => setEditing(c)} data-testid={`customer-edit-${c.id}`}><Pencil /></Button>
                   <Button size="icon-sm" variant="ghost" onClick={() => window.confirm(`Descadastrar ${c.name}?`) && del.mutate(c.id)} data-testid={`customer-delete-${c.id}`}><Trash2 /></Button>
                 </TableCell>
@@ -152,17 +152,17 @@ function Fornecedores() {
     <>
       <Toolbar search={search} setSearch={setSearch} onNew={() => setEditing("new")} label="Novo fornecedor" testid="supplier" canCreate={isAdmin} />
       {q.isError && <p role="alert" className="mb-3 text-sm text-destructive">Não foi possível carregar fornecedores. <Button type="button" variant="outline" size="xs" onClick={() => void q.refetch()}>Tentar novamente</Button></p>}
-      <div className="overflow-hidden rounded-2xl border border-white/5 bg-panel">
-        <Table>
+      <div className="rounded-2xl border border-white/5 bg-panel">
+        <Table stacked aria-label="Fornecedores">
           <TableHeader><TableRow><TableHead>Fornecedor</TableHead><TableHead>Fornece</TableHead><TableHead>Contato</TableHead><TableHead>CNPJ/CPF</TableHead><TableHead /></TableRow></TableHeader>
           <TableBody>
             {list.map((s) => (
               <TableRow key={s.id} data-testid={`supplier-row-${s.id}`}>
-                <TableCell><p className="font-medium text-white">{s.name}</p>{s.address && <p className="text-xs text-zinc-500">{s.address}</p>}</TableCell>
-                <TableCell className="text-zinc-300">{s.supplies || "—"}</TableCell>
-                <TableCell className="text-zinc-300">{s.contact && <span className="block">{s.contact}</span>}{s.phone || "—"}{s.email && <span className="block text-xs text-zinc-500">{s.email}</span>}</TableCell>
-                <TableCell className="font-mono text-xs text-zinc-400">{s.cpf || s.cnpj || s.doc || "—"}</TableCell>
-                <TableCell className="text-right">
+                <TableCell label="Fornecedor"><p className="font-medium text-white">{s.name}</p>{s.address && <p className="text-xs text-zinc-500">{s.address}</p>}</TableCell>
+                <TableCell label="Fornece" className="text-zinc-300">{s.supplies || "—"}</TableCell>
+                <TableCell label="Contato" className="text-zinc-300">{s.contact && <span className="block">{s.contact}</span>}{s.phone || "—"}{s.email && <span className="block text-xs text-zinc-500">{s.email}</span>}</TableCell>
+                <TableCell label="CNPJ / CPF" className="font-mono text-xs text-zinc-400">{s.cpf || s.cnpj || s.doc || "—"}</TableCell>
+                <TableCell label="Ações" className="text-right">
                   {isAdmin && <>
                     <Button size="sm" variant="outline" onClick={() => setBillFor(s)} data-testid={`supplier-bill-${s.id}`}><Receipt className="size-3.5" /> Lançar conta</Button>
                     <Button size="icon-sm" variant="ghost" onClick={() => setEditing(s)} data-testid={`supplier-edit-${s.id}`}><Pencil /></Button>

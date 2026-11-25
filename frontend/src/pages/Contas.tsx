@@ -71,25 +71,25 @@ export default function Contas() {
         ))}
         <span className="ml-auto text-sm text-zinc-400" data-testid="bill-list-total">{list.length} conta(s) · {brl(total)}</span>
       </div>
-      <div className="overflow-hidden rounded-2xl border border-white/5 bg-panel">
-        <Table>
+      <div className="rounded-2xl border border-white/5 bg-panel">
+        <Table stacked aria-label="Contas">
           <TableHeader><TableRow><TableHead>Vencimento</TableHead><TableHead>Descrição</TableHead><TableHead>Categoria</TableHead><TableHead>{T.party}</TableHead><TableHead className="text-right">Valor</TableHead><TableHead>Situação</TableHead><TableHead /></TableRow></TableHeader>
           <TableBody>
             {list.map((b) => {
               const late = b.status === "aberto" && b.due_date < t;
               return (
                 <TableRow key={b.id} data-testid={`bill-row-${b.id}`}>
-                  <TableCell className={cn("font-mono text-sm", late ? "text-red-300" : "text-zinc-300")}>{fmtD(b.due_date)}</TableCell>
-                  <TableCell><p className="text-white">{b.description}</p>{b.notes && <p className="text-xs text-zinc-500">{b.notes}</p>}</TableCell>
-                  <TableCell className="text-zinc-300">{b.category_name || "—"}</TableCell>
-                  <TableCell className="text-zinc-300">{b.party || "—"}</TableCell>
-                  <TableCell className="text-right font-mono text-white">{brl(b.status === "pago" ? b.paid_amount : b.amount)}</TableCell>
-                  <TableCell data-testid={`bill-status-${b.id}`}>
+                  <TableCell label="Vencimento" className={cn("font-mono text-sm", late ? "text-red-300" : "text-zinc-300")}>{fmtD(b.due_date)}</TableCell>
+                  <TableCell label="Descrição"><p className="text-white">{b.description}</p>{b.notes && <p className="text-xs text-zinc-500">{b.notes}</p>}</TableCell>
+                  <TableCell label="Categoria" className="text-zinc-300">{b.category_name || "—"}</TableCell>
+                  <TableCell label={T.party} className="text-zinc-300">{b.party || "—"}</TableCell>
+                  <TableCell label="Valor" className="text-right font-mono text-white">{brl(b.status === "pago" ? b.paid_amount : b.amount)}</TableCell>
+                  <TableCell label="Situação" data-testid={`bill-status-${b.id}`}>
                     {b.status === "pago" ? <Badge className="bg-emerald-500/15 text-emerald-300">{T.done} {fmtD(b.paid_date)} · {payLabel(b.payment_method)}</Badge>
                       : b.status === "cancelado" ? <Badge variant="outline">Cancelada</Badge>
                       : late ? <Badge className="bg-red-500/15 text-red-300">Vencida</Badge> : <Badge variant="outline">Em aberto</Badge>}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-right">
+                  <TableCell label="Ações" className="whitespace-nowrap text-right">
                     {b.status === "aberto" && <Button size="sm" onClick={() => setPaying(b)} data-testid={`bill-pay-${b.id}`}><CheckCircle2 className="size-3.5" /> {T.act}</Button>}
                     {isAdmin && b.status === "aberto" && <Button size="icon-sm" variant="ghost" onClick={() => setEditing(b)} data-testid={`bill-edit-${b.id}`}><Pencil /></Button>}
                     {isAdmin && b.status === "aberto" && <Button size="icon-sm" variant="ghost" title="Cancelar" onClick={() => window.confirm("Cancelar esta conta?") && act.mutate({ b, a: "cancel" })} data-testid={`bill-cancel-${b.id}`}><Ban /></Button>}

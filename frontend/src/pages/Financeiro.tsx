@@ -326,7 +326,7 @@ function AnnualDre({ year }: { year: number }) {
   return <Panel title="Comparação anual do DRE" className="mb-5">
     {comparison.isLoading && <p role="status" className="text-sm text-muted-foreground">Consultando a comparação anual…</p>}
     {comparison.isError && <p role="alert" className="text-sm text-red-400">{errMsg(comparison.error)}</p>}
-    {results && <Table aria-label="Comparação anual do DRE">
+    {results && <Table stacked aria-label="Comparação anual do DRE">
       <TableHeader><TableRow>
         <TableHead>Indicador</TableHead>
         <TableHead className="text-right">{year - 1}</TableHead>
@@ -336,10 +336,10 @@ function AnnualDre({ year }: { year: number }) {
       <TableBody>{annualLines.map(([label, field]) => {
         const [previous, selected] = results;
         return <TableRow key={field}>
-          <TableCell>{label}</TableCell>
-          <TableCell className="text-right">{brl(previous[field])}</TableCell>
-          <TableCell className="text-right">{brl(selected[field])}</TableCell>
-          <TableCell className="text-right">{brl(selected[field] - previous[field])}</TableCell>
+          <TableCell label="Indicador">{label}</TableCell>
+          <TableCell label={String(year - 1)} className="text-right">{brl(previous[field])}</TableCell>
+          <TableCell label={String(year)} className="text-right">{brl(selected[field])}</TableCell>
+          <TableCell label="Diferença" className="text-right">{brl(selected[field] - previous[field])}</TableCell>
         </TableRow>;
       })}</TableBody>
     </Table>}
