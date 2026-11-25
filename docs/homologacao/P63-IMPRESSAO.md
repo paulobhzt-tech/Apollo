@@ -105,3 +105,8 @@ Em 25/11/2026, o operador compilou ApolloPrintTest.cs localmente com csc.exe e S
 ### C# — persistência simulada por via e bloqueio entre processos
 
 O operador compilou e executou localmente ApolloPrintQueue.exe, protótipo sem chamada de impressão. Job 77fc91eca25b45089bb8dd43dbde2c05: duas vias registradas com arquivos started e simulated, WorkingSet64 de 17,41 MB. Segunda execução com mesmo ID retornou BLOQUEADO: pedido ja iniciado. Os quatro arquivos foram listados no diretório de laboratório. Evidência de persistência entre execuções no mesmo usuário e bloqueio local, não de fila integrada à Epson, recuperação seletiva, concorrência distribuída, queda de energia ou operação offline completa. Sem dados reais ou produção.
+
+
+### C# — submissão integrada com marcadores persistentes por via
+
+O operador executou o laboratório ApolloPrintBridgeLab.cs publicado no commit b6b8143cf0dd3a8eb7c44240fae2cf646c2b3bce. Job fictício f498b780a97046dc839fb239d7678863: console confirmou retorno de Print() para vias 1 e 2, WorkingSet64 pontual de 37,56 MB e diretório local de registros. A segunda execução com o mesmo ID foi bloqueada antes de Print(). Os marcadores individuais ainda devem ser conferidos por listagem, e a saída física, acentos, corte e ausência de nova via devem ser confirmados pelo operador. Trata-se de laboratório local, não de agente residente conectado à API. Retomada seletiva, concorrência distribuída, falha real e consumo sustentado permanecem pendentes. Sem implantação ou alteração de produção.
