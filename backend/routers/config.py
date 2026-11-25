@@ -24,10 +24,10 @@ BACKUP_COLLS = ["employees", "suppliers", "categories", "products", "ingredients
                 "invoices", "cash_sessions", "cash_adjustments", "expenses", "fiado_customers", "customer_moves", "printers", "settings", "environments", "counters",
                 "purchases", "purchase_attempts", "lot_consumptions", "inventory_counts", "production_batches",
                 "bills", "bill_audit", "account_categories", "payment_methods", "supplier_quotes",
-                "employee_audit", "employee_time_entries", "backup_audit", "live_music_events", "offline_table_receipts"]
+                "employee_audit", "employee_time_entries", "backup_audit", "live_music_events", "offline_table_receipts", "table_item_operations"]
 RESERVED_SETTINGS = {"drive", "selftest_last", "sync_identity"}
 LOCAL_EMPLOYEE_AUTH_FIELDS = ("pin_hash", "password_hash", "credential_version", "must_change_password", "admin_access_audit")
-KEEP_ID = {"settings", "counters", "purchase_attempts", "cash_adjustments", "offline_table_receipts"}  # these use their own _id
+KEEP_ID = {"settings", "counters", "purchase_attempts", "cash_adjustments", "offline_table_receipts", "table_item_operations"}  # these use their own _id
 ISO = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 
 

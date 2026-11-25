@@ -1,8 +1,11 @@
 import hashlib
 import json
+import re
+from uuid import uuid4
 from datetime import datetime, timedelta, timezone
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, ConfigDict, Field
 from pymongo.errors import DuplicateKeyError
 
@@ -103,6 +106,40 @@ async def open_table(id: str, body: OpenTableIn, user: dict = Depends(require(*S
         return await get_table(id, **options)
 
     return await with_order_transaction(open_in_session)
+
+
+class RegisteredCustomerIn(BaseModel):
+    order_id: str = Field(min_length=1, max_length=128)
+    customer_id: str = Field(min_length=1, max_length=128)
+
+
+@router.get("/tables/customer-search")
+async def search_registered_customers(q: str = Query(min_length=2, max_length=80), _: dict = Depends(require(*STAFF))):
+    if len(q.strip()) < 2:
+        return []
+    return await db.fiado_customers.find(
+        {"name": {"$regex": re.escape(q.strip()), "$options": "i"}}, {"_id": 0, "id": 1, "name": 1},
+    ).sort([("name", 1), ("id", 1)]).limit(20).to_list(20)
+
+
+@router.put("/tables/{id}/registered-customer", response_model=Order)
+async def link_registered_customer(id: str, body: RegisteredCustomerIn, user: dict = Depends(require(*STAFF))):
+    table = await get_table(id)
+    if table.get("order_id") != body.order_id:
+        raise HTTPException(409, "Atendimento alterado. Atualize antes de vincular.")
+    customer = await db.fiado_customers.find_one({"id": body.customer_id}, {"_id": 0, "name": 1})
+    if not customer:
+        raise HTTPException(404, "Cliente cadastrado não encontrado.")
+    order = await db.orders.find_one_and_update(
+        {"id": body.order_id, "table_id": id, "status": "aberto"},
+        {"$set": {"registered_customer_id": body.customer_id, "registered_customer_name": customer["name"]},
+         "$push": {"audit_events": audit_event("registered_customer_linked", user,
+                                               values={"registered_customer_id": body.customer_id})}},
+        projection={"_id": 0}, return_document=True,
+    )
+    if not order:
+        raise HTTPException(409, "Atendimento alterado. Atualize antes de vincular.")
+    return order
 
 
 class TableCustomersIn(BaseModel):
@@ -468,6 +505,110 @@ async def apply_transfer(id: str, target_id: str, *, session=None):
         {"order_id": order_id}, {"$set": {"label": destination_label}}, **options)
     await free_table(id, expected_order_id=order_id, **options)
     return await get_table(target_id, **options)
+
+
+class SelectedItemsIn(BaseModel):
+    source_order_id: str = Field(min_length=1, max_length=128)
+    target_table_id: str = Field(min_length=1, max_length=128)
+    target_order_id: str = Field(min_length=1, max_length=128)
+    item_quantities: dict[str, SaleQuantity] = Field(min_length=1, max_length=100)
+    operation: Literal["transfer", "copy"]
+    client_ref: str = Field(min_length=6, max_length=128)
+
+
+@router.post("/tables/{id}/selected-items", response_model=OkOut)
+async def selected_table_items(id: str, body: SelectedItemsIn, user: dict = Depends(require("caixa"))):
+    if id == body.target_table_id or body.source_order_id == body.target_order_id:
+        raise HTTPException(400, "Escolha um atendimento de destino diferente.")
+    try:
+        await with_order_transaction(lambda session: apply_selected_items(id, body, user, session=session))
+    except DuplicateKeyError as exc:
+        # The winning transaction owns this reference. The same request can be retried.
+        raise HTTPException(409, "Operação concorrente. Confira o destino antes de tentar novamente.") from exc
+    return OkOut(ok=True, message="Itens registrados no destino.")
+
+
+async def apply_selected_items(id: str, body: SelectedItemsIn, user: dict, *, session):
+    if session is None:
+        raise HTTPException(503, "Transferir ou copiar itens exige MongoDB com transações.")
+    key = hashlib.sha256(f"{user['id']}:{body.client_ref}".encode()).hexdigest()
+    payload = body.model_dump(exclude={"client_ref"})
+    fingerprint = hashlib.sha256(json.dumps([id, payload], sort_keys=True).encode()).hexdigest()
+    previous = await db.table_item_operations.find_one({"_id": key}, session=session)
+    if previous:
+        if previous["fingerprint"] != fingerprint:
+            raise HTTPException(409, "Referência já utilizada com outra seleção.")
+        return
+
+    src = await get_table(id, session=session)
+    dst = await get_table(body.target_table_id, session=session)
+    if src.get("order_id") != body.source_order_id or dst.get("order_id") != body.target_order_id:
+        raise HTTPException(409, "Origem ou destino foi alterado.")
+    source = await db.orders.find_one({"id": body.source_order_id, "table_id": id, "status": "aberto"}, session=session)
+    target = await db.orders.find_one({"id": body.target_order_id, "table_id": dst["id"], "status": "aberto"}, session=session)
+    if not source or not target:
+        raise HTTPException(409, "Origem e destino precisam estar abertos.")
+    for order in (source, target):
+        if order.get("payments") or any(not batch.get("complete") for batch in order.get("table_item_batches", {}).values()):
+            raise HTTPException(409, "Confira os pagamentos e envios pendentes antes de continuar.")
+
+    ids = set(body.item_quantities)
+    chosen = [item for item in source["items"] if item["id"] in ids and not item.get("cancelled")]
+    if len(chosen) != len(ids) or any(item["qty"] != body.item_quantities[item["id"]] for item in chosen):
+        raise HTTPException(409, "Seleção alterada. Atualize o atendimento.")
+    if any(item.get("stock_recipe") is None or (item["stock_recipe"] and not item.get("stock_ref")) for item in chosen):
+        raise HTTPException(409, "Itens antigos sem rastreabilidade de estoque exigem revisão administrativa.")
+    guests = dst.get("customers") or []
+    arriving = [{**item, "customer_name": item.get("customer_name", "") if item.get("customer_name") in guests else ""}
+                for item in chosen]
+    if body.operation == "copy":
+        arriving = [{**item, "id": uuid4().hex, "stock_ref": uuid4().hex, "ordered_at": now(),
+                     "ordered_by": user["name"], "customer_name": ""} for item in arriving]
+        copies = [OrderItem.model_validate(item) for item in arriving]
+        await move_stock(copies, user["name"], f"Cópia de itens · Pedido #{target['number']}", session=session)
+        await create_ticket(target, copies, session=session)
+    else:
+        if ids & {item["id"] for item in target["items"]}:
+            raise HTTPException(409, "O destino já contém itens da seleção.")
+        await move_selected_tickets(source, target, arriving, session=session)
+
+    action = "table_items_copied" if body.operation == "copy" else "table_items_transferred"
+    for order, other, items in (
+        (source, target, [item for item in source["items"] if item["id"] not in ids] if body.operation == "transfer" else source["items"]),
+        (target, source, target["items"] + arriving),
+    ):
+        result = await db.orders.update_one(
+            {"id": order["id"], "status": "aberto", "items": order["items"]},
+            {"$set": {"items": items, "cmv": round(sum(item["qty"] * item.get("unit_cost", 0) for item in items if not item.get("cancelled")), 2)},
+             "$push": {"audit_events": audit_event(action, user, correlation=body.client_ref,
+                    values={"order_number": other["number"], "item_count": len(chosen)})}},
+            session=session,
+        )
+        if result.matched_count != 1:
+            raise HTTPException(409, "Atendimento alterado. Nenhuma operação foi concluída.")
+        await refresh_totals(order["id"], session=session)
+    await db.tables.update_many({"id": {"$in": [src["id"], dst["id"]]}},
+                                  {"$unset": {"split_request": ""}}, session=session)
+    await db.table_item_operations.insert_one({"_id": key, "fingerprint": fingerprint, "created_at": now()}, session=session)
+
+
+async def move_selected_tickets(source: dict, target: dict, arriving: list[dict], *, session):
+    by_id = {item["id"]: item for item in arriving}
+    async for ticket in db.kitchen_tickets.find({"order_id": source["id"]}, {"_id": 0}, session=session):
+        if any(not item.get("order_item_id") for item in ticket["items"]):
+            raise HTTPException(409, "Há registros antigos de preparo sem vínculo com o lançamento. Revise o pedido.")
+        moving = [{**item, "customer_name": by_id[item["order_item_id"]]["customer_name"]}
+                  for item in ticket["items"] if item["order_item_id"] in by_id]
+        if not moving:
+            continue
+        staying = [item for item in ticket["items"] if item["order_item_id"] not in by_id]
+        destination = {"order_id": target["id"], "order_number": target["number"], "label": target["table_label"],
+                       "table_id": target["table_id"], "table_number": target["table_number"], "items": moving}
+        if staying:
+            await db.kitchen_tickets.update_one({"id": ticket["id"]}, {"$set": {"items": staying}}, session=session)
+            await db.kitchen_tickets.insert_one({**ticket, **destination, "id": uuid4().hex, "audit_events": []}, session=session)
+        else:
+            await db.kitchen_tickets.update_one({"id": ticket["id"]}, {"$set": destination}, session=session)
 
 
 class MergeTablesIn(BaseModel):

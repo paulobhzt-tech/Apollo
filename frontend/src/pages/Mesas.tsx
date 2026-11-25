@@ -413,6 +413,8 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const [mergeTo, setMergeTo] = useState("");
   const [preBill, setPreBill] = useState<"view" | "print" | null>(null);
   const [partialOpen, setPartialOpen] = useState(false);
+  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [selectedOperation, setSelectedOperation] = useState<"transfer" | "copy" | null>(null);
   const [grouped, setGrouped] = useTablePreference(`apollo-table-grouped:${me?.id}`, true);
   const [showItemTimes, setShowItemTimes] = useTablePreference(`apollo-table-times:${me?.id}`, false);
   const [productSearch, setProductSearch] = useState("");
@@ -596,7 +598,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
 
   const busy = openT.isPending || send.isPending || removeItems.isPending || status.isPending ||
     release.isPending || cancelTable.isPending || transfer.isPending || merge.isPending || pay.isPending;
-  const nestedOpen = qrOpen || reviewOpen || partialOpen || payOpen || preBill || !!invoice || !!removing || !!editingDraft || !!optFor;
+  const nestedOpen = customerSearchOpen || !!selectedOperation || qrOpen || reviewOpen || partialOpen || payOpen || preBill || !!invoice || !!removing || !!editingDraft || !!optFor;
   const editingOpening = !table.order_id && (people !== "2" || !!name.trim());
   const [editingCustomers, setEditingCustomers] = useState(false);
   const requestClose = () => {
@@ -654,6 +656,17 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem disabled={!items.some((item) => !item.cancelled)} onClick={() => setPreBill("view")}>Consultar conta</DropdownMenuItem>
                     <DropdownMenuItem disabled={!items.some((item) => !item.cancelled)} onClick={() => setPreBill("print")}>Imprimir conferência</DropdownMenuItem>
+                    <DropdownMenuItem disabled={offline || !o || busy} onClick={() => setCustomerSearchOpen(true)}>
+                      {o?.registered_customer_id ? "Trocar cliente cadastrado" : "Vincular cliente cadastrado"}
+                    </DropdownMenuItem>
+                    {(me?.role === "admin" || me?.role === "caixa") && (["transfer", "copy"] as const).map((operation) => (
+                      <DropdownMenuItem key={operation} disabled={offline || busy || pendingConfirmation || !!pending.length ||
+                        !items.some((item) => !item.cancelled) || !tables.some((target) => target.id !== table.id && !!target.order_id)}
+                        onClick={() => setSelectedOperation(operation)}>
+                        {operation === "transfer" ? "Transferir itens selecionados" : "Copiar parte do pedido"}
+                      </DropdownMenuItem>
+                    ))}
+
                     <DropdownMenuItem onClick={() => setShowDetails((value) => !value)}>
                       {showDetails ? "Ocultar detalhes dos itens" : "Exibir detalhes dos itens"}
                     </DropdownMenuItem>
@@ -699,6 +712,9 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                 </div>
               ) : (
                 <>
+                  {o?.registered_customer_name && <p className="mb-2 text-sm text-foreground">
+                    Cliente cadastrado: <strong>{o.registered_customer_name}</strong>
+                  </p>}
                   <TableCustomers key={table.id + (table.order_id ?? "")} table={table} onDirtyChange={setEditingCustomers} />
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-2">
                     <div className="flex items-center gap-2"><strong className="text-sm text-foreground">Itens do Pedido ({items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)})</strong></div>
@@ -876,6 +892,9 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
           <div className="grid grid-cols-2 gap-2"><Button type="button" variant="outline" disabled={send.isPending || !!submission} onClick={() => setReviewOpen(false)}>Editar itens</Button><Button type="button" disabled={(!pending.length && !submission) || send.isPending} onClick={() => send.mutate()} data-testid="waiter-confirm-send"><Send className="size-4" /> Confirmar envio</Button></div>
         </DialogContent>
       </Dialog>
+      {customerSearchOpen && o && <RegisteredCustomerDialog table={table} order={o} offline={offline} onClose={() => setCustomerSearchOpen(false)} />}
+      {selectedOperation && o && <SelectedItemsDialog table={table} order={o} tables={tables} operation={selectedOperation}
+        offline={offline} onClose={() => setSelectedOperation(null)} />}
       <RemoveItemDialog group={removing} needsPin={!canCancel(me)} pending={removeItems.isPending} onClose={() => setRemoving(null)} onConfirm={(r) => removeItems.mutate(r)} />
       {table && preBill && (
         <PreBillDialog table={table} order={o} open printEnabled={preBill === "print"} onClose={() => setPreBill(null)}
@@ -911,6 +930,121 @@ function useTablePreference(key: string, fallback: boolean) {
     setValue(updated);
     try { localStorage.setItem(key, String(updated)); } catch { /* Keep the current choice in memory. */ }
   }] as const;
+}
+
+function RegisteredCustomerDialog({ table, order, offline, onClose }: {
+  table: Table; order: Order; offline: boolean; onClose: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [selection, setSelection] = useState("");
+  const term = search.trim();
+  const customers = useQuery({
+    queryKey: ["table-registered-customers", term],
+    queryFn: () => apiGet<{ id: string; name: string }[]>(`/tables/customer-search?q=${encodeURIComponent(term)}`),
+    enabled: term.length >= 2 && !offline,
+  });
+  const link = useMutation({
+    mutationFn: () => onlineOperation(() => apiPut<Order>(`/tables/${table.id}/registered-customer`, {
+      order_id: order.id, customer_id: selection,
+    })),
+    onSuccess: () => { invalidateTables(); toast.success("Cliente vinculado ao atendimento."); onClose(); },
+  });
+  return <Dialog open onOpenChange={(open) => { if (!open && !link.isPending) onClose(); }}>
+    <DialogContent className="sm:max-w-md" data-testid="table-registered-customer-dialog">
+      <DialogTitle>Buscar cliente cadastrado</DialogTitle>
+      <Label htmlFor="table-customer-search">Nome do cliente</Label>
+      <Input id="table-customer-search" autoFocus maxLength={80} value={search}
+        onChange={(event) => { setSearch(event.target.value); setSelection(""); }} />
+      {offline && <p role="status">Reconecte para consultar os clientes.</p>}
+      {!offline && term.length < 2 && <p className="text-sm text-muted-foreground">Digite pelo menos duas letras.</p>}
+      {term.length >= 2 && customers.isFetching && <p role="status">Buscando clientes…</p>}
+      {customers.isError && <p role="alert">{errMsg(customers.error)}</p>}
+      {customers.isSuccess && customers.data.length === 0 && <p role="status">Nenhum cliente encontrado.</p>}
+      <fieldset className="max-h-56 space-y-2 overflow-y-auto">
+        <legend className="sr-only">Clientes encontrados</legend>
+        {customers.data?.map((customer) => <label key={customer.id} className="flex min-h-10 items-center gap-3 rounded-lg border border-border px-3">
+          <input type="radio" name="registered-table-customer" checked={selection === customer.id} onChange={() => setSelection(customer.id)} />
+          <span className="min-w-0 wrap-anywhere">{customer.name}</span>
+        </label>)}
+      </fieldset>
+      {link.isError && <p role="alert" className="text-destructive">{errMsg(link.error)}</p>}
+      <Button disabled={!selection || link.isPending || offline} onClick={() => link.mutate()}>Vincular ao atendimento</Button>
+    </DialogContent>
+  </Dialog>;
+}
+
+function SelectedItemsDialog({ table, order, tables, operation, offline, onClose }: {
+  table: Table; order: Order; tables: Table[]; operation: "transfer" | "copy"; offline: boolean; onClose: () => void;
+}) {
+  const [targetId, setTargetId] = useState("");
+  const [selected, setSelected] = useState<Record<string, number>>({});
+  const [attempt, setAttempt] = useState<{ signature: string; ref: string }>();
+  const targets = tables.filter((target) => target.id !== table.id && !!target.order_id);
+  const target = targets.find((row) => row.id === targetId);
+  const submit = useMutation({
+    mutationFn: (request: { source_order_id: string; target_table_id: string; target_order_id: string;
+      item_quantities: Record<string, number>; operation: "transfer" | "copy"; client_ref: string }) =>
+      onlineOperation(() => apiPost<OkOut>(`/tables/${table.id}/selected-items`, request)),
+    onSuccess: () => {
+      invalidateTables();
+      void queryClient.invalidateQueries({ queryKey: ["table-item-progress"] });
+      void queryClient.invalidateQueries({ queryKey: ["kds"] });
+      toast.success(operation === "copy" ? "Itens copiados." : "Itens transferidos.");
+      onClose();
+    },
+  });
+  const uncertain = submit.error instanceof UncertainOperationError;
+  const items = order.items.filter((item) => !item.cancelled);
+  const sendSelection = () => {
+    if (submit.isPending) return;
+    if (uncertain && submit.variables) {
+      submit.mutate(submit.variables);
+      return;
+    }
+    if (!target?.order_id) return;
+    const request = { source_order_id: order.id, target_table_id: target.id, target_order_id: target.order_id,
+      item_quantities: selected, operation };
+    const signature = JSON.stringify(request);
+    const ref = attempt?.signature === signature ? attempt.ref : uid();
+    setAttempt({ signature, ref });
+    submit.mutate({ ...request, client_ref: ref });
+  };
+  const selectedItems = items.filter((item) => item.id in selected);
+  return <Dialog open onOpenChange={(open) => { if (!open && !submit.isPending && !uncertain) onClose(); }}>
+    <DialogContent className="sm:max-w-lg" data-testid="table-selected-items-dialog">
+      <DialogTitle>{operation === "copy" ? "Copiar parte do pedido" : "Transferir itens selecionados"}</DialogTitle>
+      <Label htmlFor="selected-items-target">Atendimento de destino</Label>
+      <select id="selected-items-target" className="min-h-10 w-full rounded-lg border border-border bg-panel px-2"
+        value={targetId} disabled={submit.isPending || uncertain} onChange={(event) => setTargetId(event.target.value)}>
+        <option value="">Selecione uma mesa ou comanda aberta</option>
+        {targets.map((row) => <option key={row.id} value={row.id}>{tableLabel(row)}</option>)}
+      </select>
+      <fieldset disabled={submit.isPending || uncertain} className="max-h-[40vh] space-y-2 overflow-y-auto">
+        <legend className="sr-only">Lançamentos disponíveis</legend>
+        {items.map((item) => <label key={item.id} className="flex min-h-11 items-center gap-2 rounded-lg border border-border p-2">
+          <input type="checkbox" checked={item.id in selected} disabled={!(item.id in selected) && Object.keys(selected).length >= 100}
+            onChange={(event) => setSelected((old) => {
+              const next = { ...old };
+              if (event.target.checked) next[item.id] = item.qty;
+              else delete next[item.id];
+              return next;
+            })} />
+          <span className="min-w-0 flex-1 wrap-anywhere">{item.qty} × {item.name}</span>
+          <span className="shrink-0">{brl(item.qty * item.unit_price)}</span>
+        </label>)}
+      </fieldset>
+      <p className="text-sm">{selectedItems.length} selecionado(s) · {brl(selectedItems.reduce((sum, item) => sum + item.qty * item.unit_price, 0))}</p>
+      {operation === "copy" && <p className="text-sm text-muted-foreground">A cópia mantém os preços e gera novos lançamentos de estoque e preparo no destino.</p>}
+      {submit.isError && <p role="alert" className="text-destructive">{uncertain
+        ? "Resultado incerto. Repita o mesmo envio para conferir sem duplicar." : errMsg(submit.error)}</p>}
+      {uncertain && <Button variant="outline" onClick={() => {
+        if (window.confirm("Confira o destino antes de iniciar outra operação. Fechar esta janela?")) onClose();
+      }}>Sair para conferir o destino</Button>}
+      <Button disabled={offline || (!uncertain && (!target || !Object.keys(selected).length)) || submit.isPending} onClick={sendSelection}>
+        {uncertain ? "Repetir envio" : operation === "copy" ? "Confirmar cópia" : "Confirmar transferência"}
+      </Button>
+    </DialogContent>
+  </Dialog>;
 }
 
 function ItemActions({ name, children }: { name: string; children: React.ReactNode }) {

@@ -123,6 +123,8 @@ export interface Order {
   table_number: number | null;
   table_label: string;
   customer: Customer;
+  registered_customer_id?: string | null;
+  registered_customer_name?: string;
   items: OrderItem[];
   status: "aberto" | "pago" | "cancelado";
   delivery_status: DeliveryStatus | null;

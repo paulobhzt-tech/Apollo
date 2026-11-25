@@ -366,6 +366,8 @@ class Order(BaseModel):
     table_number: Optional[int] = None
     table_label: str = ""
     customer: Customer = Customer()
+    registered_customer_id: Optional[str] = None
+    registered_customer_name: str = ""
     items: list[OrderItem] = []
     status: Literal["aberto", "pago", "cancelado"] = "aberto"
     delivery_status: Optional[Literal["pendente", "aceito", "preparo", "saiu", "entregue", "recusado"]] = None
