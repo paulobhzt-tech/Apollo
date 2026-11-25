@@ -70,3 +70,9 @@ Configuração candidata para homologação, ainda não aplicada ao ambiente da 
 - Testar pedido misto fictício com espetinhos, porções e bebidas pelo Garçom Mobile, conferir tickets por setor na mesma Epson, depois pré-conta e comprovante de caixa. Validar integração e comprimento dinâmico antes da liberação.
 
 Não foi realizada alteração em produção, cadastro de impressoras ou dados reais neste registro.
+
+### Teste físico complementar — comprimento variável e acentuação
+
+Em 25/11/2026, o operador executou presencialmente no Windows da Espeteria dois trabalhos fictícios via PowerShell/System.Drawing.Printing.PrintDocument, com papel personalizado de largura aproximada de 80 mm e altura em centésimos de polegada calculada por `Max(394, numero_de_linhas * 18 + 40)`. O pedido curto solicitou cerca de 100,1 mm (10 linhas); o longo solicitou cerca de 147,3 mm (30 linhas, 580 centésimos de polegada), com 20 itens numerados, complementos, observação e marcador de fim. O operador confirmou que ambos imprimiram corretamente, com comprimentos diferentes, acentuação e corte correto. Nenhuma alteração permanente do driver ou dados operacionais foi solicitada.
+
+Evidência por relato presencial, sem fotografia ou medição física anexada. O resultado valida os formatos personalizados testados pelo driver e não valida o algoritmo de medição Chromium/Electron da candidata, a paginação de documentos extremos ou o fluxo integrado do Apollo. Permanecem obrigatórios os testes do instalador atualizado, agente independente, fila persistente e Garçom Mobile.
