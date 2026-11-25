@@ -417,6 +417,31 @@ ipcMain.handle("pdv:print", (_e, request) => {
   return task;
 });
 
+// Ticket body dimensions are measured by Chromium, not estimated from line counts.
+function thermalPageHeight(heightPx) {
+  if (!Number.isFinite(heightPx) || heightPx <= 0) throw new Error("Comprimento do ticket indisponível.");
+  // 4 mm page margins + 6 mm tolerance; 100 mm was validated on the TM-T20X.
+  const microns = Math.max(100000, Math.ceil((heightPx * 25400 / 96 + 10000) / 1000) * 1000);
+  if (microns > 3276000) throw new Error("Ticket acima do limite de 3276 mm: divida o documento antes de imprimir.");
+  return microns;
+}
+
+async function measureThermalTicket(contents) {
+  const debug = contents.debugger;
+  debug.attach("1.3");
+  try {
+    await debug.sendCommand("Emulation.setEmulatedMedia", { media: "print" });
+    const { root } = await debug.sendCommand("DOM.getDocument");
+    const { nodeId } = await debug.sendCommand("DOM.querySelector", { nodeId: root.nodeId, selector: "body" });
+    if (!nodeId) throw new Error("Corpo do comprovante não encontrado.");
+    const { model } = await debug.sendCommand("DOM.getBoxModel", { nodeId });
+    const y = model.border.filter((_, index) => index % 2 === 1);
+    return thermalPageHeight(Math.max(...y) - Math.min(...y));
+  } finally {
+    debug.detach();
+  }
+}
+
 async function printDocument({ html, deviceName, copies = 1, paper = "80mm" }) {
   const w = new BrowserWindow({ show: false, webPreferences: { sandbox: true, javascript: false } });
   try {
@@ -424,7 +449,15 @@ async function printDocument({ html, deviceName, copies = 1, paper = "80mm" }) {
     const microns = paper === "58mm" ? 58000 : paper === "A4" ? 210000 : 80000;
     const opts = { silent: true, printBackground: false, copies: Math.max(1, Math.min(5, copies)), margins: { marginType: "none" } };
     if (deviceName) opts.deviceName = deviceName;
-    if (paper !== "A4") opts.pageSize = { width: microns, height: 297000 };
+    if (paper !== "A4") {
+      const economicTicket = paper === "80mm" && typeof deviceName === "string" &&
+        /\bTM[- ]?T20X\b/i.test(deviceName) &&
+        String(html).includes('<meta name="apollo-thermal-ticket" content="1">');
+      // Restrict this candidate to the physically identified model and ticket template.
+      // On measurement failure, stop before sending any job; never silently crop.
+      const height = economicTicket ? await measureThermalTicket(w.webContents) : 297000;
+      opts.pageSize = { width: microns, height };
+    }
     const submit = (options) => new Promise((resolve) => w.webContents.print(options, (ok, error) => resolve({ ok, error: ok ? undefined : String(error) })));
     // Physical TM-T20X test: Copies=2 produced only one receipt, while
     // separate single-copy jobs produced both receipts and cuts.
