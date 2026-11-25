@@ -55,3 +55,18 @@ Não fixar o nome da fila para todos os estabelecimentos: utilizar a configuraç
 - Reteste com dois objetos `PrintDocument` independentes, cada um com `Copies = 1`, documento identificado como via 1/2 ou 2/2, mesmo papel e margens do teste econômico e intervalo de um segundo: operador confirmou duas vias separadas e corte correto. O teste não altera preferências globais nem gera venda.
 - Requisito de implementação: permitir estratégia de cópias independentes por perfil de impressora, com identificação e acompanhamento individual de cada via. Persistir o estado antes do envio, tratar resultado indeterminado sem reenvio automático e não repetir uma via já aceita. Não inferir confirmação física apenas pelo retorno do spooler. Preservar outros perfis e configurações existentes.
 - Evidência baseada no relato presencial do operador; não há foto ou medição anexada. Ainda pendentes: comprimento variável calculado pelo conteúdo, acentos, integração real Web/PWA/garçom, recuperação de falha entre vias e validação de outros equipamentos.
+
+### Perfil operacional da Espeteria — impressora única
+
+O proprietário confirmou em 25/11/2026 que a Epson TM-T20X USB é a única impressora física da loja e que não existe gaveta de dinheiro conectada.
+
+Configuração candidata para homologação, ainda não aplicada ao ambiente da loja:
+
+- Compartilhar a fila Windows `EPSON TM-T20X Receipt` entre os setores caixa, cozinha, churrasqueira e bar, conforme os setores efetivamente cadastrados. Não criar filas Windows duplicadas nem alterar o driver ou o compartilhamento.
+- Preservar a separação lógica por setor, com cabeçalho destacado, mesa/comanda, número do pedido, horário, itens e observações. Encaminhar somente itens do setor e somente complementos novos.
+- Serializar trabalhos pela fila física, inclusive vias independentes; não repetir automaticamente trabalhos com resultado indeterminado. Configurar duas vias conforme preferência do proprietário, mantendo a quantidade ajustável por tipo de documento/setor.
+- Gaveta de dinheiro desativada neste estabelecimento; nenhuma dependência de gaveta, nenhum pulso de abertura.
+- Manter configuração genérica para outros estabelecimentos, sem hardcode do nome da fila em código compartilhado. A impressora única é um ponto de falha: manter fila persistente e avisos; não inventar impressora reserva.
+- Testar pedido misto fictício com espetinhos, porções e bebidas pelo Garçom Mobile, conferir tickets por setor na mesma Epson, depois pré-conta e comprovante de caixa. Validar integração e comprimento dinâmico antes da liberação.
+
+Não foi realizada alteração em produção, cadastro de impressoras ou dados reais neste registro.
