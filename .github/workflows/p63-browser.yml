@@ -1,0 +1,68 @@
+name: P63 - Auditoria visual
+on:
+  push:
+    branches: [feat/p63-interface-completa-consumer]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    env:
+      MONGO_URL: mongodb://127.0.0.1:27017
+      DB_NAME: apollo_p40_browser_p63
+      APOLLO_CASH_MODE: operator
+      APOLLO_E2E_BASE_URL: https://127.0.0.1:8001
+      COOKIE_SECURE: 'true'
+      CORS_ORIGINS: https://127.0.0.1:8001
+      P47_BROWSER: ${{ matrix.browser }}
+      SERVE_FRONTEND_DIR: ${{ github.workspace }}/frontend/dist
+    services:
+      mongo:
+        image: mongo:7
+        ports: ['27017:27017']
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1})'"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build and install the test browser
+        run: |
+          python -m pip install -r backend/requirements.txt --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
+          npm --prefix frontend ci --legacy-peer-deps --no-audit --no-fund
+          npm --prefix frontend run build
+          npm --prefix tests ci --no-audit --no-fund
+          cd tests
+          npx playwright install --with-deps "$P47_BROWSER"
+      - name: Run visual checks with fictitious data
+        run: |
+          mkdir -p evidence
+          python local-server/gerar-certificado.py /tmp/apollo-p63-tls 127.0.0.1
+          python backend/p40_seed_ci.py
+          python -m uvicorn server:app --app-dir backend --host 127.0.0.1 --port 8001 --ssl-keyfile /tmp/apollo-p63-tls/server.key --ssl-certfile /tmp/apollo-p63-tls/server.crt > evidence/backend.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          curl --retry 20 --retry-connrefused --retry-delay 1 --cacert /tmp/apollo-p63-tls/apollo-local-ca.crt --fail --silent "$APOLLO_E2E_BASE_URL/api/" > evidence/health.json
+          cd tests
+          npx playwright test --config=p47.config.ts p63-visual.spec.ts p63-quantity-footer.spec.ts --trace retain-on-failure
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Apollo-P63-${{ matrix.browser }}
+          path: |
+            tests/test-results/p47/
+            evidence/
+          retention-days: 14
