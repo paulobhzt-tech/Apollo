@@ -68,25 +68,22 @@ class ApolloPrintBridgeLab
                         if (!doc.PrinterSettings.IsValid)
                             throw new InvalidOperationException("Fila Windows invalida.");
                         doc.PrinterSettings.Copies = 1;
-                        doc.DocumentName = "Apollo Lab " + id + " via " + via;
+                        doc.DocumentName = "Apollo CSharp - Teste Via " + via;
                         doc.DefaultPageSettings.PaperSize = new PaperSize("Apollo 80mm",
                             315, Math.Max(394, lines.Length * 18 + 40));
                         doc.DefaultPageSettings.Margins = new Margins(10, 10, 5, 5);
                         doc.PrintController = new StandardPrintController();
                         doc.PrintPage += delegate(object sender, PrintPageEventArgs e)
                         {
-                            int y = 5;
-                            foreach (string line in lines)
-                            {
-                                e.Graphics.DrawString(line, font, Brushes.Black, 10, y);
-                                y += 18;
-                            }
+                            // Match the single DrawString rendering of the physically successful C# test.
+                            e.Graphics.DrawString(string.Join("\n", lines),
+                                font, Brushes.Black, 10, 5);
                             e.HasMorePages = false;
                         };
                         Mark(prefix + "-started.state", "INICIADO");
                         doc.Print();
-                        Mark(prefix + "-accepted.state", "PRINT_RETORNOU");
-                        Console.WriteLine("Via " + via + ": enviada ao Windows.");
+                        Mark(prefix + "-accepted.state", "PRINT_RETORNOU_SEM_CONFIRMACAO_FISICA");
+                        Console.WriteLine("Via " + via + ": chamada Print retornou; confira o papel.");
                     }
                     if (via == 1) Thread.Sleep(1000);
                 }
