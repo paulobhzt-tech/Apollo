@@ -613,7 +613,8 @@ function MoveDialog({ ing, onClose }: { ing: Ingredient | null; onClose: () => v
         <Input placeholder={type === "ajuste" ? "Novo saldo contado" : "Quantidade"} value={qty} inputMode="decimal" onChange={(e) => setQty(e.target.value)} className="font-mono" data-testid="stock-move-qty-input" />
         <Input placeholder="Observação (NF fornecedor, perda…)" value={note} onChange={(e) => setNote(e.target.value)} data-testid="stock-move-note-input" />
         {!!qty && !validQty && <p role="alert" className="text-sm text-amber-300">Informe uma quantidade válida. Entradas e saídas devem ser maiores que zero; ajustes podem ser zero. Itens por unidade exigem números inteiros.</p>}
-        <Button disabled={!validQty || save.isPending} onClick={() => save.mutate()} data-testid="stock-move-save-button">Confirmar</Button>
+        {type === "ajuste" && !note.trim() && <p className="text-sm text-muted-foreground">Informe o motivo do ajuste.</p>}
+        <Button disabled={!validQty || (type === "ajuste" && !note.trim()) || save.isPending} onClick={() => save.mutate()} data-testid="stock-move-save-button">Confirmar</Button>
       </DialogContent>
     </Dialog>
   );

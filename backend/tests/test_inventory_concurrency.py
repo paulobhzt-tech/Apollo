@@ -35,7 +35,7 @@ async def test_stock_outflow_requires_available_quantity_unless_explicitly_allow
     monkeypatch.setattr(catalog, "db", fake_db)
     body = SimpleNamespace(ingredient_id="i-1", type="saida", qty=5.0, note="", reason="")
     with pytest.raises(HTTPException) as error:
-        await catalog.create_move(body, {"name": "Operador"})
+        await catalog.apply_stock_move(body, {"name": "Operador"})
     assert error.value.status_code == 409
     assert ingredients.update_one.await_args.args[0]["$or"] == [
         {"stock": {"$gte": 5.0}}, {"block_negative_stock": False},
@@ -112,8 +112,25 @@ async def test_stock_counts_and_moves_reject_fractional_pieces(monkeypatch, oper
         elif operation == "lot":
             await catalog.apply_lot_count(LotCountIn(purchase_id="p-1", counted_qty=2.5), actor)
         else:
-            await catalog.create_move(StockMoveIn(ingredient_id="i-1", type="entrada", qty=2.5), actor)
+            await catalog.apply_stock_move(StockMoveIn(ingredient_id="i-1", type="entrada", qty=2.5), actor)
 
     assert error.value.status_code == 400
     ingredients.update_one.assert_not_awaited()
     purchases.update_one.assert_not_awaited()
+
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("qty,note", [(-1, "Contagem"), (2, ""), (2, "   ")])
+async def test_stock_adjustment_requires_nonnegative_count_and_reason(monkeypatch, qty, note):
+    from models.schemas import StockMoveIn
+
+    ingredients = SimpleNamespace(find_one=AsyncMock(), update_one=AsyncMock())
+    monkeypatch.setattr(catalog, "db", SimpleNamespace(ingredients=ingredients))
+    body = StockMoveIn(ingredient_id="i-1", type="ajuste", qty=qty, note=note)
+
+    with pytest.raises(HTTPException) as error:
+        await catalog.apply_stock_move(body, {"name": "Operador"})
+
+    assert error.value.status_code == 400
+    ingredients.update_one.assert_not_awaited()

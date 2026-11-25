@@ -12,7 +12,10 @@ async function readPublishedBuild() {
       typeof manifest.version !== "string" || !/^\d+\.\d+\.\d+$/.test(manifest.version)) {
     throw new Error("Manifesto inválido.");
   }
-  return { version: manifest.version as string, commit: manifest.commit as string };
+  const release = typeof manifest.release === "string" && /^P\d+\.\d+$/.test(manifest.release)
+    ? ` (${manifest.release})`
+    : "";
+  return { version: `${manifest.version}${release}`, commit: manifest.commit as string };
 }
 
 export default function ReleaseDiagnostics() {

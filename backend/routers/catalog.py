@@ -893,7 +893,16 @@ async def list_moves(_: dict = Depends(require("caixa", "cozinha"))):
 
 @router.post("/stock/moves", response_model=Ingredient)
 async def create_move(body: StockMoveIn, user: dict = Depends(require("caixa", "cozinha"))):
-    ing = await db.ingredients.find_one({"id": body.ingredient_id}, {"_id": 0})
+    return await with_order_transaction(lambda session: apply_stock_move(body, user, session=session))
+
+
+async def apply_stock_move(body: StockMoveIn, user: dict, *, session=None):
+    options = {"session": session} if session is not None else {}
+    if not math.isfinite(body.qty) or body.qty < 0:
+        raise HTTPException(400, "Quantidade inválida")
+    if body.type == "ajuste" and not body.note.strip():
+        raise HTTPException(400, "Informe o motivo do ajuste de estoque")
+    ing = await db.ingredients.find_one({"id": body.ingredient_id}, {"_id": 0}, **options)
     if not ing:
         raise HTTPException(404, "Insumo não encontrado")
     if ing.get("unit") == "un" and not body.qty.is_integer():
@@ -901,23 +910,21 @@ async def create_move(body: StockMoveIn, user: dict = Depends(require("caixa", "
     if body.type == "perda":
         if not body.reason:
             raise HTTPException(400, "Informe o motivo da perda")
-        if not body.qty > 0 or not __import__("math").isfinite(body.qty):
+        if round(body.qty, 4) <= 0:
             raise HTTPException(400, "Quantidade da perda deve ser positiva e finita")
         # Conditional atomic decrement prevents recording losses greater than the stock.
         result = await db.ingredients.update_one(
             {"id": ing["id"], "stock": {"$gte": body.qty}},
-            {"$inc": {"stock": -round(body.qty, 4)}, "$set": {"updated_at": now()}},
+            {"$inc": {"stock": -round(body.qty, 4)}, "$set": {"updated_at": now()}}, **options,
         )
         if not result.modified_count:
             raise HTTPException(409, "Estoque insuficiente para registrar a perda")
         delta = -round(body.qty, 4)
     else:
-        if not __import__("math").isfinite(body.qty):
-            raise HTTPException(400, "Quantidade inválida")
         if body.type == "ajuste":
             delta = body.qty - ing["stock"]
         else:
-            if body.qty <= 0:
+            if round(body.qty, 4) <= 0:
                 raise HTTPException(400, "Quantidade deve ser maior que zero")
             delta = body.qty if body.type == "entrada" else -body.qty
         stock_filter = {"id": ing["id"]}
@@ -928,7 +935,7 @@ async def create_move(body: StockMoveIn, user: dict = Depends(require("caixa", "
             stock_filter["$or"] = [{"stock": {"$gte": round(body.qty, 4)}}, {"block_negative_stock": False}]
         result = await db.ingredients.update_one(
             stock_filter,
-            {"$inc": {"stock": round(delta, 4)}, "$set": {"updated_at": now()}},
+            {"$inc": {"stock": round(delta, 4)}, "$set": {"updated_at": now()}}, **options,
         )
         if not result.matched_count:
             raise HTTPException(409, "Estoque alterado ou insuficiente. Atualize e tente novamente.")
@@ -937,5 +944,5 @@ async def create_move(body: StockMoveIn, user: dict = Depends(require("caixa", "
         note=body.note, by_name=user["name"],
         reason=body.reason or "" if body.type == "perda" else "",
         cost_total=round(abs(delta) * ing.get("cost_per_unit", 0), 2) if body.type == "perda" else 0,
-    ).model_dump())
-    return await db.ingredients.find_one({"id": ing["id"]}, {"_id": 0})
+    ).model_dump(), **options)
+    return await db.ingredients.find_one({"id": ing["id"]}, {"_id": 0}, **options)

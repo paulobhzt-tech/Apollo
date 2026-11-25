@@ -55,6 +55,7 @@ const manifest = {
   application: 'Apollo PDV 3.0.1',
   commit,
   version: '3.0.1',
+  release: 'P64.5',
   artifact: createHash('sha256').update(JSON.stringify([commit, hashes])).digest('hex'),
   files: hashes,
   scope: 'Build identity only; does not attest deployment, backend compatibility or operational approval.'
