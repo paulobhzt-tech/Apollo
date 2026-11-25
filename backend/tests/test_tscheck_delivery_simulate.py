@@ -1,23 +1,9 @@
 """Mock delivery simulate uses secrets module & creates an order visible on /delivery."""
-import httpx
-from urllib.parse import urlsplit
-
-from .conftest import api_url
-
-
-def _login(pin: str) -> httpx.Client:
-    c = httpx.Client(base_url=api_url(), timeout=30.0)
-    url = urlsplit(api_url())
-    c.headers["Origin"] = f"{url.scheme}://{url.netloc}"
-    r = c.post("/auth/login", json={"pin": pin})
-    assert r.status_code == 200, r.text
-    token = r.cookies.get("pdv_session")
-    c.headers["Cookie"] = f"pdv_session={token}"
-    return c
+from .conftest import seeded_operator_client
 
 
 def test_delivery_simulate_ifood_creates_order():
-    c = _login("1234")  # admin (passes require("caixa"))
+    c = seeded_operator_client("p40admin")  # admin (passes require("caixa"))
     try:
         r = c.post("/delivery/simulate", json={"source": "ifood"})
         assert r.status_code == 200, r.text

@@ -6,6 +6,8 @@ file — add app-specific fixtures below the marker at the bottom.
 """
 
 import os
+import ssl
+from urllib.parse import urlsplit
 
 import httpx
 import pytest
@@ -45,3 +47,19 @@ async def aclient():
 
 
 # --- app-specific fixtures below this line ---
+
+def seeded_operator_client(username: str) -> httpx.Client:
+    url = urlsplit(BACKEND_URL)
+    assert url.hostname in ("127.0.0.1", "localhost", "::1")
+    assert os.environ.get("DB_NAME", "").startswith("apollo_p40_browser_")
+    ca = os.environ.get("APOLLO_TEST_CA_PATH")
+    verify = ssl.create_default_context(cafile=ca) if ca else True
+    client = httpx.Client(base_url=API_URL, verify=verify, timeout=30,
+                          headers={"Origin": f"{url.scheme}://{url.netloc}"})
+    try:
+        response = client.post("/auth/login", json={"username": username, "password": "P40-Fictitious-Password!"})
+        assert response.status_code == 200, response.text
+        return client
+    except BaseException:
+        client.close()
+        raise

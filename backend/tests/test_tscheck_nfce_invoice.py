@@ -2,33 +2,22 @@
 and is the correct 44-digit SEFAZ format."""
 import time
 
-import httpx
-from urllib.parse import urlsplit
-
-from .conftest import api_url
-
-
-def _login(pin: str) -> httpx.Client:
-    c = httpx.Client(base_url=api_url(), timeout=30.0)
-    url = urlsplit(api_url())
-    c.headers["Origin"] = f"{url.scheme}://{url.netloc}"
-    r = c.post("/auth/login", json={"pin": pin})
-    assert r.status_code == 200, r.text
-    token = r.cookies.get("pdv_session")
-    c.headers["Cookie"] = f"pdv_session={token}"
-    return c
+from .conftest import seeded_operator_client
 
 
 def test_pdv_sale_pix_emits_nfce_with_44_digit_access_key():
-    c = _login("1234")  # admin (passes require("caixa"))
+    c = seeded_operator_client("p40admin")  # admin (passes require("caixa"))
     try:
+        opened = c.post("/cash/open", json={"opening_amount": 0})
+        assert opened.status_code == 200, opened.text
         prods = c.get("/products").json()
         prod = next(p for p in prods if p.get("price"))
         client_ref = f"tscheck-nfce-{int(time.time() * 1000)}"
         payload = {
             "client_ref": client_ref,
             "items": [{"product_id": prod["id"], "qty": 1}],
-            "payments": [{"method": "pix", "amount": prod["price"]}],
+            "payments": [{"method": "pix", "amount": prod["price"],
+                          "details": {"reference": client_ref, "pix_received": True}}],
             "emit_invoice": True,
             "doc_type": "nfce",
         }
@@ -41,4 +30,7 @@ def test_pdv_sale_pix_emits_nfce_with_44_digit_access_key():
         assert len(inv["access_key"]) == 44, f"access_key wrong length: {inv['access_key']}"
         assert inv["access_key"].isdigit()
     finally:
+        current = c.get("/cash/current").json()
+        if current and current.get("id"):
+            c.post("/cash/close", json={"counted_amount": current["expected_cash"], "expected_session_id": current["id"]})
         c.close()
