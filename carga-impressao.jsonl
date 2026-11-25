@@ -1,0 +1,3 @@
+{"pedidos_ficticios": 100, "tickets": 300, "reservas_duplicadas_bloqueadas": 300, "segundos": 0.37}
+{"pedidos_ficticios": 500, "tickets": 1500, "reservas_duplicadas_bloqueadas": 1500, "segundos": 2.42}
+{"pedidos_ficticios": 1000, "tickets": 3000, "reservas_duplicadas_bloqueadas": 3000, "segundos": 8.27}
