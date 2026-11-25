@@ -16,7 +16,7 @@ jobs:
       matrix:
         browser: [chromium, firefox, webkit]
     env:
-      MONGO_URL: mongodb://127.0.0.1:27017
+      MONGO_URL: mongodb://127.0.0.1:27017/?replicaSet=p63
       DB_NAME: apollo_p40_browser_p63
       APOLLO_CASH_MODE: operator
       APOLLO_E2E_BASE_URL: https://127.0.0.1:8001
@@ -24,13 +24,6 @@ jobs:
       CORS_ORIGINS: https://127.0.0.1:8001
       P47_BROWSER: ${{ matrix.browser }}
       SERVE_FRONTEND_DIR: ${{ github.workspace }}/frontend/dist
-    services:
-      mongo:
-        image: mongo:7
-        ports: ['27017:27017']
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1})'"
-          --health-interval 5s --health-timeout 5s --health-retries 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -47,6 +40,19 @@ jobs:
           npm --prefix tests ci --no-audit --no-fund
           cd tests
           npx playwright install --with-deps "$P47_BROWSER"
+      - name: Start transactional test database
+        run: |
+          docker run -d --name apollo-p63-mongo -p 127.0.0.1:27017:27017 mongo:7 --replSet p63 --bind_ip_all
+          for attempt in {1..30}; do
+            if docker exec apollo-p63-mongo mongosh --quiet --eval 'db.adminCommand({ping:1})'; then break; fi
+            sleep 1
+          done
+          docker exec apollo-p63-mongo mongosh --quiet --eval 'rs.initiate({_id:"p63",members:[{_id:0,host:"localhost:27017"}]})'
+          for attempt in {1..30}; do
+            if docker exec apollo-p63-mongo mongosh --quiet --eval 'db.hello().isWritablePrimary' | grep -q true; then exit 0; fi
+            sleep 1
+          done
+          exit 1
       - name: Run visual checks with fictitious data
         run: |
           mkdir -p evidence
