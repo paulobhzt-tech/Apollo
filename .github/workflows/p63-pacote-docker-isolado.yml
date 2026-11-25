@@ -20,6 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Node para verificar manifesto
         uses: actions/setup-node@v4
@@ -38,6 +39,31 @@ jobs:
           docker cp "$container:/app/web/." "$RUNNER_TEMP/p63-web/"
           EXPECTED_COMMIT="$GITHUB_SHA" node frontend/scripts/verify-build.mjs "$RUNNER_TEMP/p63-web"
           cp "$RUNNER_TEMP/p63-web/build-integrity.json" pacote/build-integrity.json
+
+      - name: Ensaiar rollback e restauração com banco fictício
+        if: github.ref_name == 'feat/p63-final-consolidacao-operacional'
+        shell: bash
+        env:
+          ROLLBACK_SHA: 6795a35d4b7d7a6d539fb5fa6da3b66b25f84f11
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$ROLLBACK_SHA" "$GITHUB_SHA"
+          mkdir -p "$RUNNER_TEMP/p63-base"
+          git archive "$ROLLBACK_SHA" | tar -xf - -C "$RUNNER_TEMP/p63-base"
+          docker build --build-arg APOLLO_SOURCE_COMMIT="$ROLLBACK_SHA" \
+            --tag "apollo-p63-rollback:$ROLLBACK_SHA" "$RUNNER_TEMP/p63-base"
+          bash deploy/vps/test-p63-rollback.sh "apollo-p63-candidata:$GITHUB_SHA" \
+            "apollo-p63-rollback:$ROLLBACK_SHA" pacote/ensaio
+          docker save "apollo-p63-rollback:$ROLLBACK_SHA" | gzip -1 > pacote/Apollo-P63-Rollback.tar.gz
+          gzip -t pacote/Apollo-P63-Rollback.tar.gz
+          (cd pacote && sha256sum Apollo-P63-Rollback.tar.gz > SHA256ROLLBACK.txt)
+
+      - name: Empacotar Web e PWA
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd "$RUNNER_TEMP/p63-web" && zip -q -r "$GITHUB_WORKSPACE/pacote/Apollo-P63-Web-PWA.zip" .)
+          (cd pacote && sha256sum Apollo-P63-Web-PWA.zip > SHA256WEB.txt)
 
       - name: Empacotar imagem Docker de forma verificavel
         shell: bash
