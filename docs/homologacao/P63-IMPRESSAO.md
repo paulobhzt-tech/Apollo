@@ -110,3 +110,8 @@ O operador compilou e executou localmente ApolloPrintQueue.exe, protótipo sem c
 ### C# — submissão integrada com marcadores persistentes por via
 
 O operador executou o laboratório ApolloPrintBridgeLab.cs publicado no commit b6b8143cf0dd3a8eb7c44240fae2cf646c2b3bce. Job fictício f498b780a97046dc839fb239d7678863: console confirmou retorno de Print() para vias 1 e 2, WorkingSet64 pontual de 37,56 MB e diretório local de registros. A segunda execução com o mesmo ID foi bloqueada antes de Print(). Os marcadores individuais ainda devem ser conferidos por listagem, e a saída física, acentos, corte e ausência de nova via devem ser confirmados pelo operador. Trata-se de laboratório local, não de agente residente conectado à API. Retomada seletiva, concorrência distribuída, falha real e consumo sustentado permanecem pendentes. Sem implantação ou alteração de produção.
+
+
+### Correção da avaliação física do laboratório C# integrado
+
+O operador confirmou que o job f498b780a97046dc839fb239d7678863 não gerou papel, embora os quatro marcadores started/accepted existam. Fila Epson vazia, status Normal, TMUSB001 e spooler Running. A página de teste do Windows e o executável C# anterior ApolloPrintTest.exe (DrawString único com texto multilinha) imprimiram normalmente segundo o operador. A candidata 26dc815f1af0b46d81546f290d20dc2fc7bf48cf aproxima renderização e nome do documento do teste bem-sucedido e explicita que o retorno de Print() não confirma impressão física. Causa ainda não comprovada; reteste com novo GUID obrigatório. Preservar registros anteriores, não reenviar o trabalho indeterminado. Homologação física integrada permanece bloqueada.
