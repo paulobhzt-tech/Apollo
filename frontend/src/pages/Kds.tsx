@@ -31,11 +31,16 @@ function beep() {
 
 export default function Kds() {
   const [station, setStation] = useState<Station | "all">("cozinha");
+  const [history, setHistory] = useState(false);
   const [sound, setSound] = useState(true);
   const [onlyLate, setOnlyLate] = useState(false);
   const [oldestFirst, setOldestFirst] = useState(true);
   const [, tick] = useState(0);
   const tickets = useQuery({ queryKey: ["kds"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets"), refetchInterval: 5000 });
+  const delivered = useQuery({
+    queryKey: ["kds", "delivered"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets?delivered=true"),
+    enabled: history, refetchInterval: history ? 8000 : false,
+  });
   const seen = useRef<Set<string> | null>(null);
   const envs = useEnvironments();
   const STATIONS: { key: Station | "all"; label: string }[] = [{ key: "all", label: "Todos os ambientes" }, ...(envs.data ?? []).map((e) => ({ key: e.key, label: e.name }))];
@@ -61,6 +66,11 @@ export default function Kds() {
     tickets.isError ? [] : tickets.data ?? [], station, onlyLate, oldestFirst,
   );
 
+  const historyTickets = delivered.data?.map((ticket) => ({
+    ...ticket, items: ticket.items.filter((item) => station === "all" || item.station === station),
+  })).filter((ticket) => ticket.items.length) ?? [];
+  const columns: typeof COLS = history ? [{ key: "entregue", label: "Entregues recentemente" }] : COLS;
+
   return (
     <AppShell roles={["cozinha", "garcom", "caixa"]}>
       <PageHeader title="Cozinha e Bar (KDS)" subtitle="Pedidos por ambiente e tempo de preparo" actions={
@@ -76,10 +86,16 @@ export default function Kds() {
           <Button variant="outline" size="icon" onClick={() => setSound(!sound)} data-testid="kds-sound-toggle">{sound ? <Volume2 /> : <VolumeX />}</Button>
         </>
       } />
-      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm" data-testid="kds-summary"><span>Novos: <strong>{waiting}</strong></span><span>Em preparo: <strong>{preparing}</strong></span><span>Prontos: <strong>{ready}</strong></span><span>Maior espera: <strong>{oldestWaiting} min</strong></span><span className={delayed ? "font-semibold text-amber-300" : ""}>Atrasados (15min+): <strong>{delayed}</strong></span><span className={critical ? "font-semibold text-red-300" : ""}>Críticos (25min+): <strong>{critical}</strong></span><Button size="sm" variant={onlyLate ? "default" : "outline"} onClick={() => setOnlyLate((v) => !v)} data-testid="kds-late-filter" aria-pressed={onlyLate}>{onlyLate ? "Mostrar todos" : "Ver atrasados"}</Button><Button size="sm" variant="outline" onClick={() => setOldestFirst((v) => !v)} data-testid="kds-sort-toggle">{oldestFirst ? "Mais antigos primeiro" : "Mais recentes primeiro"}</Button><Button size="sm" variant="outline" onClick={() => void tickets.refetch()}>Atualizar</Button></div>
-      <div className="grid gap-4 lg:grid-cols-3">
-        {COLS.map((c) => {
-          const col = list.filter((t) => t.status === c.key);
+      <div className="mb-3 flex flex-wrap gap-2" aria-label="Visualização da produção">
+        <Button size="sm" variant={history ? "outline" : "default"} aria-pressed={!history} onClick={() => setHistory(false)}>Em andamento</Button>
+        <Button size="sm" variant={history ? "default" : "outline"} aria-pressed={history} onClick={() => setHistory(true)}>Histórico de entregas</Button>
+      </div>
+      {history && delivered.isPending && <p role="status" className="py-4 text-sm text-muted-foreground">Carregando entregas…</p>}
+      {history && delivered.isError && <p role="alert" className="py-4 text-sm text-destructive">Não foi possível carregar o histórico de entregas.</p>}
+      {!history && <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm" data-testid="kds-summary"><span>Novos: <strong>{waiting}</strong></span><span>Em preparo: <strong>{preparing}</strong></span><span>Prontos: <strong>{ready}</strong></span><span>Maior espera: <strong>{oldestWaiting} min</strong></span><span className={delayed ? "font-semibold text-amber-300" : ""}>Atrasados (15min+): <strong>{delayed}</strong></span><span className={critical ? "font-semibold text-red-300" : ""}>Críticos (25min+): <strong>{critical}</strong></span><Button size="sm" variant={onlyLate ? "default" : "outline"} onClick={() => setOnlyLate((v) => !v)} data-testid="kds-late-filter" aria-pressed={onlyLate}>{onlyLate ? "Mostrar todos" : "Ver atrasados"}</Button><Button size="sm" variant="outline" onClick={() => setOldestFirst((v) => !v)} data-testid="kds-sort-toggle">{oldestFirst ? "Mais antigos primeiro" : "Mais recentes primeiro"}</Button><Button size="sm" variant="outline" onClick={() => void tickets.refetch()}>Atualizar</Button></div>}
+      <div className={cn("grid gap-4", !history && "lg:grid-cols-3")}>
+        {columns.map((c) => {
+          const col = history ? historyTickets : list.filter((t) => t.status === c.key);
           return (
             <section key={c.key} className="rounded-2xl border border-white/5 bg-shell p-3" data-testid={`kds-column-${c.key}`}>
               <h3 className="mb-3 flex items-center justify-between px-1 text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-400">
@@ -88,14 +104,15 @@ export default function Kds() {
               <div className="space-y-3">
                 {col.map((t) => {
                   const m = minutesSince(t.created_at);
-                  const urgent = m > 25 && c.key !== "pronto";
+                  const urgent = m > 25 && c.key !== "pronto" && c.key !== "entregue";
+                  const mixedStations = station !== "all" && tickets.data?.find((ticket) => ticket.id === t.id)?.items.some((item) => item.station !== station);
                   return (
                     <article key={t.id} data-testid={`kds-ticket-${t.order_number}`}
                       className={cn("rounded-xl border p-3 animate-rise", urgent ? "animate-urgent border-red-400 bg-[#2A1418]" : "border-white/8 bg-[#1A1E2E]")}>
                       <div className="flex items-center justify-between">
                         <p className="font-heading text-lg font-semibold text-white">{t.label}</p>
                         <span className={cn("rounded-md px-2 py-0.5 font-mono text-xs", m < 15 ? "bg-emerald-400/15 text-emerald-300" : m <= 25 ? "bg-amber-400/15 text-amber-300" : "bg-red-400/20 text-red-300")}>
-                          {m}min
+                          {history ? `Entregue às ${fmtTime(t.updated_at)}` : `${m}min`}
                         </span>
                       </div>
                       <p className="text-[11px] text-zinc-500">
@@ -116,8 +133,8 @@ export default function Kds() {
                         })}
                       </ul>
                       {c.next && (
-                        <Button size="sm" className="mt-3 w-full" variant={c.key === "pronto" ? "outline" : "default"} disabled={move.isPending || (station !== "all" && t.items.some(i => i.station !== station))}
-                          title={station !== "all" && t.items.some(i => i.station !== station) ? "Pedido antigo com setores misturados: gerencie em Todos os ambientes" : undefined}
+                        <Button size="sm" className="mt-3 w-full" variant={c.key === "pronto" ? "outline" : "default"} disabled={move.isPending || mixedStations}
+                          title={mixedStations ? "Pedido antigo com setores misturados: gerencie em Todos os ambientes" : undefined}
                           onClick={() => move.mutate({ id: t.id, status: c.next! })} data-testid={`kds-advance-${t.order_number}`}>
                           {c.action}
                         </Button>

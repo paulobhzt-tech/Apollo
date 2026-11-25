@@ -294,7 +294,9 @@ async def emit_for_order(id: str, body: EmitInvoiceIn, _: dict = Depends(require
 
 # ---------- KDS ----------
 @router.get("/kds/tickets", response_model=list[KitchenTicket])
-async def kds_tickets(_: dict = Depends(current_user)):
+async def kds_tickets(_: dict = Depends(current_user), delivered: bool = False):
+    if delivered:
+        return await db.kitchen_tickets.find({"status": "entregue"}, {"_id": 0}).sort("updated_at", -1).to_list(100)
     since = now() - timedelta(hours=2)
     q = {"$or": [{"status": {"$in": ["novo", "preparo"]}}, {"status": "pronto", "updated_at": {"$gte": since}}]}
     return await db.kitchen_tickets.find(q, {"_id": 0}).sort("created_at", 1).to_list(300)
