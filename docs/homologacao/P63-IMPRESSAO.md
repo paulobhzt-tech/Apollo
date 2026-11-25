@@ -115,3 +115,8 @@ O operador executou o laboratório ApolloPrintBridgeLab.cs publicado no commit b
 ### Correção da avaliação física do laboratório C# integrado
 
 O operador confirmou que o job f498b780a97046dc839fb239d7678863 não gerou papel, embora os quatro marcadores started/accepted existam. Fila Epson vazia, status Normal, TMUSB001 e spooler Running. A página de teste do Windows e o executável C# anterior ApolloPrintTest.exe (DrawString único com texto multilinha) imprimiram normalmente segundo o operador. A candidata 26dc815f1af0b46d81546f290d20dc2fc7bf48cf aproxima renderização e nome do documento do teste bem-sucedido e explicita que o retorno de Print() não confirma impressão física. Causa ainda não comprovada; reteste com novo GUID obrigatório. Preservar registros anteriores, não reenviar o trabalho indeterminado. Homologação física integrada permanece bloqueada.
+
+
+### Reteste físico aprovado — renderização C# corrigida
+
+O operador da Espeteria confirmou explicitamente que, após receber as instruções para baixar e recompilar ApolloPrintBridgeLab.cs do commit 26dc815f1af0b46d81546f290d20dc2fc7bf48cf, a Epson imprimiu as duas vias corretamente. Evidência por relato do operador, sem log de execução atualizado, GUID do reteste ou foto anexada. A correção de renderização passou neste cenário; a causa raiz da falha anterior não foi isolada. Conferir os novos marcadores, repetir o teste anti-duplicidade da versão corrigida e medir o consumo novamente. A integração HTTPS, fila distribuída, recuperação seletiva, operação offline e homologação operacional seguem pendentes. Não houve implantação em produção.
