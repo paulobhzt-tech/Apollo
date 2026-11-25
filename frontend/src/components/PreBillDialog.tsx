@@ -68,6 +68,9 @@ export default function PreBillDialog({ table, order, open, printEnabled = true,
       h1 { font-size: 15px; text-align: center; margin: 0; } h2 { font-size: 18px; text-align: center; margin: 4px 0; }
       .c { text-align: center; } .r { text-align: right; white-space: nowrap; } .op { font-size: 10px; padding-left: 8px; }
       table { width: 100%; border-collapse: collapse; } td { padding: 2px 0; vertical-align: top; }
+      td:first-child { overflow-wrap: anywhere; padding-right: 2mm; }
+      td.r + td.r { padding-left: 1.5mm; }
+      tr { break-inside: avoid; }
       .sep { border-top: 1px dashed #000; margin: 4px 0; } .tot { font-size: 16px; font-weight: bold; }
       .row { display: flex; justify-content: space-between; }
     </style></head><body>
