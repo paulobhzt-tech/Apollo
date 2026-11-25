@@ -76,7 +76,7 @@ try {
             Write-Marker "$prefix-$via-accepted.state" ([DateTime]::UtcNow.ToString('o'))
             Write-Host "Via $via enviada ao Windows; confira a saida no papel."
         } catch {
-            Write-Warning "Via $via: interrompido. Confira papel e registros antes de novo teste."
+            Write-Warning "Via ${via}: interrompido. Confira papel e registros antes de novo teste."
             throw
         } finally {
             $doc.Dispose()
