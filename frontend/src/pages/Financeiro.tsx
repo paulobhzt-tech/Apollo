@@ -380,7 +380,7 @@ export default function Financeiro() {
         <Stat label="Lucro líquido" value={brl(d?.net_profit ?? 0)} testid="dre-net" accent={(d?.net_profit ?? 0) >= 0 ? "text-emerald-300" : "text-red-300"} />
         <Stat label="Margem líquida" value={`${d?.margin_pct ?? 0}%`} testid="dre-margin" accent="text-primary" />
       </div>
-      <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_1.3fr]">
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
         <Panel title="DRE simplificado">
           {d ? (
             <dl className="space-y-1 font-mono text-sm" data-testid="dre-statement">

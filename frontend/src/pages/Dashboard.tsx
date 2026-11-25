@@ -191,7 +191,7 @@ export default function Dashboard() {
 
 export function Panel({ title, children, className = "", actions }: { title: string; children: React.ReactNode; className?: string; actions?: React.ReactNode }) {
   return (
-    <section className={`rounded-2xl border border-white/5 bg-panel p-5 animate-rise ${className}`}>
+    <section className={`min-w-0 rounded-2xl border border-border bg-panel p-5 animate-rise ${className}`}>
       <div className="mb-4 flex items-center justify-between gap-2">
         <h3 className="text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-400">{title}</h3>
         {actions}

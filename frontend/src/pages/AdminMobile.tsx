@@ -59,9 +59,9 @@ export default function AdminMobile() {
         return <section key={group} aria-label={group} className="space-y-2">
           <h2 className="px-1 text-base font-semibold">{group}</h2>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {entries.map((item) => <Link key={item.to} to={item.to} className="flex min-h-24 flex-col justify-between rounded-xl border border-border bg-elevated p-3 text-sm font-medium transition-colors hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" data-testid={`admin-module-${item.to.slice(1)}`}>
+            {entries.map((item) => <Link key={item.to} to={item.to} className="flex min-h-24 min-w-0 flex-col justify-between rounded-xl border border-border bg-elevated p-3 text-sm font-medium transition-colors hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" data-testid={`admin-module-${item.to.slice(1)}`}>
               <Smartphone className="size-5 text-primary" aria-hidden="true" />
-              <span className="flex items-end justify-between gap-1">{item.label}<ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" /></span>
+              <span className="flex items-end justify-between gap-1"><span className="min-w-0 wrap-anywhere">{item.label}</span><ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" /></span>
             </Link>)}
           </div>
         </section>;

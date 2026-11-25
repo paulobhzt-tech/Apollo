@@ -44,8 +44,8 @@ export default function Vendas() {
   return (
     <AppShell roles={["caixa"]}>
       <PageHeader title="Histórico de Vendas" subtitle="Últimos itens vendidos, estornos e cancelamentos"
-        actions={<div className="relative"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
-          <Input placeholder="Produto ou nº do pedido" value={search} onChange={(e) => setSearch(e.target.value)} className="w-64 pl-9" data-testid="history-search-input" /></div>} />
+        actions={<div className="relative w-full max-w-64"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
+          <Input placeholder="Produto ou nº do pedido" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full max-w-64 pl-9" data-testid="history-search-input" /></div>} />
       {!allowed && (
         <p className="mb-4 flex items-center gap-2 rounded-xl border border-white/8 bg-panel px-4 py-3 text-sm text-zinc-400" data-testid="history-no-permission">
           <Lock className="size-4" /> Você pode consultar o histórico, mas estornos e cancelamentos exigem o PIN de um gerente autorizado.

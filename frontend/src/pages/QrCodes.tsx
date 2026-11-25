@@ -51,7 +51,7 @@ export default function QrCodes() {
           <Button disabled={!num} onClick={() => add.mutate()} data-testid="new-table-button"><Plus className="size-4" /> Mesa</Button>
         </div>
       )}
-      <div className="mb-4 flex items-center gap-3 print:hidden"><label htmlFor="qr-filter" className="text-sm text-zinc-300">Imprimir:</label><select id="qr-filter" value={selectedKind} onChange={(e) => setSelectedKind(e.target.value as "all" | "mesa" | "comanda")} className="rounded-lg border border-white/20 bg-background px-3 py-2 text-sm"><option value="mesa">Somente mesas</option><option value="comanda">Somente comandas</option><option value="all">Todos</option></select><span className="text-xs text-zinc-400">{printable.length} QR Codes</span></div>
+      <div className="mb-4 flex flex-wrap items-center gap-3 print:hidden"><label htmlFor="qr-filter" className="text-sm text-zinc-300">Imprimir:</label><select id="qr-filter" value={selectedKind} onChange={(e) => setSelectedKind(e.target.value as "all" | "mesa" | "comanda")} className="max-w-full rounded-lg border border-white/20 bg-background px-3 py-2 text-sm"><option value="mesa">Somente mesas</option><option value="comanda">Somente comandas</option><option value="all">Todos</option></select><span className="text-xs text-zinc-400">{printable.length} QR Codes</span></div>
       <div className="print-area grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
         {printable.map((t) => (
           <div key={t.id} className="flex break-inside-avoid flex-col items-center gap-2 rounded-2xl border border-zinc-200 bg-white p-4 text-black print:rounded-none print:border-black" data-testid={`qr-card-${t.number}`}>

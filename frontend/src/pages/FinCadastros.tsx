@@ -35,14 +35,14 @@ function Categories() {
   const ren = useMutation({ mutationFn: (c: AccountCategory) => apiPut<AccountCategory>(`/account-categories/${c.id}`, { name: c.name, kind: c.kind }), onSuccess: () => { toast.success("Categoria renomeada"); inv(); }, onError: (e) => toast.error(errMsg(e)) });
   const del = useMutation({ mutationFn: (id: string) => apiDelete<OkOut>(`/account-categories/${id}`), onSuccess: () => { toast.success("Categoria apagada"); inv(); }, onError: (e) => toast.error(errMsg(e)) });
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_1fr_320px]">
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,18rem)]">
       {(["pagar", "receber"] as BillKind[]).map((k) => (
         <div key={k} className="rounded-2xl border border-white/5 bg-panel p-4" data-testid={`categories-${k}`}>
           <p className="mb-3 text-xs uppercase tracking-[0.15em] text-zinc-500">{k === "pagar" ? "Contas a pagar" : "Contas a receber"}</p>
           <ul className="space-y-1.5">
             {(q.data ?? []).filter((c) => c.kind === k).map((c) => (
-              <li key={c.id} className="flex items-center gap-2 rounded-lg border border-white/5 px-3 py-2" data-testid={`category-row-${c.id}`}>
-                <span className="flex-1 text-sm text-white">{c.name}</span>
+              <li key={c.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-white/5 px-3 py-2" data-testid={`category-row-${c.id}`}>
+                <span className="min-w-0 flex-1 wrap-anywhere text-sm text-foreground">{c.name}</span>
                 <Button size="xs" variant="ghost" onClick={() => { const n = window.prompt("Novo nome:", c.name); if (n && n.trim().length >= 2) ren.mutate({ ...c, name: n.trim() }); }} data-testid={`category-rename-${c.id}`}>Renomear</Button>
                 <Button size="icon-sm" variant="ghost" onClick={() => window.confirm(`Apagar ${c.name}?`) && del.mutate(c.id)} data-testid={`category-delete-${c.id}`}><Trash2 /></Button>
               </li>
@@ -77,7 +77,7 @@ function Methods() {
   });
   const del = useMutation({ mutationFn: (id: string) => apiDelete<OkOut>(`/payment-methods/${id}`), onSuccess: () => { toast.success("Forma apagada"); inv(); }, onError: (e) => toast.error(errMsg(e)) });
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
       <div className="space-y-2">
         {(q.data ?? []).map((m) => (
           <div key={m.id} className={cn("flex flex-wrap items-center gap-3 rounded-xl border bg-panel px-4 py-3", m.active ? "border-white/5" : "border-white/5 opacity-60")} data-testid={`method-row-${m.key}`}>

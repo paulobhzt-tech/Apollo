@@ -19,7 +19,7 @@ export default function Notas() {
   return (
     <AppShell roles={["caixa"]}>
       <PageHeader title="Notas Fiscais" subtitle="NFC-e / NF-e ilimitadas armazenadas na nuvem · emissão SIMULADA (sem envio à SEFAZ)"
-        actions={<Input placeholder="Buscar nº, pedido ou chave" value={search} onChange={(e) => setSearch(e.target.value)} className="w-64" data-testid="invoice-search-input" />} />
+        actions={<Input placeholder="Buscar nº, pedido ou chave" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full max-w-64" data-testid="invoice-search-input" />} />
       <p className="mb-3 text-sm text-zinc-400">{list.length} notas · total autorizado <span className="font-mono text-white">{brl(total)}</span></p>
       <div className="rounded-2xl border border-white/5 bg-panel">
         <Table>
