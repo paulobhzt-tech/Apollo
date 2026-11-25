@@ -28,12 +28,16 @@ As referências remotas `audit/nov14`, `audit/qty-contracts`, `audit/quality` e 
 
 ## Atualização e rollback de homologação
 
-1. Baixe o artefato do commit candidato. Confira `source-commit.txt`, `build-integrity.json` e `SHA256SUMS.txt`. Aplique exclusivamente em rede isolada e com banco descartável. [Pacote Docker e Web/PWA](https://github.com/paulobhzt-tech/Apollo/actions/runs/45562170237)
+1. Baixe o artefato do commit candidato. Confira `source-commit.txt`, `build-integrity.json` e `SHA256SUMS.txt`. Aplique exclusivamente em rede isolada e com banco descartável. [Pacote Docker e Web/PWA](https://github.com/paulobhzt-tech/Apollo/actions/runs/45562170237/artifacts/14998177712)
 2. Use o instalador do canal de teste em perfil Windows de homologação. Confira o SHA-256 nos logs e o servidor selecionado antes de autenticar. [Artefatos Windows](https://github.com/paulobhzt-tech/Apollo/actions/runs/45562174075)
 3. Antes de trocar a imagem de homologação, preserve a imagem anterior e gere um backup da base de teste. Para rollback, aponte o laboratório para a imagem anterior e, se necessário, restaure o backup em uma nova base. A P63 tem ensaio isolado concluído e imagem de rollback com hash. [Evidência P63](https://github.com/paulobhzt-tech/Apollo/actions/runs/45555175931)
 4. No Windows autorizado da Espeteria, confirme fila, porta e papel da Epson por diagnóstico de leitura. Use produtos e pedidos fictícios. Envie de Garçom Mobile para cozinha e bar com a Central de Impressão aberta no Apollo Windows. Confira a fila, os tickets por setor, pré-conta e duas vias com corte. Interrompa a segunda via no laboratório e confira papel e spooler antes de qualquer reenvio. [Checklist Epson](https://github.com/paulobhzt-tech/Apollo/blob/audit/p63-final-evidencias/INSTALACAO-E-HOMOLOGACAO.md)
 
 ## Testes e liberação
+
+- Chromium local com banco descartável passou no pagamento misto e nos testes de quantidade, cópia e transferência. Conferiu o rodapé sem rolagem horizontal do modal em 156 combinações de seis resoluções e 26 níveis. A área central ainda pode rolar verticalmente em alturas reduzidas.
+- Cinco navegações locais por configuração mediram a mediana até o primeiro produto visível no PDV. Foram 180 ms na base, 174 ms na candidata e 188 ms com efeitos reduzidos. As amostras não demonstram ganho de desempenho do modo. Não medem CPU, RAM total do navegador ou o ASUS piloto. [Amostras](medicoes-chromium.jsonl)
+- SHA-256 do ZIP de artefato Docker/Web no Actions: `bd21b1e071b31223b4d87d10c49570a1bb6dcdea1b9cd95cc54e84ced2417e64`. Os arquivos internos têm checksums próprios.
 
 - Build Web verificado contra o SHA candidato e 67 testes Vitest locais. 26 testes Node de desktop passaram.
 - [CI de segurança e build](https://github.com/paulobhzt-tech/Apollo/actions/runs/45562166301) · [Bateria de regressão](https://github.com/paulobhzt-tech/Apollo/actions/runs/45562166315) · [Playwright](https://github.com/paulobhzt-tech/Apollo/actions/runs/45562166792).

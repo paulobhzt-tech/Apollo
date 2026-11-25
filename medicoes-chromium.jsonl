@@ -1,0 +1,15 @@
+{"variant":"antes","trial":1,"readyMs":219,"fcpMs":104,"heapBytes":18071844}
+{"variant":"antes","trial":2,"readyMs":163,"fcpMs":84,"heapBytes":19647480}
+{"variant":"antes","trial":3,"readyMs":173,"fcpMs":80,"heapBytes":24764427}
+{"variant":"antes","trial":4,"readyMs":180,"fcpMs":96,"heapBytes":26897112}
+{"variant":"antes","trial":5,"readyMs":208,"fcpMs":116,"heapBytes":33640655}
+{"variant":"depois","trial":1,"readyMs":176,"fcpMs":84,"heapBytes":19952340}
+{"variant":"depois","trial":2,"readyMs":137,"fcpMs":76,"heapBytes":20546536}
+{"variant":"depois","trial":3,"readyMs":214,"fcpMs":120,"heapBytes":23812167}
+{"variant":"depois","trial":4,"readyMs":166,"fcpMs":80,"heapBytes":30885479}
+{"variant":"depois","trial":5,"readyMs":174,"fcpMs":80,"heapBytes":32930793}
+{"variant":"depois-efeitos-reduzidos","trial":1,"readyMs":203,"fcpMs":84,"heapBytes":19815236}
+{"variant":"depois-efeitos-reduzidos","trial":2,"readyMs":206,"fcpMs":92,"heapBytes":21511020}
+{"variant":"depois-efeitos-reduzidos","trial":3,"readyMs":177,"fcpMs":76,"heapBytes":23378495}
+{"variant":"depois-efeitos-reduzidos","trial":4,"readyMs":151,"fcpMs":80,"heapBytes":29266153}
+{"variant":"depois-efeitos-reduzidos","trial":5,"readyMs":188,"fcpMs":84,"heapBytes":32307295}
