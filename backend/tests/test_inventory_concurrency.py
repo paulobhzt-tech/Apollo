@@ -18,7 +18,7 @@ async def test_inventory_count_detects_concurrent_stock_change(monkeypatch):
     body = SimpleNamespace(ingredient_id="i-1", counted_qty=8.0, note="Conferencia",
                            model_dump=lambda **kwargs: {"ingredient_id": "i-1", "counted_qty": 8.0, "note": "Conferencia"})
     with pytest.raises(HTTPException) as error:
-        await catalog.register_inventory_count(body, {"name": "Operador"})
+        await catalog.apply_inventory_count(body, {"name": "Operador"})
     assert error.value.status_code == 409
     assert ingredients.update_one.await_args.args[0] == {"id": "i-1", "stock": 10.0}
     fake_db.inventory_counts.insert_one.assert_not_awaited()
@@ -89,3 +89,31 @@ async def test_purchase_rejects_invalid_bill_date_before_stock_change(monkeypatc
         await catalog.apply_purchase(body, {"name": "Operador"})
     assert error.value.status_code == 400
     ingredients.update_one.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["inventory", "lot", "move"])
+async def test_stock_counts_and_moves_reject_fractional_pieces(monkeypatch, operation):
+    from models.schemas import InventoryCountIn, LotCountIn, StockMoveIn
+
+    ingredients = SimpleNamespace(
+        find_one=AsyncMock(return_value={"id": "i-1", "name": "Embalagem", "unit": "un"}),
+        update_one=AsyncMock(),
+    )
+    purchases = SimpleNamespace(
+        find_one=AsyncMock(return_value={"id": "p-1", "ingredient_id": "i-1", "remaining_qty": 10}),
+        update_one=AsyncMock(),
+    )
+    monkeypatch.setattr(catalog, "db", SimpleNamespace(ingredients=ingredients, purchases=purchases))
+    actor = {"name": "Operador"}
+    with pytest.raises(HTTPException) as error:
+        if operation == "inventory":
+            await catalog.apply_inventory_count(InventoryCountIn(ingredient_id="i-1", counted_qty=2.5), actor)
+        elif operation == "lot":
+            await catalog.apply_lot_count(LotCountIn(purchase_id="p-1", counted_qty=2.5), actor)
+        else:
+            await catalog.create_move(StockMoveIn(ingredient_id="i-1", type="entrada", qty=2.5), actor)
+
+    assert error.value.status_code == 400
+    ingredients.update_one.assert_not_awaited()
+    purchases.update_one.assert_not_awaited()
