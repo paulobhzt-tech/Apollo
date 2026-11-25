@@ -35,3 +35,16 @@ Use uma base de homologação isolada. Registre horário, operador, ticket, tent
 - [ ] Enviar pelos fluxos Web, Android e iPhone e vincular cada saída ao ticket.
 
 Validação física pendente. O inventário local será gerado no computador autorizado no dia da homologação.
+
+## Evidência física parcial — Epson TM-T20X (25/11/2026)
+
+Relato do operador durante teste presencial na Espeteria Churras Burguer (sem venda, caixa ou estoque):
+
+- Fila Windows: `EPSON TM-T20X Receipt`; driver `EPSON TM-T(203dpi) Receipt6`; porta USB `TMUSB001`.
+- Spooler em execução, inicialização automática; fila padrão, estado Normal, WorkOffline=False, compartilhamento desativado.
+- Driver: papel 80 × 297 mm, 203 × 203 dpi, retrato, monocromático, uma via padrão.
+- Primeiro teste PowerShell com Out-Printer: saída física confirmada pelo operador, porém com excesso de papel.
+- Segundo teste: System.Drawing.Printing.PrintDocument, PaperSize personalizado 315 × 394 centésimos de polegada (aprox. 80 × 100 mm), uma via, margens 10/10/5/5; operador confirmou impressão correta e economia de papel. Não alterou preferências globais do driver.
+- Próximos testes: comprimento calculado pelo conteúdo, duas vias, corte, acentos e pedidos enviados pelo Apollo Web/Mobile. O teste acima é do Windows/driver, não comprova a integração do Apollo nem o comprimento físico exato, e não substitui homologação completa. Sem foto ou medição anexada.
+
+Não fixar o nome da fila para todos os estabelecimentos: utilizar a configuração por dispositivo/setor. Preservar a fila e o driver existentes.
