@@ -1,0 +1,45 @@
+name: P64.4 Windows portátil de homologação
+on:
+  push:
+    branches: [feat/p64-4-liberacao-final-apollo]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  portable:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [windows-2022, windows-2025]
+    runs-on: ${{ matrix.runner }}
+    env:
+      PDV_BUILD_CHANNEL: test
+      PDV_HOMOLOGATION_URL: https://homologacao.apollo-pdv.com
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - working-directory: desktop
+        run: |
+          npm install --no-audit --no-fund
+          npm run web
+          npx electron-builder --win --x64 --dir --publish never
+          New-Item -ItemType File -Path dist/win-unpacked/apollo-portable-test
+      - name: Validar inicialização e reconexão offline sem NSIS
+        run: ./desktop/scripts/windows-smoke.ps1 -PortableDirectory desktop/dist/win-unpacked -Channel test
+      - name: Empacotar a pasta validada
+        if: matrix.runner == 'windows-2025'
+        run: |
+          New-Item -ItemType Directory -Path package
+          Compress-Archive -Path desktop/dist/win-unpacked/* -DestinationPath package/Apollo-PDV-Homologacao.zip
+          Get-FileHash package/Apollo-PDV-Homologacao.zip | ForEach-Object { "$($_.Hash.ToLower())  Apollo-PDV-Homologacao.zip" } | Set-Content -Encoding ascii package/SHA256SUMS.txt
+          Set-Content -Encoding ascii package/SOURCE.txt $env:GITHUB_SHA
+      - uses: actions/upload-artifact@v4
+        if: matrix.runner == 'windows-2025'
+        with:
+          name: Apollo-PDV-Portatil-${{ github.sha }}
+          path: package/
+          if-no-files-found: error

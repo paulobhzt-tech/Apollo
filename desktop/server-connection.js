@@ -19,7 +19,7 @@ function allowedServerUrl(value, config) {
   if (!validServerUrl(value, config.testBuild)) return false;
   if (!config.testBuild) return true;
   const target = new URL(value);
-  return target.origin === HOMOLOGATION_URL || LOOPBACK.includes(target.hostname);
+  return target.origin === HOMOLOGATION_URL || target.origin === "https://homologacao.apollo-pdv.com" || LOOPBACK.includes(target.hostname);
 }
 
 function parseConfig(raw) {

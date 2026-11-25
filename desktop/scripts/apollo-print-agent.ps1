@@ -3,14 +3,28 @@
 param(
     [Parameter(Mandatory, ParameterSetName='Pair')][uri]$Server,
     [Parameter(Mandatory, ParameterSetName='Pair')][string]$Queue,
-    [Parameter(Mandatory, ParameterSetName='Pair')][switch]$Pair
+    [Parameter(Mandatory, ParameterSetName='Pair')][switch]$Pair,
+    [ValidatePattern('^[A-Za-z0-9_-]{1,40}$')][string]$Profile = 'default'
 )
 $ErrorActionPreference = 'Stop'
 $root = Join-Path $env:LOCALAPPDATA 'ApolloPrintAgent'
+if ($Profile -ne 'default') { $root = Join-Path (Join-Path $root 'profiles') $Profile }
 New-Item -ItemType Directory -Path $root -Force | Out-Null
 $gate = [IO.File]::Open((Join-Path $root 'worker.lock'), 'OpenOrCreate', 'ReadWrite', 'None')
 $configPath = Join-Path $root 'terminal.json'
 $pendingPath = Join-Path $root 'pending.json'
+$logPath = Join-Path $root 'agent.log'
+
+function Write-AgentStatus([string]$Message) {
+    try {
+        if ((Test-Path -LiteralPath $logPath) -and (Get-Item -LiteralPath $logPath).Length -gt 262144) {
+            Move-Item -LiteralPath $logPath -Destination "$logPath.previous" -Force
+        }
+        Add-Content -LiteralPath $logPath -Encoding UTF8 -Value "$([DateTimeOffset]::UtcNow.ToString('o')) $Message"
+    } catch {
+        Write-Warning 'Não foi possível registrar o estado local.'
+    }
+}
 
 function Write-State($path, $data) {
     $temp = "$path.tmp"
@@ -52,6 +66,7 @@ try {
     $credential = [Net.NetworkCredential]::new('', $secure).Password
     $request = @{ Method='Post'; Headers=@{ Authorization="Bearer $credential" }; TimeoutSec=10; MaximumRedirection=0; UseBasicParsing=$true }
     $poll = @{ queue = $config.queue } | ConvertTo-Json
+    Write-AgentStatus 'Agente iniciado.'
     Write-Output 'Apollo Print Agent em execução. Ctrl+C encerra.'
     while ($true) {
         try {
@@ -81,6 +96,7 @@ try {
                         Write-State $pendingPath $pending
                     }
                 } catch {
+                    Write-AgentStatus 'Impressão indeterminada; confira spooler e papel.'
                     Write-Warning 'Resultado indeterminado. Confira a fila e o papel antes de reenviar.'
                 }
                 continue
@@ -88,12 +104,16 @@ try {
         } catch {
             $status = $_.Exception.Response
             if ($status -and [int]$status.StatusCode -in 401, 403, 409) {
+                Write-AgentStatus "Servidor recusou a operação: HTTP $([int]$status.StatusCode)."
                 throw 'Terminal sem acesso ou fila indisponível. Confira o vínculo e as tentativas pendentes.'
             }
             Write-Warning 'Servidor indisponível. O agente tentará novamente.'
         }
         Start-Sleep -Seconds 4
     }
+} catch {
+    Write-AgentStatus 'Agente interrompido. Verifique vínculo, fila e configuração.'
+    throw
 } finally {
     $gate.Dispose()
 }

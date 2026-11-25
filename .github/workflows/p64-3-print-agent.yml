@@ -1,7 +1,7 @@
-name: P64.3 Windows Print Agent
+name: Apollo Windows Print Agent
 on:
   push:
-    branches: [feat/p64-3-interface-impressao-final]
+    branches: [feat/p64-3-interface-impressao-final, feat/p64-4-liberacao-final-apollo]
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,17 +17,19 @@ jobs:
         run: |
           $tokens = $null
           $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile(
-            (Join-Path (Get-Location) 'desktop/scripts/apollo-print-agent.ps1'), [ref]$tokens, [ref]$errors
-          ) | Out-Null
-          if ($errors) { throw ($errors | Out-String) }
+          foreach ($script in @('apollo-print-agent.ps1', 'apollo-print-agent-task.ps1')) {
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Join-Path (Get-Location) "desktop/scripts/$script"), [ref]$tokens, [ref]$errors
+            ) | Out-Null
+            if ($errors) { throw ($errors | Out-String) }
+          }
           Add-Type -Path desktop/scripts/ApolloAgentReceipt.cs -ReferencedAssemblies System.Drawing
           if (-not [ApolloAgentReceipt].GetMethod('Submit')) { throw 'Método de impressão indisponível.' }
       - name: Empacotar agente de homologação e gerar SHA-256
         shell: powershell
         run: |
           New-Item -ItemType Directory -Path package
-          Compress-Archive -Path desktop/scripts/apollo-print-agent.ps1,desktop/scripts/ApolloAgentReceipt.cs,docs/homologacao/P64-3-PRINT-AGENT.md -DestinationPath package/Apollo-Print-Agent.zip
+          Compress-Archive -Path desktop/scripts/apollo-print-agent.ps1,desktop/scripts/apollo-print-agent-task.ps1,desktop/scripts/ApolloAgentReceipt.cs,docs/homologacao/P64-3-PRINT-AGENT.md -DestinationPath package/Apollo-Print-Agent.zip
           Get-FileHash package/Apollo-Print-Agent.zip -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  Apollo-Print-Agent.zip" } | Set-Content -Encoding ascii package/SHA256SUMS.txt
           Set-Content -Encoding ascii package/SOURCE.txt $env:GITHUB_SHA
       - uses: actions/upload-artifact@v4

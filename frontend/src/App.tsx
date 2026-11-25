@@ -1,3 +1,4 @@
+import PwaUpdateNotice from "@/components/PwaUpdateNotice";
 import { DisplayPreferences } from "@/components/DisplayPreferences";
 import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -77,6 +78,7 @@ export default function App() {
   return (
     <DisplayPreferences>
     <DemoNotice />
+    <PwaUpdateNotice />
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/mesas-offline" element={<OfflineTables />} />

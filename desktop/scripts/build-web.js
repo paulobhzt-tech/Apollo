@@ -16,7 +16,7 @@ if (!["production", "test"].includes(channel)) {
 }
 // A test package starts on the isolated HTTPS endpoint. A tunnel can be
 // selected in the app once the operator has started it.
-const url = channel === "test" ? HOMOLOGATION_URL : cleanUrl(process.env.PDV_SERVER_URL || "");
+const url = channel === "test" ? cleanUrl(process.env.PDV_HOMOLOGATION_URL || HOMOLOGATION_URL) : cleanUrl(process.env.PDV_SERVER_URL || "");
 if (!allowedServerUrl(url, { testBuild: channel === "test" })) {
   throw new Error("PDV_SERVER_URL deve apontar a uma origem HTTPS válida.");
 }

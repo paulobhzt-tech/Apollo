@@ -12,6 +12,14 @@ const path = require("path");
 const { autoUpdater } = require("electron-updater");
 const { cleanUrl, allowedServerUrl, resolveServerConfig, probeServer, HOMOLOGATION_URL, parseConfig } = require("./server-connection");
 
+// The training ZIP ships this marker beside the executable.
+const portableTest = app.isPackaged && fs.existsSync(path.join(path.dirname(process.execPath), "apollo-portable-test"));
+if (portableTest) {
+  const profile = path.join(app.getPath("appData"), "Apollo PDV Portatil");
+  fs.mkdirSync(profile, { recursive: true });
+  app.setPath("userData", profile);
+}
+
 const CHECK_MS = 15000;
 let win = null;
 let mode = "online";
@@ -19,7 +27,7 @@ let mode = "online";
 // Updates are delivered only through official published GitHub releases.
 // Test builds, unpackaged development and CI smoke runs never auto-update.
 function enableProductionUpdates() {
-  if (!app.isPackaged || cfg.testBuild === true || process.env.PDV_SMOKE) return;
+  if (portableTest || !app.isPackaged || cfg.testBuild === true || process.env.PDV_SMOKE) return;
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true; // Never restart an active sale.
   autoUpdater.allowPrerelease = false;
@@ -506,7 +514,7 @@ app.whenReady().then(async () => {
     return;
   }
   Menu.setApplicationMenu(null);
-  app.setLoginItemSettings({ openAtLogin: !!cfg.startWithWindows });
+  if (!portableTest) app.setLoginItemSettings({ openAtLogin: !!cfg.startWithWindows });
   registerAppProtocol();
   createWindow();
   watchConnection();
