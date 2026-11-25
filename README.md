@@ -1,5 +1,7 @@
 # Apollo PDV 3.0.1 — candidata P64.2
 
+[Veja a continuação em Caixa, Estoque, Pessoas, Contas, DRE e navegação](CONTINUACAO.md). Esta página documenta a candidata anterior.
+
 Branch `feat/p64-funcionalidades-completas`, candidata `727b260003893a37935401f05d59de8089ee19c1`. A branch P64 partiu de `1fc4124` e avançou por ancestralidade até a P63 `5b6f00e`, incluindo os trabalhos de impressão térmica e o protótipo Print Lite. [Alterações P64.2](https://github.com/paulobhzt-tech/Apollo/compare/5b6f00e...727b260)
 
 ## Capturas com dados fictícios
