@@ -1,0 +1,22 @@
+name: P63 final - regressao impressao termica
+on:
+  push:
+    branches: [feat/p63-final-consolidacao-operacional]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  thermal-print:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar sintaxe do desktop
+        run: node --check desktop/main.js
+      - name: Executar testes simulados de impressao
+        run: node --test desktop/thermal-print.test.js
