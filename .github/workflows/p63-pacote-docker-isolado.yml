@@ -1,0 +1,61 @@
+name: P63 - Empacotar Docker para laboratorio isolado
+
+on:
+  push:
+    branches:
+      - audit/p63-pacote-docker-isolado
+    paths:
+      - .github/workflows/p63-pacote-docker-isolado.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pacote-docker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Obter commit fixado
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Node para verificar manifesto
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Compilar imagem P63 sem publicar
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build --build-arg APOLLO_SOURCE_COMMIT="$GITHUB_SHA" \
+            --tag "apollo-p63-candidata:$GITHUB_SHA" .
+          mkdir -p "$RUNNER_TEMP/p63-web" pacote
+          container="$(docker create "apollo-p63-candidata:$GITHUB_SHA")"
+          trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
+          docker cp "$container:/app/web/." "$RUNNER_TEMP/p63-web/"
+          EXPECTED_COMMIT="$GITHUB_SHA" node frontend/scripts/verify-build.mjs "$RUNNER_TEMP/p63-web"
+          cp "$RUNNER_TEMP/p63-web/build-integrity.json" pacote/build-integrity.json
+
+      - name: Empacotar imagem Docker de forma verificavel
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker image inspect "apollo-p63-candidata:$GITHUB_SHA" --format '{{.Id}}' > pacote/docker-image-id.txt
+          printf '%s\n' "$GITHUB_SHA" > pacote/source-commit.txt
+          docker save "apollo-p63-candidata:$GITHUB_SHA" | gzip -1 > pacote/Apollo-P63-Espeteria-Candidata.tar.gz
+          gzip -t pacote/Apollo-P63-Espeteria-Candidata.tar.gz
+          (cd pacote && sha256sum Apollo-P63-Espeteria-Candidata.tar.gz build-integrity.json docker-image-id.txt source-commit.txt > SHA256SUMS.txt)
+          ls -lh pacote/
+          cat pacote/source-commit.txt pacote/docker-image-id.txt
+
+      - name: Disponibilizar pacote apenas como artefato de CI
+        uses: actions/upload-artifact@v4
+        with:
+          name: Apollo-P63-Docker-${{ github.sha }}
+          path: pacote/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
