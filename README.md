@@ -12,11 +12,15 @@ Código na branch `feat/p64-3-interface-impressao-final`. A base é `a116da3d21a
 | Instalador Windows | Ensaios limpos ampliados para 2022 e 2025 com o mesmo SHA-256 e desinstalação no canal de teste. | [Instalador e logs](https://github.com/paulobhzt-tech/Apollo/actions/runs/45568022219). A investigação do NSIS continua aberta. Atualização e recuperação completas pendentes. |
 | Interface restante | Zoom, atalhos recolhíveis, tabelas e pagamento da P64.2 mantidos. | A reformulação integral das demais telas segue pendente. [Matriz anterior](https://github.com/paulobhzt-tech/Apollo/blob/audit/p64-2-evidencias/MATRIZ.md). |
 
+[Matriz de continuidade por item](MATRIZ.md).
+
 ## Builds, instalação e retorno
 
-- [Agente Windows e SHA-256](https://github.com/paulobhzt-tech/Apollo/actions/runs/45568018659).
-- [Web/PWA, Docker, checksums e ensaio de rollback para P64.2](https://github.com/paulobhzt-tech/Apollo/actions/runs/45568018449).
+- [Agente Windows e SHA-256](https://github.com/paulobhzt-tech/Apollo/actions/runs/45568018659/artifacts/15001495448).
+- [Web/PWA, Docker, checksums e ensaio de rollback para P64.2](https://github.com/paulobhzt-tech/Apollo/actions/runs/45568018449/artifacts/15001875434).
 - [Auditoria visual e integração do agente simulado](https://github.com/paulobhzt-tech/Apollo/actions/runs/45568025739).
 - [Vínculo, inicialização, teste físico Epson e retorno à Central](https://github.com/paulobhzt-tech/Apollo/blob/fe85d9c/docs/homologacao/P64-3-PRINT-AGENT.md).
 
 O agente desta etapa requer uma sessão Windows e execução manual. Autoinício, impressão de pré-conta pelo agente e homologação física ponta a ponta estão em aberto. A candidata permanece bloqueada para operação na Espeteria até a conferência do papel, dos cortes, da falha entre vias e do comportamento no computador piloto. A VPS fica fora do ensaio.
+
+No Docker, o ensaio de mudança para P64.3 e retorno à P64.2 passou. A restauração em base separada recuperou 18 documentos, sem falhas.
