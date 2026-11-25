@@ -225,6 +225,9 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
   const [ingId, setIngId] = useState("");
   const [qty, setQty] = useState("");
   const recipeQuantity = catalogNumber(qty);
+  const selectedIngredient = ings.find((ingredient) => ingredient.id === ingId);
+  const validRecipeQuantity = recipeQuantity !== null && recipeQuantity > 0 &&
+    (selectedIngredient?.unit !== "un" || Number.isInteger(recipeQuantity));
   const [targetMargin, setTargetMargin] = useState("60");
   const ingMap = Object.fromEntries(ings.map((i) => [i.id, i]));
   const recipeCost = f.stock_ingredient_id ? (ingMap[f.stock_ingredient_id]?.cost_per_unit ?? 0)
@@ -245,7 +248,7 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
     onSuccess: () => { toast.success("Produto salvo"); inv(); onClose(); },
   });
   const addRecipe = () => {
-    if (!ingId || recipeQuantity === null || recipeQuantity <= 0) return;
+    if (!selectedIngredient || !validRecipeQuantity) return;
     const r: RecipeItem = { ingredient_id: ingId, qty: recipeQuantity };
     setF({ ...f, recipe: [...f.recipe.filter((x) => x.ingredient_id !== ingId), r] });
     setIngId(""); setQty("");
@@ -366,14 +369,17 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
         <TabsContent value="ficha" className="mt-4">
       <div className="mt-2 rounded-2xl border border-white/5 bg-panel p-4">
         <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-400">Ficha técnica</p>
-        <div className="mt-3 flex gap-2">
-          <Select value={ingId} onValueChange={(v: string) => setIngId(v)}>
-            <SelectTrigger className="flex-1" data-testid="recipe-ingredient-select"><SelectValue>{(v) => ingMap[v as string]?.name ?? "Insumo"}</SelectValue></SelectTrigger>
+        <div className="mt-3 flex flex-wrap items-end gap-2">
+          <Select value={selectedIngredient?.id ?? ""} onValueChange={(v: string) => setIngId(v)}>
+            <SelectTrigger className="min-w-40 flex-1" aria-label="Insumo da ficha técnica" disabled={!ings.length} data-testid="recipe-ingredient-select"><SelectValue>{(v) => ingMap[v as string]?.name ?? "Insumo"}</SelectValue></SelectTrigger>
             <SelectContent>{ings.map((i) => <SelectItem key={i.id} value={i.id}>{i.name} ({i.unit})</SelectItem>)}</SelectContent>
           </Select>
-          <Input placeholder={`Qtd${ingId ? ` (${ingMap[ingId]?.unit})` : ""}`} value={qty} inputMode="decimal" onChange={(e) => setQty(e.target.value)} className="w-28 font-mono" data-testid="recipe-qty-input" />
-          <Button variant="outline" onClick={addRecipe} disabled={!ingId || recipeQuantity === null || recipeQuantity <= 0} aria-label="Adicionar insumo à ficha técnica" data-testid="recipe-add-button"><Plus /></Button>
+          <Input placeholder={`Qtd${ingId ? ` (${ingMap[ingId]?.unit})` : ""}`} aria-label="Quantidade do insumo" value={qty} inputMode={selectedIngredient?.unit === "un" ? "numeric" : "decimal"} onChange={(e) => setQty(e.target.value)} className="w-28 font-mono" data-testid="recipe-qty-input" />
+          <Button variant="outline" onClick={addRecipe} disabled={!selectedIngredient || !validRecipeQuantity} aria-label="Adicionar insumo à ficha técnica" data-testid="recipe-add-button"><Plus /></Button>
         </div>
+        {selectedIngredient && qty.trim() && !validRecipeQuantity && <p role="status" className="mt-2 text-xs text-amber-300">
+          {selectedIngredient.unit === "un" ? "Informe um número inteiro maior que zero." : "Informe uma quantidade maior que zero."}
+        </p>}
         <ul className="mt-3 space-y-1.5">
           {f.recipe.map((r) => {
             const i = ingMap[r.ingredient_id];

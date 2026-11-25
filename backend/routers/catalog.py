@@ -74,7 +74,7 @@ async def list_products(_: dict = Depends(current_user)):
     return await products_with_cost({})
 
 
-async def _validate_product(body: ProductIn) -> None:
+async def _validate_product(body: ProductIn, previous_recipe: list[dict] | None = None) -> None:
     body.name = body.name.strip()
     body.code = body.code.strip()
     if not body.name:
@@ -105,8 +105,20 @@ async def _validate_product(body: ProductIn) -> None:
             if choice.product_id not in product_ids:
                 choice.product_id = names.get(choice.name.lower())
     ids = {r.ingredient_id for r in body.recipe}
-    if ids and await db.ingredients.count_documents({"id": {"$in": list(ids)}}) != len(ids):
+    if not ids:
+        return
+    ingredients = await db.ingredients.find(
+        {"id": {"$in": list(ids)}}, {"_id": 0, "id": 1, "unit": 1, "name": 1},
+    ).to_list(len(ids))
+    if len(ingredients) != len(ids):
         raise HTTPException(400, "Insumo inválido na ficha técnica")
+    by_id = {ingredient["id"]: ingredient for ingredient in ingredients}
+    previous_quantities = {(item.get("ingredient_id"), item.get("qty")) for item in previous_recipe or []}
+    for item in body.recipe:
+        ingredient = by_id[item.ingredient_id]
+        if (ingredient.get("unit") == "un" and not item.qty.is_integer()
+                and (item.ingredient_id, item.qty) not in previous_quantities):
+            raise HTTPException(400, f"Informe uma quantidade inteira para {ingredient['name']}")
 
 
 @router.post("/products", response_model=Product)
@@ -134,12 +146,20 @@ async def update_product(id: str, body: ProductIn, _: dict = Depends(require()))
         saved_value = current.get(missing_field, getattr(body, missing_field))
         body = body.model_copy(update={missing_field: saved_value})
 
-    await _validate_product(body)
+    previous_recipe = None
+    if any(not item.qty.is_integer() for item in body.recipe):
+        current = await db.products.find_one(query, {"_id": 0, "recipe": 1})
+        if current is None:
+            raise HTTPException(404, "Produto não encontrado")
+        previous_recipe = current.get("recipe") or []
+        query["recipe"] = current.get("recipe")
+
+    await _validate_product(body, previous_recipe)
     fields = body.model_dump(exclude=omitted)
     res = await db.products.find_one_and_update(query, {"$set": fields}, projection={"_id": 0}, return_document=True)
     if not res:
-        if len(missing_link_fields) == 1 and await db.products.find_one({"id": id}, {"_id": 1}):
-            raise HTTPException(409, "O vínculo de estoque mudou. Reabra o produto antes de salvar.")
+        if (len(missing_link_fields) == 1 or previous_recipe is not None) and await db.products.find_one({"id": id}, {"_id": 1}):
+            raise HTTPException(409, "O vínculo de estoque ou a ficha técnica mudou. Reabra o produto antes de salvar.")
         raise HTTPException(404, "Produto não encontrado")
     return with_cost(res, await ingredient_map())
 

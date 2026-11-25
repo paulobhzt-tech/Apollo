@@ -8,20 +8,25 @@ export default function SaleQuantityInput({ qty, unit, onChange }: {
   unit?: "un" | "kg" | "L";
   onChange: (qty: number) => void;
 }) {
-  if (unit !== "kg" && unit !== "L") return <span className="px-1 font-mono text-sm">{qty}</span>;
+  const fractional = unit === "kg" || unit === "L";
   return (
-    <Input key={qty} aria-label={`Quantidade em ${unit}`} inputMode="decimal" defaultValue={String(qty).replace(".", ",")}
+    <Input key={qty} aria-label={`Quantidade em ${unit ?? "un"}`} inputMode={fractional ? "decimal" : "numeric"} defaultValue={String(qty).replace(".", ",")}
       className="h-7 w-20 font-mono" onKeyDown={(event) => {
-        if (event.key === "Enter") event.currentTarget.blur();
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.currentTarget.blur();
+        }
       }} onBlur={(event) => {
         const value = catalogNumber(event.currentTarget.value);
-        if (value === null || value <= 0 || value > 99 || Number(value.toFixed(4)) !== value) {
+        if (value === null || value <= 0 || value > 99 || (fractional ? Number(value.toFixed(4)) !== value : !Number.isInteger(value))) {
           event.currentTarget.value = String(qty).replace(".", ",");
-          toast.error("Informe uma quantidade entre 0,0001 e 99, com até quatro casas decimais.");
+          toast.error(fractional
+            ? "Informe uma quantidade entre 0,0001 e 99, com até quatro casas decimais."
+            : "Informe uma quantidade inteira entre 1 e 99.");
           return;
         }
         event.currentTarget.value = String(value).replace(".", ",");
-        onChange(value);
+        if (value !== qty) onChange(value);
       }} />
   );
 }
