@@ -621,7 +621,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   };
 
   const content = (
-          <div className="@container min-w-0 text-foreground">
+          <div className="@container min-h-0 min-w-0 overflow-y-auto overscroll-contain text-foreground">
             <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border p-4 pr-14">
               <div className="min-w-0 wrap-anywhere">
                 <DialogTitle className="font-heading text-xl leading-tight" data-testid="table-sheet-title">
@@ -629,7 +629,6 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                 </DialogTitle>
                 {table.name && <p className="mt-1 text-sm font-medium">{table.name}</p>}
                 <p className="mt-1 text-sm text-muted-foreground">{STATUS[table.status].label}{o ? ` · Pedido #${o.number}` : ""}</p>
-                {table.order_id && <p className="mt-1 text-sm font-semibold">Consumo · {brl(o?.total ?? table.total)}</p>}
               </div>
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 {table.order_id && <label className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-2">
@@ -724,11 +723,6 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
                   </div>
                   )}
-                  <div className="mt-4 flex flex-wrap items-end justify-between gap-2 border-y border-white/10 bg-muted/35 px-3 py-4">
-                    <span className="text-sm text-zinc-400">Subtotal (+10% serviço opcional)</span>
-                    <span className="font-mono text-2xl text-foreground" data-testid="table-order-total">{brl(o?.total ?? table.total)}</span>
-                  </div>
-
                   {submissionQuery.isError && <p role="alert" className="mt-4 text-sm text-red-500">Não foi possível verificar o envio salvo neste dispositivo.</p>}
                   {submission && <p role="status" className="mt-4 text-sm text-amber-600 dark:text-amber-300">{offline ? "Envio salvo neste dispositivo. Aguardando conexão." : "Envio aguardando confirmação. Confira ou reenvie os mesmos itens."}</p>}
                   {adding ? (
@@ -780,10 +774,6 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     <Button variant="outline" onClick={() => setPreBill("print")} disabled={!items.some((i) => !i.cancelled)}>
                       <Printer className="size-4" /> Pré-conta e impressão
                     </Button>
-                    {me?.role === "garcom" && <Button className="h-auto min-h-12" variant="outline" onClick={() => { if (window.confirm("Solicitar fechamento desta conta ao caixa?")) status.mutate("conta"); }} disabled={offline || status.isPending || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || table.status === "conta"} data-testid="waiter-request-close"><Receipt className="size-4" /> {table.status === "conta" ? "Conta solicitada" : "Solicitar fechamento"}</Button>}
-                    {["admin", "caixa"].includes(me?.role ?? "") && <Button className="h-auto min-h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={offline || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
-                      <Receipt className="size-4" /> PAGAMENTO
-                    </Button>}
                   </div>
                   {["admin", "caixa"].includes(me?.role ?? "") && <Button className="mt-2 w-full" variant="outline" disabled={offline || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled)} onClick={() => setPartialOpen(true)}>Dividir por cliente ou itens</Button>}
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -836,9 +826,19 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     <>
       <Dialog open onOpenChange={(value) => { if (!value) requestClose(); }} disablePointerDismissal>
         <DialogContent overlayClassName="bg-black/55"
-          className="w-[calc(100%-1rem)] max-h-[90dvh] max-w-[min(calc(100%-1rem),1080px)] grid-cols-[minmax(0,1fr)] gap-0 overflow-y-auto overscroll-contain border border-border bg-elevated p-0 sm:max-w-[min(calc(100%-2rem),1080px)]"
+          className="w-[calc(100%-1rem)] max-h-[90dvh] max-w-[min(calc(100%-1rem),1080px)] grid-rows-[minmax(0,1fr)_auto] grid-cols-[minmax(0,1fr)] gap-0 overflow-hidden border border-border bg-elevated p-0 sm:max-w-[min(calc(100%-2rem),1080px)]"
           data-testid="table-sheet">
           {content}
+          {table.order_id && <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-panel px-4 py-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Subtotal</p>
+              <p className="font-mono text-xl font-semibold" data-testid="table-order-total">{brl(o?.total ?? table.total)}</p>
+            </div>
+                    {me?.role === "garcom" && <Button className="h-auto min-h-12" variant="outline" onClick={() => { if (window.confirm("Solicitar fechamento desta conta ao caixa?")) status.mutate("conta"); }} disabled={offline || status.isPending || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || table.status === "conta"} data-testid="waiter-request-close"><Receipt className="size-4" /> {table.status === "conta" ? "Conta solicitada" : "Solicitar fechamento"}</Button>}
+                    {["admin", "caixa"].includes(me?.role ?? "") && <Button className="h-auto min-h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={offline || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
+                      <Receipt className="size-4" /> PAGAMENTO
+                    </Button>}
+          </footer>}
         </DialogContent>
       </Dialog>
       <Dialog open={reviewOpen} onOpenChange={(open) => { if (!send.isPending) setReviewOpen(open); }}>
