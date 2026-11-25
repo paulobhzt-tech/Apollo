@@ -78,6 +78,9 @@ jobs:
           cd tests
           specs=(p63-visual.spec.ts p63-quantity-footer.spec.ts p63-selected-items.spec.ts)
           if [[ "$P47_BROWSER" == chromium ]]; then specs+=(p64-display-payment.spec.ts); fi
+          if [[ "$P47_BROWSER" == chromium && "$GITHUB_REF_NAME" == feat/p64-3-interface-impressao-final ]]; then
+            specs+=(p64-print-agent.spec.ts)
+          fi
           npx playwright test --config=p47.config.ts "${specs[@]}" --trace retain-on-failure
       - uses: actions/upload-artifact@v4
         if: always()

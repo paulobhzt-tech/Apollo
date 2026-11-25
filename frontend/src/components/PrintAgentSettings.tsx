@@ -53,7 +53,7 @@ export default function PrintAgentSettings({ printers }: { printers: Printer[] }
             ))}
           </select>
         </label>
-        <Button disabled={!name.trim() || !printer || enrollment.isPending}>Gerar credencial</Button>
+        <Button type="submit" disabled={!name.trim() || !printer || enrollment.isPending}>Gerar credencial</Button>
       </form>
       {enrollment.data && <div className="mt-3 space-y-2 rounded-md border border-border p-3">
         <p className="text-sm">Copie a credencial para o agente Windows autorizado. Ela aparece uma vez.</p>
