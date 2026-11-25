@@ -19,8 +19,8 @@ A candidata final está no commit [b3b470a](https://github.com/paulobhzt-tech/Ap
 
 - [Build Web/PWA](Apollo-P63-Web-PWA.zip) e [manifesto](build-integrity.json).
 - [Pacote Docker da candidata](https://github.com/paulobhzt-tech/Apollo/actions/runs/45552816817) e [pacote Docker da base P63 para rollback](https://github.com/paulobhzt-tech/Apollo/actions/runs/45539397158). Ambos os workflows geram manifesto de arquivos, ID de imagem, revisão de origem e SHA-256.
-- [Instalador Windows de teste e logs](https://github.com/paulobhzt-tech/Apollo/actions/runs/45552817107).
-- [Auditoria visual em navegadores](https://github.com/paulobhzt-tech/Apollo/actions/runs/45552433449). A primeira rodada Firefox falhou na tabela anual do DRE no tema escuro.
+- [Instalador Windows de teste](https://github.com/paulobhzt-tech/Apollo/actions/runs/45552817107/artifacts/14993644590), validado com instalação e abertura no Windows Server 2025 e 2022. [Logs](https://github.com/paulobhzt-tech/Apollo/actions/runs/45552817107).
+- [Auditoria visual em navegadores](https://github.com/paulobhzt-tech/Apollo/actions/runs/45552433449). Chromium e WebKit passaram. O Firefox falhou inicialmente na tabela anual do DRE no tema escuro e passou na repetição.
 - [Manual, configuração pelo celular e checklist físico](https://github.com/paulobhzt-tech/Apollo/blob/b3b470a0912ad2a3ace1119ee16857d8410ededa/docs/homologacao/P63-IMPRESSAO.md).
 - [Diagnóstico Windows](https://github.com/paulobhzt-tech/Apollo/blob/b3b470a0912ad2a3ace1119ee16857d8410ededa/desktop/scripts/diagnosticar-impressoras.ps1).
 
