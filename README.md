@@ -1,6 +1,6 @@
 # Apollo PDV 3.0.1 — consolidação operacional P63
 
-**Candidata de laboratório.** Código em `feat/p63-final-consolidacao-operacional`, commit [99d3760a5f3202d8372b5c47da041dc03b969bc8](https://github.com/paulobhzt-tech/Apollo/commit/99d3760a5f3202d8372b5c47da041dc03b969bc8). A base integrada é `6795a35d4b7d7a6d539fb5fa6da3b66b25f84f11`, que já contém `b3b470a`, os três registros físicos e a correção de vias. As branches de interface, Docker e rollback P62 são ancestrais. A branch de evidências anterior tem histórico próprio de artefatos.
+**Candidata de laboratório.** Código em `feat/p63-final-consolidacao-operacional`, commit [99d3760a5f3202d8372b5c47da041dc03b969bc8](https://github.com/paulobhzt-tech/Apollo/commit/99d3760a5f3202d8372b5c47da041dc03b969bc8). O HEAD da branch avançou para [20790b1](https://github.com/paulobhzt-tech/Apollo/commit/20790b1ebe7525f782f4bae5d2c5a076cf9f09d8) com registro documental do proprietário. Os artefatos permanecem vinculados a 99d3760. A base integrada é `6795a35d4b7d7a6d539fb5fa6da3b66b25f84f11`, que já contém `b3b470a`, os três registros físicos e a correção de vias. As branches de interface, Docker e rollback P62 são ancestrais. A branch de evidências anterior tem histórico próprio de artefatos.
 
 ## Código e evidências
 
@@ -14,9 +14,9 @@
 ## Artefatos e operação
 
 - [Docker, rollback, Web/PWA, manifestos e logs do ensaio](https://github.com/paulobhzt-tech/Apollo/actions/runs/45555175931/artifacts/14995871609). O ensaio passou. A restauração registrou 18 documentos recuperados e zero falhas.
-- [Instalador Windows de teste](https://github.com/paulobhzt-tech/Apollo/actions/runs/45555179871/artifacts/14995542036) · [Logs Windows](https://github.com/paulobhzt-tech/Apollo/actions/runs/45555179871) · [SHA-256 dos artefatos](SHA256-ARTEFATOS.txt).
+- [Instalador Windows de teste](https://github.com/paulobhzt-tech/Apollo/actions/runs/45555179871/artifacts/14995542036) · O mesmo EXE passou no Windows Server 2025 e 2022. [Logs Windows](https://github.com/paulobhzt-tech/Apollo/actions/runs/45555179871) · [SHA-256 dos artefatos](SHA256-ARTEFATOS.txt).
 - [Guia de instalação, Epson e auditoria da VPS](INSTALACAO-E-HOMOLOGACAO.md) · [Controle de aceitação](ACEITACAO.md).
 
 ## Ponto de continuidade
 
-O P0 continua aberto. A Central usa a janela do Apollo no Windows. O Print Bridge independente, o estado recuperável por via e a contingência offline de impressão permanecem pendentes. A evidência física do proprietário é do PowerShell. A homologação pelo Apollo depende da Epson no Windows autorizado e inclui corte, falha entre vias, comprovantes longos e todos os setores. A VPS depende de acesso administrativo e prova de isolamento. Estoque, financeiro e carga integrada ainda precisam da execução completa do cenário da Espeteria com dados fictícios. Consulte o controle de aceitação para as áreas de gestão e expansão sem evidência nesta etapa.
+O P0 continua aberto. A Central usa a janela do Apollo no Windows. O Print Bridge independente, o estado recuperável por via e a contingência offline de impressão permanecem pendentes. O proprietário registrou impressão física via PowerShell de formatos nominais de 100,1 e 147,3 mm com acentos e corte. [Registro físico](https://github.com/paulobhzt-tech/Apollo/blob/20790b1ebe7525f782f4bae5d2c5a076cf9f09d8/docs/homologacao/P63-IMPRESSAO.md). A homologação pelo Apollo depende da Epson no Windows autorizado e inclui corte, falha entre vias, comprovantes longos e todos os setores. A VPS depende de acesso administrativo e prova de isolamento. Estoque, financeiro e carga integrada ainda precisam da execução completa do cenário da Espeteria com dados fictícios. Consulte o controle de aceitação para as áreas de gestão e expansão sem evidência nesta etapa.
