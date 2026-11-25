@@ -74,3 +74,43 @@ test("keeps payment totals and actions in the viewport across zoom settings", as
   expect((await sale).ok()).toBe(true);
   await expect(popup).toBeHidden();
 });
+
+test("adapts the cash and stock records and keeps their actions reachable at 175%", async ({ page }, info) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.goto(base);
+  await page.getByLabel("Usuário", { exact: true }).fill("p40admin");
+  await page.getByLabel("Senha", { exact: true }).fill("P40-Fictitious-Password!");
+  await page.getByRole("button", { name: "Entrar", exact: true }).click();
+  await expect(page.getByTestId("apollo-ribbon")).toBeVisible();
+  await page.goto(base + "/caixa");
+  const response = await page.request.post(base + "/api/cash/open", {
+    data: { opening_amount: 0, note: "P64.2 layout fixture" }, headers: { Origin: base },
+  });
+  expect([200, 400, 409]).toContain(response.status());
+  await page.reload();
+  await page.getByTestId("cash-move-type-suprimento").click();
+  await page.getByTestId("cash-move-amount-input").fill("1000");
+  await page.getByTestId("cash-move-note-input").fill("Suprimento fictício P64.2");
+  await page.getByTestId("cash-move-button").click();
+  const movements = page.getByRole("table", { name: "Movimentações manuais do turno" });
+  await expect(movements).toContainText("Suprimento fictício P64.2");
+
+  await page.getByRole("button", { name: "Recolher atalhos" }).click();
+  await expect(page.locator("#apollo-ribbon-shortcuts")).toBeHidden();
+  await page.getByRole("button", { name: "Mostrar atalhos" }).click();
+  await expect(page.locator("#apollo-ribbon-shortcuts")).toBeVisible();
+  await page.getByLabel("Zoom da interface", { exact: true }).selectOption("175");
+  const movementRow = movements.getByRole("row").filter({ hasText: "Suprimento fictício P64.2" });
+  await expect(movementRow.locator(".apollo-cell-label").first()).toBeVisible();
+  expect(await movements.evaluate((table) => table.scrollWidth <= table.clientWidth + 2)).toBe(true);
+  await movementRow.screenshot({ path: info.outputPath("caixa-adaptativo.png") });
+
+  await page.goto(base + "/estoque");
+  const ingredient = page.getByTestId("ingredient-row-p40ing");
+  await expect(ingredient.locator(".apollo-cell-label").first()).toBeVisible();
+  const stockTable = page.locator(".apollo-adaptive-table").filter({ has: ingredient });
+  expect(await stockTable.evaluate((element) => element.scrollWidth <= element.clientWidth + 2)).toBe(true);
+  await ingredient.screenshot({ path: info.outputPath("estoque-adaptativo.png") });
+  await ingredient.getByTestId("move-ingredient-p40ing").click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+});
