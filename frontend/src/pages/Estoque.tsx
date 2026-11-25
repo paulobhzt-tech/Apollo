@@ -183,7 +183,7 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
       <p className="mb-3 text-xs text-zinc-400">Avisos por data de compra: não representam saldo disponível do lote, pois a saída por lote ainda não é rastreada.</p>
       {(expiry.data ?? []).length === 0 ? <p className="text-sm text-zinc-400">Nenhum lote com alerta.</p> : <ul className="space-y-2 text-sm">{(expiry.data ?? []).map((p) => <li key={p.id} className="flex flex-wrap justify-between gap-2"><span>{p.ingredient_name} · {p.supplier_name} · lote {p.lot_number || "não informado"}</span><strong className={p.days_to_expiry < 0 ? "text-red-300" : "text-amber-200"}>{p.days_to_expiry < 0 ? "Vencido" : p.days_to_expiry === 0 ? "Vence hoje" : "Vence em " + p.days_to_expiry + " dias"} ({dateBR(p.expiry_date)})</strong></li>)}</ul>}
     </div>
-    <div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Fornecedor</TableHead><TableHead>Insumo</TableHead><TableHead>Qtd.</TableHead><TableHead>Custo un.</TableHead><TableHead>Total</TableHead><TableHead>Validade</TableHead></TableRow></TableHeader><TableBody>{(purchases.data ?? []).map((p) => <TableRow key={p.id}><TableCell>{fmtDateTime(p.created_at)}</TableCell><TableCell>{p.supplier_name}</TableCell><TableCell>{p.product_name || p.ingredient_name}</TableCell><TableCell>{p.qty} {p.unit}</TableCell><TableCell>{brl(p.unit_cost)}</TableCell><TableCell>{brl(p.total_cost)}</TableCell><TableCell>{dateBR(p.expiry_date)}</TableCell></TableRow>)}</TableBody></Table></div>
+    <div className="rounded-2xl border border-white/5 bg-panel"><Table stacked><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Fornecedor</TableHead><TableHead>Insumo</TableHead><TableHead>Qtd.</TableHead><TableHead>Custo un.</TableHead><TableHead>Total</TableHead><TableHead>Validade</TableHead></TableRow></TableHeader><TableBody>{(purchases.data ?? []).map((p) => <TableRow key={p.id}><TableCell label="Data">{fmtDateTime(p.created_at)}</TableCell><TableCell label="Fornecedor">{p.supplier_name}</TableCell><TableCell label="Insumo">{p.product_name || p.ingredient_name}</TableCell><TableCell label="Quantidade">{p.qty} {p.unit}</TableCell><TableCell label="Custo unitário">{brl(p.unit_cost)}</TableCell><TableCell label="Total">{brl(p.total_cost)}</TableCell><TableCell label="Validade">{dateBR(p.expiry_date)}</TableCell></TableRow>)}</TableBody></Table></div>
   </div>;
 }
 
@@ -458,21 +458,21 @@ export default function Estoque() {
         <TabsList className="w-full flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto"><TabsTrigger value="insumos" data-testid="tab-insumos">Insumos</TabsTrigger><TabsTrigger value="movs" data-testid="tab-movimentacoes">Movimentações</TabsTrigger><TabsTrigger value="producao" data-testid="tab-producao">Produção por lote</TabsTrigger><TabsTrigger value="compras" data-testid="tab-compras">Compras e validade</TabsTrigger><TabsTrigger value="inventario" data-testid="tab-inventario">Inventário</TabsTrigger>{me?.role !== "cozinha" && <TabsTrigger value="relatorios">Relatórios</TabsTrigger>}</TabsList>
         <TabsContent value="insumos" className="mt-4">
           <div className="rounded-2xl border border-white/5 bg-panel">
-            <Table>
+            <Table stacked>
               <TableHeader><TableRow><TableHead>Insumo</TableHead><TableHead className="text-right">Estoque</TableHead><TableHead className="text-right">Mínimo</TableHead><TableHead className="text-right">Custo/un</TableHead><TableHead /></TableRow></TableHeader>
               <TableBody>
                 {list.map((i) => {
                   const isLow = i.min_stock > 0 && i.stock <= i.min_stock;
                   return (
                     <TableRow key={i.id} data-testid={`ingredient-row-${i.id}`}>
-                      <TableCell className="font-medium text-white">
-                        <span className="flex items-center gap-2">{isLow && <AlertTriangle className="size-4 text-red-400" />}{i.name}</span>
+                      <TableCell label="Insumo" className="font-medium text-white">
+                        <span className="flex min-w-0 items-center gap-2 wrap-anywhere">{isLow && <AlertTriangle className="size-4 text-red-400" />}{i.name}</span>
                         {i.unit === "kg" && !!i.units_per_kg && <span className="text-xs text-zinc-400">Produção estimada: {Math.floor(Math.max(0, i.stock * i.units_per_kg))} un. ({i.units_per_kg} por kg)</span>}
                       </TableCell>
-                      <TableCell className={cn("text-right font-mono", isLow ? "text-red-300" : "text-zinc-200")} data-testid={`ingredient-stock-${i.id}`}>{i.stock.toFixed(2)} {i.unit}</TableCell>
-                      <TableCell className="text-right font-mono text-zinc-500">{i.min_stock} {i.unit}</TableCell>
-                      <TableCell className="text-right font-mono text-zinc-400">{brl(i.cost_per_unit)}</TableCell>
-                      <TableCell className="text-right whitespace-nowrap">
+                      <TableCell label="Estoque" className={cn("text-right font-mono", isLow ? "text-red-300" : "text-zinc-200")} data-testid={`ingredient-stock-${i.id}`}>{i.stock.toFixed(2)} {i.unit}</TableCell>
+                      <TableCell label="Mínimo" className="text-right font-mono text-zinc-500">{i.min_stock} {i.unit}</TableCell>
+                      <TableCell label="Custo unitário" className="text-right font-mono text-zinc-400">{brl(i.cost_per_unit)}</TableCell>
+                      <TableCell label="Ações" className="text-right">
                         <Button size="sm" variant="outline" onClick={() => setMoving(i)} data-testid={`move-ingredient-${i.id}`}><ArrowDownToLine className="size-3.5" /> Movimentar</Button>
                         {isAdmin && <Button size="sm" variant="ghost" onClick={() => setEditing(i)} data-testid={`edit-ingredient-${i.id}`}>Editar</Button>}
                       </TableCell>
@@ -486,19 +486,19 @@ export default function Estoque() {
         {me?.role !== "cozinha" && <TabsContent value="relatorios" className="mt-4"><InventoryReports isAdmin={isAdmin} /></TabsContent>}
         <TabsContent value="inventario" className="mt-4"><InventoryPanel ingredients={list} onSaved={inv} /></TabsContent>
         <TabsContent value="compras" className="mt-4"><PurchasePanel ingredients={list} products={products.data ?? []} onSaved={inv} /></TabsContent>
-        <TabsContent value="producao" className="mt-4 space-y-4"><ProductionBatchForm ingredients={list} products={products.data ?? []} onSaved={() => { void batches.refetch(); void ings.refetch(); void products.refetch(); }} /><div className="overflow-x-auto rounded-2xl border border-white/5 bg-panel"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Insumo</TableHead><TableHead>Tipo</TableHead><TableHead>Kg</TableHead><TableHead>Unidades</TableHead><TableHead>Rendimento</TableHead><TableHead>Custo total</TableHead><TableHead>Custo/un.</TableHead></TableRow></TableHeader><TableBody>{(batches.data ?? []).map((b) => <TableRow key={b.id}><TableCell>{fmtDateTime(b.created_at)}</TableCell><TableCell>{b.ingredient_name}</TableCell><TableCell>{b.production_type === "porcao" ? "Porções" : "Espetinhos"}</TableCell><TableCell>{b.kg}</TableCell><TableCell>{b.units}</TableCell><TableCell>{b.units_per_kg.toFixed(2)}</TableCell><TableCell>{brl(b.total_cost)}</TableCell><TableCell>{brl(b.cost_per_unit)}</TableCell></TableRow>)}</TableBody></Table></div></TabsContent>
+        <TabsContent value="producao" className="mt-4 space-y-4"><ProductionBatchForm ingredients={list} products={products.data ?? []} onSaved={() => { void batches.refetch(); void ings.refetch(); void products.refetch(); }} /><div className="rounded-2xl border border-white/5 bg-panel"><Table stacked><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Insumo</TableHead><TableHead>Tipo</TableHead><TableHead>Kg</TableHead><TableHead>Unidades</TableHead><TableHead>Rendimento</TableHead><TableHead>Custo total</TableHead><TableHead>Custo/un.</TableHead></TableRow></TableHeader><TableBody>{(batches.data ?? []).map((b) => <TableRow key={b.id}><TableCell label="Data">{fmtDateTime(b.created_at)}</TableCell><TableCell label="Insumo">{b.ingredient_name}</TableCell><TableCell label="Tipo">{b.production_type === "porcao" ? "Porções" : "Espetinhos"}</TableCell><TableCell label="Kg">{b.kg}</TableCell><TableCell label="Unidades">{b.units}</TableCell><TableCell label="Rendimento">{b.units_per_kg.toFixed(2)}</TableCell><TableCell label="Custo total">{brl(b.total_cost)}</TableCell><TableCell label="Custo unitário">{brl(b.cost_per_unit)}</TableCell></TableRow>)}</TableBody></Table></div></TabsContent>
         <TabsContent value="movs" className="mt-4">
           <div className="rounded-2xl border border-white/5 bg-panel">
-            <Table>
+            <Table stacked>
               <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Insumo</TableHead><TableHead>Tipo</TableHead><TableHead className="text-right">Qtd</TableHead><TableHead>Obs.</TableHead></TableRow></TableHeader>
               <TableBody>
                 {(moves.data ?? []).map((m) => (
                   <TableRow key={m.id}>
-                    <TableCell className="text-xs text-zinc-400">{fmtDateTime(m.created_at)}</TableCell>
-                    <TableCell className="text-white">{m.ingredient_name}</TableCell>
-                    <TableCell className="text-zinc-300">{MOVE_LABEL[m.type]}</TableCell>
-                    <TableCell className={cn("text-right font-mono", m.qty < 0 ? "text-red-300" : "text-emerald-300")}>{m.qty > 0 ? "+" : ""}{m.qty}</TableCell>
-                    <TableCell className="text-xs text-zinc-500">{m.reason && `${m.reason} · `}{m.note} {m.by_name && `· ${m.by_name}`}{m.type === "perda" && ` · ${brl(m.cost_total ?? 0)}`}</TableCell>
+                    <TableCell label="Data" className="text-xs text-zinc-400">{fmtDateTime(m.created_at)}</TableCell>
+                    <TableCell label="Insumo" className="text-white">{m.ingredient_name}</TableCell>
+                    <TableCell label="Tipo" className="text-zinc-300">{MOVE_LABEL[m.type]}</TableCell>
+                    <TableCell label="Quantidade" className={cn("text-right font-mono", m.qty < 0 ? "text-red-300" : "text-emerald-300")}>{m.qty > 0 ? "+" : ""}{m.qty}</TableCell>
+                    <TableCell label="Observação" className="text-xs text-zinc-500">{m.reason && `${m.reason} · `}{m.note} {m.by_name && `· ${m.by_name}`}{m.type === "perda" && ` · ${brl(m.cost_total ?? 0)}`}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

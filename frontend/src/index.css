@@ -177,6 +177,44 @@
   }
 }
 
+.apollo-adaptive-table { container-type: inline-size; }
+.apollo-cell-label { display: none; }
+
+@container (max-width: 53rem) {
+  .apollo-adaptive-table [data-slot="table-header"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+  }
+  .apollo-adaptive-table [data-slot="table"],
+  .apollo-adaptive-table [data-slot="table-body"] { display: block; }
+  .apollo-adaptive-table [data-slot="table-body"] > [data-slot="table-row"] {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+    margin: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 0.25rem;
+  }
+  .apollo-adaptive-table [data-slot="table-cell"] {
+    display: block;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: start;
+  }
+  .apollo-adaptive-table [data-slot="table-cell"]:not([data-labeled]) { grid-column: 1 / -1; }
+  .apollo-adaptive-table .apollo-cell-label {
+    display: block;
+    margin-bottom: 0.2rem;
+    color: var(--muted-foreground);
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+}
+
 @media print {
   html { font-size: 100%; }
   body * { visibility: hidden; }

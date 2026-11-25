@@ -118,14 +118,14 @@ export default function Caixa() {
             <span className="rounded-md bg-emerald-500/15 px-3 py-1 text-sm font-medium text-emerald-300">Caixa aberto</span>
             <span className="text-sm text-muted-foreground">Turno {s.id.slice(0, 8)}</span>
           </div>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))] gap-3">
             <Stat label="Aberto por" value={s.opened_by_name.split(" ")[0]} hint={fmtDateTime(s.opened_at)} testid="cash-opened-by" />
             <Stat label="Vendas no turno" value={String(s.sales_count)} hint={brl(s.sales_total)} testid="cash-sales-count" />
             <Stat label="Fundo de troco" value={brl(s.opening_amount)} testid="cash-opening" />
             <Stat label="Dinheiro esperado" value={blind ? "••••" : brl(s.expected_cash)} hint="conferência cega" testid="cash-expected" accent="text-primary" />
           </div>
           {s.opening_note && <p className="mt-3 break-words text-sm text-zinc-300">Observações da abertura · {s.opening_note}</p>}
-          <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          <div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(min(100%,19rem),1fr))] gap-4">
             <Panel title="Totais por forma de pagamento">
               <ul className="space-y-2">
                 {Object.entries(s.totals_by_method).map(([k, v]) => (
@@ -159,16 +159,16 @@ export default function Caixa() {
             </Panel>
           </div>
           <Panel title="Movimentações manuais do turno" className="mt-4">
-            <Table aria-label="Movimentações manuais do turno">
+            <Table stacked aria-label="Movimentações manuais do turno">
               <TableHeader><TableRow><TableHead>Data e hora</TableHead><TableHead>Tipo</TableHead><TableHead>Operador</TableHead><TableHead>Motivo</TableHead><TableHead className="text-right">Entrada</TableHead><TableHead className="text-right">Saída</TableHead></TableRow></TableHeader>
               <TableBody>
                 {s.movements.map((movement, index) => <TableRow key={`${movement.at}-${index}`}>
-                  <TableCell>{fmtDateTime(movement.at)}</TableCell>
-                  <TableCell>{movement.type === "sangria" ? "Sangria" : "Suprimento"}</TableCell>
-                  <TableCell>{movement.by_name}</TableCell>
-                  <TableCell className="min-w-40 whitespace-normal break-words">{movement.note}</TableCell>
-                  <TableCell className="text-right">{movement.type === "suprimento" ? brl(movement.amount) : "—"}</TableCell>
-                  <TableCell className="text-right">{movement.type === "sangria" ? brl(movement.amount) : "—"}</TableCell>
+                  <TableCell label="Data e hora">{fmtDateTime(movement.at)}</TableCell>
+                  <TableCell label="Tipo">{movement.type === "sangria" ? "Sangria" : "Suprimento"}</TableCell>
+                  <TableCell label="Operador">{movement.by_name}</TableCell>
+                  <TableCell label="Motivo" className="whitespace-normal wrap-anywhere">{movement.note}</TableCell>
+                  <TableCell label="Entrada" className="text-right">{movement.type === "suprimento" ? brl(movement.amount) : "—"}</TableCell>
+                  <TableCell label="Saída" className="text-right">{movement.type === "sangria" ? brl(movement.amount) : "—"}</TableCell>
                 </TableRow>)}
                 {!s.movements.length && <TableRow><TableCell colSpan={6} className="text-muted-foreground">Nenhuma movimentação manual neste turno.</TableCell></TableRow>}
               </TableBody>
@@ -185,20 +185,20 @@ export default function Caixa() {
         {!validHistory && <p role="alert" className="text-sm text-amber-300">A data inicial deve ser igual ou anterior à final.</p>}
         {validHistory && history.isLoading && <p role="status" className="text-sm text-muted-foreground">Consultando turnos…</p>}
         {validHistory && history.isError && <p role="alert" className="text-sm text-red-300">{errMsg(history.error)}</p>}
-        {validHistory && !history.isError && history.data && <Table aria-label="Turnos anteriores">
+        {validHistory && !history.isError && history.data && <Table stacked aria-label="Turnos anteriores">
           <TableHeader><TableRow><TableHead>Abertura</TableHead><TableHead>Fechamento</TableHead><TableHead>Operador</TableHead><TableHead className="text-right">Vendas</TableHead><TableHead className="text-right">Esperado</TableHead><TableHead className="text-right">Contado</TableHead><TableHead className="text-right">Diferença</TableHead><TableHead /></TableRow></TableHeader>
           <TableBody>
             {!history.data.length && <TableRow><TableCell colSpan={8} className="text-muted-foreground">Nenhum turno encerrado no período.</TableCell></TableRow>}
             {history.data.map((h) => (
               <TableRow key={h.id} data-testid={`cash-history-${h.id}`}>
-                <TableCell className="text-xs">{fmtDateTime(h.opened_at)}</TableCell>
-                <TableCell className="text-xs">{fmtDateTime(h.closed_at)}</TableCell>
-                <TableCell>{h.closed_by_name || h.opened_by_name}</TableCell>
-                <TableCell className="text-right font-mono">{brl(h.sales_total)}</TableCell>
-                <TableCell className="text-right font-mono">{brl(h.expected_cash)}</TableCell>
-                <TableCell className="text-right font-mono">{brl(h.counted_amount ?? 0)}</TableCell>
-                <TableCell className={cn("text-right font-mono", h.difference < 0 ? "text-red-300" : h.difference > 0 ? "text-amber-300" : "text-emerald-300")}>{brl(h.difference)}</TableCell>
-                <TableCell className="text-right"><Button size="icon-xs" variant="ghost" aria-label="Imprimir fechamento" onClick={() => setPrinting(h)} data-testid={`cash-print-${h.id}`}><Printer /></Button></TableCell>
+                <TableCell label="Abertura" className="text-xs">{fmtDateTime(h.opened_at)}</TableCell>
+                <TableCell label="Fechamento" className="text-xs">{fmtDateTime(h.closed_at)}</TableCell>
+                <TableCell label="Operador">{h.closed_by_name || h.opened_by_name}</TableCell>
+                <TableCell label="Vendas" className="text-right font-mono">{brl(h.sales_total)}</TableCell>
+                <TableCell label="Esperado" className="text-right font-mono">{brl(h.expected_cash)}</TableCell>
+                <TableCell label="Contado" className="text-right font-mono">{brl(h.counted_amount ?? 0)}</TableCell>
+                <TableCell label="Diferença" className={cn("text-right font-mono", h.difference < 0 ? "text-red-300" : h.difference > 0 ? "text-amber-300" : "text-emerald-300")}>{brl(h.difference)}</TableCell>
+                <TableCell label="Ações" className="text-right"><Button size="icon-xs" variant="ghost" aria-label="Imprimir fechamento" onClick={() => setPrinting(h)} data-testid={`cash-print-${h.id}`}><Printer /></Button></TableCell>
               </TableRow>
             ))}
           </TableBody>

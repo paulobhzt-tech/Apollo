@@ -283,6 +283,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
   const { data: me, isLoading, isError } = useMe();
   const [open, setOpen] = useState(false);
   const [menuSearch, setMenuSearch] = useState("");
+  const [shortcutsVisible, setShortcutsVisible] = useState(true);
   const [activeRibbon, setActiveRibbon] = useState<RibbonGroup | null>(null);
   const [operatorOpen, setOperatorOpen] = useState(false);
   const loc = useLocation();
@@ -410,7 +411,16 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
               ))}
             </div>
           </nav>}
-          <RibbonShortcuts items={shortcuts} available={availableShortcuts} settings={menu} principal={visibleGroup === "Principal"} />
+          <div className="flex justify-end px-3 pb-1">
+            <button type="button" aria-expanded={shortcutsVisible} aria-controls="apollo-ribbon-shortcuts"
+              className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
+              onClick={() => setShortcutsVisible((visible) => !visible)}>
+              {shortcutsVisible ? "Recolher atalhos" : "Mostrar atalhos"}
+            </button>
+          </div>
+          <div id="apollo-ribbon-shortcuts" hidden={!shortcutsVisible}>
+            <RibbonShortcuts items={shortcuts} available={availableShortcuts} settings={menu} principal={visibleGroup === "Principal"} />
+          </div>
         </header>
         <main className="apollo-workspace min-w-0 flex-1 px-3 py-4 lg:px-5">
           {allowed ? children : (
@@ -528,7 +538,7 @@ function UserCard({ name, role, onManage }: { name: string; role: Role; onManage
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
   return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+    <div className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-panel px-3 py-3 sm:px-4">
       <div className="min-w-0 wrap-anywhere">
         <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl" data-testid="page-title">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
