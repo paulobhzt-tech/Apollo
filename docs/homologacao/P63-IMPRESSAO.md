@@ -76,3 +76,12 @@ Não foi realizada alteração em produção, cadastro de impressoras ou dados r
 Em 25/11/2026, o operador executou presencialmente no Windows da Espeteria dois trabalhos fictícios via PowerShell/System.Drawing.Printing.PrintDocument, com papel personalizado de largura aproximada de 80 mm e altura em centésimos de polegada calculada por `Max(394, numero_de_linhas * 18 + 40)`. O pedido curto solicitou cerca de 100,1 mm (10 linhas); o longo solicitou cerca de 147,3 mm (30 linhas, 580 centésimos de polegada), com 20 itens numerados, complementos, observação e marcador de fim. O operador confirmou que ambos imprimiram corretamente, com comprimentos diferentes, acentuação e corte correto. Nenhuma alteração permanente do driver ou dados operacionais foi solicitada.
 
 Evidência por relato presencial, sem fotografia ou medição física anexada. O resultado valida os formatos personalizados testados pelo driver e não valida o algoritmo de medição Chromium/Electron da candidata, a paginação de documentos extremos ou o fluxo integrado do Apollo. Permanecem obrigatórios os testes do instalador atualizado, agente independente, fila persistente e Garçom Mobile.
+
+
+### Apollo Print Lite — validação presencial parcial (25/11/2026)
+
+- Equipamento ASUS S400CA, Windows 11 Pro 64 bits, i5-3317U, 4 GB instalados (3,89 GB utilizáveis), 0,63 GB livres no diagnóstico anterior. Epson TM-T20X USB. Não instalar dependências pesadas no caixa nesta etapa.
+- Script desktop/scripts/apollo-print-lite.ps1 da candidata 8422a43, executado em PowerShell com RemoteSigned após desbloqueio individual do arquivo baixado. Sem alteração permanente da política de execução.
+- Trabalho fictício 43b9a3719e6a4ba0aed0d3b066295cad: operador relatou duas vias; console registrou ambas enviadas ao Windows. Quatro marcadores persistidos (started e accepted por via), às 03:00:44–03:00:46 locais.
+- Nova execução com o mesmo JobId foi bloqueada com a mensagem prevista "Job ja iniciado. Confira papel e registros; nao ha reenvio automatico.", antes de qualquer nova chamada Print(). A evidência demonstra bloqueio entre processos no mesmo usuário e diretório, não idempotência distribuída nem recuperação após queda de energia.
+- Marcadores accepted significam retorno da chamada de impressão, não confirmação física automática. Ainda pendentes: confirmação física específica de ausência de nova via na repetição, simulação de tentativa indeterminada, consumo de memória, autenticação do dispositivo, integração com API/PWA e contingência offline. Nenhuma venda, estoque ou alteração de produção.
