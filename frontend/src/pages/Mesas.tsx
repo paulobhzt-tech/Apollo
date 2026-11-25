@@ -681,7 +681,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   };
 
   const content = (
-          <div className="@container min-h-0 min-w-0 overflow-y-auto overscroll-contain text-foreground">
+          <div className="@container min-h-0 min-w-0 overflow-y-auto overscroll-contain text-foreground" data-testid="table-workspace-scroll">
             <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border p-4 pr-14">
               <div className="min-w-0 wrap-anywhere">
                 <DialogTitle className="font-heading text-xl leading-tight" data-testid="table-sheet-title">

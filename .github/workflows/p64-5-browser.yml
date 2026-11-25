@@ -1,0 +1,55 @@
+name: P64.5 navegador com API HTTPS e banco descartável
+on:
+  push:
+    branches: [feat/p64-5-finalizacao-implantacao-homologacao]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [desktop, mobile]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preparar runtime e compilar a candidata
+        run: |
+          python -m pip install -r backend/requirements.txt --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
+          npm --prefix frontend ci --legacy-peer-deps --no-audit --no-fund
+          npm --prefix frontend run typecheck
+          npm --prefix frontend exec -- vitest run --root frontend
+          npm --prefix frontend run build
+          npm --prefix tests ci --no-audit --no-fund
+          (cd tests && npx playwright install --with-deps chromium)
+      - name: Iniciar réplica local e executar todos os cenários
+        run: |
+          docker run -d --name apollo-p645-ci -p 127.0.0.1:27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+          for attempt in {1..30}; do
+            if docker exec apollo-p645-ci mongosh --quiet --eval 'db.adminCommand({ping:1})'; then break; fi
+            sleep 1
+          done
+          docker exec apollo-p645-ci mongosh --quiet --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"localhost:27017"}]})'
+          for attempt in {1..30}; do
+            if docker exec apollo-p645-ci mongosh --quiet --eval 'quit(db.hello().isWritablePrimary ? 0 : 1)'; then
+              bash tests/run-disposable-browser.sh "${{ matrix.profile }}"
+              exit $?
+            fi
+            sleep 1
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p645-browser-${{ matrix.profile }}
+          path: |
+            evidence/
+            tests/test-results/

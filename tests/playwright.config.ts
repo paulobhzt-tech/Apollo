@@ -25,10 +25,15 @@ export default defineConfig({
   ],
   use: {
     // farm-ts: localhost — Vite proxies /api to FastAPI; the external preview host is not in-pod routable.
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env.APOLLO_PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000',
     screenshot: 'on',
     trace: 'on-first-retry',
     headless: true,
+    launchOptions: {
+      args: process.env.APOLLO_TEST_TLS_SPKI
+        ? ['--ignore-certificate-errors-spki-list=' + process.env.APOLLO_TEST_TLS_SPKI]
+        : undefined,
+    },
     ignoreHTTPSErrors: true,
   },
   // Desktop by default; mobile-first briefs run `PW_MOBILE=1 npx playwright test` (or --project=mobile).

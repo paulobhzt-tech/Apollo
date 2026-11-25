@@ -252,11 +252,11 @@ test("faixa, tema, zoom e atendimento em mesa e comanda", async ({ page }) => {
   await page.getByTestId("table-card-12").click();
   const mesa = page.getByRole("dialog", { name: "Atendimento — Mesa 12" });
   await expect(mesa).toBeVisible();
-  await expect(mesa).toHaveCSS("overflow-y", "auto");
+  await expect(mesa.getByTestId("table-workspace-scroll")).toHaveCSS("overflow-y", "auto");
   await expect(mesa.getByTestId("table-qr-button")).toBeVisible();
   await mesa.getByTestId("open-table-name-input").fill("Cliente de teste");
   page.once("dialog", (dialog) => dialog.dismiss());
-  await mesa.getByRole("button", { name: "Fechar", exact: true }).click();
+  await mesa.getByTestId("table-workspace-close").click();
   await expect(mesa).toBeVisible();
   page.once("dialog", (dialog) => dialog.accept());
   await page.keyboard.press("Escape");
@@ -265,8 +265,8 @@ test("faixa, tema, zoom e atendimento em mesa e comanda", async ({ page }) => {
   await page.getByTestId("comanda-card-23").click();
   const comanda = page.getByRole("dialog", { name: "Atendimento — Comanda 23" });
   await expect(comanda).toBeVisible();
-  await expect(comanda).toHaveCSS("overflow-y", "auto");
-  await comanda.getByRole("button", { name: "Fechar", exact: true }).click();
+  await expect(comanda.getByTestId("table-workspace-scroll")).toHaveCSS("overflow-y", "auto");
+  await comanda.getByTestId("table-workspace-close").click();
   await expect(comanda).toBeHidden();
 });
 
@@ -286,7 +286,7 @@ test("mesa e comanda permanecem acessíveis em tela pequena", async ({ page }) =
     await page.getByTestId(card).click();
     const dialog = page.getByRole("dialog", { name: title });
     await expect(dialog).toBeVisible();
-    await expect(dialog).toHaveCSS("overflow-y", "auto");
+    await expect(dialog.getByTestId("table-workspace-scroll")).toHaveCSS("overflow-y", "auto");
     await expect.poll(async () => {
       const box = await dialog.boundingBox();
       return Boolean(box && box.y >= 0 && box.y + box.height <= 501);
