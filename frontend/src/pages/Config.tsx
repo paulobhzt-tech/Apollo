@@ -118,14 +118,21 @@ function PrinterForm({ editing, onClose }: { editing: Printer | "new"; onClose: 
             <SelectContent>{P.keys.map((k) => <SelectItem key={k} value={k}>{P.label(k)}</SelectItem>)}</SelectContent>
           </Select></div>
         <div><Label className="text-xs text-zinc-400">Papel</Label>
-          <Select value={f.paper} onValueChange={(v: string) => setF({ ...f, paper: v as PrinterIn["paper"] })}>
+          <Select value={f.paper} onValueChange={(v: string) => setF({ ...f, paper: v as PrinterIn["paper"], economic: v !== "A4" && f.economic })}>
             <SelectTrigger className="mt-1 w-full" data-testid="printer-paper-select"><SelectValue /></SelectTrigger>
             <SelectContent>{["58mm", "80mm", "A4"].map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
           </Select></div>
         <div><Label className="text-xs text-zinc-400">IP (opcional)</Label><Input value={f.ip} placeholder="192.168.0.50" onChange={(e) => setF({ ...f, ip: e.target.value })} className="mt-1 font-mono" data-testid="printer-ip-input" /></div>
-        <DevicePrinterField value={f.device_name ?? ""} onChange={(v) => setF({ ...f, device_name: v })} />
+        <DevicePrinterField value={f.device_name ?? ""} onChange={(v) => setF({ ...f, device_name: v, economic: !!v.trim() && f.economic })} />
         <div><Label className="text-xs text-zinc-400">Vias</Label><Input value={String(f.copies)} inputMode="numeric" onChange={(e) => setF({ ...f, copies: Math.min(5, Math.max(1, Number(e.target.value) || 1)) })} className="mt-1 font-mono" data-testid="printer-copies-input" /></div>
       </div>
+      {f.paper !== "A4" && (
+        <label className="flex items-center gap-2 text-sm text-zinc-300">
+          <Checkbox checked={!!f.economic} disabled={!f.device_name.trim()}
+            onCheckedChange={(v) => setF({ ...f, economic: !!v })} />
+          Comprimento econômico no Windows
+        </label>
+      )}
       <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={f.active} onCheckedChange={(v) => setF({ ...f, active: !!v })} data-testid="printer-active-checkbox" /> Ativa</label>
       <Button disabled={f.name.trim().length < 2 || save.isPending} onClick={() => save.mutate()} data-testid="printer-save-button">Salvar</Button>
     </>

@@ -26,6 +26,7 @@
     },
     "files": [
       "main.js",
+      "thermal-print.js",
       "server-connection.js",
       "durable-store.js",
       "exit-queue.js",

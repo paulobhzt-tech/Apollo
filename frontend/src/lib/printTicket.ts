@@ -27,7 +27,7 @@ export function ticketHtml(t: KitchenTicket, station: string, envLabel: string, 
       ${i.customer_name ? `<div class="op">Cliente: ${esc(i.customer_name)}</div>` : ""}
       ${i.notes ? `<div class="ob">OBS: ${esc(i.notes)}</div>` : ""}
     </div>`).join("");
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="apollo-thermal-ticket" content="1"><title>${esc(envLabel)} #${t.order_number}</title><style>
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(envLabel)} #${t.order_number}</title><style>
     @page { size: ${paper === "A4" ? "A4" : "auto"}; margin: 2mm; }
     body { font-family: "Courier New", monospace; width: ${width}; margin: 0; display: flow-root; overflow-wrap: anywhere; color: #000; font-size: 13px; }
     h1 { font-size: 18px; margin: 0; text-align: center; text-transform: uppercase; }
@@ -41,10 +41,10 @@ export function ticketHtml(t: KitchenTicket, station: string, envLabel: string, 
 }
 
 /** Desktop app: silent print straight to the chosen Windows printer. Browser: hidden iframe (print dialog unless --kiosk-printing). */
-export async function printHtml(html: string, copies = 1, printer?: Pick<Printer, "device_name" | "paper">): Promise<void> {
+export async function printHtml(html: string, copies = 1, printer?: Pick<Printer, "device_name" | "paper" | "economic">): Promise<void> {
   const d = desktop();
   if (d) {
-    const r = await d.print({ html, deviceName: printer?.device_name || undefined, copies, paper: printer?.paper });
+    const r = await d.print({ html, deviceName: printer?.device_name || undefined, copies, paper: printer?.paper, ...(printer?.economic ? { economic: true } : {}) });
     if (!r.ok) throw new Error(r.error || "Falha na impressão");
     return;
   }

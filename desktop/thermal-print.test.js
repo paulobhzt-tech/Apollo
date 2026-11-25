@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const { thermalLayout, thermalPageHeight, submitPrintCopies } = require("./thermal-print");
 const source = fs.readFileSync(path.join(__dirname, "main.js"), "utf8");
 const start = source.indexOf("let printTail = Promise.resolve();");
 const end = source.indexOf("// ---------- lifecycle ----------", start);
@@ -16,6 +17,9 @@ function fixture({ height = 200, failAt = 0, measurementError = false } = {}) {
   class BrowserWindow {
     constructor() {
       this.webContents = {
+        setWindowOpenHandler() {},
+        on() {},
+        async insertCSS() {},
         debugger: {
           attach() {},
           detach() { detached++; },
@@ -33,14 +37,20 @@ function fixture({ height = 200, failAt = 0, measurementError = false } = {}) {
       };
     }
     async loadURL() {}
+    isDestroyed() { return false; }
     destroy() {}
   }
-  const context = { BrowserWindow, ipcMain: { handle: (_, fn) => { handler = fn; } }, setTimeout: fn => fn() };
+  const sender = { mainFrame: {} };
+  const context = {
+    BrowserWindow, thermalLayout, thermalPageHeight, submitPrintCopies,
+    win: { webContents: sender },
+    ipcMain: { handle: (_, fn) => { handler = fn; } }, setTimeout: fn => fn(),
+  };
   vm.runInNewContext(source.slice(start, end), context);
-  return { run: opts => handler(null, opts), jobs, detached: () => detached, calculate: context.thermalPageHeight };
+  return { run: opts => handler({ sender, senderFrame: sender.mainFrame }, opts), jobs, detached: () => detached };
 }
 
-const request = { html: '<meta name="apollo-thermal-ticket" content="1">', deviceName: "EPSON TM-T20X Receipt", copies: 2, paper: "80mm" };
+const request = { html: "<body>Item para teste</body>", economic: true, deviceName: "EPSON TM-T20X Receipt", copies: 2, paper: "80mm" };
 
 test("short thermal ticket uses tested minimum and separate copies", async () => {
   const f = fixture();
@@ -49,13 +59,13 @@ test("short thermal ticket uses tested minimum and separate copies", async () =>
   assert.ok(f.jobs.every(job => job.copies === 1 && job.pageSize.height === 100000));
   assert.equal(f.detached(), 1);
 });
-test("long thermal ticket is taller than 297 mm", async () => {
+test("long thermal ticket caps page size for pagination", async () => {
   const f = fixture({ height: 1400 });
   assert.equal((await f.run(request)).ok, true);
-  assert.ok(f.jobs.every(job => job.pageSize.height === 381000));
+  assert.ok(f.jobs.every(job => job.pageSize.height === 297000));
 });
-test("oversize or invalid measurements never send a job", async () => {
-  for (const height of [0, NaN, Infinity, 14000]) {
+test("invalid measurements never send a job", async () => {
+  for (const height of [0, NaN, Infinity]) {
     const f = fixture({ height });
     assert.equal((await f.run(request)).ok, false);
     assert.equal(f.jobs.length, 0);
@@ -75,13 +85,13 @@ test("second copy failure stops without resending first or sending third", async
   assert.match(result.error, /1 via\(s\)/);
   assert.equal(f.jobs.length, 2);
 });
-test("other printer and unmarked document preserve existing paper behavior", async () => {
+test("disabled profiles preserve existing paper behavior", async () => {
   const f = fixture();
-  assert.equal((await f.run({ ...request, deviceName: "Other" })).ok, true);
+  assert.equal((await f.run({ ...request, deviceName: "Other", economic: false })).ok, true);
   assert.equal(f.jobs.length, 1);
   assert.equal(f.jobs[0].copies, 2);
   assert.equal(f.jobs[0].pageSize.height, 297000);
-  assert.equal((await f.run({ ...request, html: "<html>other receipt</html>" })).ok, true);
+  assert.equal((await f.run({ ...request, economic: false })).ok, true);
   assert.equal(f.jobs.length, 3);
   assert.equal(f.jobs[1].pageSize.height, 297000);
   assert.equal(f.detached(), 0);

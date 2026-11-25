@@ -914,6 +914,7 @@ class Printer(BaseModel):
     device_name: str = ""  # Windows printer name (desktop app prints silently to it)
     copies: int = 1
     active: bool = True
+    economic: bool = False
 
 
 class PrinterIn(BaseModel):
@@ -924,6 +925,7 @@ class PrinterIn(BaseModel):
     device_name: str = ""
     copies: int = Field(default=1, ge=1, le=5)
     active: bool = True
+    economic: bool = False
 
 
 class GeneralSettings(BaseModel):

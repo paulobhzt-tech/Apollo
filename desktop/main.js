@@ -1,5 +1,6 @@
 const { atomicWriteWithBackup, recoverMissingPrimary } = require("./durable-store");
 const { summarizeExitQueue } = require("./exit-queue");
+const { thermalLayout, thermalPageHeight, submitPrintCopies } = require("./thermal-print");
 // Apollo PDV — Windows desktop shell (Electron).
 // Online: opens the published system (always the latest version, same data as browsers and phones).
 // Offline: opens the copy of the screens bundled in the installer (pdv://app) so counter sales keep being
@@ -411,21 +412,16 @@ ipcMain.handle("pdv:printers", async () => {
 // Serialize print requests in this desktop process, including requests for the
 // same physical printer from different logical sectors.
 let printTail = Promise.resolve();
-ipcMain.handle("pdv:print", (_e, request) => {
+ipcMain.handle("pdv:print", (event, request) => {
+  if (!win || event.sender !== win.webContents || event.senderFrame !== win.webContents.mainFrame) {
+    return { ok: false, error: "Origem de impressão inválida." };
+  }
   const task = printTail.then(() => printDocument(request));
   printTail = task.catch(() => undefined);
   return task;
 });
 
 // Ticket body dimensions are measured by Chromium, not estimated from line counts.
-function thermalPageHeight(heightPx) {
-  if (!Number.isFinite(heightPx) || heightPx <= 0) throw new Error("Comprimento do ticket indisponível.");
-  // 4 mm page margins + 6 mm tolerance; 100 mm was validated on the TM-T20X.
-  const microns = Math.max(100000, Math.ceil((heightPx * 25400 / 96 + 10000) / 1000) * 1000);
-  if (microns > 3276000) throw new Error("Ticket acima do limite de 3276 mm: divida o documento antes de imprimir.");
-  return microns;
-}
-
 async function measureThermalTicket(contents) {
   const debug = contents.debugger;
   debug.attach("1.3");
@@ -442,46 +438,42 @@ async function measureThermalTicket(contents) {
   }
 }
 
-async function printDocument({ html, deviceName, copies = 1, paper = "80mm" }) {
-  const w = new BrowserWindow({ show: false, webPreferences: { sandbox: true, javascript: false } });
+async function printDocument({ html, deviceName, copies = 1, paper = "80mm", economic = false }) {
+  const thermal = paper === "58mm" || paper === "80mm";
+  const measure = economic === true && thermal && !!deviceName;
+  const microns = paper === "58mm" ? 58000 : 80000;
+  const w = new BrowserWindow({
+    show: false,
+    width: Math.round(microns * 96 / 25400),
+    height: 160,
+    useContentSize: true,
+    webPreferences: { sandbox: true, javascript: false, backgroundThrottling: false },
+  });
+  w.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  w.webContents.on("will-navigate", (event) => event.preventDefault());
+  w.webContents.on("will-frame-navigate", (event) => event.preventDefault());
   try {
     await w.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(String(html)));
-    const microns = paper === "58mm" ? 58000 : paper === "A4" ? 210000 : 80000;
-    const opts = { silent: true, printBackground: false, copies: Math.max(1, Math.min(5, copies)), margins: { marginType: "none" } };
+    const count = Math.max(1, Math.min(5, Math.trunc(Number(copies) || 1)));
+    const opts = { silent: true, printBackground: false, copies: count, margins: { marginType: "none" } };
     if (deviceName) opts.deviceName = deviceName;
     if (paper !== "A4") {
-      const economicTicket = paper === "80mm" && typeof deviceName === "string" &&
-        /\bTM[- ]?T20X\b/i.test(deviceName) &&
-        String(html).includes('<meta name="apollo-thermal-ticket" content="1">');
-      // Restrict this candidate to the physically identified model and ticket template.
-      // On measurement failure, stop before sending any job; never silently crop.
-      const height = economicTicket ? await measureThermalTicket(w.webContents) : 297000;
+      let height = 297000;
+      if (measure) {
+        await w.webContents.insertCSS(thermalLayout, { cssOrigin: "user" });
+        height = await measureThermalTicket(w.webContents);
+      }
       opts.pageSize = { width: microns, height };
     }
-    const submit = (options) => new Promise((resolve) => w.webContents.print(options, (ok, error) => resolve({ ok, error: ok ? undefined : String(error) })));
-    // Physical TM-T20X test: Copies=2 produced only one receipt, while
-    // separate single-copy jobs produced both receipts and cuts.
-    // Preserve existing behavior for other models and A4.
-    const separateCopies = paper !== "A4" && typeof deviceName === "string" && /\bTM[- ]?T20X\b/i.test(deviceName);
-    if (!separateCopies || opts.copies === 1) return await submit(opts);
-    const total = Math.max(1, Math.min(5, Math.trunc(Number(copies) || 1)));
-    for (let index = 0; index < total; index++) {
-      let result;
-      try {
-        result = await submit({ ...opts, copies: 1 });
-      } catch (error) {
-        result = { ok: false, error: String(error) };
-      }
-      if (!result.ok) {
-        // A failed submission may already have printed. Never retry here.
-        return { ok: false, error: `Via ${index + 1}/${total}: resultado indeterminado; ${index} via(s) aceita(s) pelo spooler. Confira o papel e a fila antes de reenviar. ${result.error || ""}` };
-      }
-    }
-    return { ok: true };
+    const submit = (options) => new Promise((resolve) => w.webContents.print(options,
+      (ok, error) => resolve({ ok, error: ok ? undefined : String(error) })));
+    // This model ignored Copies=2 in the physical driver test.
+    const separate = paper !== "A4" && typeof deviceName === "string" && /\bTM[- ]?T20X\b/i.test(deviceName);
+    return await submitPrintCopies(submit, opts, separate);
   } catch (err) {
     return { ok: false, error: String(err) };
   } finally {
-    setTimeout(() => w.destroy(), 1000);
+    setTimeout(() => { if (!w.isDestroyed()) w.destroy(); }, 1000);
   }
 }
 
