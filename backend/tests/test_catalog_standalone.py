@@ -104,3 +104,37 @@ async def test_legacy_product_updates_validate_the_effective_stock_link():
         await db.products.delete_one({"id": product["id"]})
         await db.ingredients.delete_one({"id": ingredient["id"]})
         await db.categories.delete_one({"id": category["id"]})
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_recipe_validates_units_without_invalidating_legacy_products():
+    if not db.name.startswith("apollo_restore_test_"):
+        pytest.skip("Requer um MongoDB descartável")
+    suffix = uuid4().hex
+    category = await catalog.create_category(CategoryIn(name=f"Categoria {suffix}", station=""), {})
+    whole = await catalog.create_ingredient(IngredientIn(name=f"Insumo {suffix}", unit="un"), {})
+    weight = await catalog.create_ingredient(IngredientIn(name=f"Carne {suffix}", unit="kg"), {})
+    fields = {"name": f"Produto {suffix}", "category_id": category["id"], "price": 10}
+    fractional_whole = {"ingredient_id": whole["id"], "qty": 0.5}
+    fractional_weight = {"ingredient_id": weight["id"], "qty": 0.125}
+    try:
+        with pytest.raises(HTTPException, match="quantidade inteira"):
+            await catalog.create_product(ProductIn(**fields, recipe=[fractional_whole]), {})
+        with pytest.raises(HTTPException, match="Insumo inválido"):
+            await catalog.create_product(
+                ProductIn(**fields, recipe=[{"ingredient_id": f"missing-{suffix}", "qty": 1}]), {},
+            )
+        product = await catalog.create_product(ProductIn(**fields, recipe=[fractional_weight]), {})
+        await db.products.update_one({"id": product["id"]}, {"$set": {"recipe": [fractional_whole]}})
+        updated = await catalog.update_product(
+            product["id"], ProductIn(**fields, recipe=[fractional_whole, fractional_weight]), {},
+        )
+        assert updated["recipe"] == [fractional_whole, fractional_weight]
+        with pytest.raises(HTTPException, match="quantidade inteira"):
+            await catalog.update_product(
+                product["id"], ProductIn(**fields, recipe=[{**fractional_whole, "qty": 0.25}]), {},
+            )
+    finally:
+        await db.products.delete_many(fields)
+        await db.ingredients.delete_many({"id": {"$in": [whole["id"], weight["id"]]}})
+        await db.categories.delete_one({"id": category["id"]})
