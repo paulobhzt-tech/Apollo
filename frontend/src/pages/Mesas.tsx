@@ -52,6 +52,8 @@ export default function Mesas() {
   const { pathname, search } = useLocation();
   const mobileMode = pathname === "/comanda-mobile";
   const queueView = mobileMode && new URLSearchParams(search).get("fila") === "1";
+  const [showTableTotals, setShowTableTotals] = useState(true);
+  const [compactTiles, setCompactTiles] = useState(false);
   const [clock, setClock] = useState(Date.now);
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 15_000);
@@ -200,10 +202,18 @@ export default function Mesas() {
           </label>
           <Button variant="outline" size="sm" onClick={() => void tables.refetch()} disabled={tables.isFetching} data-testid="refresh-tables"><RefreshCw className={cn("size-4", tables.isFetching && "animate-spin")} /> Atualizar</Button>
           {desktopStatus !== "todas" && <Button variant="ghost" size="sm" onClick={() => setDesktopStatus("todas")}>Limpar filtro</Button>}
-          <div className="ml-auto hidden items-center gap-2 text-xs text-zinc-400 xl:flex">
-            <span className="inline-block size-2 rounded-full bg-emerald-500" /> Em andamento
-            <span className="ml-2 inline-block size-2 rounded-full bg-zinc-500" /> Livre
-            <span className="ml-2 inline-block size-2 rounded-full bg-amber-500" /> Conta pedida
+          <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={showTableTotals} onChange={(event) => setShowTableTotals(event.target.checked)} />
+              Mostrar consumo e tempo
+            </label>
+            <label className="flex items-center gap-2">
+              Tamanho dos cartões
+              <select className="min-h-9 rounded-md border border-border bg-panel px-2 text-foreground"
+                value={compactTiles ? "compacto" : "normal"} onChange={(event) => setCompactTiles(event.target.value === "compacto")}>
+                <option value="normal">Padrão</option><option value="compacto">Compacto</option>
+              </select>
+            </label>
           </div>
         </div>
       )}
@@ -231,12 +241,12 @@ export default function Mesas() {
             {group.items.map(t => (
               <button key={t.id} type="button" onClick={() => setSelId(t.id)}
                 data-testid={`${t.kind === "comanda" ? "comanda" : "table"}-card-${t.number}`}
-                className={cn("relative flex min-h-28 flex-col items-center justify-between p-2 text-center text-white transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", group.color)}>
+                className={cn("relative flex flex-col items-center justify-between p-2 text-center text-white transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", !mobileMode && compactTiles ? "min-h-20" : "min-h-28", group.color)}>
                 <span className="text-[10px] font-medium">{t.status === "livre" ? "ABRIR" : t.status === "reservada" ? "RESERVADA" :
-                  [t.status === "conta" ? "CONTA" : "", t.opened_at ? `${minutesSince(t.opened_at, clock)} min` : ""].filter(Boolean).join(" · ")}</span>
+                  [t.status === "conta" ? "CONTA" : "", (mobileMode || showTableTotals) && t.opened_at ? `${minutesSince(t.opened_at, clock)} min` : ""].filter(Boolean).join(" · ")}</span>
                 {t.call && <Bell className="absolute right-1 top-1 size-3 animate-pulse" aria-label="Chamada pendente" />}
                 <span className="text-2xl font-bold tabular-nums">{String(t.number).padStart(2, "0")}</span>
-                <span className="w-full truncate text-xs tabular-nums">{t.order_id ? brl(t.total) : (t.name || t.customer_name || " ")}</span>
+                <span className="w-full truncate text-xs tabular-nums">{t.order_id && (mobileMode || showTableTotals) ? brl(t.total) : (t.name || t.customer_name || " ")}</span>
                 {t.waiter_name && t.order_id && <span className="w-full truncate text-[10px]" title={t.waiter_name}>{t.waiter_name}</span>}
                 {drafts[keyForDraft(t) ?? ""]?.length > 0 && <span className="text-xs font-medium">Rascunho</span>}
               </button>
@@ -637,6 +647,21 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     disabled={!!submission} onChange={(event) => { setProductSearch(event.target.value); setAdding(true); }}
                     className="min-w-0 border-0 bg-transparent shadow-none" data-testid="table-product-search" />
                 </label>}
+                {table.order_id && <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger className="inline-flex min-h-10 items-center gap-2 rounded-md border border-border px-3 text-xs font-medium hover:bg-muted">
+                    <Ellipsis className="size-4" aria-hidden="true" /> Mais opções
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem disabled={!items.some((item) => !item.cancelled)} onClick={() => setPreBill("view")}>Consultar conta</DropdownMenuItem>
+                    <DropdownMenuItem disabled={!items.some((item) => !item.cancelled)} onClick={() => setPreBill("print")}>Imprimir conferência</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowDetails((value) => !value)}>
+                      {showDetails ? "Ocultar detalhes dos itens" : "Exibir detalhes dos itens"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setGrouped((value) => !value)}>
+                      {grouped ? "Ver lançamentos individuais" : "Agrupar itens iguais"}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>}
                 <Button variant="outline" onClick={requestClose} disabled={busy || partialOpen} data-testid="table-workspace-close">Voltar</Button>
               </div>
             </header>
