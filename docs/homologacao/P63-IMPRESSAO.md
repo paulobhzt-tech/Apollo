@@ -90,3 +90,8 @@ Evidência por relato presencial, sem fotografia ou medição física anexada. O
 ### Simulação de tentativa indeterminada — Print Lite
 
 Em 25/11/2026, no computador da Espeteria, o operador executou o script de homologação com o JobId 0303614cbea0429b8a71b3855ab29ee6 após a instrução de criar um marcador started sem accepted. O console retornou a rejeição prevista na linha 39, antes de Print(). O registro comprova a rejeição de trabalho previamente iniciado na simulação; não comprova desligamento real durante impressão, retomada seletiva de vias, confirmação física automática, nem integração distribuída. O marcador simulado deve permanecer separado de trabalhos reais. Não houve alteração de produção solicitada.
+
+
+### Viabilidade do agente C# leve — teste presencial
+
+Em 25/11/2026 o operador confirmou .NET Framework Release 533509 e compilador Framework64/v4.0.30319/csc.exe no Windows 11 Pro. Um executável de laboratório C# compilado localmente com System.Drawing.dll enumerou a Epson TM-T20X Receipt, OneNote e Microsoft Print to PDF, com WorkingSet64 de 17,18 MB. Um processo PowerShell independente medido anteriormente apresentou 65,55 MB. São medições pontuais de programas diferentes, não benchmark equivalente de agentes completos. O teste C# não imprime, não estabelece conexão com VPS, não permanece residente e não valida fila ou segurança. A meta de até 50 MB em repouso continua pendente de medição do agente integrado. Nenhuma alteração no Consumer ou produção foi solicitada.
