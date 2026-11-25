@@ -1,3 +1,4 @@
+import { DisplayControls } from "@/components/DisplayPreferences";
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiGet, apiPut } from "@/lib/api";
@@ -59,44 +60,6 @@ const PRINCIPAL_LABELS: Record<string, string> = {
 const ICONS: Record<string, typeof Menu> = {
   Bot, LayoutDashboard, Music, ShoppingCart, Armchair, ChefHat, Bike, Wallet, Receipt, UtensilsCrossed, Boxes, LineChart, Users, QrCode, History, HandCoins, Settings, Printer, Contact, ArrowUpCircle, ArrowDownCircle, Tags, CreditCard, Smartphone, LockKeyhole, Search, Megaphone, ListOrdered,
 };
-
-const ZOOM_LEVELS = [90, 100, 110, 125, 150, 175];
-
-function DisplayZoom() {
-  const key = "apollo-display-zoom";
-  const [zoom, setZoom] = useState(() => {
-    try {
-      const saved = Number(localStorage.getItem(key));
-      return ZOOM_LEVELS.includes(saved) ? saved : 100;
-    } catch {
-      return 100;
-    }
-  });
-
-  useEffect(() => {
-    document.documentElement.style.setProperty("--apollo-display-zoom", `${zoom}%`);
-    return () => { document.documentElement.style.removeProperty("--apollo-display-zoom"); };
-  }, [zoom]);
-
-  return (
-    <label className="flex min-h-10 items-center gap-1.5 text-xs text-muted-foreground">
-      Zoom
-      <select aria-label="Zoom da interface" value={zoom}
-        className="min-h-10 rounded-md border border-border bg-elevated px-1.5 text-foreground"
-        onChange={(event) => {
-          const value = Number(event.target.value);
-          setZoom(value);
-          try {
-            localStorage.setItem(key, String(value));
-          } catch {
-            toast.error("O dispositivo não pôde salvar o zoom.");
-          }
-        }}>
-        {ZOOM_LEVELS.map((value) => <option key={value} value={value}>{value}%</option>)}
-      </select>
-    </label>
-  );
-}
 
 const SIZES = { small: "Pequeno", medium: "Médio", large: "Grande" } as const;
 const ACCENTS = { apollo: "Laranja Apollo", blue: "Azul", teal: "Verde", violet: "Violeta" } as const;
@@ -406,7 +369,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
             <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => { setMenuSearch(""); setOpen(true); }}><Search className="size-4" /> Pesquisar</Button>
               <OfflineBadge />
-              <DisplayZoom />
+              <DisplayControls />
               <MenuPreferences key={me.id} items={items} settings={menu} defaults={defaultOrder} theme={menuTheme}
                 onChange={saveMenu} onReset={() => {
                   try {
@@ -449,7 +412,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
           </nav>}
           <RibbonShortcuts items={shortcuts} available={availableShortcuts} settings={menu} principal={visibleGroup === "Principal"} />
         </header>
-        <main className="min-w-0 flex-1 px-3 py-4 lg:px-5">
+        <main className="apollo-workspace min-w-0 flex-1 px-3 py-4 lg:px-5">
           {allowed ? children : (
             <div className="mx-auto mt-20 max-w-md text-center" data-testid="no-permission">
               <h2 className="text-2xl font-semibold text-white">Acesso restrito</h2>

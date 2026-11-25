@@ -25,7 +25,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   subtotal: number;
-  items?: { name: string; qty: number }[];
+  items?: { name: string; qty: number; unit_price?: number }[];
   title: string;
   defaultService?: number;
   partialMode?: boolean;
@@ -37,15 +37,19 @@ interface Props {
 
 export default function PaymentDialog(props: Props) {
   return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="flex max-h-[94dvh] flex-col gap-0 overflow-hidden border-border bg-elevated p-0 sm:max-w-[min(95vw,70rem)]" data-testid="payment-dialog">
+    <Dialog open={props.open} onOpenChange={(open) => { if (open || !props.pending) props.onOpenChange(open); }}>
+      <DialogContent className="flex max-h-[96dvh] max-w-[calc(100%-0.75rem)] flex-col gap-0 border-border bg-elevated p-0 sm:max-w-[min(95vw,68rem)]" data-testid="payment-dialog">
         {props.open && <PaymentBody {...props} />}
       </DialogContent>
     </Dialog>
   );
 }
 
-function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialMode = false, pending, connectionRequired, review, onConfirm }: Props) {
+function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialMode = false, pending, connectionRequired, review, onConfirm, onOpenChange }: Props) {
+  const [panel, setPanel] = useState<"pay" | "order">("pay");
+  const [itemPage, setItemPage] = useState(0);
+  const lastItemPage = Math.max(0, Math.ceil(items.length / 6) - 1);
+  const visibleItemPage = Math.min(itemPage, lastItemPage);
   const [payments, setPayments] = useState<Payment[]>([]);
   const settings = useQuery({ queryKey: ["settings-general"], queryFn: () => apiGet<GeneralSettings>("/settings/general") });
   const pixKeys = [settings.data?.pix_key, ...(settings.data?.pix_extra_keys ?? [])]
@@ -87,7 +91,6 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
   const paid = payments.reduce((sum, payment) => sum + Math.round(payment.amount * 100), 0) / 100;
   const remaining = Math.max(0, Math.round((total - paid) * 100) / 100);
   const change = Math.max(0, Math.round((paid - total) * 100) / 100);
-  const settled = total > 0 ? (remaining === 0 ? 100 : Math.min(99, Math.floor(100 * paid / total))) : 0;
   const { people, amount: share, extraAmount, extraPeople } = equalBillShares(total, Number(splitN));
   const percentShare = previewBillShare(total, "percentage", percentage);
   const hasFiadoPayment = payments.some((payment) => payment.method === "fiado");
@@ -152,9 +155,13 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
       <DialogHeader className="shrink-0 border-b border-border px-4 py-3 pr-12 sm:px-5 sm:pr-14">
         <DialogTitle className="font-heading text-xl text-foreground">{title}</DialogTitle>
       </DialogHeader>
-      <div className="@container min-h-0 min-w-0 overflow-y-auto overscroll-contain p-3 sm:p-4">
-        <div className="grid min-w-0 gap-3 @min-[36rem]:grid-cols-[10rem_minmax(0,1fr)] @min-[59rem]:grid-cols-[10rem_minmax(0,1.3fr)_minmax(15rem,1fr)]">
-          <nav aria-label="Formas de pagamento" className="grid content-start grid-cols-2 gap-2 @min-[36rem]:grid-cols-1">
+      <div className="@container min-h-0 min-w-0 overflow-y-auto overscroll-contain p-2 sm:p-3">
+        <div role="group" aria-label="Seções do pagamento" className="mb-2 grid grid-cols-2 gap-1 @min-[52rem]:hidden">
+          <Button size="sm" variant={panel === "pay" ? "default" : "outline"} aria-pressed={panel === "pay"} onClick={() => setPanel("pay")}>Pagamento</Button>
+          <Button size="sm" variant={panel === "order" ? "default" : "outline"} aria-pressed={panel === "order"} onClick={() => setPanel("order")}>Consumo e ajustes</Button>
+        </div>
+        <div className="grid min-w-0 gap-2 @min-[52rem]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+          <nav aria-label="Formas de pagamento" className={cn("grid content-start grid-cols-2 gap-1 @min-[28rem]:grid-cols-3 @min-[52rem]:col-span-2 @min-[52rem]:grid-cols-5", panel === "order" && "hidden @min-[52rem]:grid")}>
             <p className="col-span-full text-xs font-semibold text-muted-foreground">Formas de pagamento</p>
             {METHODS.map(({ m, label, icon: Icon }) => (
               <button
@@ -165,7 +172,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
                 aria-pressed={method === m}
                 data-testid={`payment-method-${m}`}
                 className={cn(
-                  "flex min-h-11 min-w-0 items-center gap-2 rounded-lg border px-2 py-3 text-left text-xs font-medium wrap-anywhere transition-colors duration-150 active:scale-95",
+                  "flex min-h-9 min-w-0 items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-xs font-medium wrap-anywhere transition-colors duration-150 active:scale-95",
                   method === m ? "border-primary bg-primary/15 text-primary" : "border-border bg-panel text-foreground hover:bg-muted",
                 )}
               >
@@ -174,7 +181,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
               </button>
             ))}
           </nav>
-          <section className="min-w-0 space-y-4 rounded-xl border border-white/10 bg-panel p-4" aria-label="Lançar pagamento">
+          <section className={cn("min-w-0 space-y-2 rounded-lg border border-border bg-panel p-2 sm:p-3", panel === "order" && "hidden @min-[52rem]:block")} aria-label="Lançar pagamento">
           <h3 className="text-base font-semibold">Lançar {payLabel(method)}</h3>
           {isCard && (
             <div className="space-y-1.5" data-testid="card-brand-picker">
@@ -227,11 +234,11 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
             <Input id="payment-entry-amount" inputMode="decimal" placeholder={brl(remaining)} value={amount}
               disabled={pending} onChange={(event) => { setAmount(formatCurrencyTyping(event.target.value)); setConfirmedPixAmount(null); }}
               onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); add(); } }}
-              data-testid="payment-amount-input" className="h-12 text-right font-mono text-xl tabular-nums" />
+              data-testid="payment-amount-input" className="h-10 text-right font-mono text-xl tabular-nums" />
             <Button className="w-full justify-between" variant="outline" disabled={!remaining || pending} onClick={() => updateAmount(remaining)}>
               Usar saldo <span className="font-mono">{brl(remaining)}</span>
             </Button>
-            <div className="grid grid-cols-2 gap-2" aria-label="Valores rápidos">
+            <div className="grid grid-cols-3 gap-1" aria-label="Valores rápidos">
               {[2, 5, 10, 20, 50, 100].map((quick) => (
                 <Button key={quick} variant="outline" size="sm" disabled={pending || (method !== "dinheiro" && quick > remaining)}
                   onClick={(event) => {
@@ -267,20 +274,39 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
               {duplicatePix && <p role="alert" className="text-sm text-red-300">Esta referência PIX já foi lançada.</p>}
             </div>
           )}
-          <label className="block text-sm">{method === "pix" ? "ID da transação PIX" : "Referência do comprovante"}
+          {method === "pix" && <label className="block text-sm">ID da transação PIX
             <Input className="mt-1" maxLength={120} value={reference} onChange={(event) => { setReference(event.target.value); setConfirmedPixAmount(null); }} />
-          </label>
-          <label className="block text-sm">Observação do pagamento
-            <Input className="mt-1" maxLength={300} value={note} onChange={(event) => setNote(event.target.value)} />
-          </label>
+          </label>}
+          <details className="rounded-md border border-border p-2 text-sm">
+            <summary className="cursor-pointer">Dados adicionais</summary>
+            {method !== "pix" && <label className="mt-2 block">Referência do comprovante
+              <Input className="mt-1" maxLength={120} value={reference} onChange={(event) => setReference(event.target.value)} />
+            </label>}
+            <label className="mt-2 block">Observação do pagamento
+              <Input className="mt-1" maxLength={300} value={note} onChange={(event) => setNote(event.target.value)} />
+            </label>
+          </details>
           <Button className="w-full" disabled={!canAdd} onClick={add} data-testid="payment-add-button">{method === "fiado" ? "Adicionar fiado para o cliente" : "Adicionar pagamento"}</Button>
           </section>
 
-          <section className="min-w-0 space-y-4 rounded-xl border border-white/10 bg-panel p-4 @min-[36rem]:col-start-2 @min-[59rem]:col-start-2" aria-label="Resumo do pedido">
-            <h3 className="text-base font-semibold">Conferência, taxas e descontos</h3>
-            {items.length > 0 && <ul className="max-h-32 space-y-1 overflow-y-auto text-sm text-zinc-300">
-              {items.map((item, index) => <li key={index}>{item.qty} × {item.name}</li>)}
-            </ul>}
+          <section className={cn("min-w-0 space-y-2 rounded-lg border border-border bg-panel p-2 sm:p-3", panel === "pay" && "hidden @min-[52rem]:block")} aria-label="Resumo do pedido">
+            <h3 className="text-base font-semibold">Consumo e ajustes</h3>
+            {items.length > 0 && <details className="rounded-md border border-border p-2 text-sm">
+              <summary className="cursor-pointer">Itens do pedido ({items.length})</summary>
+              <ul className="mt-2 space-y-1 break-words">
+                {items.slice(visibleItemPage * 6, (visibleItemPage + 1) * 6).map((item, index) => <li key={index} className="flex flex-wrap justify-between gap-x-2 border-b border-border py-1">
+                  <span className="min-w-0 break-words">{item.qty} × {item.name}</span>
+                  {item.unit_price !== undefined && <span className="font-mono text-xs text-muted-foreground">
+                    {brl(item.unit_price)} un. · <strong className="text-foreground">{brl(item.qty * item.unit_price)}</strong>
+                  </span>}
+                </li>)}
+              </ul>
+              {lastItemPage > 0 && <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Button size="xs" variant="outline" disabled={visibleItemPage === 0} onClick={() => setItemPage(visibleItemPage - 1)}>Anterior</Button>
+                <span>{visibleItemPage + 1}/{lastItemPage + 1}</span>
+                <Button size="xs" variant="outline" disabled={visibleItemPage === lastItemPage} onClick={() => setItemPage(visibleItemPage + 1)}>Próxima</Button>
+              </div>}
+            </details>}
             <h4 className="text-sm font-medium">Pagamentos lançados ({payments.length})</h4>
           <div className="space-y-2">
             {payments.map((p, i) => (
@@ -357,38 +383,26 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
             )}
           </div>
           </section>
-          <section aria-label="Resumo dos totais" className="min-w-0 space-y-4 self-start rounded-xl border border-border bg-panel p-4 @min-[36rem]:col-start-2 @min-[59rem]:sticky @min-[59rem]:top-0 @min-[59rem]:col-start-3 @min-[59rem]:row-start-1 @min-[59rem]:row-span-2">
-            <h3 className="font-semibold text-foreground">Resumo dos totais</h3>
-            {fiadoCust && <p className="break-words text-sm text-muted-foreground">{fiadoCust.name} · Saldo da conta fiado {brl(fiadoCust.balance)}</p>}
-          <dl className="space-y-1.5 text-sm">
-            <Row k="Subtotal" v={brl(subtotal)} />
-            {disc > 0 && <Row k="Desconto" v={`- ${brl(disc)}`} />}
-            {serviceFee > 0 && <Row k="Serviço" v={brl(serviceFee)} />}
-            <div className="my-2 border-t border-white/10" />
-            <Row k="Total a pagar" v={brl(total)} big testid="payment-total" />
-            <Row k="Total pago" v={brl(paid)} />
-            <Row k="Falta pagar" v={brl(remaining)} testid="payment-remaining" accent={remaining > 0 ? "text-amber-300" : "text-emerald-300"} />
-            {change > 0 && <Row k="Troco" v={brl(change)} big testid="payment-change" accent="text-emerald-300" />}
-          </dl>
-          <div><label htmlFor="payment-progress" className="text-sm">{settled}% quitado</label>
-            <progress id="payment-progress" value={settled} max={100} className="block w-full accent-primary" />
-          </div>
-          </section>
         </div>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-elevated px-3 py-2 sm:px-4">
-        <div className="mr-auto flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <span>Total pago <strong className="font-mono text-foreground">{brl(paid)}</strong></span>
-          <span>Falta pagar <strong className="font-mono text-foreground">{brl(remaining)}</strong></span>
-          {change > 0 && <span>Troco <strong className="font-mono text-foreground">{brl(change)}</strong></span>}
-        </div>
+      <div data-testid="payment-footer" className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 rounded-b-xl border-t border-border bg-elevated px-2 py-2 sm:px-4">
+        <dl className="grid basis-full grid-cols-[repeat(auto-fit,minmax(min(100%,5.25rem),1fr))] gap-x-2 gap-y-1 text-xs">
+          <Row k="Subtotal" v={brl(subtotal)} />
+          <Row k="Desconto" v={brl(disc)} />
+          <Row k="Serviço" v={brl(serviceFee)} />
+          <Row k="Total a pagar" v={brl(total)} testid="payment-total" />
+          <Row k="Total pago" v={brl(paid)} />
+          <Row k="Falta pagar" v={brl(remaining)} testid="payment-remaining" accent={remaining > 0 ? "text-amber-400" : "text-emerald-400"} />
+          <Row k="Troco" v={brl(change)} testid="payment-change" />
+        </dl>
         <p role="status" className="basis-full text-xs text-muted-foreground">
           {connectionRequired ? "Reconecte para confirmar o pagamento." : review ? "Resultado incerto. Consulte o servidor antes de confirmar novamente." : pending ? "Aguardando confirmação do servidor." : canConfirm ? "Valores conferidos. Confirme para registrar o pagamento." :
             remaining > 0 ? `Falta lançar ${brl(remaining)}.` : "Confira os lançamentos e a justificativa do desconto, quando aplicável."}
         </p>
         {review && <Button variant="outline" disabled={connectionRequired || review.pending} onClick={review.consult}>Consultar servidor</Button>}
-        <Button variant="outline" disabled={!canConfirm} onClick={() => finish(true)}>Finalizar e imprimir</Button>
-        <Button disabled={!canConfirm} data-testid="payment-confirm-button" onClick={() => finish(false)}>
+        <Button variant="ghost" size="sm" disabled={pending} onClick={() => onOpenChange(false)}>Cancelar</Button>
+        <Button variant="outline" size="sm" disabled={!canConfirm} onClick={() => finish(true)}>Finalizar e imprimir</Button>
+        <Button size="sm" disabled={!canConfirm} data-testid="payment-confirm-button" onClick={() => finish(false)}>
           {pending ? "Processando…" : "Finalizar pedido"}
         </Button>
       </div>
@@ -396,11 +410,11 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
   );
 }
 
-function Row({ k, v, big, testid, accent }: { k: string; v: string; big?: boolean; testid?: string; accent?: string }) {
+function Row({ k, v, testid, accent }: { k: string; v: string; testid?: string; accent?: string }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="min-w-0">
       <dt className="text-muted-foreground">{k}</dt>
-      <dd className={cn("font-mono", big ? "text-xl font-medium text-foreground" : "text-foreground", accent)} data-testid={testid}>{v}</dd>
+      <dd className={cn("break-words font-mono font-semibold text-foreground", accent)} data-testid={testid}>{v}</dd>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { DisplayPreferences } from "@/components/DisplayPreferences";
 import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
@@ -74,7 +75,7 @@ function DemoNotice() {
 // One <Route> per page in src/pages; BrowserRouter already wraps this in main.tsx.
 export default function App() {
   return (
-    <>
+    <DisplayPreferences>
     <DemoNotice />
     <Routes>
       <Route path="/login" element={<Login />} />
@@ -112,6 +113,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-    </>
+    </DisplayPreferences>
   );
 }

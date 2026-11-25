@@ -281,11 +281,13 @@ export default function Mesas() {
       ]).filter(group => group.items.length > 0).map(group => (
         <section key={group.title} className="mb-5" aria-label={group.title}>
           <h2 className="mb-3 text-sm font-semibold text-foreground">{group.title} ({group.items.length})</h2>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-7 xl:grid-cols-10 2xl:grid-cols-12" data-testid="tables-grid">
+          <div className={cn("grid gap-2", !mobileMode && compactTiles
+            ? "grid-cols-[repeat(auto-fill,minmax(min(100%,5rem),1fr))]"
+            : "grid-cols-[repeat(auto-fill,minmax(min(100%,6.5rem),1fr))]")} data-testid="tables-grid">
             {group.items.map(t => (
               <button key={t.id} type="button" onClick={() => setSelId(t.id)}
                 data-testid={`${t.kind === "comanda" ? "comanda" : "table"}-card-${t.number}`}
-                className={cn("relative flex flex-col items-center justify-between p-2 text-center text-white transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", !mobileMode && compactTiles ? "min-h-20" : "min-h-28", group.color)}>
+                className={cn("relative flex min-w-0 flex-col items-center justify-between rounded-lg p-2 text-center text-white transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", !mobileMode && compactTiles ? "min-h-20" : "min-h-28", group.color)}>
                 <span className="text-[10px] font-medium">{t.status === "livre" ? "ABRIR" : t.status === "reservada" ? "RESERVADA" :
                   [t.status === "conta" ? "CONTA" : "", (mobileMode || showTableTotals) && t.opened_at ? `${minutesSince(t.opened_at, clock)} min` : ""].filter(Boolean).join(" · ")}</span>
                 {t.call && <Bell className="absolute right-1 top-1 size-3 animate-pulse" aria-label="Chamada pendente" />}
