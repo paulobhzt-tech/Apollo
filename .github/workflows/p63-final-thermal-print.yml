@@ -20,3 +20,15 @@ jobs:
         run: node --check desktop/main.js
       - name: Executar testes simulados de impressao
         run: node --test desktop/thermal-print.test.js
+      - name: Verificar sintaxe do Print Lite no Windows PowerShell
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          $null = [System.Management.Automation.Language.Parser]::ParseFile(
+            (Join-Path $PWD 'desktop/scripts/apollo-print-lite.ps1'),
+            [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) {
+            $errors | Format-List
+            exit 1
+          }
