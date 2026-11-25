@@ -408,7 +408,16 @@ ipcMain.handle("pdv:printers", async () => {
   const list = await win.webContents.getPrintersAsync();
   return list.map((p) => ({ name: p.name, displayName: p.displayName || p.name, isDefault: !!p.isDefault }));
 });
-ipcMain.handle("pdv:print", async (_e, { html, deviceName, copies = 1, paper = "80mm" }) => {
+// Serialize print requests in this desktop process, including requests for the
+// same physical printer from different logical sectors.
+let printTail = Promise.resolve();
+ipcMain.handle("pdv:print", (_e, request) => {
+  const task = printTail.then(() => printDocument(request));
+  printTail = task.catch(() => undefined);
+  return task;
+});
+
+async function printDocument({ html, deviceName, copies = 1, paper = "80mm" }) {
   const w = new BrowserWindow({ show: false, webPreferences: { sandbox: true, javascript: false } });
   try {
     await w.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(String(html)));
@@ -416,13 +425,32 @@ ipcMain.handle("pdv:print", async (_e, { html, deviceName, copies = 1, paper = "
     const opts = { silent: true, printBackground: false, copies: Math.max(1, Math.min(5, copies)), margins: { marginType: "none" } };
     if (deviceName) opts.deviceName = deviceName;
     if (paper !== "A4") opts.pageSize = { width: microns, height: 297000 };
-    return await new Promise((resolve) => w.webContents.print(opts, (ok, error) => resolve({ ok, error: ok ? undefined : String(error) })));
+    const submit = (options) => new Promise((resolve) => w.webContents.print(options, (ok, error) => resolve({ ok, error: ok ? undefined : String(error) })));
+    // Physical TM-T20X test: Copies=2 produced only one receipt, while
+    // separate single-copy jobs produced both receipts and cuts.
+    // Preserve existing behavior for other models and A4.
+    const separateCopies = paper !== "A4" && typeof deviceName === "string" && /\bTM[- ]?T20X\b/i.test(deviceName);
+    if (!separateCopies || opts.copies === 1) return await submit(opts);
+    const total = Math.max(1, Math.min(5, Math.trunc(Number(copies) || 1)));
+    for (let index = 0; index < total; index++) {
+      let result;
+      try {
+        result = await submit({ ...opts, copies: 1 });
+      } catch (error) {
+        result = { ok: false, error: String(error) };
+      }
+      if (!result.ok) {
+        // A failed submission may already have printed. Never retry here.
+        return { ok: false, error: `Via ${index + 1}/${total}: resultado indeterminado; ${index} via(s) aceita(s) pelo spooler. Confira o papel e a fila antes de reenviar. ${result.error || ""}` };
+      }
+    }
+    return { ok: true };
   } catch (err) {
     return { ok: false, error: String(err) };
   } finally {
     setTimeout(() => w.destroy(), 1000);
   }
-});
+}
 
 // ---------- lifecycle ----------
 if (!app.requestSingleInstanceLock()) app.quit();
