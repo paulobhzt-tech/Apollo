@@ -562,6 +562,15 @@ async def apply_selected_items(id: str, body: SelectedItemsIn, user: dict, *, se
     arriving = [{**item, "customer_name": item.get("customer_name", "") if item.get("customer_name") in guests else ""}
                 for item in chosen]
     if body.operation == "copy":
+        product_ids = {item["product_id"] for item in arriving}
+        available = await db.products.count_documents(
+            {"id": {"$in": sorted(product_ids)}, "active": True,
+             "$or": [{"channels": "comanda"}, {"channels": {"$exists": False}}]}, session=session)
+        ingredients = {entry["ingredient_id"] for item in arriving for entry in item["stock_recipe"]}
+        if available != len(product_ids) or (ingredients and await db.ingredients.count_documents(
+            {"id": {"$in": sorted(ingredients)}}, session=session,
+        ) != len(ingredients)):
+            raise HTTPException(409, "Há produtos indisponíveis ou insumos excluídos na seleção.")
         arriving = [{**item, "id": uuid4().hex, "stock_ref": uuid4().hex, "ordered_at": now(),
                      "ordered_by": user["name"], "customer_name": ""} for item in arriving]
         copies = [OrderItem.model_validate(item) for item in arriving]

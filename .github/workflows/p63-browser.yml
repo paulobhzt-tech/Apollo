@@ -76,7 +76,7 @@ jobs:
           done
           test -s evidence/health.json || { cat evidence/backend.log; exit 1; }
           cd tests
-          npx playwright test --config=p47.config.ts p63-visual.spec.ts p63-quantity-footer.spec.ts --trace retain-on-failure
+          npx playwright test --config=p47.config.ts p63-visual.spec.ts p63-quantity-footer.spec.ts p63-selected-items.spec.ts --trace retain-on-failure
       - uses: actions/upload-artifact@v4
         if: always()
         with:
