@@ -1,5 +1,6 @@
 """PDV sale emits a mock NFC-e invoice whose access_key is generated via `secrets` module
 and is the correct 44-digit SEFAZ format."""
+import json
 import time
 
 from .conftest import seeded_operator_client
@@ -39,7 +40,7 @@ def test_pdv_sale_pix_emits_nfce_with_44_digit_access_key():
         order = card_result.json()["order"]
         assert all(order["payments"][0]["details"][key] == value for key, value in card.items())
         event = next(event for event in order["audit_events"] if event["action"] == "payment_recorded")
-        assert event["values"]["card_transactions"] == [{"index": 0, "method": "debito", **card}]
+        assert json.loads(event["values"]["card_transactions"]) == [{"index": 0, "method": "debito", **card}]
         replay = c.post("/pdv/sale", json=payload)
         assert replay.status_code == 200, replay.text
         assert replay.json()["order"]["id"] == order["id"]

@@ -1,4 +1,5 @@
 """Order domain helpers shared by PDV, tables, delivery and public routers."""
+import json
 import secrets
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -324,7 +325,7 @@ def card_payment_audit(pay: PayIn) -> dict:
         metadata = payment.details.card_metadata() if payment.details else {}
         if metadata:
             entries.append({"index": index, "method": payment.method, **metadata})
-    return {"card_transactions": entries} if entries else {}
+    return {"card_transactions": json.dumps(entries, ensure_ascii=False, separators=(",", ":"))} if entries else {}
 
 
 def validate_payment_details(pay: PayIn) -> None:

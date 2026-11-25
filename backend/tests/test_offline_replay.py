@@ -143,6 +143,7 @@ def test_payment_details_keep_legacy_sale_fingerprint_compatible():
 
 
 def test_card_metadata_is_optional_validated_and_auditable():
+    import json
     from pydantic import ValidationError
     from lib.orders import card_payment_audit
     from models.schemas import Payment
@@ -157,9 +158,9 @@ def test_card_metadata_is_optional_validated_and_auditable():
     assert card.details.pos_terminal == "Caixa 1"
     body = sale_body()
     body.payments = [card]
-    assert card_payment_audit(body) == {"card_transactions": [
+    assert json.loads(card_payment_audit(body)["card_transactions"]) == [
         {"index": 0, "method": "debito", "pos_terminal": "Caixa 1", "authorization_code": "A-1", "nsu": "000012"},
-    ]}
+    ]
     fingerprint = operations.sale_fingerprint(body)
     card.details.nsu = "000013"
     assert operations.sale_fingerprint(body) != fingerprint

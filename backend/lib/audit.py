@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 
 VALUE_FIELDS = {"amount", "total", "discount", "service_fee", "change", "difference", "counted_amount",
                 "order_number", "purchase_id", "opening_amount", "expected_cash", "from", "to", "item_id", "qty", "method", "brand",
-                "before_qty", "after_qty", "before_total", "after_total"}
+                "card_transactions", "before_qty", "after_qty", "before_total", "after_total"}
 
 
 def _canonical(event):
