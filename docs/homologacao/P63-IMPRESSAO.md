@@ -13,10 +13,10 @@ A extensão usa a candidata Docker P63 e preserva os cadastros existentes. A Cen
 
 1. Em um Windows com acesso às filas, abra o Apollo, entre na **Central de Impressão**, selecione os setores e ligue a impressão automática. Mantenha a tela aberta e a sessão ativa.
 2. Abra o Garçom Mobile pelo mesmo servidor autorizado no Android ou iPhone. Envie os itens ao atendimento. O pedido gera os tickets por setor e a Central no Windows consulta a fila.
-3. Consulte o estado na Central. Em **Conferência necessária**, pare o envio no terminal envolvido, confira a fila do Windows e o papel e peça ao administrador para registrar a saída ou liberar outra tentativa. Uma tentativa em processamento acima de cinco minutos também exige conferência.
+3. Abra **Status da impressão por setor** no atendimento para acompanhar os tickets ou consulte a Central. Em **Conferência necessária**, pare o envio no terminal envolvido, confira a fila do Windows e o papel e peça ao administrador para registrar a saída ou liberar outra tentativa. Uma tentativa em processamento acima de cinco minutos também exige conferência.
 4. Na Web, o envio usa o diálogo do navegador. Confirme no Apollo após conferir a saída. O fluxo atual de pré-conta continua disponível no atendimento.
 
-A consulta automática conserva a janela dos tickets recentes do fluxo P63. A consulta de tentativas indeterminadas inclui tickets antigos. O terminal Windows atual usa uma sessão de operador e a Central aberta. Apollo Print Bridge independente, integração do estado em mesas/comandas, reserva automática, autenticação por dispositivo e sincronização de trabalhos offline seguem pendentes.
+A consulta automática conserva a janela dos tickets recentes do fluxo P63. A consulta de tentativas indeterminadas inclui tickets antigos. O terminal Windows atual usa uma sessão de operador e a Central aberta. Apollo Print Bridge independente, reserva automática, autenticação por dispositivo e sincronização de trabalhos offline seguem pendentes.
 
 ## Checklist de homologação física
 

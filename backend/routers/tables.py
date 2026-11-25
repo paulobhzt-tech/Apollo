@@ -16,7 +16,7 @@ from lib.db import client, db
 from lib.sync_identity import sync_context, validate_sync_context
 from lib.orders import (build_items, card_payment_audit, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods, validate_payment_details,
                         refresh_totals)
-from models.schemas import (SaleQuantity, AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, OrderItem, PayIn, SaleResult, Table, TableIn,
+from models.schemas import (SaleQuantity, AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, OrderItem, PayIn, PrintAttempt, SaleResult, Table, TableIn,
                             OrderItemIn, SyncContext, TablePayIn, TableStatusIn, TableUpdate, TransferIn, table_label)
 
 from routers.operations import with_order_transaction
@@ -235,6 +235,35 @@ async def table_item_progress(id: str, _: dict = Depends(require(*STAFF))):
             if item.get("order_item_id"):
                 progress[item["order_item_id"]] = ticket["status"]
     return progress
+
+
+class TablePrintStatus(BaseModel):
+    ticket_id: str
+    station: str
+    created_at: datetime
+    printed: bool
+    attempt: PrintAttempt | None = None
+
+
+@router.get("/tables/{id}/print-status", response_model=list[TablePrintStatus])
+async def table_print_status(id: str, order_id: str, _: dict = Depends(require(*STAFF))):
+    table = await get_table(id)
+    if table.get("order_id") != order_id:
+        raise HTTPException(409, "Atendimento alterado. Atualize a mesa.")
+    response = []
+    query = {"order_id": order_id, "items": {"$elemMatch": {"print_ticket": {"$ne": False}}}}
+    projection = {"id": 1, "created_at": 1, "items.station": 1, "items.print_ticket": 1,
+                  "printed": 1, "print_attempts": 1}
+    tickets = db.kitchen_tickets.find(query, projection).sort("created_at", -1).limit(100)
+    async for ticket in tickets:
+        attempts = {attempt["station"]: attempt for attempt in ticket.get("print_attempts", [])}
+        stations = sorted({item.get("station", "cozinha") for item in ticket["items"] if item.get("print_ticket") is not False})
+        for station in stations:
+            response.append(TablePrintStatus(
+                ticket_id=ticket["id"], station=station, created_at=ticket["created_at"],
+                printed=station in ticket.get("printed", []), attempt=attempts.get(station),
+            ))
+    return response
 
 
 @router.post("/tables/{id}/items", response_model=Order)

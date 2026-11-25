@@ -1,7 +1,20 @@
 import { desktop } from "@/lib/desktop";
-import type { KitchenTicket, Printer } from "@/lib/types";
+import type { KitchenTicket, PrintAttempt, Printer } from "@/lib/types";
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
+
+export function needsPrintReview(attempt: PrintAttempt | null | undefined) {
+  return attempt?.state === "indeterminate" ||
+    (attempt?.state === "processing" && Date.now() - Date.parse(attempt.started_at) >= 300_000);
+}
+
+export function printStatusLabel(attempt: PrintAttempt | null | undefined, printed: boolean) {
+  if (needsPrintReview(attempt)) return "Conferência necessária";
+  if (attempt?.state === "processing") return "Em processamento";
+  if (attempt?.state === "spooler_accepted") return "Aceito pelo spooler";
+  if (attempt?.state === "operator_confirmed") return "Conferido no papel";
+  return printed ? "Envio registrado" : "Aguardando impressão";
+}
 
 /** Ticket HTML for one environment (only that environment's printable items). */
 export function ticketHtml(t: KitchenTicket, station: string, envLabel: string, paper: Printer["paper"] = "80mm", reprint = false) {

@@ -24,13 +24,57 @@ import { clearTableSubmission, pauseAutomaticTableSubmission, readTableSubmissio
 import { brl, canCancel, errMsg, fmtTime, kindLabel, minutesSince, tableLabel, uid } from "@/lib/format";
 import { useOperatorDraft } from "@/lib/operator-draft";
 import { queryClient } from "@/lib/queryClient";
-import type { Category, ChosenOption, Invoice, KitchenTicket, OkOut, Order, OrderItem, PayIn, Product, SaleResult, Table, TableIn } from "@/lib/types";
+import type { Category, ChosenOption, Invoice, KitchenTicket, OkOut, Order, OrderItem, PayIn, PrintAttempt, Product, SaleResult, Table, TableIn } from "@/lib/types";
+import { envName, useEnvironments } from "@/lib/environments";
+import { printStatusLabel } from "@/lib/printTicket";
 import { cn } from "@/lib/utils";
 import { groupItems } from "@/lib/group";
 import PreBillDialog from "@/components/PreBillDialog";
 import RemoveItemDialog, { type RemoveRequest } from "@/components/RemoveItemDialog";
 import { type GroupedItem } from "@/lib/group";
 import { getReceiptPref, printSimpleReceipt } from "@/lib/receipt";
+
+interface TablePrintStatus {
+  ticket_id: string;
+  station: string;
+  created_at: string;
+  printed: boolean;
+  attempt: PrintAttempt | null;
+}
+
+function TablePrintStatusList({ tableId, orderId }: { tableId: string; orderId: string }) {
+  const [open, setOpen] = useState(false);
+  const environments = useEnvironments();
+  const status = useQuery({
+    queryKey: ["table-print-status", tableId, orderId],
+    queryFn: () => apiGet<TablePrintStatus[]>(`/tables/${tableId}/print-status?order_id=${encodeURIComponent(orderId)}`),
+    enabled: open,
+    refetchInterval: 8000,
+  });
+  return (
+    <details className="mt-3 rounded-md border border-border p-3 text-sm" onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary className="cursor-pointer font-medium">Status da impressão por setor</summary>
+      {open && (
+        <div className="mt-2">
+          {status.isPending && <p role="status">Consultando impressão…</p>}
+          {status.isError && <p role="status">Não foi possível atualizar a impressão. Confira a conexão.</p>}
+          {status.isSuccess && !status.data.length && <p>Sem tickets de produção para impressão.</p>}
+          {!!status.data?.length && (
+            <ul className="space-y-2" data-testid="table-print-status">
+              {status.data.map((entry) => (
+                <li className="flex flex-wrap items-center gap-x-2" key={`${entry.ticket_id}:${entry.station}`}>
+                  <Printer className="size-4" aria-hidden="true" />
+                  <span>{envName(environments.data, entry.station)}</span>
+                  <span className="text-muted-foreground">{fmtTime(entry.created_at)} · {printStatusLabel(entry.attempt, entry.printed)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </details>
+  );
+}
 
 type Kind = Table["kind"];
 
@@ -478,6 +522,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
       }
       setLegacySubmission(null);
       void itemProgress.refetch();
+      void queryClient.invalidateQueries({ queryKey: ["table-print-status", table.id, table.order_id] });
       toast.success("Pedido enviado para preparo", { style: { pointerEvents: "none" } });
       setPending([]);
       setAdding(false);
@@ -811,6 +856,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                   )}
 
                   {offline && <p role="status" data-testid="table-online-required" className="mt-3 text-sm text-amber-300">Transferência, cancelamento e recebimento exigem conexão.</p>}
+                  {table.order_id && <TablePrintStatusList key={table.order_id} tableId={table.id} orderId={table.order_id} />}
                   {submission && <Button className="mt-2" onClick={() => setReviewOpen(true)}>Conferir envio pendente</Button>}
                   <div className="mt-3 grid gap-2 @min-[35rem]:grid-cols-2">
                     <Button variant="outline" onClick={() => setPreBill("view")} disabled={!items.some((i) => !i.cancelled)} data-testid="request-bill-button">

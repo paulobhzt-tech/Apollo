@@ -104,3 +104,31 @@ async def test_initial_print_is_exclusive_and_uncertain_attempt_requires_review(
         assert hidden.value.status_code == 409
     finally:
         await db.kitchen_tickets.delete_one({"id": ticket_id})
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_waiter_print_status_uses_the_active_order_and_printable_sectors():
+    from fastapi import HTTPException
+
+    from routers.tables import table_print_status
+
+    if not db.name.startswith("apollo_restore_test_"):
+        pytest.skip("Requer um MongoDB descartável")
+    table_id, order_id, ticket_id = (uuid4().hex for _ in range(3))
+    user = {"id": "waiter"}
+    await db.tables.insert_one({"id": table_id, "order_id": order_id})
+    await db.kitchen_tickets.insert_one({
+        "id": ticket_id, "order_id": order_id, "created_at": now(), "printed": ["bar"],
+        "items": [{"station": "cozinha", "print_ticket": False}, {"station": "bar"}, {"station": "churrasqueira"}],
+    })
+    try:
+        rows = await table_print_status(table_id, order_id, user)
+        assert [(row.ticket_id, row.station, row.printed) for row in rows] == [
+            (ticket_id, "bar", True), (ticket_id, "churrasqueira", False),
+        ]
+        with pytest.raises(HTTPException) as changed:
+            await table_print_status(table_id, "old-order", user)
+        assert changed.value.status_code == 409
+    finally:
+        await db.kitchen_tickets.delete_one({"id": ticket_id})
+        await db.tables.delete_one({"id": table_id})

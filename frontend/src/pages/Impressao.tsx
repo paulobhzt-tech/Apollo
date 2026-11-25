@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { envName, useEnvironments } from "@/lib/environments";
 import { errMsg, fmtTime } from "@/lib/format";
-import { printHtml, ticketHtml } from "@/lib/printTicket";
+import { needsPrintReview, printHtml, printStatusLabel, ticketHtml } from "@/lib/printTicket";
 import { isDesktop } from "@/lib/desktop";
 import { queryClient } from "@/lib/queryClient";
 import type { KitchenTicket, PrintAttempt, Printer, PrintOutcome } from "@/lib/types";
@@ -184,13 +184,8 @@ export default function Impressao() {
                     <span className="min-w-40 flex-1 text-sm text-white">{t.label} <span className="font-mono text-xs text-zinc-500">#{t.order_number} · {fmtTime(t.created_at)}</span></span>
                     {stations.map((s) => {
                       const attempt = t.print_attempts?.find((entry) => entry.station === s);
-                      const needsReview = attempt?.state === "indeterminate" ||
-                        (attempt?.state === "processing" && Date.now() - Date.parse(attempt.started_at) >= 300_000);
-                      const status = needsReview ? "Conferência necessária"
-                        : attempt?.state === "processing" ? "Em processamento"
-                        : attempt?.state === "spooler_accepted" ? "Aceito pelo spooler"
-                        : attempt?.state === "operator_confirmed" ? "Conferido no papel"
-                        : t.printed.includes(s) ? "Envio registrado" : "Aguardando";
+                      const needsReview = needsPrintReview(attempt);
+                      const status = printStatusLabel(attempt, t.printed.includes(s));
                       return (
                         <div key={s} className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline">{envName(envs.data, s)} · {status}</Badge>
