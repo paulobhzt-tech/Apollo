@@ -1,0 +1,37 @@
+name: P64.3 Windows Print Agent
+on:
+  push:
+    branches: [feat/p64-3-interface-impressao-final]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validar PowerShell 5.1 e compilar código Windows sem imprimir
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Join-Path (Get-Location) 'desktop/scripts/apollo-print-agent.ps1'), [ref]$tokens, [ref]$errors
+          ) | Out-Null
+          if ($errors) { throw ($errors | Out-String) }
+          Add-Type -Path desktop/scripts/ApolloAgentReceipt.cs -ReferencedAssemblies System.Drawing
+          if (-not [ApolloAgentReceipt].GetMethod('Submit')) { throw 'Método de impressão indisponível.' }
+      - name: Empacotar agente de homologação e gerar SHA-256
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Path package
+          Compress-Archive -Path desktop/scripts/apollo-print-agent.ps1,desktop/scripts/ApolloAgentReceipt.cs,docs/homologacao/P64-3-PRINT-AGENT.md -DestinationPath package/Apollo-Print-Agent.zip
+          Get-FileHash package/Apollo-Print-Agent.zip -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  Apollo-Print-Agent.zip" } | Set-Content -Encoding ascii package/SHA256SUMS.txt
+          Set-Content -Encoding ascii package/SOURCE.txt $env:GITHUB_SHA
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Apollo-Print-Agent-${{ github.sha }}
+          path: package/
+          if-no-files-found: error

@@ -1,3 +1,4 @@
+import PrintAgentSettings from "@/components/PrintAgentSettings";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import SelfTest from "@/components/SelfTest";
@@ -90,6 +91,7 @@ function Printers() {
         ))}
         {q.data?.length === 0 && <p className="col-span-full py-10 text-center text-sm text-zinc-500">Nenhuma impressora cadastrada.</p>}
       </div>
+      <PrintAgentSettings printers={q.data ?? []} />
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
         <DialogContent className="border-white/10 bg-elevated sm:max-w-sm" data-testid="printer-dialog">
           {editing && <PrinterForm key={editing === "new" ? "n" : editing.id} editing={editing} onClose={() => setEditing(null)} />}

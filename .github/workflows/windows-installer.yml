@@ -155,9 +155,13 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  smoke-windows-2022:
+  smoke-windows-clean:
     needs: build-windows
-    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: ${{ fromJSON(github.ref_name == 'feat/p64-3-interface-impressao-final' && '["windows-2022","windows-2025"]' || '["windows-2022"]') }}
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -165,7 +169,7 @@ jobs:
         with:
           name: Apollo-PDV-Setup-${{ needs.build-windows.outputs.channel }}
           path: desktop/dist
-      - name: Conferir o mesmo instalador e testar no Windows Server 2022
+      - name: Conferir SHA e instalar em máquina limpa
         shell: pwsh
         env:
           EXPECTED_SHA256: ${{ needs.build-windows.outputs.sha256 }}
@@ -176,11 +180,21 @@ jobs:
             throw 'O instalador baixado difere do instalador testado no Windows Server 2025'
           }
           ./desktop/scripts/windows-smoke.ps1 -Installer $installer -Channel $env:INSTALLER_CHANNEL
-      - name: Publicar logs do teste Windows Server 2022
+          if ($env:INSTALLER_CHANNEL -eq 'test' -and $env:GITHUB_REF_NAME -eq 'feat/p64-3-interface-impressao-final') {
+            $installed = Join-Path $env:RUNNER_TEMP 'ApolloSmoke'
+            $uninstaller = Join-Path $installed 'Uninstall Apollo PDV.exe'
+            if (-not (Test-Path -LiteralPath $uninstaller)) { throw 'Desinstalador ausente.' }
+            $process = Start-Process -FilePath $uninstaller -ArgumentList '/S' -PassThru -Wait
+            if ($process.ExitCode -ne 0 -or (Test-Path -LiteralPath (Join-Path $installed 'Apollo PDV.exe'))) {
+              throw "Falha na desinstalação limpa: $($process.ExitCode)"
+            }
+            Write-Host 'Desinstalação de teste aprovada.'
+          }
+      - name: Publicar logs da instalação limpa
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: apollo-windows-2022-smoke-logs
+          name: apollo-${{ matrix.runner }}-smoke-logs
           path: |
             ${{ runner.temp }}/apollo-smoke-out.txt
             ${{ runner.temp }}/apollo-smoke-err.txt
