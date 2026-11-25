@@ -125,3 +125,8 @@ O operador da Espeteria confirmou explicitamente que, após receber as instruç�
 ### Conferência dos registros do reteste físico corrigido
 
 O operador listou os quatro marcadores do job 566d4b88fed34711a6a77d4fb3cc2344, com started e accepted para ambas as vias, entre 03:47:01 e 03:47:04 de 25/11/2026 (horário local). Em conjunto com a confirmação presencial de duas vias, o cenário de impressão local corrigido está aprovado. O bloqueio de repetição especificamente desse novo GUID não foi demonstrado por log. Integração HTTPS, segurança de dispositivo, recuperação seletiva e homologação operacional seguem pendentes.
+
+
+### Conectividade HTTPS da Espeteria e divergência da homologação publicada
+
+O operador executou Test-NetConnection homologacao.apollo-pdv.com -Port 443 com TcpTestSucceeded=True e consultou https://homologacao.apollo-pdv.com/build-integrity.json com Invoke-RestMethod. Manifesto retornou Apollo PDV 3.0.1, commit e4d4e1acbc1be7777913df802011580e27d7ccdd, artefato 5c7b94665e7d50969105d4afd8c56f320a785a3eaa2c038b9deecb51cecabb15. A consulta GitHub ao SHA retornou HTTP 422, commit não encontrado no repositório pelo acesso disponível. Isso não prova que o manifesto seja inválido, mas impede vincular o build publicado à candidata 99d3760 e ao laboratório C# atual. Conectividade TCP e leitura HTTPS confirmadas pelo relato de console; não comprova backend, isolamento, integridade dos arquivos ou autenticação do dispositivo. Não cadastrar agentes, enviar pedidos ou implantar antes da auditoria administrativa. Sem alteração da VPS ou produção nesta etapa.
