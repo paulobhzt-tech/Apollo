@@ -834,10 +834,10 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
               <p className="text-xs text-muted-foreground">Subtotal</p>
               <p className="font-mono text-xl font-semibold" data-testid="table-order-total">{brl(o?.total ?? table.total)}</p>
             </div>
-                    {me?.role === "garcom" && <Button className="h-auto min-h-12" variant="outline" onClick={() => { if (window.confirm("Solicitar fechamento desta conta ao caixa?")) status.mutate("conta"); }} disabled={offline || status.isPending || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || table.status === "conta"} data-testid="waiter-request-close"><Receipt className="size-4" /> {table.status === "conta" ? "Conta solicitada" : "Solicitar fechamento"}</Button>}
-                    {["admin", "caixa"].includes(me?.role ?? "") && <Button className="h-auto min-h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={offline || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
-                      <Receipt className="size-4" /> PAGAMENTO
-                    </Button>}
+            {me?.role === "garcom" && <Button className="h-auto min-h-12" variant="outline" onClick={() => { if (window.confirm("Solicitar fechamento desta conta ao caixa?")) status.mutate("conta"); }} disabled={offline || status.isPending || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || table.status === "conta"} data-testid="waiter-request-close"><Receipt className="size-4" /> {table.status === "conta" ? "Conta solicitada" : "Solicitar fechamento"}</Button>}
+            {["admin", "caixa"].includes(me?.role ?? "") && <Button className="h-auto min-h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={offline || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
+              <Receipt className="size-4" /> PAGAMENTO
+            </Button>}
           </footer>}
         </DialogContent>
       </Dialog>
