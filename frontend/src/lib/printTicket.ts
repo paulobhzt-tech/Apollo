@@ -27,9 +27,9 @@ export function ticketHtml(t: KitchenTicket, station: string, envLabel: string, 
       ${i.customer_name ? `<div class="op">Cliente: ${esc(i.customer_name)}</div>` : ""}
       ${i.notes ? `<div class="ob">OBS: ${esc(i.notes)}</div>` : ""}
     </div>`).join("");
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(envLabel)} #${t.order_number}</title><style>
-    @page { size: ${paper === "A4" ? "A4" : `${width} auto`}; margin: 2mm; }
-    body { font-family: "Courier New", monospace; width: ${width}; margin: 0; color: #000; font-size: 13px; }
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="apollo-thermal-ticket" content="1"><title>${esc(envLabel)} #${t.order_number}</title><style>
+    @page { size: ${paper === "A4" ? "A4" : "auto"}; margin: 2mm; }
+    body { font-family: "Courier New", monospace; width: ${width}; margin: 0; display: flow-root; overflow-wrap: anywhere; color: #000; font-size: 13px; }
     h1 { font-size: 18px; margin: 0; text-align: center; text-transform: uppercase; }
     h2 { font-size: 20px; margin: 4px 0; text-align: center; }
     .meta { text-align: center; font-size: 12px; border-bottom: 1px dashed #000; padding-bottom: 4px; }
