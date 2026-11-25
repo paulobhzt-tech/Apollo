@@ -32,8 +32,8 @@ export async function printSimpleReceipt(o: Order) {
   const rows = groupItems(o.items).map((g) => `<tr><td>${g.qty}x ${esc(g.name)}${g.options.length ? `<div class="op">${esc(g.options.join(" · "))}</div>` : ""}</td><td class="r">${brl(g.total)}</td></tr>`).join("");
   const pays = (o.payments ?? []).map((p) => `<div class="row"><span>${esc(payLabel(p.method, p.brand))}</span><span>${brl(p.amount)}</span></div>`).join("");
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Cupom #${o.number}</title><style>
-    @page { size: ${paper === "A4" ? "A4" : `${width} auto`}; margin: 2mm; }
-    body { font-family: "Courier New", monospace; width: ${width}; margin: 0; color: #000; font-size: 12px; }
+    @page { size: ${paper === "A4" ? "A4" : "auto"}; margin: 2mm; }
+    body { font-family: "Courier New", monospace; width: ${width}; margin: 0; overflow-wrap: anywhere; color: #000; font-size: 12px; }
     .c { text-align: center; } .r { text-align: right; white-space: nowrap; } .op { font-size: 10px; padding-left: 8px; }
     table { width: 100%; border-collapse: collapse; } td { padding: 2px 0; vertical-align: top; }
     .sep { border-top: 1px dashed #000; margin: 4px 0; } .tot { font-size: 16px; font-weight: bold; } .row { display: flex; justify-content: space-between; }

@@ -55,7 +55,12 @@ export async function printHtml(html: string, copies = 1, printer?: Pick<Printer
     document.body.appendChild(frame);
     const doc = frame.contentDocument!;
     doc.open();
-    doc.write(Array.from({ length: Math.max(1, copies) }, () => html).join('<div style="page-break-after:always"></div>'));
+    const head = /<head\b[^>]*>([\s\S]*?)<\/head>/i.exec(html)?.[1] ?? "";
+    const body = /<body\b[^>]*>([\s\S]*?)<\/body>/i.exec(html)?.[1] ?? html;
+    const count = Math.max(1, Math.min(5, Math.trunc(copies) || 1));
+    const pages = Array.from({ length: count }, () => `<div class="apollo-print-copy">${body}</div>`).join("");
+    doc.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">${head}
+      <style>.apollo-print-copy + .apollo-print-copy { break-before: page; }</style></head><body>${pages}</body></html>`);
     doc.close();
     setTimeout(() => {
       try {

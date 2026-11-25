@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Printer as PrinterIcon } from "lucide-react";
@@ -7,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiGet } from "@/lib/api";
-import { brl, fmtDateTime, fmtTime, tableLabel } from "@/lib/format";
+import { brl, errMsg, fmtDateTime, fmtTime, tableLabel } from "@/lib/format";
 import { equalBillShares, previewBillShare } from "@/lib/bill-split";
 import { groupItems } from "@/lib/group";
 import { printHtml } from "@/lib/printTicket";
@@ -19,6 +20,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 export default function PreBillDialog({ table, order, open, printEnabled = true, onClose, onPrinted }: { table: Table; order: Order | null; open: boolean; printEnabled?: boolean; onClose: () => void; onPrinted: () => void }) {
   const settings = useQuery({ queryKey: ["settings-general"], queryFn: () => apiGet<GeneralSettings>("/settings/general"), enabled: open });
   const printers = useQuery({ queryKey: ["printers"], queryFn: () => apiGet<Printer[]>("/printers"), enabled: open });
+  const [printing, setPrinting] = useState(false);
   const [service, setService] = useState(true);
   const [grouped, setGrouped] = useState(true);
   const [showItemTimes, setShowItemTimes] = useState(false);
@@ -61,8 +63,8 @@ export default function PreBillDialog({ table, order, open, printEnabled = true,
       return `<tr><td>${g.qty}x ${esc(g.name)}${g.options.length ? `<div class="op">${esc(g.options.join(" · "))}</div>` : ""}${times ? `<div class="op">Horário: ${esc(times)}</div>` : ""}</td><td class="r">${brl(g.unit_price)}</td><td class="r">${brl(g.total)}</td></tr>`;
     }).join("");
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Pré-conta ${esc(tableLabel(table))}</title><style>
-      @page { size: ${paper === "A4" ? "A4" : `${width} auto`}; margin: 2mm; }
-      body { font-family: "Courier New", monospace; width: ${width}; margin: 0; color: #000; font-size: 12px; }
+      @page { size: ${paper === "A4" ? "A4" : "auto"}; margin: 2mm; }
+      body { font-family: "Courier New", monospace; width: ${width}; margin: 0; overflow-wrap: anywhere; color: #000; font-size: 12px; }
       h1 { font-size: 15px; text-align: center; margin: 0; } h2 { font-size: 18px; text-align: center; margin: 4px 0; }
       .c { text-align: center; } .r { text-align: right; white-space: nowrap; } .op { font-size: 10px; padding-left: 8px; }
       table { width: 100%; border-collapse: collapse; } td { padding: 2px 0; vertical-align: top; }
@@ -82,8 +84,15 @@ export default function PreBillDialog({ table, order, open, printEnabled = true,
       <div class="sep"></div><div class="c"><b>NÃO É DOCUMENTO FISCAL</b><br>Confira seu pedido antes do pagamento</div>
       <div class="c" style="font-size:10px">${fmtDateTime(new Date().toISOString())}</div>
     </body></html>`;
-    await printHtml(html, 1, pr);
-    onPrinted();
+    setPrinting(true);
+    try {
+      await printHtml(html, pr?.copies ?? 1, pr);
+      onPrinted();
+    } catch (error) {
+      toast.error(errMsg(error));
+    } finally {
+      setPrinting(false);
+    }
   };
 
   return (
@@ -129,7 +138,7 @@ export default function PreBillDialog({ table, order, open, printEnabled = true,
           href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer">
           Compartilhar pré-conta pelo WhatsApp
         </a>}
-        {printEnabled && <Button className="h-11" onClick={() => void print()} disabled={!groups.length} data-testid="prebill-print-button"><PrinterIcon className="size-4" /> Imprimir pré-conta</Button>}
+        {printEnabled && <Button className="h-11" onClick={() => void print()} disabled={!groups.length || printing} data-testid="prebill-print-button"><PrinterIcon className="size-4" /> Imprimir pré-conta</Button>}
       </DialogContent>
     </Dialog>
   );
