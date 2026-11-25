@@ -52,10 +52,23 @@ jobs:
           mkdir -p evidence
           python local-server/gerar-certificado.py /tmp/apollo-p63-tls 127.0.0.1
           python backend/p40_seed_ci.py
-          python -m uvicorn server:app --app-dir backend --host 127.0.0.1 --port 8001 --ssl-keyfile /tmp/apollo-p63-tls/server.key --ssl-certfile /tmp/apollo-p63-tls/server.crt > evidence/backend.log 2>&1 &
+          (
+            cd backend
+            exec python -m uvicorn server:app --host 127.0.0.1 --port 8001 --ssl-keyfile /tmp/apollo-p63-tls/server.key --ssl-certfile /tmp/apollo-p63-tls/server.crt
+          ) > evidence/backend.log 2>&1 &
           server_pid=$!
-          trap 'kill "$server_pid"' EXIT
-          curl --retry 20 --retry-connrefused --retry-delay 1 --cacert /tmp/apollo-p63-tls/apollo-local-ca.crt --fail --silent "$APOLLO_E2E_BASE_URL/api/" > evidence/health.json
+          trap 'if kill -0 "$server_pid" 2>/dev/null; then kill "$server_pid"; fi' EXIT
+          for attempt in {1..30}; do
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat evidence/backend.log
+              exit 1
+            fi
+            if curl --cacert /tmp/apollo-p63-tls/apollo-local-ca.crt --fail --silent "$APOLLO_E2E_BASE_URL/api/" > evidence/health.json; then
+              break
+            fi
+            sleep 1
+          done
+          test -s evidence/health.json || { cat evidence/backend.log; exit 1; }
           cd tests
           npx playwright test --config=p47.config.ts p63-visual.spec.ts p63-quantity-footer.spec.ts --trace retain-on-failure
       - uses: actions/upload-artifact@v4
