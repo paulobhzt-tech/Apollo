@@ -376,8 +376,11 @@ async def apply_lot_count(body: LotCountIn, user: dict, *, session=None):
     if not purchase or "remaining_qty" not in purchase:
         raise HTTPException(404, "Lote não encontrado")
     ingredient_id = purchase["ingredient_id"]
-    if not await db.ingredients.find_one({"id": ingredient_id}, {"_id": 1}, **options):
+    ingredient = await db.ingredients.find_one({"id": ingredient_id}, {"unit": 1}, **options)
+    if not ingredient:
         raise HTTPException(409, "O insumo vinculado ao lote não está disponível")
+    if ingredient.get("unit") == "un" and not body.counted_qty.is_integer():
+        raise HTTPException(400, "A contagem em unidades deve ser inteira")
     counted = round(body.counted_qty, 4)
     previous = round(float(purchase["remaining_qty"]), 4)
     delta = round(counted - previous, 4)
@@ -411,9 +414,16 @@ async def inventory_counts(_: dict = Depends(require("caixa"))):
 
 @router.post("/inventory/counts", response_model=InventoryCount)
 async def register_inventory_count(body: InventoryCountIn, user: dict = Depends(require("caixa"))):
-    ing = await db.ingredients.find_one({"id": body.ingredient_id}, {"_id": 0})
+    return await with_order_transaction(lambda session: apply_inventory_count(body, user, session=session))
+
+
+async def apply_inventory_count(body: InventoryCountIn, user: dict, *, session=None):
+    options = {"session": session} if session is not None else {}
+    ing = await db.ingredients.find_one({"id": body.ingredient_id}, {"_id": 0}, **options)
     if not ing:
         raise HTTPException(404, "Insumo não encontrado")
+    if ing.get("unit") == "un" and not body.counted_qty.is_integer():
+        raise HTTPException(400, "A contagem em unidades deve ser inteira")
     counted = round(body.counted_qty, 4)
     previous = round(float(ing["stock"]), 4)
     diff = round(counted - previous, 4)
@@ -421,14 +431,14 @@ async def register_inventory_count(body: InventoryCountIn, user: dict = Depends(
                            previous_qty=previous, difference=diff, by_name=user["name"]).model_dump()
     result = await db.ingredients.update_one(
         {"id": ing["id"], "stock": ing["stock"]},
-        {"$set": {"stock": counted, "updated_at": now()}},
+        {"$set": {"stock": counted, "updated_at": now()}}, **options,
     )
     if not result.matched_count:
         raise HTTPException(409, "Estoque alterado durante o inventário. Atualize a quantidade e tente novamente.")
-    await db.inventory_counts.insert_one(dict(count))
+    await db.inventory_counts.insert_one(dict(count), **options)
     await db.stock_moves.insert_one(StockMove(
         ingredient_id=ing["id"], ingredient_name=ing["name"], type="ajuste",
-        qty=diff, note=f"Inventário {count['id'][:8]}: {body.note}", by_name=user["name"]).model_dump())
+        qty=diff, note=f"Inventário {count['id'][:8]}: {body.note}", by_name=user["name"]).model_dump(), **options)
     return count
 
 
@@ -886,6 +896,8 @@ async def create_move(body: StockMoveIn, user: dict = Depends(require("caixa", "
     ing = await db.ingredients.find_one({"id": body.ingredient_id}, {"_id": 0})
     if not ing:
         raise HTTPException(404, "Insumo não encontrado")
+    if ing.get("unit") == "un" and not body.qty.is_integer():
+        raise HTTPException(400, "A movimentação em unidades exige quantidade inteira")
     if body.type == "perda":
         if not body.reason:
             raise HTTPException(400, "Informe o motivo da perda")

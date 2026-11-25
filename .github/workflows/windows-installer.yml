@@ -12,7 +12,7 @@ on:
           - test
           - production
   push:
-    branches: ["fix/windows-production-server", "feat/apollo-3.0.1-caixa-offline-auditoria"]
+    branches: ["fix/windows-production-server", "feat/apollo-3.0.1-caixa-offline-auditoria", "feat/p64-4-finalizacao-liberacao-operacional"]
     tags: ["v*"]
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - name: Definir servidor e canal do instalador
         id: channel
         shell: pwsh
@@ -39,11 +39,10 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
         run: |
           $channel = if ($env:EVENT_NAME -eq "workflow_dispatch") { $env:REQUESTED_CHANNEL } else { "production" }
-          if ($env:BUILD_REF -eq "feat/apollo-3.0.1-caixa-offline-auditoria") { $channel = "test" }
+          if ($env:BUILD_REF -in @("feat/apollo-3.0.1-caixa-offline-auditoria", "feat/p64-4-finalizacao-liberacao-operacional")) { $channel = "test" }
           if ($channel -eq "test") {
             "PDV_BUILD_CHANNEL=test" >> $env:GITHUB_ENV
-            "PDV_SERVER_URL=http://localhost:18080" >> $env:GITHUB_ENV
-            Write-Host "Instalador de TESTE: exige tunel SSH aberto em localhost:18080"
+            "PDV_HOMOLOGATION_URL=https://homologacao.apollo-pdv.com" >> $env:GITHUB_ENV
           } elseif ($channel -eq "production") {
             if ($env:PUBLISHED_URL -notmatch '^https://') { throw "Configure PDV_SERVER_URL como HTTPS nas variaveis Actions" }
             $uri = $null
@@ -94,10 +93,9 @@ jobs:
         working-directory: frontend
         shell: pwsh
         run: |
-          corepack enable
-          yarn install --non-interactive
-          yarn typecheck
-          yarn vitest run src/lib/offline.test.ts src/lib/queue-context.test.ts src/lib/legacy-reconciliation.test.ts
+          npm ci --legacy-peer-deps --no-audit --no-fund
+          npm run typecheck
+          npx vitest run src/lib/offline.test.ts src/lib/queue-context.test.ts src/lib/legacy-reconciliation.test.ts
       - name: Aguardar CI do mesmo commit de homologacao
         if: github.ref_name == 'feat/apollo-3.0.1-caixa-offline-auditoria'
         shell: pwsh
@@ -130,6 +128,9 @@ jobs:
           if (-not (Test-Path $file)) { throw "Instalador nao encontrado" }
           $hash = Get-FileHash $file -Algorithm SHA256
           $hash | Format-List
+          Get-AuthenticodeSignature $file | Select-Object Status, StatusMessage | Format-List
+          "$($hash.Hash.ToLower())  Apollo-PDV-Setup.exe" | Set-Content -Encoding ascii desktop/dist/SHA256SUMS.txt
+          Set-Content -Encoding ascii desktop/dist/SOURCE.txt $env:GITHUB_SHA
           "sha256=$($hash.Hash)" >> $env:GITHUB_OUTPUT
       - name: Testar instalacao e abertura no Windows Server 2025
         shell: pwsh
@@ -139,6 +140,8 @@ jobs:
           name: Apollo-PDV-Setup-${{ env.PDV_BUILD_CHANNEL }}
           path: |
             desktop/dist/Apollo-PDV-Setup.exe
+            desktop/dist/SHA256SUMS.txt
+            desktop/dist/SOURCE.txt
             desktop/dist/latest.yml
             desktop/dist/*.blockmap
           if-no-files-found: error
