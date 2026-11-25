@@ -12,6 +12,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
+from lib.demo_guard import delivery_simulation_enabled
 from lib.db import client, db, ensure_indexes  # noqa: E402
 from lib.csrf import CsrfOriginMiddleware  # noqa: E402
 from lib.security_headers import SecurityHeadersMiddleware  # noqa: E402
@@ -38,7 +39,7 @@ api_router = APIRouter(prefix="/api")
 
 @api_router.get("/demo-status")
 async def demo_status():
-    return {"demo": os.environ.get("APOLLO_DEMO_MODE") == "true"}
+    return {"demo": os.environ.get("APOLLO_DEMO_MODE") == "true", "delivery_simulation": delivery_simulation_enabled()}
 
 
 @api_router.get("/")

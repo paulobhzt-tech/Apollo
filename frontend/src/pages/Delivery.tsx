@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ExternalLink, MapPin, Phone, Zap } from "lucide-react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
@@ -12,9 +13,7 @@ import { queryClient } from "@/lib/queryClient";
 import type { DeliveryStatus, Order, PayMethod } from "@/lib/types";
 import { Empty } from "./Dashboard";
 
-const PLATFORMS = [
-  { key: "ifood", fee: "23%" }, { key: "99food", fee: "15%" }, { key: "keeta", fee: "12%" }, { key: "site", fee: "0%" },
-] as const;
+const PLATFORMS = ["ifood", "99food", "keeta", "site"] as const;
 const DS_LABEL: Record<DeliveryStatus, string> = {
   pendente: "Aguardando aceite", aceito: "Aceito", preparo: "Em preparo", saiu: "Saiu p/ entrega", entregue: "Entregue", recusado: "Recusado",
 };
@@ -26,6 +25,9 @@ const NEXT: Partial<Record<DeliveryStatus, { s: DeliveryStatus; label: string }[
 };
 
 export default function Delivery() {
+  const [search, setSearch] = useState("");
+  const demo = useQuery({ queryKey: ["demo-status"], queryFn: () => apiGet<{ delivery_simulation?: boolean }>("/demo-status") });
+  const canSimulate = demo.data?.delivery_simulation === true;
   const orders = useQuery({ queryKey: ["delivery"], queryFn: () => apiGet<Order[]>("/delivery/orders"), refetchInterval: 8000 });
   const seen = useRef<Set<string> | null>(null);
   useEffect(() => {
@@ -50,34 +52,42 @@ export default function Delivery() {
     onError: (e) => toast.error(errMsg(e)),
   });
 
-  const list = orders.isError ? [] : orders.data ?? [];
+  const term = search.trim().toLocaleLowerCase("pt-BR");
+  const list = (orders.isError ? [] : orders.data ?? []).filter((order) =>
+    [String(order.number), order.customer?.name, SOURCE_LABEL[order.source]].some(
+      (value) => value?.toLocaleLowerCase("pt-BR").includes(term),
+    ));
   const active = list.filter((o) => ["pendente", "aceito", "preparo", "saiu"].includes(o.delivery_status ?? ""));
   const done = list.filter((o) => !active.includes(o));
 
   return (
     <AppShell roles={["caixa"]}>
-      <PageHeader title="Central de Delivery" subtitle="Pedidos unificados de marketplaces e do seu site próprio sem comissão"
+      <PageHeader title="Central de Delivery" subtitle="Acompanhe pedidos e entregas"
         actions={<Link to="/pedir" target="_blank" className="flex items-center gap-1.5 rounded-lg border border-emerald-400/30 px-3 py-2 text-sm text-emerald-300" data-testid="open-own-site-link"><ExternalLink className="size-4" /> Abrir site próprio</Link>} />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {PLATFORMS.map((p) => (
-          <div key={p.key} className="rounded-2xl border border-white/5 bg-panel p-4" data-testid={`platform-card-${p.key}`}>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 font-heading font-semibold text-white">
-                <span className="size-3 rounded-full" style={{ background: SOURCE_COLOR[p.key] }} />{SOURCE_LABEL[p.key]}
-              </span>
-              <Badge variant="outline" className="border-emerald-400/30 text-emerald-300">Conectado</Badge>
-            </div>
-            <p className="mt-2 text-xs text-zinc-500">Comissão {p.fee} · integração SIMULADA</p>
-            <Button size="sm" variant="outline" className="mt-3 w-full" onClick={() => simulate.mutate(p.key)} data-testid={`simulate-${p.key}`}>
+        {PLATFORMS.map((platform) => (
+          <div key={platform} className="min-w-0 rounded-xl border border-border bg-panel p-3" data-testid={`platform-card-${platform}`}>
+            <p className="flex items-center gap-2 font-semibold text-foreground">
+              <span className="size-3 shrink-0 rounded-full" style={{ background: SOURCE_COLOR[platform] }} />{SOURCE_LABEL[platform]}
+            </p>
+            <Badge variant="outline" className="mt-2 max-w-full whitespace-normal">
+              {platform === "site" ? "Canal próprio" : "Integração indisponível"}
+            </Badge>
+            {canSimulate && <Button size="sm" variant="outline" disabled={simulate.isPending} className="mt-3 w-full whitespace-normal"
+              onClick={() => simulate.mutate(platform)} data-testid={`simulate-${platform}`}>
               <Zap className="size-3.5" /> Simular pedido
-            </Button>
+            </Button>}
           </div>
         ))}
       </div>
+      <Input aria-label="Pesquisar pedidos delivery" placeholder="Pesquisar por pedido, cliente ou canal"
+        className="mt-4 max-w-md" value={search} onChange={(event) => setSearch(event.target.value)} />
+      {orders.isPending && <p role="status" className="mt-3 text-sm text-muted-foreground">Carregando pedidos…</p>}
+      {orders.isError && <p role="alert" className="mt-3 text-sm text-destructive">Não foi possível consultar os pedidos.</p>}
       <h3 className="mb-3 mt-8 text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-400">Em andamento ({active.length})</h3>
       <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
         {active.map((o) => <DeliveryCard key={o.id} o={o} onStatus={(s) => setStatus.mutate({ id: o.id, status: s })} />)}
-        {active.length === 0 && <div className="col-span-full"><Empty text="Nenhum pedido em andamento. Simule um pedido acima." /></div>}
+        {!orders.isPending && !orders.isError && active.length === 0 && <div className="col-span-full"><Empty text={term ? "Nenhum pedido em andamento corresponde à busca." : "Nenhum pedido em andamento."} /></div>}
       </div>
       {done.length > 0 && (
         <>

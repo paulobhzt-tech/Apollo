@@ -13,3 +13,9 @@ def assert_demo_seed_allowed(env=None):
     if not mongo_url:
         raise RuntimeError("Seed bloqueado: MONGO_URL nao configurada.")
     return True
+
+
+def delivery_simulation_enabled() -> bool:
+    return os.environ.get("APOLLO_DEMO_MODE") == "true" and os.environ.get("DB_NAME", "").startswith(
+        ("apollo_demo_", "apollo_test_", "apollo_p40_browser_")
+    )

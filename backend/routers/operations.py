@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pymongo.errors import DuplicateKeyError
 
+from lib.demo_guard import delivery_simulation_enabled
 from lib.counter_sale_gate import counter_sale_gate
 from lib.audit_alerts import summarize_audit_alerts
 from lib.audit import audit_event, verify_event
@@ -350,7 +351,9 @@ async def delivery_orders(_: dict = Depends(require("caixa"))):
 
 @router.post("/delivery/simulate", response_model=Order)
 async def simulate(body: SimulateIn, _: dict = Depends(require("caixa"))):
-    """MOCK: simulates an incoming marketplace order (iFood/99Food/Keeta webhooks are not wired)."""
+    """Simulate an incoming order only in explicitly configured test databases."""
+    if not delivery_simulation_enabled():
+        raise HTTPException(403, "A simulação está disponível apenas em ambiente de teste")
     prods = await db.products.find({"active": True}, {"_id": 0, "id": 1}).to_list(500)
     if not prods:
         raise HTTPException(400, "Cadastre produtos primeiro")
