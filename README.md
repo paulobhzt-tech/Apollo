@@ -14,6 +14,8 @@ As capturas são do Apollo antes e depois, no mesmo servidor de laboratório. As
 
 ## Auditoria de implementação
 
+[Estado por item do comando P64.2](MATRIZ.md).
+
 | Área | Origem | Implementação e evidência | Pendência |
 |---|---|---|---|
 | Menu e preferências | P63, `5b6f00e` | Preferências de visualização globais, 26 níveis, menos, mais, ajuste por viewport, restauração, persistência no cliente, três densidades e redução de efeitos | Medição de RAM e CPU no ASUS S400CA e testes de escala nativa do Windows |
@@ -40,5 +42,5 @@ As referências remotas `audit/nov14`, `audit/qty-contracts`, `audit/quality` e 
 - SHA-256 do ZIP de artefato Docker/Web no Actions: `bd21b1e071b31223b4d87d10c49570a1bb6dcdea1b9cd95cc54e84ced2417e64`. Os arquivos internos têm checksums próprios.
 
 - Build Web verificado contra o SHA candidato e 67 testes Vitest locais. 26 testes Node de desktop passaram.
-- [CI de segurança e build](https://github.com/paulobhzt-tech/Apollo/actions/runs/45562166301) · [Bateria de regressão](https://github.com/paulobhzt-tech/Apollo/actions/runs/45562166315) · [Playwright](https://github.com/paulobhzt-tech/Apollo/actions/runs/45562166792).
+- [CI de segurança e build](https://github.com/paulobhzt-tech/Apollo/actions/runs/45562166301) · [Bateria de regressão](https://github.com/paulobhzt-tech/Apollo/actions/runs/45562166315) · [Playwright](https://github.com/paulobhzt-tech/Apollo/actions/runs/45562166792) passou em Chromium (5), Firefox (4) e WebKit (4).
 - Candidata parcial para homologação. O piloto requer teste físico pelo Apollo, principalmente a impressão automática que falhou no relato da loja. A eliminação de rolagem excessiva e a padronização de todos os módulos ainda estão abertas.
