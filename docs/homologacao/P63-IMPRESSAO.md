@@ -120,3 +120,8 @@ O operador confirmou que o job f498b780a97046dc839fb239d7678863 não gerou papel
 ### Reteste físico aprovado — renderização C# corrigida
 
 O operador da Espeteria confirmou explicitamente que, após receber as instruções para baixar e recompilar ApolloPrintBridgeLab.cs do commit 26dc815f1af0b46d81546f290d20dc2fc7bf48cf, a Epson imprimiu as duas vias corretamente. Evidência por relato do operador, sem log de execução atualizado, GUID do reteste ou foto anexada. A correção de renderização passou neste cenário; a causa raiz da falha anterior não foi isolada. Conferir os novos marcadores, repetir o teste anti-duplicidade da versão corrigida e medir o consumo novamente. A integração HTTPS, fila distribuída, recuperação seletiva, operação offline e homologação operacional seguem pendentes. Não houve implantação em produção.
+
+
+### Conferência dos registros do reteste físico corrigido
+
+O operador listou os quatro marcadores do job 566d4b88fed34711a6a77d4fb3cc2344, com started e accepted para ambas as vias, entre 03:47:01 e 03:47:04 de 25/11/2026 (horário local). Em conjunto com a confirmação presencial de duas vias, o cenário de impressão local corrigido está aprovado. O bloqueio de repetição especificamente desse novo GUID não foi demonstrado por log. Integração HTTPS, segurança de dispositivo, recuperação seletiva e homologação operacional seguem pendentes.
