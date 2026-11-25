@@ -85,3 +85,8 @@ Evidência por relato presencial, sem fotografia ou medição física anexada. O
 - Trabalho fictício 43b9a3719e6a4ba0aed0d3b066295cad: operador relatou duas vias; console registrou ambas enviadas ao Windows. Quatro marcadores persistidos (started e accepted por via), às 03:00:44–03:00:46 locais.
 - Nova execução com o mesmo JobId foi bloqueada com a mensagem prevista "Job ja iniciado. Confira papel e registros; nao ha reenvio automatico.", antes de qualquer nova chamada Print(). A evidência demonstra bloqueio entre processos no mesmo usuário e diretório, não idempotência distribuída nem recuperação após queda de energia.
 - Marcadores accepted significam retorno da chamada de impressão, não confirmação física automática. Ainda pendentes: confirmação física específica de ausência de nova via na repetição, simulação de tentativa indeterminada, consumo de memória, autenticação do dispositivo, integração com API/PWA e contingência offline. Nenhuma venda, estoque ou alteração de produção.
+
+
+### Simulação de tentativa indeterminada — Print Lite
+
+Em 25/11/2026, no computador da Espeteria, o operador executou o script de homologação com o JobId 0303614cbea0429b8a71b3855ab29ee6 após a instrução de criar um marcador started sem accepted. O console retornou a rejeição prevista na linha 39, antes de Print(). O registro comprova a rejeição de trabalho previamente iniciado na simulação; não comprova desligamento real durante impressão, retomada seletiva de vias, confirmação física automática, nem integração distribuída. O marcador simulado deve permanecer separado de trabalhos reais. Não houve alteração de produção solicitada.
