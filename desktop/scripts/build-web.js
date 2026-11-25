@@ -20,31 +20,13 @@ const url = channel === "test" ? HOMOLOGATION_URL : cleanUrl(process.env.PDV_SER
 if (!allowedServerUrl(url, { testBuild: channel === "test" })) {
   throw new Error("PDV_SERVER_URL deve apontar a uma origem HTTPS válida.");
 }
-const configPath = path.join(root, "config.default.json");
-const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
-cfg.serverUrl = url;
-cfg.testBuild = channel === "test";
-fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2) + "\n");
+const defaults = fs.readFileSync(path.join(root, "config.default.json"), "utf8");
+const cfg = { ...JSON.parse(defaults), serverUrl: url, testBuild: channel === "test" };
 console.log("Canal:", channel, "| Servidor:", url);
 
-// Emergent's preview-only tarballs are not required by the production build.
-// They are hosted externally and can make Windows installer CI fail even when
-// the application itself compiles. Match the dependency strategy of PWA CI.
-// Restore package.json after the build so local developer configuration remains intact.
-const manifest = path.join(front, "package.json");
-const originalManifest = fs.readFileSync(manifest, "utf8");
-try {
-  const pkg = JSON.parse(originalManifest);
-  if (pkg.devDependencies) {
-    delete pkg.devDependencies["@emergentbase/overlay"];
-    delete pkg.devDependencies["@emergentbase/visual-edits"];
-  }
-  fs.writeFileSync(manifest, JSON.stringify(pkg, null, 2) + "\n");
-  execSync("npm install --no-audit --no-fund --legacy-peer-deps", { cwd: front, stdio: "inherit", shell: true });
-  execSync("npm run build", { cwd: front, stdio: "inherit", shell: true });
-} finally {
-  fs.writeFileSync(manifest, originalManifest);
-}
+execSync("npm ci --no-audit --no-fund --legacy-peer-deps", { cwd: front, stdio: "inherit" });
+execSync("npm run build", { cwd: front, stdio: "inherit" });
+fs.writeFileSync(path.join(root, "config.build.json"), JSON.stringify(cfg, null, 2) + "\n");
 fs.rmSync(out, { recursive: true, force: true });
 fs.cpSync(path.join(front, "dist"), out, { recursive: true });
 console.log("Telas integradas ao instalador:", out);

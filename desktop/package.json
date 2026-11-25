@@ -33,6 +33,7 @@
       "offline.html",
       "connection-screen.js",
       "config.default.json",
+      "config.build.json",
       "web/**/*",
       "package.json"
     ],

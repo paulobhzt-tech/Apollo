@@ -37,7 +37,9 @@ const configPath = () => path.join(userDir(), "config.json");
 let configIssue = "";
 let preserveConfig = false;
 function loadConfig() {
-  const defaults = parseConfig(fs.readFileSync(path.join(__dirname, "config.default.json"), "utf8"));
+  const buildConfig = path.join(__dirname, "config.build.json");
+  const defaultConfig = fs.existsSync(buildConfig) ? buildConfig : path.join(__dirname, "config.default.json");
+  const defaults = parseConfig(fs.readFileSync(defaultConfig, "utf8"));
   let saved = {};
   try {
     saved = parseConfig(fs.readFileSync(configPath(), "utf8"));
