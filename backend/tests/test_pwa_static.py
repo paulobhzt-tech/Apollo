@@ -3,7 +3,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SW = ROOT / "frontend" / "public" / "sw.js"
-MAIN = ROOT / "frontend" / "src" / "main.tsx"
+APP = ROOT / "frontend" / "src" / "App.tsx"
+UPDATE_NOTICE = ROOT / "frontend" / "src" / "components" / "PwaUpdateNotice.tsx"
 MANIFEST = ROOT / "frontend" / "public" / "manifest.webmanifest"
 OFFLINE = ROOT / "frontend" / "src" / "lib" / "offline.ts"
 PDV = ROOT / "frontend" / "src" / "pages" / "Pdv.tsx"
@@ -11,10 +12,12 @@ PDV = ROOT / "frontend" / "src" / "pages" / "Pdv.tsx"
 
 def test_pwa_files_and_registration_exist():
     assert SW.is_file() and MANIFEST.is_file()
-    main = MAIN.read_text()
-    assert "navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })" in main
-    assert "import.meta.env.PROD" in main
-    assert "window.isSecureContext" in main
+    assert "<PwaUpdateNotice />" in APP.read_text()
+    notice = UPDATE_NOTICE.read_text()
+    assert "const worker = navigator.serviceWorker" in notice
+    assert 'worker.register("/sw.js", { updateViaCache: "none" })' in notice
+    assert "import.meta.env.PROD" in notice
+    assert "window.isSecureContext" in notice
 
 
 def test_service_worker_never_caches_private_pages_or_api():
