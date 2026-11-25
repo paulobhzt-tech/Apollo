@@ -29,7 +29,7 @@ export default function Pessoas() {
   const tab = loc.pathname.startsWith("/fornecedores") ? "fornecedores" : "clientes";
   return (
     <AppShell roles={["caixa"]}>
-      <PageHeader title="Clientes & Fornecedores" subtitle="Cadastrar, editar e descadastrar clientes e fornecedores" />
+      <PageHeader title={tab === "clientes" ? "Clientes" : "Fornecedores"} />
       <Tabs value={tab} onValueChange={(v) => nav(v === "fornecedores" ? "/fornecedores" : "/clientes")}>
         <TabsList>
           <TabsTrigger value="clientes" data-testid="tab-clientes">Clientes</TabsTrigger>
@@ -44,7 +44,7 @@ export default function Pessoas() {
 
 function Toolbar({ search, setSearch, onNew, label, testid, canCreate = true }: { search: string; setSearch: (s: string) => void; onNew: () => void; label: string; testid: string; canCreate?: boolean }) {
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-2">
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
       <div className="relative w-full sm:w-72"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
         <Input placeholder="Buscar por nome, telefone ou documento" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9" data-testid={`${testid}-search-input`} /></div>
       {canCreate && <Button onClick={onNew} data-testid={`${testid}-new-button`}><Plus className="size-4" /> {label}</Button>}
@@ -62,7 +62,7 @@ function Clientes() {
     onSuccess: () => { toast.success("Cliente descadastrado"); void queryClient.invalidateQueries({ queryKey: ["customers"] }); },
     onError: (e) => toast.error(errMsg(e)),
   });
-  const list = (q.data ?? []).filter((c) => match(search, c.name, c.phone, c.cpf, c.cnpj || "", c.email));
+  const list = (q.data ?? []).filter((c) => match(search, c.name, c.phone, c.cpf, c.cnpj, c.email, c.address));
   return (
     <>
       <Toolbar search={search} setSearch={setSearch} onNew={() => setEditing("new")} label="Novo cliente" testid="customer" />
@@ -83,7 +83,7 @@ function Clientes() {
                 </TableCell>
               </TableRow>
             ))}
-            {!list.length && <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-zinc-500" data-testid="customers-empty">Nenhum cliente cadastrado.</TableCell></TableRow>}
+            {!list.length && <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-zinc-500" data-testid="customers-empty">{q.isPending ? "Carregando clientes…" : q.isError ? "Não foi possível carregar os clientes." : search.trim() ? "Nenhum cliente encontrado." : "Nenhum cliente cadastrado."}</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>

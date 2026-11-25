@@ -37,8 +37,8 @@ function ribbonGroup(item: NavItem): RibbonGroup {
   switch (item.to) {
     case "/produtos": case "/estoque": return "Produtos";
     case "/musica-ao-vivo": return "Marketing";
-    case "/comanda-mobile": case "/cozinha": case "/impressao": case "/apollo-ia": return "Apps";
-    case "/funcionarios": case "/config": return "Configurações";
+    case "/comanda-mobile": case "/cozinha": case "/apollo-ia": return "Apps";
+    case "/funcionarios": case "/impressao": case "/config": return "Configurações";
     case "/auditoria": return "Relatórios";
     case "/caixa": return "Principal";
   }
@@ -98,8 +98,6 @@ function DisplayZoom() {
   );
 }
 
-const activePath = (path: string) => path === "/fornecedores" ? "/clientes" : path;
-
 const SIZES = { small: "Pequeno", medium: "Médio", large: "Grande" } as const;
 const ACCENTS = { apollo: "Laranja Apollo", blue: "Azul", teal: "Verde", violet: "Violeta" } as const;
 type MenuSize = keyof typeof SIZES;
@@ -138,6 +136,9 @@ function readMenu(id: string): MenuSettings {
   return DEFAULT_MENU;
 }
 
+const FINANCE_SHORTCUTS = ["/formas-pagamento", "/categorias-contas", "/fornecedores", "/contas-pagar", "/contas-receber", "/fiado"];
+const SETTINGS_SHORTCUTS = ["/config", "/impressao", "/funcionarios"];
+
 function defaultShortcutOrder(items: NavItem[], operatorId: string) {
   let legacy: string[] = [];
   try {
@@ -145,7 +146,7 @@ function defaultShortcutOrder(items: NavItem[], operatorId: string) {
   } catch {
     // Invalid legacy data falls back to the standard menu order.
   }
-  return [...new Set([...legacy, ...PRINCIPAL_SHORTCUTS, ...items.map((item) => item.to)])];
+  return [...new Set([...legacy, ...PRINCIPAL_SHORTCUTS, ...FINANCE_SHORTCUTS, ...SETTINGS_SHORTCUTS, ...items.map((item) => item.to)])];
 }
 
 function MenuPreferences({ items, settings, defaults, theme, onChange, onReset }: {
@@ -366,7 +367,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
   if (isLoading) return <div className="grid min-h-screen place-items-center text-zinc-500">Carregando…</div>;
   if (isError || !me) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
   const items = NAV.filter((item) => item.roles.includes(me.role));
-  const currentItem = items.find((item) => item.to === activePath(loc.pathname));
+  const currentItem = items.find((item) => item.to === loc.pathname);
   const groups = RIBBON_GROUPS.filter(({ label }) => items.some((item) => ribbonGroup(item) === label) ||
     (label === "Principal" && items.some((item) => PRINCIPAL_SHORTCUTS.includes(item.to))));
   const visibleGroup = activeRibbon ?? (currentItem ? ribbonGroup(currentItem) : groups[0]?.label);
@@ -505,8 +506,8 @@ function RibbonShortcut({ item, label = item.label, compact, onNavigate }: { ite
   const Icon = label === "Fila de Atendimento" ? ListOrdered : ICONS[item.icon] ?? LayoutDashboard;
   return <NavLink to={label === "Fila de Atendimento" ? "/comanda-mobile?fila=1" : item.to} end={item.to === "/"} onClick={onNavigate}
     className={({ isActive }) => cn("flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-1.5 py-1.5 text-xs leading-tight hover:bg-muted",
-      compact ? "justify-start text-left" : "min-h-(--menu-button-size) max-w-40 flex-col text-center",
-      isActive ? "bg-muted text-foreground" : "text-muted-foreground")}>
+      compact ? "justify-start text-left" : "min-h-(--menu-button-size) max-w-36 flex-col border border-transparent text-center",
+      isActive ? "border-primary/30 bg-primary/10 text-foreground" : "text-muted-foreground")}>
     <Icon className={cn("shrink-0", compact ? "size-5" : "size-(--menu-icon-size)", SHORTCUT_COLORS[item.to] ?? "text-primary")} aria-hidden="true" />
     <span className="min-w-0 wrap-anywhere">{label}</span>
   </NavLink>;

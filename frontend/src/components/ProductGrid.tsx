@@ -19,6 +19,7 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
   const [q, setQ] = useState("");
   const [favorites, setFavorites] = useState<string[]>(readFavorites);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [listMode, setListMode] = useState(false);
   useEffect(() => {
     const refresh = (event: StorageEvent) => { if (event.key === FAVORITES_KEY || event.key === null) setFavorites(readFavorites()); };
     window.addEventListener("storage", refresh);
@@ -32,8 +33,9 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
   const list = useMemo(() => searchProducts(products, cat, q, favoritesOnly ? favorites : undefined), [products, cat, q, favoritesOnly, favorites]);
 
   return (
-    <div className="flex min-h-0 flex-col gap-3">
-      <div className="relative">
+    <div className="grid min-h-0 min-w-0 gap-3 sm:grid-cols-[minmax(8rem,1fr)_minmax(0,3fr)]">
+      <div className="flex min-w-0 flex-wrap items-center gap-2 sm:col-span-2">
+        <div className="relative min-w-40 flex-1">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
         <Input
           ref={searchInputRef}
@@ -46,10 +48,15 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
           className="h-11 pl-9"
           data-testid="product-search-input"
         />
+        </div>
+        <button type="button" onClick={() => setListMode((value) => !value)}
+          className="min-h-11 rounded-lg border border-border px-3 text-sm hover:bg-muted">
+          {listMode ? "Exibir cartões" : "Exibir lista"}
+        </button>
       </div>
-      <div className="flex flex-wrap gap-2 pb-1">
+      <div role="group" aria-label="Categorias de produtos" className="flex min-w-0 flex-wrap content-start gap-1.5 sm:max-h-96 sm:flex-col sm:flex-nowrap sm:overflow-y-auto sm:border-r sm:border-border sm:pr-3">
         <button type="button" onClick={() => setFavoritesOnly((value) => !value)} aria-pressed={favoritesOnly} data-testid="product-favorites-filter"
-          className={cn("flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm", favoritesOnly ? "border-primary bg-primary text-white" : "border-white/10 text-zinc-300 hover:border-white/25")}>
+          className={cn("flex items-center gap-1.5 min-h-10 rounded-lg border px-3 py-1.5 text-sm", favoritesOnly ? "border-primary bg-primary text-white" : "border-white/10 text-zinc-300 hover:border-white/25")}>
           <Star className="size-4" fill={favoritesOnly ? "currentColor" : "none"} aria-hidden="true" /> Favoritos
         </button>
         {[{ id: "all", name: "Todos" }, ...categories].map((c) => (
@@ -60,7 +67,7 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
             data-testid={`category-filter-${c.id}`}
             aria-pressed={cat === c.id}
             className={cn(
-              "shrink-0 rounded-full border px-4 py-1.5 text-sm transition-colors duration-150",
+              "min-h-10 min-w-0 shrink-0 rounded-lg border px-3 py-1.5 text-left text-sm wrap-anywhere transition-colors duration-150",
               cat === c.id ? "border-primary bg-primary text-white" : "border-white/10 text-zinc-300 hover:border-white/25",
             )}
           >
@@ -68,7 +75,7 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
           </button>
         ))}
       </div>
-      <div className={cn("grid gap-3", compact ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4")}>
+      <div className={cn("grid min-w-0 content-start gap-2", listMode ? "grid-cols-1" : compact ? "grid-cols-2 @min-[45rem]:grid-cols-3" : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4")}>
         {list.map((p) => (
           <div key={p.id} className="relative min-w-0">
           <button
@@ -77,14 +84,14 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
             data-testid={`product-card-${p.code || p.id}`}
             className="group h-full w-full overflow-hidden rounded-2xl border border-white/5 bg-panel text-left transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/40 active:scale-[0.98]"
           >
-            {!compact && (
+            {!listMode && (!compact || p.image) && (
               <div className="aspect-[16/10] overflow-hidden bg-muted">
                 {p.image && <img src={p.image} alt={p.name} loading="lazy" className="size-full object-cover transition-transform duration-300 group-hover:scale-105" />}
               </div>
             )}
-            <div className="p-3 pr-10">
-              <p className="line-clamp-1 text-sm font-medium text-white">{p.name}</p>
-              <div className="mt-1 flex items-center justify-between">
+            <div className={cn("p-2 pr-11", listMode && "flex flex-wrap items-center justify-between gap-2")}>
+              <p className="line-clamp-2 text-sm font-medium text-foreground">{p.name}</p>
+              <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2">
                 <span className="font-mono text-sm text-primary">{brl(p.price)}{p.sale_unit && p.sale_unit !== "un" ? ` / ${p.sale_unit}` : ""}</span>
                 <span className="font-mono text-[10px] text-zinc-500">{p.code}</span>
               </div>
