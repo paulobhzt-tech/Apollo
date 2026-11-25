@@ -100,3 +100,8 @@ Em 25/11/2026 o operador confirmou .NET Framework Release 533509 e compilador Fr
 ### Impressão C# — primeira submissão no Windows da Espeteria
 
 Em 25/11/2026, o operador compilou ApolloPrintTest.cs localmente com csc.exe e System.Drawing.dll e executou o programa de laboratório. PrintDocument.Print() retornou sem exceção para a fila EPSON TM-T20X Receipt, uma via, papel personalizado 315 × 394 centésimos de polegada, com medição pontual de WorkingSet64 de 37,68 MB após a chamada. A saída física, corte e acentos ainda aguardam confirmação específica do operador. Não se trata de agente residente ou integrado: autenticação, HTTPS, fila durável em C#, reconciliação e desempenho sustentado não foram testados. Nenhuma alteração em produção ou Consumer foi solicitada.
+
+
+### C# — persistência simulada por via e bloqueio entre processos
+
+O operador compilou e executou localmente ApolloPrintQueue.exe, protótipo sem chamada de impressão. Job 77fc91eca25b45089bb8dd43dbde2c05: duas vias registradas com arquivos started e simulated, WorkingSet64 de 17,41 MB. Segunda execução com mesmo ID retornou BLOQUEADO: pedido ja iniciado. Os quatro arquivos foram listados no diretório de laboratório. Evidência de persistência entre execuções no mesmo usuário e bloqueio local, não de fila integrada à Epson, recuperação seletiva, concorrência distribuída, queda de energia ou operação offline completa. Sem dados reais ou produção.
