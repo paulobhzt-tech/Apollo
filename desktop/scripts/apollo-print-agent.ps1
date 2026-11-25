@@ -46,7 +46,7 @@ try {
     }
 
     Add-Type -Path (Join-Path $PSScriptRoot 'ApolloAgentReceipt.cs') -ReferencedAssemblies System.Drawing
-    $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+    $config = Get-Content -LiteralPath $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-Origin ([uri]$config.server)
     $secure = ConvertTo-SecureString $config.secret
     $credential = [Net.NetworkCredential]::new('', $secure).Password
@@ -56,14 +56,14 @@ try {
     while ($true) {
         try {
             if (Test-Path $pendingPath) {
-                $pending = Get-Content -LiteralPath $pendingPath -Raw | ConvertFrom-Json
+                $pending = Get-Content -LiteralPath $pendingPath -Raw -Encoding UTF8 | ConvertFrom-Json
                 $body = @{ attempt_id = $pending.attempt_id; station = $pending.station; outcome = $pending.outcome } | ConvertTo-Json
                 $ticket = [uri]::EscapeDataString($pending.ticket_id)
-                Invoke-RestMethod @request -ContentType 'application/json' -Body $body -Uri "$($config.server)/api/print-agents/jobs/$ticket/result" | Out-Null
+                Invoke-RestMethod @request -ContentType 'application/json; charset=utf-8' -Body $body -Uri "$($config.server)/api/print-agents/jobs/$ticket/result" | Out-Null
                 Remove-Item -LiteralPath $pendingPath
                 continue
             }
-            $job = Invoke-RestMethod @request -ContentType 'application/json' -Body $poll -Uri "$($config.server)/api/print-agents/jobs/next"
+            $job = Invoke-RestMethod @request -ContentType 'application/json; charset=utf-8' -Body $poll -Uri "$($config.server)/api/print-agents/jobs/next"
             if ($job) {
                 $pending = @{ ticket_id=$job.ticket_id; attempt_id=$job.attempt_id; station=$job.station; outcome='indeterminate'; accepted=0 }
                 Write-State $pendingPath $pending
