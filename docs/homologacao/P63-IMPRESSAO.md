@@ -48,3 +48,10 @@ Relato do operador durante teste presencial na Espeteria Churras Burguer (sem ve
 - Próximos testes: comprimento calculado pelo conteúdo, duas vias, corte, acentos e pedidos enviados pelo Apollo Web/Mobile. O teste acima é do Windows/driver, não comprova a integração do Apollo nem o comprimento físico exato, e não substitui homologação completa. Sem foto ou medição anexada.
 
 Não fixar o nome da fila para todos os estabelecimentos: utilizar a configuração por dispositivo/setor. Preservar a fila e o driver existentes.
+
+### Continuação do teste físico — duas vias e corte
+
+- Teste PowerShell com `PrintDocument`, papel personalizado de aproximadamente 80 × 100 mm e `PrinterSettings.Copies = 2`: operador confirmou que saiu somente uma via.
+- Reteste com dois objetos `PrintDocument` independentes, cada um com `Copies = 1`, documento identificado como via 1/2 ou 2/2, mesmo papel e margens do teste econômico e intervalo de um segundo: operador confirmou duas vias separadas e corte correto. O teste não altera preferências globais nem gera venda.
+- Requisito de implementação: permitir estratégia de cópias independentes por perfil de impressora, com identificação e acompanhamento individual de cada via. Persistir o estado antes do envio, tratar resultado indeterminado sem reenvio automático e não repetir uma via já aceita. Não inferir confirmação física apenas pelo retorno do spooler. Preservar outros perfis e configurações existentes.
+- Evidência baseada no relato presencial do operador; não há foto ou medição anexada. Ainda pendentes: comprimento variável calculado pelo conteúdo, acentos, integração real Web/PWA/garçom, recuperação de falha entre vias e validação de outros equipamentos.
