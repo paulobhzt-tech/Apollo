@@ -786,9 +786,10 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     Cliente cadastrado: <strong>{o.registered_customer_name}</strong>
                   </p>}
                   <TableCustomers key={table.id + (table.order_id ?? "")} table={table} onDirtyChange={setEditingCustomers} />
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-2">
+                  <div className={cn("mt-3 grid min-w-0 items-start gap-3", adding && "@min-[62rem]:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]")} data-testid="table-workspace-panels">
+                  <section className="min-w-0 rounded-lg border border-border bg-panel/40 p-2" aria-label="Itens do pedido">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
                     <div className="flex items-center gap-2"><strong className="text-sm text-foreground">Itens do Pedido ({items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)})</strong></div>
-                    <span className="text-xs uppercase tracking-[0.15em] text-zinc-500">Itens · {items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)} un.</span>
                     <button type="button" onClick={() => setGrouped((g) => !g)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-300 transition-colors duration-150 hover:border-primary/50" data-testid="toggle-group-items">
                       {grouped ? "Ver item a item (cancelar)" : "Agrupar quantidades"}
                     </button>
@@ -817,7 +818,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                   ) : (
                   <div className="mt-2 space-y-2" data-testid="table-order-items">
                     {items.map((i) => (
-                      <div key={i.id} className={cn("flex items-center gap-3 rounded-xl bg-panel px-3 py-2.5 text-sm", i.cancelled && "opacity-40 line-through")}>
+                      <div key={i.id} className={cn("flex flex-wrap items-center gap-2 rounded-lg bg-panel px-2 py-2 text-sm", i.cancelled && "opacity-40 line-through")}>
                         <span className="font-mono text-zinc-400">{i.qty}x</span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-foreground">{i.name}</p>
@@ -836,8 +837,9 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                   )}
                   {submissionQuery.isError && <p role="alert" className="mt-4 text-sm text-red-500">Não foi possível verificar o envio salvo neste dispositivo.</p>}
                   {submission && <p role="status" className="mt-4 text-sm text-amber-600 dark:text-amber-300">{offline ? "Envio salvo neste dispositivo. Aguardando conexão." : "Envio aguardando confirmação. Confira ou reenvie os mesmos itens."}</p>}
+                  </section>
                   {adding ? (
-                    <fieldset disabled={send.isPending || !!submission} className="mt-4 min-w-0 space-y-3 rounded-2xl border border-primary/20 bg-panel p-3">
+                    <fieldset aria-label="Catálogo e rascunho" disabled={send.isPending || !!submission} className="min-w-0 space-y-3 rounded-lg border border-border bg-panel p-2">
                       <ProductGrid products={visibleProducts} categories={categories.data ?? []} onAdd={addPending} compact />
                       {visibleProducts.length === 0 && <p className="text-xs text-amber-200">Nenhum produto encontrado. Confira o nome ou código.</p>}
                       <p className="text-xs text-zinc-400">Novo pedido: ajuste quantidades, cliente e observações antes de revisar. O operador será registrado automaticamente.</p>
@@ -873,9 +875,10 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                       </div>
                     </fieldset>
                   ) : (
-                    <Button className="mt-4 h-auto min-h-12" onClick={() => { setProductSearch(""); setAdding(true); productSearchRef.current?.focus(); }} data-testid="add-items-button"><Plus className="size-4" /> Adicionar produtos</Button>
+                    <Button className="h-auto min-h-12 justify-self-start" onClick={() => { setProductSearch(""); setAdding(true); productSearchRef.current?.focus(); }} data-testid="add-items-button"><Plus className="size-4" /> Adicionar produtos</Button>
                   )}
 
+                  </div>
                   {offline && <p role="status" data-testid="table-online-required" className="mt-3 text-sm text-amber-300">Transferência, cancelamento e recebimento exigem conexão.</p>}
                   {table.order_id && <TablePrintStatusList key={table.order_id} tableId={table.id} orderId={table.order_id} />}
                   {submission && <Button className="mt-2" onClick={() => setReviewOpen(true)}>Conferir envio pendente</Button>}
