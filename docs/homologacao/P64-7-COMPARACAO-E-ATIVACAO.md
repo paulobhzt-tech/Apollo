@@ -15,8 +15,9 @@ cadastros e movimentos fictícios.
 | Divisão | 48, 56, 62 | Seleção e resultado empilhados | Seleção de clientes e itens com resumo e comando de recebimento em painel próprio em telas largas. |
 | Balcão e caixa | 8, 19, 49 | Cartão de venda lateral e painéis de turno em sequência | Balcão com catálogo, itens e faixa de conclusão. O caixa põe o movimento em paralelo à conferência, sangria, suprimento e fechamento. |
 | Estoque e compras | 13–14, 26, 29, 66 | Indicadores e planejamento antecediam a grade | A consulta de insumos e as abas são a área principal. Posição e planejamento ficam ao lado quando há espaço. A busca trabalha sobre os insumos cadastrados. |
+| Painel gerencial | Movimento, metas e alertas | Metas e relatórios do período antecediam os indicadores diários | Indicadores diários no topo, gráficos de vendas em paralelo a metas e estoque crítico, com resumo do período e contas agrupados abaixo. |
 
-O job Chromium da [auditoria visual](https://github.com/paulobhzt-tech/Apollo/actions?query=branch%3Afeat%2Fp64-7-reformulacao-integral-interface-consumer)
+O job Chromium da [auditoria visual](https://github.com/paulobhzt-tech/Apollo/actions?query=branch%3Afeat%2Fp64-7-reconstrucao-completa-interface-consumer)
 gera os pares `p646-*` e `p647-*` com o mesmo conjunto de cenários e bases
 descartáveis separadas. A P64.6 é compilada do commit de referência. As
 capturas anteriores também estão na [execução da P64.6](https://github.com/paulobhzt-tech/Apollo/actions/runs/45843204382).
@@ -31,7 +32,7 @@ capturas anteriores também estão na [execução da P64.6](https://github.com/p
   responsável. Dividir por percentual, pessoas ou valor na pré-conta e no
   pagamento continua um cálculo auxiliar. Transferência contábil de saldo e
   baixa contábil autônoma desses tipos seguem pendentes.
-- Relatórios, menu de módulos, KDS e módulos comerciais continuam com a
+- Relatórios detalhados, menu de módulos, KDS e módulos comerciais continuam com a
   arquitetura anterior. A revisão integral dessas interfaces e a conciliação
   externa com os provedores seguem pendentes.
 - O indicador por item distingue aceitação pelo spooler e confirmação

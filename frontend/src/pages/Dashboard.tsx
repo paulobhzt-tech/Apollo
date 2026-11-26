@@ -30,14 +30,14 @@ function ExecutivePanel() {
   start.setDate(start.getDate() - days + 1);
   const fmt = (d: Date) => [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
   const q = useQuery({ queryKey: ["executive-report", days], queryFn: () => apiGet<Executive>(`/reports/executive?start=${fmt(start)}&end=${fmt(end)}`), refetchInterval: 60000 });
-  return <section className="mb-5 space-y-3" data-testid="executive-panel">
+  return <section className="min-w-0 space-y-3" data-testid="executive-panel">
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-xl font-semibold">Painel Executivo Apollo 3.0</h2>
+      <h2 className="text-xl font-semibold">Resumo do período</h2>
       <div className="flex gap-2"><button className="rounded-lg border border-white/20 px-3 py-1 text-sm" onClick={() => setDays(7)} aria-pressed={days === 7}>7 dias</button><button className="rounded-lg border border-white/20 px-3 py-1 text-sm" onClick={() => setDays(30)} aria-pressed={days === 30}>30 dias</button></div>
     </div>
     {q.isError && <p role="alert" className="text-red-400">Não foi possível carregar o resumo executivo.</p>}
     {q.data && <>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2">
         <Stat testid="executive-metric-1" label="Faturamento do período" value={brl(q.data.revenue)} />
         <Stat testid="executive-metric-2" label="Saldo indicativo" value={brl(q.data.indicative_balance)} />
         <Stat testid="executive-metric-3" label="Despesas lançadas" value={brl(q.data.recorded_expenses)} />
@@ -65,7 +65,7 @@ function DailyGoalPanel() {
     onError: () => toast.error("Não foi possível salvar a meta diária"),
   });
   const d = q.data;
-  return <section className="mb-5 space-y-3" data-testid="daily-goal-panel">
+  return <section className="min-w-0 space-y-3" data-testid="daily-goal-panel">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h2 className="text-xl font-semibold">Meta e desempenho de hoje</h2>
       {me?.role === "admin" && <button className="rounded-lg border border-white/20 px-3 py-1.5 text-sm" onClick={() => { setAmount(String(d?.goal ?? 0)); setEditing(!editing); }}>{editing ? "Cancelar" : "Configurar meta"}</button>}
@@ -77,7 +77,7 @@ function DailyGoalPanel() {
     </form>}
     {q.isError && <p role="alert" className="text-sm text-red-400">Não foi possível carregar as metas.</p>}
     {d && <>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2">
         <Stat testid="daily-goal-value" label="Meta diária" value={d.goal > 0 ? brl(d.goal) : "Não definida"} />
         <Stat testid="daily-goal-progress" label="Meta atingida" value={d.goal_pct === null ? "—" : d.goal_pct.toFixed(1) + "%"} hint={d.goal > 0 ? `Faltam ${brl(d.remaining)}` : "Configure uma meta"} />
         <Stat testid="daily-revenue-change" label="Variação ante ontem" value={d.revenue_change_pct === null ? "Sem base" : `${d.revenue_change_pct > 0 ? "+" : ""}${d.revenue_change_pct.toFixed(1)}%`} hint={`Ontem: ${brl(d.previous_revenue)}`} />
@@ -101,9 +101,7 @@ export default function Dashboard() {
           <AlertTriangle className="size-4" /> O caixa está fechado. Abra o caixa para registrar vendas. <ArrowRight className="ml-auto size-4" />
         </Link>
       )}
-      <BillAlertsPanel />
-      <DailyGoalPanel />
-      <ExecutivePanel />
+      {isError && <p role="alert" className="mb-3 text-sm text-destructive">Não foi possível carregar o movimento de hoje.</p>}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Faturamento hoje" value={brl(d?.revenue_today ?? 0)} testid="stat-revenue" accent="text-primary" />
         <Stat label="Pedidos pagos" value={String(d?.orders_today ?? 0)} hint={`Ticket médio ${brl(d?.avg_ticket ?? 0)}`} testid="stat-orders" />
@@ -111,79 +109,89 @@ export default function Dashboard() {
         <Stat label="Na cozinha" value={String(d?.kitchen_pending ?? 0)} hint={`${d?.delivery_pending ?? 0} delivery aguardando aceite`} testid="stat-kitchen" />
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-3">
-        <Panel title="Faturamento últimos 7 dias" className="xl:col-span-2">
-          <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={d?.last7 ?? []}>
-              <defs>
-                <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#F97316" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="#F97316" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="rgba(255,255,255,.05)" vertical={false} />
-              <XAxis dataKey="name" stroke="#71717a" fontSize={12} />
-              <YAxis stroke="#71717a" fontSize={12} width={60} />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => brl(v)} />
-              <Area type="monotone" dataKey="value" stroke="#F97316" strokeWidth={2} fill="url(#g1)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </Panel>
-        <Panel title="Meios de pagamento (hoje)">
-          {d && d.by_payment.length ? (
-            <ResponsiveContainer width="100%" height={240}>
-              <PieChart>
-                <Pie data={d.by_payment} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3}>
-                  {d.by_payment.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Pie>
+      <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <section aria-label="Movimento e vendas" className="grid min-w-0 gap-3 md:grid-cols-2">
+
+          <Panel title="Faturamento últimos 7 dias" className="md:col-span-2">
+            <ResponsiveContainer width="100%" height={210}>
+              <AreaChart data={d?.last7 ?? []}>
+                <defs>
+                  <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#F97316" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#F97316" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="rgba(255,255,255,.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="#71717a" fontSize={12} />
+                <YAxis stroke="#71717a" fontSize={12} width={60} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => brl(v)} />
-              </PieChart>
+                <Area type="monotone" dataKey="value" stroke="#F97316" strokeWidth={2} fill="url(#g1)" />
+              </AreaChart>
             </ResponsiveContainer>
-          ) : <Empty />}
-        </Panel>
-        <Panel title="Vendas por hora (hoje)" className="xl:col-span-2">
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={d?.sales_by_hour ?? []}>
-              <CartesianGrid stroke="rgba(255,255,255,.05)" vertical={false} />
-              <XAxis dataKey="name" stroke="#71717a" fontSize={11} />
-              <YAxis stroke="#71717a" fontSize={11} width={60} />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => brl(v)} />
-              <Bar dataKey="value" fill="#38BDF8" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Panel>
-        <Panel title="Estoque crítico">
-          <ul className="space-y-2" data-testid="dashboard-low-stock">
-            {(d?.low_stock ?? []).map((i) => (
-              <li key={i.id} className="flex items-center justify-between rounded-lg bg-red-500/5 px-3 py-2 text-sm">
-                <span className="text-zinc-200">{i.name}</span>
-                <span className="font-mono text-red-300">{i.stock.toFixed(2)} {i.unit}</span>
-              </li>
-            ))}
-            {d && d.low_stock.length === 0 && <p className="text-sm text-zinc-500">Nenhum insumo abaixo do mínimo.</p>}
-          </ul>
-        </Panel>
-        <Panel title="Mais vendidos (hoje)" className="xl:col-span-2">
-          <ul className="divide-y divide-white/5">
-            {(d?.top_products ?? []).map((p, i) => (
-              <li key={p.name} className="flex items-center gap-3 py-2 text-sm">
-                <span className="font-mono text-zinc-500">{String(i + 1).padStart(2, "0")}</span>
-                <span className="flex-1 text-zinc-200">{p.name}</span>
-                <span className="font-mono text-zinc-400">{p.qty}x</span>
-                <span className="w-28 text-right font-mono text-white">{brl(p.revenue)}</span>
-              </li>
-            ))}
-            {d && d.top_products.length === 0 && <Empty />}
-          </ul>
-        </Panel>
-        <Panel title="Canais de venda (hoje)">
-          <ul className="space-y-2">
-            {(d?.by_channel ?? []).map((c) => (
-              <li key={c.name} className="flex justify-between text-sm"><span className="text-zinc-300">{c.name}</span><span className="font-mono">{brl(c.value)}</span></li>
-            ))}
-            {d && d.by_channel.length === 0 && <Empty />}
-          </ul>
-        </Panel>
+          </Panel>
+          <Panel title="Meios de pagamento (hoje)">
+            {d && d.by_payment.length ? (
+              <ResponsiveContainer width="100%" height={210}>
+                <PieChart>
+                  <Pie data={d.by_payment} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={3}>
+                    {d.by_payment.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => brl(v)} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : <Empty />}
+          </Panel>
+          <Panel title="Vendas por hora (hoje)" className="md:col-span-2">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={d?.sales_by_hour ?? []}>
+                <CartesianGrid stroke="rgba(255,255,255,.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="#71717a" fontSize={11} />
+                <YAxis stroke="#71717a" fontSize={11} width={60} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => brl(v)} />
+                <Bar dataKey="value" fill="#38BDF8" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Panel>
+          <Panel title="Mais vendidos (hoje)" className="md:col-span-2">
+            <ul className="divide-y divide-white/5">
+              {(d?.top_products ?? []).map((p, i) => (
+                <li key={p.name} className="flex items-center gap-3 py-2 text-sm">
+                  <span className="font-mono text-zinc-500">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="flex-1 text-zinc-200">{p.name}</span>
+                  <span className="font-mono text-zinc-400">{p.qty}x</span>
+                  <span className="w-28 text-right font-mono text-white">{brl(p.revenue)}</span>
+                </li>
+              ))}
+              {d && d.top_products.length === 0 && <Empty />}
+            </ul>
+          </Panel>
+          <Panel title="Canais de venda (hoje)">
+            <ul className="space-y-2">
+              {(d?.by_channel ?? []).map((c) => (
+                <li key={c.name} className="flex justify-between text-sm"><span className="text-zinc-300">{c.name}</span><span className="font-mono">{brl(c.value)}</span></li>
+              ))}
+              {d && d.by_channel.length === 0 && <Empty />}
+            </ul>
+          </Panel>
+        </section>
+        <section aria-label="Metas e alertas" className="grid min-w-0 gap-3">
+          <DailyGoalPanel />
+          <Panel title="Estoque crítico">
+            <ul className="space-y-2" data-testid="dashboard-low-stock">
+              {(d?.low_stock ?? []).map((i) => (
+                <li key={i.id} className="flex items-center justify-between rounded-lg bg-red-500/5 px-3 py-2 text-sm">
+                  <span className="text-zinc-200">{i.name}</span>
+                  <span className="font-mono text-red-300">{i.stock.toFixed(2)} {i.unit}</span>
+                </li>
+              ))}
+              {d && d.low_stock.length === 0 && <p className="text-sm text-zinc-500">Nenhum insumo abaixo do mínimo.</p>}
+            </ul>
+          </Panel>
+        </section>
+      </div>
+      <div className="mt-4 grid min-w-0 items-start gap-4 xl:grid-cols-2">
+        <ExecutivePanel />
+        <BillAlertsPanel />
       </div>
     </AppShell>
   );
