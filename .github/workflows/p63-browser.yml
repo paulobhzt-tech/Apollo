@@ -1,7 +1,7 @@
 name: P63 - Auditoria visual
 on:
   push:
-    branches: [feat/p63-interface-completa-consumer, feat/p64-4-finalizacao-liberacao-operacional]
+    branches: [feat/p63-interface-completa-consumer, feat/p64-4-finalizacao-liberacao-operacional, feat/p64-5-interface-consumer-operacional]
   workflow_dispatch:
 
 permissions:
@@ -78,7 +78,7 @@ jobs:
           cd tests
           specs=(p63-visual.spec.ts p63-quantity-footer.spec.ts p63-selected-items.spec.ts)
           if [[ "$P47_BROWSER" == chromium ]]; then specs+=(p64-display-payment.spec.ts); fi
-          if [[ "$P47_BROWSER" == chromium && ( "$GITHUB_REF_NAME" == feat/p64-3-interface-impressao-final || "$GITHUB_REF_NAME" == feat/p64-4-liberacao-final-apollo || "$GITHUB_REF_NAME" == feat/p64-4-finalizacao-liberacao-operacional ) ]]; then
+          if [[ "$P47_BROWSER" == chromium && ( "$GITHUB_REF_NAME" == feat/p64-3-interface-impressao-final || "$GITHUB_REF_NAME" == feat/p64-4-liberacao-final-apollo || "$GITHUB_REF_NAME" == feat/p64-4-finalizacao-liberacao-operacional || "$GITHUB_REF_NAME" == feat/p64-5-interface-consumer-operacional ) ]]; then
             specs+=(p64-print-agent.spec.ts)
           fi
           npx playwright test --config=p47.config.ts "${specs[@]}" --trace retain-on-failure

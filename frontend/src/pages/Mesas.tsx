@@ -2,7 +2,7 @@ import SaleQuantityInput from "@/components/SaleQuantityInput";
 import { type SetStateAction, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowRightLeft, Bell, Clock, Ellipsis, Minus, Pencil, Plus, Printer, QrCode, Receipt, RefreshCw, Search, Send, Trash2, Users } from "lucide-react";
+import { ArrowRightLeft, Bell, Clock, Ellipsis, Maximize, Minimize, Minus, Pencil, Plus, Printer, QrCode, Receipt, RefreshCw, Search, Send, Trash2, Users } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
@@ -468,6 +468,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const [selectedOperation, setSelectedOperation] = useState<"transfer" | "copy" | null>(null);
   const [grouped, setGrouped] = useTablePreference(`apollo-table-grouped:${me?.id}`, true);
   const [showItemTimes, setShowItemTimes] = useTablePreference(`apollo-table-times:${me?.id}`, false);
+  const [maximized, setMaximized] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const productSearchRef = useRef<HTMLInputElement>(null);
   const [showDetails, setShowDetails] = useTablePreference(`apollo-table-details:${me?.id}`, true);
@@ -738,6 +739,12 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>}
+                <Button type="button" variant="outline" size="icon" className="hidden sm:inline-flex"
+                  aria-label={maximized ? "Centralizar janela de atendimento" : "Maximizar janela de atendimento"}
+                  title={maximized ? "Restaurar janela centralizada" : "Maximizar janela"}
+                  onClick={() => setMaximized((current) => !current)}>
+                  {maximized ? <Minimize /> : <Maximize />}
+                </Button>
                 <Button variant="outline" onClick={requestClose} disabled={busy || partialOpen} data-testid="table-workspace-close">Voltar</Button>
               </div>
             </header>
@@ -931,7 +938,9 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     <>
       <Dialog open onOpenChange={(value) => { if (!value) requestClose(); }} disablePointerDismissal>
         <DialogContent overlayClassName="bg-black/55"
-          className="w-[calc(100%-1rem)] max-h-[90dvh] max-w-[min(calc(100%-1rem),1080px)] grid-rows-[minmax(0,1fr)_auto] grid-cols-[minmax(0,1fr)] gap-0 overflow-hidden border border-border bg-elevated p-0 sm:max-w-[min(calc(100%-2rem),1080px)]"
+          className={cn("w-[calc(100%-1rem)] grid-rows-[minmax(0,1fr)_auto] grid-cols-[minmax(0,1fr)] gap-0 overflow-hidden border border-border bg-elevated p-0",
+            maximized ? "h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] max-w-[calc(100%-1rem)] sm:max-w-[calc(100%-1rem)]"
+              : "max-h-[90dvh] max-w-[min(calc(100%-1rem),1080px)] sm:max-w-[min(calc(100%-2rem),1080px)]")}
           data-testid="table-sheet">
           {content}
           {table.order_id && <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-panel px-4 py-2">
