@@ -1,0 +1,21 @@
+name: P64.5 Backup externo e restauração
+on:
+  push:
+    branches: [feat/p64-5-interface-consumer-operacional]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup-sftp:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar dependências
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y age rclone
+      - name: Testar transferência SFTP e restauração descartável
+        run: bash deploy/vps/test-cloud-backup.sh

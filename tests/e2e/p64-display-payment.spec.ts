@@ -117,3 +117,42 @@ test("adapts the cash and stock records and keeps their actions reachable at 175
   await ingredient.getByTestId("move-ingredient-p40ing").click();
   await expect(page.getByRole("dialog")).toBeVisible();
 });
+
+
+test("keeps each operator's zoom and supports the table workspace shortcuts", async ({ page }) => {
+  async function signIn(username: string) {
+    await page.getByLabel("Usuário", { exact: true }).fill(username);
+    await page.getByLabel("Senha", { exact: true }).fill("P40-Fictitious-Password!");
+    await page.getByRole("button", { name: "Entrar", exact: true }).click();
+    await expect(page.getByTestId("apollo-ribbon")).toBeVisible();
+  }
+
+  async function switchOperator() {
+    await page.getByRole("button", { name: "Bloquear ou trocar operador" }).click();
+    await page.getByRole("dialog", { name: "Operador atual" }).getByTestId("logout-button").click();
+    await expect(page.getByRole("button", { name: "Entrar", exact: true })).toBeVisible();
+  }
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base);
+  await signIn("p40admin");
+  const zoom = page.getByLabel("Zoom da interface", { exact: true });
+  await zoom.selectOption("80");
+  await page.goto(base + "/mesas");
+  await page.getByTestId("table-card-401").click();
+  const open = page.getByTestId("open-table-button");
+  if (await open.isVisible()) await open.click();
+  await expect(page.getByTestId("table-product-search")).toBeEnabled();
+  await page.getByRole("button", { name: "Maximizar janela de atendimento" }).click();
+  await page.keyboard.press("F3");
+  await expect(page.getByTestId("table-product-search")).toBeFocused();
+  await page.getByRole("button", { name: "Centralizar janela de atendimento" }).click();
+  await page.getByTestId("table-workspace-close").click();
+  await switchOperator();
+  await signIn("p40caixa1");
+  await expect(zoom).toHaveValue("100");
+  await zoom.selectOption("125");
+  await switchOperator();
+  await signIn("p40admin");
+  await expect(zoom).toHaveValue("80");
+});

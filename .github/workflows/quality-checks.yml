@@ -78,6 +78,12 @@ jobs:
         run: npm run typecheck
       - name: Compilar interface
         run: npm run build
+      - uses: actions/upload-artifact@v4
+        if: github.ref_name == 'feat/p64-5-interface-consumer-operacional'
+        with:
+          name: Apollo-Web-PWA-${{ github.sha }}
+          path: frontend/dist/
+          if-no-files-found: error
 
   desktop:
     runs-on: ubuntu-latest
