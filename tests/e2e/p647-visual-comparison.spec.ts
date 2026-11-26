@@ -52,6 +52,19 @@ test("captures the same populated screens in each version", async ({ page }, inf
   await capture("pagamento-misto");
   await popup.getByRole("button", { name: "Cancelar", exact: true }).click();
 
+  if (side === "p647") {
+    await page.getByRole("button", { name: "Mais opções" }).click();
+    await page.getByRole("menuitem", { name: "Dividir por cliente ou itens" }).click();
+  } else {
+    await page.getByRole("button", { name: "Dividir por cliente ou itens" }).click();
+  }
+  const split = page.getByRole("dialog", { name: "Divisão da conta por itens" });
+  await split.getByRole("spinbutton").first().fill("1");
+  await split.getByRole("button", { name: "Calcular divisão" }).click();
+  await expect(split.getByRole("button", { name: "Receber itens selecionados" })).toBeVisible();
+  await capture("divisao");
+  await split.getByRole("button", { name: "Fechar", exact: true }).click();
+
   await page.goto(base + "/pdv");
   await page.getByTestId("product-card-p40product").click();
   await expect(page.getByTestId("pdv-subtotal")).toContainText("10,00");
@@ -62,4 +75,10 @@ test("captures the same populated screens in each version", async ({ page }, inf
   await page.getByTestId("theme-toggle").click();
   await expect(page.locator("html")).toHaveClass(/(?:^| )light(?: |$)/);
   await capture("caixa-claro");
+  await page.goto(base + "/estoque");
+  await expect(page.getByTestId("ingredient-row-p40ing")).toBeVisible();
+  await capture("estoque");
+  await page.getByTestId("tab-compras").click();
+  await expect(page.getByRole("heading", { name: "Registrar compra" })).toBeVisible();
+  await capture("compras");
 });

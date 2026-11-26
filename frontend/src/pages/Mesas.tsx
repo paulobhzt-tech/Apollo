@@ -1260,8 +1260,10 @@ function PartialBillDialog({ table, items, open, onClose }: { table: Table; item
   return (
     <>
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[85dvh] grid-cols-[minmax(0,1fr)] overflow-y-auto border-white/10 bg-elevated sm:max-w-lg">
-        <DialogHeader><DialogTitle>Divisão da conta por itens</DialogTitle></DialogHeader>
+      <DialogContent className="@container flex max-h-[94dvh] flex-col gap-0 overflow-hidden border-border bg-elevated p-0 sm:max-w-4xl">
+        <DialogHeader className="shrink-0 border-b border-border p-3 pr-12"><DialogTitle>Divisão da conta por itens</DialogTitle></DialogHeader>
+        <div className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_auto] @min-[41rem]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] @min-[41rem]:grid-rows-[minmax(0,1fr)]">
+        <section className="min-h-0 min-w-0 space-y-3 overflow-y-auto p-3" aria-label="Itens e clientes da divisão">
         <p className="text-sm text-zinc-400">Selecione um cliente para carregar automaticamente os itens dele. Confira os itens compartilhados antes de receber.</p>
         <div className="space-y-1">
           <Label htmlFor="partial-bill-customer">Cliente responsável pelo pagamento</Label>
@@ -1284,11 +1286,14 @@ function PartialBillDialog({ table, items, open, onClose }: { table: Table; item
           {available.map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-panel p-3">
               <span className="min-w-0 text-sm wrap-anywhere">{item.name} · {brl(item.unit_price)} (até {item.qty})<span className="block text-xs text-zinc-400">{item.customer_name || "Mesa inteira"}</span></span>
-              <Input className="w-20 shrink-0" type="number" min={0} max={item.qty} step={item.sale_unit === "kg" || item.sale_unit === "L" ? "0.0001" : "1"} disabled={calculation.isPending || payOpen || (!!selectedCustomer && !!item.customer_name && item.customer_name !== selectedCustomer)} value={quantities[item.id] ?? 0}
+              <Input aria-label={`Quantidade de ${item.name}`} className="w-20 shrink-0" type="number" min={0} max={item.qty} step={item.sale_unit === "kg" || item.sale_unit === "L" ? "0.0001" : "1"} disabled={calculation.isPending || payOpen || (!!selectedCustomer && !!item.customer_name && item.customer_name !== selectedCustomer)} value={quantities[item.id] ?? 0}
                 onChange={(e) => { setQuantities((old) => ({ ...old, [item.id]: Math.max(0, Math.min(item.qty, Number(e.target.value) || 0)) })); setPreview(null); }} />
             </div>
           ))}
         </div>
+        </section>
+        <section className="min-w-0 space-y-2 border-t border-border p-3 @min-[41rem]:min-h-0 @min-[41rem]:overflow-y-auto @min-[41rem]:border-t-0 @min-[41rem]:border-l" aria-label="Resumo da divisão">
+        <h3 className="text-sm font-semibold">Resumo da divisão</h3>
         <Button disabled={calculation.isPending || !Object.values(quantities).some((v) => v > 0)}
           onClick={() => calculation.mutate(Object.fromEntries(Object.entries(quantities).filter(([, qty]) => qty > 0)))}>Calcular divisão</Button>
         {preview && <div className="rounded-xl border border-white/10 p-3 text-sm">
@@ -1297,6 +1302,8 @@ function PartialBillDialog({ table, items, open, onClose }: { table: Table; item
           <p className="mt-2 text-amber-300">Pagamento parcial não fiscal. Descontos e taxa de serviço disponíveis; fiado não habilitado.</p>
           <Button className="mt-3 h-auto min-h-9 w-full whitespace-normal" onClick={() => setPayOpen(true)}>Receber itens selecionados</Button>
         </div>}
+        </section>
+        </div>
       </DialogContent>
     </Dialog>
     <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={preview?.subtotal ?? 0} items={preview?.items} defaultService={10} partialMode title="Recebimento parcial (não fiscal)" pending={payment.isPending} connectionRequired={offline}
