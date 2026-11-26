@@ -94,7 +94,7 @@ test("captures the same populated screens in each version", async ({ page }, inf
   await expect(page.getByRole("cell", { name: "Fornecedor fictício" })).toHaveCount(3);
   await capture("compras");
   await page.goto(base + "/cozinha");
-  await expect(page.getByTestId("kds-column-novo").getByText("Espetinho P40")).toBeVisible();
+  await expect(page.getByTestId("kds-column-novo").getByText("Espetinho P40", { exact: true }).first()).toBeVisible();
   await capture("kds");
   await page.goto(base + "/financeiro");
   await expect(page.getByTestId("dre-gross")).toContainText("10,00");

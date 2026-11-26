@@ -24,16 +24,21 @@ except ImportError:
 STATUSES = ("trial", "active", "suspended", "cancelled")
 CSS = """
 :root{font-family:system-ui,Segoe UI,sans-serif;color-scheme:dark}
-body{background:#101622;color:#f0f4fa;margin:0}
-header{background:#192437;border-bottom:1px solid #36445b;padding:22px max(24px,calc((100vw - 1120px)/2))}
-main{max-width:1120px;margin:28px auto;padding:0 20px}
+body{background:#10121a;color:#f0f4fa;margin:0}
+header{background:#191c27;border-bottom:1px solid #393d50;padding:20px max(20px,calc((100vw - 1360px)/2))}
+main{max-width:1360px;margin:20px auto;padding:0 20px}
 h1{margin:0;font-size:26px}h2{font-size:19px}
 small,.muted{color:#a7b5cc}
-.panel{background:#1a2638;border:1px solid #33435a;border-radius:14px;padding:20px;margin-bottom:22px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.panel{background:#191c27;border:1px solid #393d50;border-radius:12px;padding:16px;margin-bottom:16px;min-width:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr));gap:12px}
+.workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.workspace section{min-width:0}
+.registration{display:grid;gap:12px}
+@media(min-width:1050px){.workspace{grid-template-columns:minmax(0,1fr) minmax(16rem,22rem)}}
+@media(max-width:520px){main{padding:0 12px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 input,select,button{font:inherit;border-radius:8px;padding:10px;box-sizing:border-box}
 input,select{background:#0b1320;color:white;border:1px solid #526078;width:100%}
-button{background:#35ad86;border:0;color:#081c16;font-weight:700;cursor:pointer}
+button{background:#fb923c;border:0;color:#231305;font-weight:700;cursor:pointer}
 button.secondary{background:#334a68;color:white}
 label{font-size:13px;display:block;margin-bottom:5px;color:#cbd6e7}
 table{border-collapse:collapse;width:100%;min-width:800px}
@@ -145,16 +150,18 @@ class PanelHandler(BaseHTTPRequestHandler):
         <title>Apollo — Administração</title><style>{CSS}</style></head><body>
         <header><h1>Apollo PDV · Administração comercial</h1><small>Área exclusiva do proprietário · Acesso via túnel SSH</small></header>
         <main><div class="grid">{metrics}</div>
+        <div class="workspace">
+        <section class="panel"><h2>Clientes e licenças</h2><div class="scroller" tabindex="0"><table><thead><tr>
+            <th>Cliente</th><th>Plano</th><th>Domínio</th><th>Valor</th><th>Status</th><th>Vencimento</th><th>Ações</th>
+            </tr></thead><tbody>{''.join(rows)}</tbody></table></div></section>
         <section class="panel"><h2>Cadastrar restaurante</h2><form method="post" action="/create">{self._token()}
-            <div class="grid"><div><label>Nome do cliente</label><input name="customer" maxlength="100" required></div>
+            <div class="registration"><div><label>Nome do cliente</label><input name="customer" maxlength="100" required></div>
             <div><label>Plano</label><select name="plan"><option>Mensal</option><option>Trimestral</option><option>Anual</option></select></div>
             <div><label>Mensalidade (R$)</label><input name="amount" type="number" min="0" max="999999" step="0.01" required></div>
             <div><label>Domínio (opcional)</label><input name="domain" maxlength="200" placeholder="loja.seudominio.com.br"></div>
             <div><label>Dias até vencimento</label><input name="days" type="number" min="1" max="366" value="30" required></div></div>
             <p><button>Cadastrar cliente</button></p></form></section>
-        <section class="panel"><h2>Clientes e licenças</h2><div class="scroller"><table><thead><tr>
-            <th>Cliente</th><th>Plano</th><th>Domínio</th><th>Valor</th><th>Status</th><th>Vencimento</th><th>Ações</th>
-            </tr></thead><tbody>{''.join(rows)}</tbody></table></div></section>
+        </div>
         <section class="panel"><h2>Últimos pagamentos registrados</h2><div class="scroller"><table><thead><tr>
             <th>Data</th><th>Cliente</th><th>Valor</th><th>Observação</th>
             </tr></thead><tbody>{history}</tbody></table></div></section>
