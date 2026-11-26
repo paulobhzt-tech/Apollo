@@ -19,9 +19,9 @@ test("captures the same populated screens in each version", async ({ page }, inf
     expect(response.ok(), `${path}: ${response.status()}`).toBe(true);
     return response.json();
   }
-  async function capture(name: string) {
+  async function capture(name: string, fullPage = false) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
-    await page.screenshot({ path: info.outputPath(`${side}-${name}.png`), animations: "disabled" });
+    await page.screenshot({ path: info.outputPath(`${side}-${name}.png`), animations: "disabled", fullPage });
   }
 
   await post("/cash/open", { opening_amount: 50 });
@@ -35,7 +35,7 @@ test("captures the same populated screens in each version", async ({ page }, inf
   await page.goto(base + "/");
   await expect(page.getByTestId("daily-goal-value")).toBeVisible();
   await expect(page.getByTestId("executive-metric-1")).toBeVisible();
-  await capture("painel-gerencial");
+  await capture("painel-gerencial", true);
   await page.goto(base + "/mesas");
   await expect(page.getByTestId("table-card-401")).toBeVisible();
   await capture("mesas");
