@@ -288,9 +288,35 @@
 .apollo-station-order { border-top: 1px solid var(--border); }
 @media (min-width: 64rem) {
   .apollo-station-body {
-    grid-template-columns: minmax(10rem, .9fr) minmax(0, 2fr) minmax(0, 1.55fr);
+    grid-template-columns: minmax(0, 1fr);
     overflow-y: visible;
   }
   .apollo-station-panel { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
   .apollo-station-body > :not(:first-child) { border-left: 1px solid var(--border); border-top: 0; }
+}
+
+
+@media (min-width: 64rem) {
+  .apollo-station-body[data-open="true"] {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+  .apollo-station-catalog {
+    display: flex;
+    flex-direction: column;
+    overflow: clip;
+  }
+  .apollo-catalog-fieldset,
+  .apollo-catalog-viewport,
+  .apollo-catalog-grid {
+    min-height: 0;
+    height: 100%;
+  }
+  .apollo-catalog-grid {
+    grid-template-columns: minmax(8rem, 28%) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .apollo-catalog-search { grid-column: 1 / -1; }
+  .apollo-catalog-rail,
+  .apollo-catalog-results { overflow-y: auto; overscroll-behavior: contain; }
+  .apollo-catalog-fieldset { flex: 1; }
 }

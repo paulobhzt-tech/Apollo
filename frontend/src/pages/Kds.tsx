@@ -84,6 +84,9 @@ export default function Kds() {
               </button>
             ))}
           </div>
+          {document.fullscreenEnabled && <Button variant="outline" size="sm"
+            onClick={() => void (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen())
+              .catch(() => toast.error("O dispositivo não disponibilizou tela cheia."))}>Alternar tela cheia</Button>}
           <Button variant="outline" size="icon" aria-label={sound ? "Silenciar novos pedidos" : "Ativar som de novos pedidos"} onClick={() => setSound(!sound)} data-testid="kds-sound-toggle">{sound ? <Volume2 /> : <VolumeX />}</Button>
         </>
       } />
@@ -110,10 +113,10 @@ export default function Kds() {
                   const mixedStations = station !== "all" && tickets.data?.find((ticket) => ticket.id === t.id)?.items.some((item) => item.station !== station);
                   return (
                     <article key={t.id} data-testid={`kds-ticket-${t.order_number}`}
-                      className={cn("rounded-xl border p-3 animate-rise", urgent ? "animate-urgent border-red-400 bg-[#2A1418]" : "border-border bg-panel")}>
+                      className={cn("rounded-xl border p-3 animate-rise", urgent ? "animate-urgent border-red-400 bg-red-500/10" : "border-border bg-panel")}>
                       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
                         <p className="min-w-0 wrap-anywhere font-heading text-lg font-semibold text-foreground">{t.label}</p>
-                        <span className={cn("rounded-md px-2 py-0.5 font-mono text-xs", m < 15 ? "bg-emerald-400/15 text-emerald-300" : m <= 25 ? "bg-amber-400/15 text-amber-300" : "bg-red-400/20 text-red-300")}>
+                        <span className={cn("rounded-md px-2 py-0.5 font-mono text-xs", m < 15 ? "bg-emerald-400/15 text-emerald-800 dark:text-emerald-300" : m <= 25 ? "bg-amber-400/15 text-amber-800 dark:text-amber-300" : "bg-red-400/20 text-red-800 dark:text-red-300")}>
                           {history ? `Entregue às ${fmtTime(t.updated_at)}` : `${m}min`}
                         </span>
                       </div>
@@ -138,7 +141,7 @@ export default function Kds() {
                         })}
                       </ul>
                       {c.next && (
-                        <Button size="sm" className="mt-3 w-full" variant={c.key === "pronto" ? "outline" : "default"} disabled={move.isPending || mixedStations}
+                        <Button size="sm" className="mt-3 min-h-11 w-full" variant={c.key === "pronto" ? "outline" : "default"} disabled={move.isPending || mixedStations}
                           title={mixedStations ? "Pedido antigo com setores misturados: gerencie em Todos os ambientes" : undefined}
                           onClick={() => move.mutate({ id: t.id, status: c.next! })} data-testid={`kds-advance-${t.order_number}`}>
                           {c.action}

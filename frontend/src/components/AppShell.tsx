@@ -564,9 +564,9 @@ function UserCard({ name, role, onManage }: { name: string; role: Role; onManage
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
   return (
-    <div className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-panel px-3 py-3 sm:px-4">
+    <div className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-panel px-3 py-2 sm:px-4">
       <div className="min-w-0 wrap-anywhere">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl" data-testid="page-title">{title}</h1>
+        <h1 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl" data-testid="page-title">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
       </div>
       {actions && <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">{actions}</div>}
@@ -576,9 +576,9 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
 
 export function Stat({ label, value, hint, testid, accent }: { label: string; value: string; hint?: string; testid: string; accent?: string }) {
   return (
-    <div className="rounded-2xl border border-white/5 bg-panel p-5 transition-transform duration-200 hover:-translate-y-0.5">
+    <div className="rounded-md border border-border bg-panel px-3 py-2">
       <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-500">{label}</p>
-      <p className={cn("mt-2 wrap-anywhere font-mono text-2xl font-medium tracking-tight text-white", accent)} data-testid={testid}>{value}</p>
+      <p className={cn("mt-1 wrap-anywhere font-mono text-xl font-semibold tracking-tight text-foreground", accent)} data-testid={testid}>{value}</p>
       {hint && <p className="mt-1 text-xs text-zinc-500">{hint}</p>}
     </div>
   );

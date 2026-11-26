@@ -128,21 +128,18 @@ jobs:
         if: (github.ref_name == 'feat/p64-7-reconstrucao-completa-interface-consumer' || github.ref_name == 'feat/p64-8-correcao-final-homologacao') && matrix.browser == 'chromium'
         run: |
           set -euo pipefail
-          baseline=e02b17f6c5183e78700c23d0f97f099720a6e567
-          before=p646
-          after=p647
-          if [[ "$GITHUB_REF_NAME" == feat/p64-8-correcao-final-homologacao ]]; then
-            baseline=5111b8fcda3fa53399b1c47cf870026750f8f874
-            before=p647
-            after=p648
-          fi
-          git merge-base --is-ancestor "$baseline" "$GITHUB_SHA"
-          previous="$RUNNER_TEMP/apollo-p646"
-          mkdir -p "$previous"
-          git archive "$baseline" frontend | tar -x -C "$previous"
-          ln -s "$GITHUB_WORKSPACE/frontend/node_modules" "$previous/frontend/node_modules"
-          APOLLO_SOURCE_COMMIT="$baseline" npm --prefix "$previous/frontend" run build
-          EXPECTED_COMMIT="$baseline" node frontend/scripts/verify-build.mjs "$previous/frontend/dist"
+          base646=e02b17f6c5183e78700c23d0f97f099720a6e567
+          build_baseline() (
+            set -e
+            baseline="$1"
+            target="$2"
+            git merge-base --is-ancestor "$baseline" "$GITHUB_SHA"
+            mkdir -p "$target"
+            git archive "$baseline" frontend | tar -x -C "$target"
+            ln -s "$GITHUB_WORKSPACE/frontend/node_modules" "$target/frontend/node_modules"
+            APOLLO_SOURCE_COMMIT="$baseline" npm --prefix "$target/frontend" run build
+            EXPECTED_COMMIT="$baseline" node frontend/scripts/verify-build.mjs "$target/frontend/dist"
+          )
           compare() (
             side="$1"
             export DB_NAME="apollo_p40_browser_${side}_comparison"
@@ -163,8 +160,24 @@ jobs:
             cd tests
             npx playwright test --config=p47.config.ts p647-visual-comparison.spec.ts --output="test-results/p647-comparison/$side" --reporter=list --trace retain-on-failure
           )
-          compare "$before" "$previous/frontend/dist"
-          compare "$after" "$GITHUB_WORKSPACE/frontend/dist"
+          build_baseline "$base646" "$RUNNER_TEMP/apollo-p646"
+          compare p646 "$RUNNER_TEMP/apollo-p646/frontend/dist"
+          if [[ "$GITHUB_REF_NAME" == feat/p64-8-correcao-final-homologacao ]]; then
+            build_baseline 5111b8fcda3fa53399b1c47cf870026750f8f874 "$RUNNER_TEMP/apollo-p647"
+            compare p647 "$RUNNER_TEMP/apollo-p647/frontend/dist"
+            compare p648 "$GITHUB_WORKSPACE/frontend/dist"
+          else
+            compare p647 "$GITHUB_WORKSPACE/frontend/dist"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always() && github.ref_name == 'feat/p64-8-correcao-final-homologacao' && matrix.browser == 'chromium'
+        with:
+          name: APOLLO-P64.8-PREVIA-INTERFACE-COMPLETA
+          path: |
+            tests/test-results/p647-comparison/**/*.png
+            tests/test-results/p47/**/*.png
+          if-no-files-found: error
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()
         with:

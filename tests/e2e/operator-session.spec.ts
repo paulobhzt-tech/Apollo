@@ -253,6 +253,8 @@ test("faixa, tema, zoom e atendimento em mesa e comanda", async ({ page }) => {
   const mesa = page.getByRole("region", { name: "Atendimento — Mesa 12" });
   await expect(mesa).toBeVisible();
   await expect(mesa.getByTestId("table-workspace-panels")).toBeVisible();
+  const details = mesa.getByText("Dados da mesa", { exact: true });
+  if (await details.isVisible()) await details.click();
   await expect(mesa.getByTestId("table-qr-button")).toBeVisible();
   await mesa.getByTestId("open-table-name-input").fill("Cliente de teste");
   page.once("dialog", (dialog) => dialog.dismiss());

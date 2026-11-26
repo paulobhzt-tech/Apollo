@@ -232,27 +232,27 @@ export default function Mesas() {
         <div className="flex flex-wrap gap-2">{([["todas", "Todas"], ["minhas", "Minhas mesas"], ["ocupadas", "Em atendimento"], ["livres", "Livres"]] as const).map(([value, label]) => <Button key={value} size="sm" variant={mobileFilter === value ? "default" : "outline"} onClick={() => setMobileFilter(value)}>{label}</Button>)}</div>
       </div>}
       {!mobileMode && (
-        <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4" data-testid="tables-summary">
+        <div className="mb-2 grid grid-cols-2 gap-1.5 md:grid-cols-4" data-testid="tables-summary">
           {([
-            { label: "Em andamento", status: "ocupada", color: "border-emerald-500/40 text-emerald-300" },
-            { label: "Contas solicitadas", status: "conta", color: "border-amber-500/40 text-amber-300" },
-            { label: "Livres", status: "livre", color: "border-zinc-500/40 text-zinc-200" },
-            { label: "Reservadas", status: "reservada", color: "border-violet-500/40 text-violet-300" },
+            { label: "Em andamento", status: "ocupada", color: "border-emerald-500/40 text-emerald-800 dark:text-emerald-300" },
+            { label: "Contas solicitadas", status: "conta", color: "border-amber-500/40 text-amber-800 dark:text-amber-300" },
+            { label: "Livres", status: "livre", color: "border-border text-foreground" },
+            { label: "Reservadas", status: "reservada", color: "border-violet-500/40 text-violet-800 dark:text-violet-300" },
           ] as const).map(item => (
             <button key={item.status} type="button" onClick={() => setDesktopStatus(desktopStatus === item.status ? "todas" : item.status)}
-              aria-pressed={desktopStatus === item.status} className={cn("rounded-md border bg-white/5 px-3 py-3 text-left transition-colors hover:bg-white/10", item.color, desktopStatus === item.status && "ring-2 ring-primary")}>
+              aria-pressed={desktopStatus === item.status} className={cn("flex items-center justify-between gap-2 rounded border bg-panel px-2 py-1.5 text-left transition-colors hover:bg-muted", item.color, desktopStatus === item.status && "ring-2 ring-primary")}>
               <span className="block text-xs">{item.label}</span>
-              <span className="mt-1 block text-2xl font-bold tabular-nums">{all.filter(t => t.kind === kind && t.status === item.status).length}</span>
+              <span className="block text-base font-semibold tabular-nums">{all.filter(t => t.kind === kind && t.status === item.status).length}</span>
             </button>
           ))}
         </div>
       )}
       {!mobileMode && (
-        <div className="mb-5 flex flex-wrap items-center gap-3 border-b border-white/10 pb-4" data-testid="desktop-tables-toolbar">
+        <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-border pb-2" data-testid="desktop-tables-toolbar">
           <Input aria-label="Pesquisar mesas e comandas" placeholder="Pesquisar mesa, comanda ou cliente..." value={desktopSearch}
-            onChange={(e) => setDesktopSearch(e.target.value)} className="w-full max-w-sm rounded-sm bg-zinc-900/60 sm:w-80" />
-          <label className="flex items-center gap-2 text-xs text-zinc-300">Ordenar por
-            <select aria-label="Ordenar mesas" value={desktopSort} onChange={(e) => setDesktopSort(e.target.value as typeof desktopSort)} className="rounded border border-white/15 bg-zinc-800 px-2 py-2 text-white">
+            onChange={(e) => setDesktopSearch(e.target.value)} className="w-full max-w-sm rounded-sm bg-panel sm:w-80" />
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">Ordenar por
+            <select aria-label="Ordenar mesas" value={desktopSort} onChange={(e) => setDesktopSort(e.target.value as typeof desktopSort)} className="rounded border border-border bg-panel px-2 py-2 text-foreground">
               <option value="numero">Número</option><option value="tempo">Maior tempo</option><option value="valor">Maior valor</option>
             </select>
           </label>
@@ -310,7 +310,7 @@ export default function Mesas() {
             {group.items.map(t => (
               <button key={t.id} type="button" onClick={() => setSelId(t.id)}
                 data-testid={`${t.kind === "comanda" ? "comanda" : "table"}-card-${t.number}`}
-                className={cn("relative flex min-w-0 flex-col items-center justify-between rounded-lg p-2 text-center text-white transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", !mobileMode && compactTiles ? "min-h-20" : "min-h-28", group.color)}>
+                className={cn("relative flex min-w-0 flex-col items-center justify-between rounded p-2 text-center text-white transition-colors hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", !mobileMode && compactTiles ? "min-h-18" : "min-h-24", group.color)}>
                 <span className="text-[10px] font-medium">{t.status === "livre" ? "ABRIR" : t.status === "reservada" ? "RESERVADA" :
                   [t.status === "conta" ? "CONTA" : "", (mobileMode || showTableTotals) && t.opened_at ? `${minutesSince(t.opened_at, clock)} min` : ""].filter(Boolean).join(" · ")}</span>
                 {t.call && <Bell className="absolute right-1 top-1 size-3 animate-pulse" aria-label="Chamada pendente" />}
@@ -718,6 +718,29 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const draftTotal = pending.reduce((sum, item) => sum + item.qty * (item.product.price + item.extra), 0);
   const confirmedCount = items.reduce((sum, item) => item.cancelled ? sum : sum + item.qty, 0);
 
+  const tableDetails = (
+          <>
+                <p className="flex items-start gap-2 text-sm"><Clock className="size-4 shrink-0" /> <span>{table.opened_at ? `${minutesSince(table.opened_at, clock)} min de ocupação · desde ${fmtTime(table.opened_at)}` : "Aguardando abertura"}</span></p>
+                <p className="flex items-start gap-2 text-sm"><Users className="size-4 shrink-0" /> <span>{table.people ?? 0} cliente(s){table.waiter_name ? ` · Garçom: ${table.waiter_name}` : " · Garçom não atribuído"}</span></p>
+                {table.customer_name && <p className="text-sm text-muted-foreground">{table.customer_name}</p>}
+                <Button variant="outline" onClick={() => onQr(table)} data-testid="table-qr-button"><QrCode className="size-4" /> QR {table.kind === "mesa" ? "da mesa" : "da comanda"}</Button>
+                <RenameRow key={table.id + table.name} table={table} canDelete={canDelete} onDeleted={onClose} />
+                {table.order_id && <>
+                  {o?.registered_customer_name && <p className="mb-2 text-sm text-foreground">
+                    Cliente cadastrado: <strong>{o.registered_customer_name}</strong>
+                  </p>}
+                  <TableCustomers key={table.id + (table.order_id ?? "")} table={table} onDirtyChange={setEditingCustomers} />
+                </>}
+              {table.call && (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-orange-200">
+                  <span className="flex items-center gap-2"><Bell className="size-4" /> Cliente {table.call === "conta" ? "pediu a conta" : "chamou o garçom"}</span>
+                  <Button size="xs" variant="outline" onClick={() => clearCall.mutate()} data-testid="table-clear-call">Atendido</Button>
+                </div>
+              )}
+
+          </>
+  );
+
   return (
     <>
       <section aria-labelledby="table-workspace-heading" className="apollo-station" data-layout={screenMode} data-testid="table-sheet"
@@ -790,36 +813,15 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
             <Button variant="outline" onClick={requestClose} disabled={busy || partialOpen} data-testid="table-workspace-close">Voltar</Button>
           </div>
         </header>
-        <div className="apollo-station-body" data-testid="table-workspace-panels">
-          <aside className="apollo-station-panel space-y-3" aria-label="Dados da mesa">
-            <h2 className="text-sm font-semibold">Dados do atendimento</h2>
-                <p className="flex items-start gap-2 text-sm"><Clock className="size-4 shrink-0" /> <span>{table.opened_at ? `${minutesSince(table.opened_at, clock)} min de ocupação · desde ${fmtTime(table.opened_at)}` : "Aguardando abertura"}</span></p>
-                <p className="flex items-start gap-2 text-sm"><Users className="size-4 shrink-0" /> <span>{table.people ?? 0} cliente(s){table.waiter_name ? ` · Garçom: ${table.waiter_name}` : " · Garçom não atribuído"}</span></p>
-                {table.customer_name && <p className="text-sm text-muted-foreground">{table.customer_name}</p>}
-                <Button variant="outline" onClick={() => onQr(table)} data-testid="table-qr-button"><QrCode className="size-4" /> QR {table.kind === "mesa" ? "da mesa" : "da comanda"}</Button>
-                <RenameRow key={table.id + table.name} table={table} canDelete={canDelete} onDeleted={onClose} />
-                {table.order_id && <>
-                  {o?.registered_customer_name && <p className="mb-2 text-sm text-foreground">
-                    Cliente cadastrado: <strong>{o.registered_customer_name}</strong>
-                  </p>}
-                  <TableCustomers key={table.id + (table.order_id ?? "")} table={table} onDirtyChange={setEditingCustomers} />
-                </>}
-              {table.call && (
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-orange-200">
-                  <span className="flex items-center gap-2"><Bell className="size-4" /> Cliente {table.call === "conta" ? "pediu a conta" : "chamou o garçom"}</span>
-                  <Button size="xs" variant="outline" onClick={() => clearCall.mutate()} data-testid="table-clear-call">Atendido</Button>
-                </div>
-              )}
-
-          </aside>
+        <div className="apollo-station-body" data-open={Boolean(table.order_id)} data-testid="table-workspace-panels">
           {table.order_id ? <>
             <section className="apollo-station-panel apollo-station-catalog @container" aria-label="Catálogo de produtos">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-base font-semibold">Catálogo de produtos</h2>
                 <Button type="button" size="sm" variant="outline" onClick={() => productSearchRef.current?.focus()} data-testid="add-items-button"><Search className="size-4" /> Localizar · F3</Button>
               </div>
-              <fieldset disabled={send.isPending || !!submission} className="min-w-0" aria-label="Produtos disponíveis">
-                <ProductGrid products={visibleProducts} categories={categories.data ?? []} onAdd={addPending} compact searchInputRef={productSearchRef} searchTestId="table-product-search" />
+              <fieldset disabled={send.isPending || !!submission} className="apollo-catalog-fieldset min-w-0" aria-label="Produtos disponíveis">
+                <ProductGrid products={visibleProducts} categories={categories.data ?? []} onAdd={addPending} compact workstationDetails={tableDetails} searchInputRef={productSearchRef} searchTestId="table-product-search" />
               </fieldset>
             </section>
             <section className="apollo-station-panel apollo-station-order" aria-label="Itens do pedido">
@@ -868,12 +870,12 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                             <p className="wrap-anywhere text-foreground">{g.name}</p>
                             <p className="text-xs text-muted-foreground">{[...new Set(g.lines.map((line) => progressLabel(line.id)))].join(" · ")}</p>
                             {g.lines.length > 0 && g.lines.every((line) => spoolerItems.has(line.id)) && <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">{g.lines.every((line) => confirmedPrints.has(line.id)) ? "Impressão confirmada pelo operador" : "Aceito pelo spooler"}</p>}
-                            {showDetails && g.options.length > 0 && <p className="truncate text-xs text-primary">{g.options.join(" · ")}</p>}
-                            {showDetails && g.notes.length > 0 && <p className="truncate text-xs text-amber-300">{g.notes.join(" · ")}</p>}
+                            {showDetails && g.options.length > 0 && <p className="wrap-anywhere text-xs text-primary">{g.options.join(" · ")}</p>}
+                            {showDetails && g.notes.length > 0 && <p className="wrap-anywhere text-xs text-amber-800 dark:text-amber-300">{g.notes.join(" · ")}</p>}
                             <p className="text-xs text-zinc-400">Cliente: {g.customer_name || "Mesa inteira"}{g.ordered_by ? ` · Lançado por: ${g.ordered_by}` : ""}{showItemTimes && g.lines.some((line) => line.ordered_at) ? ` · Horário: ${g.lines.filter((line) => line.ordered_at).map((line) => fmtTime(line.ordered_at!)).join(", ")}` : ""}</p>
                           </div>
                           <span className="font-mono text-xs text-zinc-500">{brl(g.unit_price)}</span>
-                          <span className="font-mono text-zinc-200">{brl(g.total)}</span>
+                          <span className="font-mono text-foreground">{brl(g.total)}</span>
                           {o?.status === "aberto" && !submission && sentActions(g)}
                         </div>
                       ))}
@@ -885,15 +887,15 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                       <div key={i.id} className={cn("flex flex-wrap items-center gap-2 rounded-lg bg-panel px-2 py-2 text-sm", i.cancelled && "opacity-40 line-through")}>
                         <span className="font-mono text-zinc-400">{i.qty}x</span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-foreground">{i.name}</p>
+                          <p className="wrap-anywhere text-foreground">{i.name}</p>
                           <p className="text-xs text-muted-foreground">{i.cancelled ? "Cancelado" : progressLabel(i.id)}</p>
                           {spoolerItems.has(i.id) && !i.cancelled && <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">{confirmedPrints.has(i.id) ? "Impressão confirmada pelo operador" : "Aceito pelo spooler"}</p>}
-                          {showDetails && i.options?.length > 0 && <p className="truncate text-xs text-primary">{i.options.join(" · ")}</p>}
-                          {(i.cancel_reason || (showDetails && i.notes)) && <p className="truncate text-xs text-amber-300">{i.cancel_reason || i.notes}</p>}
+                          {showDetails && i.options?.length > 0 && <p className="wrap-anywhere text-xs text-primary">{i.options.join(" · ")}</p>}
+                          {(i.cancel_reason || (showDetails && i.notes)) && <p className="wrap-anywhere text-xs text-amber-800 dark:text-amber-300">{i.cancel_reason || i.notes}</p>}
                           <p className="text-xs text-zinc-400">Cliente: {i.customer_name || "Mesa inteira"}{i.ordered_by ? ` · Lançado por: ${i.ordered_by}` : ""}{showItemTimes && i.ordered_at ? ` · Horário: ${fmtTime(i.ordered_at)}` : ""}</p>
                         </div>
                         <span className="font-mono text-xs text-muted-foreground">{brl(i.unit_price)} un.</span>
-                        <span className="font-mono text-zinc-200">{brl(i.qty * i.unit_price)}</span>
+                        <span className="font-mono text-foreground">{brl(i.qty * i.unit_price)}</span>
                         {o?.status === "aberto" && !submission && !i.cancelled && sentActions(groupItems([i])[0], i)}
                       </div>
                     ))}
@@ -920,6 +922,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     ))}
                   </div>
                 </div>
+          <div className="mt-4 space-y-2 border-t border-border pt-3">{tableDetails}</div>
           </section>}
         </div>
         {table.order_id && <footer className="apollo-station-footer">
@@ -931,6 +934,8 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
             <div><dt className="text-muted-foreground">Total</dt><dd className="font-mono text-base font-semibold" data-testid="table-order-total">{brl(o?.total ?? table.total)}</dd></div>
           </dl>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => productSearchRef.current?.focus()}><Search className="size-4" /> Adicionar itens</Button>
+            {canDelete && <Button size="sm" variant="outline" disabled={offline || pendingConfirmation || !!pending.length || !hasItems} onClick={() => setPartialOpen(true)}>Dividir conta</Button>}
             <Button variant="outline" size="sm" onClick={() => setPreBill("view")} disabled={!hasItems} data-testid="request-bill-button"><Receipt className="size-4" /> Pré-conta</Button>
             <Button variant="outline" size="sm" disabled={(!pending.length && !submission) || send.isPending || (pendingConfirmation && !submission)} onClick={() => setReviewOpen(true)} data-testid="send-to-kitchen-button"><Send className="size-4" /> {submission ? "Conferir envio pendente" : `Revisar envio (${pending.length})`}</Button>
             {me?.role === "garcom" && <Button size="sm" variant="outline" onClick={() => { if (window.confirm("Solicitar fechamento desta conta ao caixa?")) status.mutate("conta"); }} disabled={offline || status.isPending || pendingConfirmation || !!pending.length || !hasItems || table.status === "conta"} data-testid="waiter-request-close">{table.status === "conta" ? "Conta solicitada" : "Solicitar fechamento"}</Button>}

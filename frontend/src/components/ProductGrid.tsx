@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type RefObject } from "react";
+import { useEffect, useMemo, useState, type ReactNode, type RefObject } from "react";
 import { Search, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { brl } from "@/lib/format";
@@ -8,11 +8,12 @@ import { FAVORITES_KEY, readFavorites, saveFavorites, toggleFavorite } from "@/l
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export default function ProductGrid({ products, categories, onAdd, compact, searchInputRef, searchTestId = "product-search-input" }: {
+export default function ProductGrid({ products, categories, onAdd, compact, workstationDetails, searchInputRef, searchTestId = "product-search-input" }: {
   products: Product[];
   categories: Category[];
   onAdd: (p: Product) => void;
   compact?: boolean;
+  workstationDetails?: ReactNode;
   searchTestId?: string;
   searchInputRef?: RefObject<HTMLInputElement | null>;
 }) {
@@ -20,7 +21,7 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
   const [q, setQ] = useState("");
   const [favorites, setFavorites] = useState<string[]>(readFavorites);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
-  const [listMode, setListMode] = useState(false);
+  const [listMode, setListMode] = useState(Boolean(workstationDetails));
   useEffect(() => {
     const refresh = (event: StorageEvent) => { if (event.key === FAVORITES_KEY || event.key === null) setFavorites(readFavorites()); };
     window.addEventListener("storage", refresh);
@@ -34,8 +35,8 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
   const list = useMemo(() => searchProducts(products, cat, q, favoritesOnly ? favorites : undefined), [products, cat, q, favoritesOnly, favorites]);
 
   return (
-    <div className="@container min-w-0"><div className="grid min-h-0 min-w-0 gap-3 @min-[30rem]:grid-cols-[minmax(8rem,1fr)_minmax(0,3fr)]">
-      <div className="flex min-w-0 flex-wrap items-center gap-2 @min-[30rem]:col-span-2">
+    <div className={cn("@container min-w-0", workstationDetails && "apollo-catalog-viewport")}><div className={cn("grid min-h-0 min-w-0 gap-3 @min-[30rem]:grid-cols-[minmax(8rem,1fr)_minmax(0,3fr)]", workstationDetails && "apollo-catalog-grid")}>
+      <div className="apollo-catalog-search flex min-w-0 flex-wrap items-center gap-2 @min-[30rem]:col-span-2">
         <div className="relative min-w-0 flex-1 basis-40">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
         <Input
@@ -57,6 +58,7 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
           {listMode ? "Exibir cartões" : "Exibir lista"}
         </button>
       </div>
+      <div className="apollo-catalog-rail min-w-0">
       <div role="group" aria-label="Categorias de produtos" className="flex min-w-0 flex-wrap content-start gap-1.5 @min-[30rem]:max-h-96 @min-[30rem]:flex-col @min-[30rem]:flex-nowrap @min-[30rem]:overflow-y-auto @min-[30rem]:border-r @min-[30rem]:border-border @min-[30rem]:pr-3">
         <button type="button" onClick={() => setFavoritesOnly((value) => !value)} aria-pressed={favoritesOnly} data-testid="product-favorites-filter"
           className={cn("flex items-center gap-1.5 min-h-10 rounded-lg border px-3 py-1.5 text-sm", favoritesOnly ? "border-primary bg-primary text-white" : "border-white/10 text-zinc-300 hover:border-white/25")}>
@@ -78,14 +80,19 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
           </button>
         ))}
       </div>
-      <div className={cn("grid min-w-0 content-start gap-2", listMode ? "grid-cols-1" : compact ? "grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))]" : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4")}>
+      {workstationDetails && <details className="mt-2 border-t border-border pt-2">
+        <summary className="cursor-pointer text-sm font-medium">Dados da mesa</summary>
+        <div className="mt-2 space-y-2">{workstationDetails}</div>
+      </details>}
+      </div>
+      <div className={cn("apollo-catalog-results grid min-w-0 content-start gap-2", listMode ? "grid-cols-1" : compact ? "grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))]" : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4")}>
         {list.map((p) => (
           <div key={p.id} className="relative min-w-0">
           <button
             type="button"
             onClick={() => onAdd(p)}
             data-testid={`product-card-${p.code || p.id}`}
-            className="group h-full w-full overflow-hidden rounded-2xl border border-white/5 bg-panel text-left transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/40 active:scale-[0.98]"
+            className="group h-full w-full overflow-hidden rounded-md border border-border bg-panel text-left transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/40 active:scale-[0.98]"
           >
             {!listMode && (!compact || p.image) && (
               <div className="aspect-[16/10] overflow-hidden bg-muted">

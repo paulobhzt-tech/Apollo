@@ -74,6 +74,7 @@ test('UI operational shift: tables, shared customers, transfer, comanda, mixed p
     await page.getByTestId('open-table-people-input').fill('2');
     await page.getByTestId('open-table-name-input').fill('Ana P43');
     await page.getByTestId('open-table-button').click();
+    await page.getByText('Dados da mesa', { exact: true }).click();
     await page.getByTestId('table-customer-name').fill('Bia P43');
     await page.getByTestId('table-customers').getByRole('button',{name:'Adicionar',exact:true}).click();
     await page.getByTestId('table-save-customers').click();
