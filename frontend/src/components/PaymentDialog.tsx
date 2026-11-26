@@ -160,18 +160,18 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
       </DialogHeader>
       <div className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_auto] @min-[66rem]:grid-cols-[minmax(0,1fr)_15rem] @min-[66rem]:grid-rows-[minmax(0,1fr)]">
       <div className="min-h-0 min-w-0 overflow-y-auto overscroll-contain p-2 sm:p-3">
-        <div role="group" aria-label="Seções do pagamento" className="mb-2 grid grid-cols-2 gap-1 @min-[52rem]:hidden">
+        <div className="grid min-w-0 gap-2 @min-[52rem]:grid-cols-[9.5rem_minmax(0,1fr)]">
+        <div role="group" aria-label="Seções do pagamento" className="grid grid-cols-2 gap-1 @min-[52rem]:col-start-2 @min-[52rem]:row-start-1 @min-[52rem]:max-w-80">
           <Button size="sm" variant={panel === "pay" ? "default" : "outline"} aria-pressed={panel === "pay"} onClick={() => setPanel("pay")}>Pagamento</Button>
-          <Button size="sm" variant={panel === "order" ? "default" : "outline"} aria-pressed={panel === "order"} onClick={() => setPanel("order")}>Consumo e ajustes</Button>
+          <Button size="sm" variant={panel === "order" ? "default" : "outline"} aria-pressed={panel === "order"} onClick={() => setPanel("order")}>Consumo e ajustes{payments.length > 0 ? ` (${payments.length})` : ""}</Button>
         </div>
-        <div className="grid min-w-0 gap-2 @min-[52rem]:grid-cols-[8rem_minmax(0,1.15fr)_minmax(0,1fr)]">
-          <nav aria-label="Formas de pagamento" className={cn("grid content-start grid-cols-2 gap-1 @min-[28rem]:grid-cols-3 @min-[52rem]:grid-cols-1", panel === "order" && "hidden @min-[52rem]:grid")}>
+          <nav aria-label="Formas de pagamento" className={cn("grid content-start grid-cols-2 gap-1 @min-[28rem]:grid-cols-3 @min-[52rem]:col-start-1 @min-[52rem]:row-span-2 @min-[52rem]:row-start-1 @min-[52rem]:grid-cols-1", panel === "order" && "hidden @min-[52rem]:grid")}>
             <p className="col-span-full text-xs font-semibold text-muted-foreground">Formas de pagamento</p>
             {METHODS.map(({ m, label, icon: Icon }) => (
               <button
                 key={m}
                 type="button"
-                onClick={() => selectMethod(m)}
+                onClick={() => { selectMethod(m); setPanel("pay"); }}
                 disabled={pending}
                 aria-pressed={method === m}
                 data-testid={`payment-method-${m}`}
@@ -185,7 +185,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
               </button>
             ))}
           </nav>
-          <section className={cn("min-w-0 space-y-2 rounded-lg border border-border bg-panel p-2 sm:p-3", panel === "order" && "hidden @min-[52rem]:block")} aria-label="Lançar pagamento">
+          <section className={cn("min-w-0 space-y-2 rounded-lg border border-border bg-panel p-2 sm:p-3 @min-[52rem]:col-start-2 @min-[52rem]:row-start-2", panel === "order" && "hidden")} aria-label="Lançar pagamento">
           <h3 className="text-base font-semibold">Lançar {payLabel(method)}</h3>
           {isCard && (
             <div className="space-y-1.5" data-testid="card-brand-picker">
@@ -303,7 +303,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
           <Button className="w-full" disabled={!canAdd} onClick={add} data-testid="payment-add-button">{method === "fiado" ? "Adicionar fiado para o cliente" : "Adicionar pagamento"}</Button>
           </section>
 
-          <section className={cn("min-w-0 space-y-2 rounded-lg border border-border bg-panel p-2 sm:p-3", panel === "pay" && "hidden @min-[52rem]:block")} aria-label="Resumo do pedido">
+          <section className={cn("min-w-0 space-y-2 rounded-lg border border-border bg-panel p-2 sm:p-3 @min-[52rem]:col-start-2 @min-[52rem]:row-start-2", panel === "pay" && "hidden")} aria-label="Resumo do pedido">
             <h3 className="text-base font-semibold">Consumo e ajustes</h3>
             {items.length > 0 && <details className="rounded-md border border-border p-2 text-sm">
               <summary className="cursor-pointer">Itens do pedido ({items.length})</summary>
@@ -421,9 +421,9 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
             remaining > 0 ? `Falta lançar ${brl(remaining)}.` : "Confira os lançamentos e a justificativa do desconto, quando aplicável."}
         </p>
         {review && <Button variant="outline" disabled={connectionRequired || review.pending} onClick={review.consult}>Consultar servidor</Button>}
-        <Button variant="ghost" size="sm" disabled={pending} onClick={() => onOpenChange(false)}>Cancelar</Button>
-        <Button variant="outline" size="sm" disabled={!canConfirm} onClick={() => finish(true)}>Finalizar e imprimir</Button>
-        <Button size="sm" disabled={!canConfirm} data-testid="payment-confirm-button" onClick={() => finish(false)}>
+        <Button variant="ghost" size="sm" className="min-h-8" disabled={pending} onClick={() => onOpenChange(false)}>Cancelar</Button>
+        <Button variant="outline" size="sm" className="min-h-8" disabled={!canConfirm} onClick={() => finish(true)}>Finalizar e imprimir</Button>
+        <Button size="sm" className="min-h-8" disabled={!canConfirm} data-testid="payment-confirm-button" onClick={() => finish(false)}>
           {pending ? "Processando…" : "Finalizar pedido"}
         </Button>
       </footer>

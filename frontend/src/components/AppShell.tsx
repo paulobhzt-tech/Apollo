@@ -420,7 +420,8 @@ export default function AppShell({ children, roles, workspace = false }: { child
               </div>
             </div>
           </div>
-          {visibleGroup && <nav aria-label="Seções do sistema" data-testid="top-menu-groups" className="border-b border-border px-2 py-1 sm:px-4">
+          <div className="flex min-w-0 flex-wrap items-center justify-between border-b border-border">
+          {visibleGroup && <nav aria-label="Seções do sistema" data-testid="top-menu-groups" className="min-w-0 px-2 py-1 sm:px-4">
             <label className="flex items-center gap-2 @min-[46rem]:hidden">
               <span className="text-xs text-muted-foreground">Seção</span>
               <select aria-label="Seção do menu" value={visibleGroup} onChange={(event) => setActiveRibbon(groups.find(({ label }) => label === event.target.value)?.label ?? null)}
@@ -437,12 +438,13 @@ export default function AppShell({ children, roles, workspace = false }: { child
               ))}
             </div>
           </nav>}
-          <div className="flex justify-end px-3 pb-1">
+          <div className="flex shrink-0 justify-end px-1">
             <button type="button" aria-expanded={shortcutsVisible} aria-controls="apollo-ribbon-shortcuts"
               className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
               onClick={() => setShortcutsVisible((visible) => !visible)}>
               {shortcutsVisible ? "Recolher atalhos" : "Mostrar atalhos"}
             </button>
+          </div>
           </div>
           <div id="apollo-ribbon-shortcuts" hidden={!shortcutsVisible}>
             <RibbonShortcuts items={shortcuts} available={availableShortcuts} settings={menu} principal={visibleGroup === "Principal"} />

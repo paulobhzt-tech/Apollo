@@ -50,6 +50,17 @@ test("captures the same populated screens in each version", async ({ page }, inf
   await expect(page.getByTestId("table-order-total")).toContainText("40,00");
   await page.getByTestId("add-items-button").click();
   await expect(page.getByTestId("product-card-p40product")).toBeVisible();
+  if (side === "p648") {
+    for (const [width, height] of [[1024, 768], [1280, 720], [1366, 768], [1440, 900], [1920, 1080]]) {
+      await page.setViewportSize({ width, height });
+      await expect(page.getByTestId("close-table-button")).toBeInViewport({ ratio: 1 });
+      await expect(page.getByRole("button", { name: "Dividir conta", exact: true })).toBeInViewport({ ratio: 1 });
+      expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 2)).toBe(true);
+    }
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.keyboard.press("F3");
+    await expect(page.getByTestId("table-product-search")).toBeFocused();
+  }
   await capture("atendimento");
   await page.getByTestId("close-table-button").click();
   const popup = page.getByTestId("payment-dialog");
@@ -61,6 +72,13 @@ test("captures the same populated screens in each version", async ({ page }, inf
   await popup.getByTestId("payment-add-button").click();
   await expect(popup.getByTestId("payment-confirm-button")).toBeEnabled();
   await capture("pagamento-misto");
+  if (side === "p648") {
+    await popup.getByRole("button", { name: /^Consumo e ajustes/ }).click();
+    await expect(popup.getByTestId("payment-line-0")).toContainText("Dinheiro");
+    await expect(popup.getByTestId("payment-line-1")).toContainText("Visa");
+    await expect(popup.getByTestId("payment-total")).toBeInViewport({ ratio: 1 });
+    await capture("pagamento-conferencia");
+  }
   await popup.getByRole("button", { name: "Cancelar", exact: true }).click();
 
   if (side !== "p646") {

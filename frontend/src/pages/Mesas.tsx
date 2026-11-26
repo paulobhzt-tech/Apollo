@@ -863,8 +863,11 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                   <label className="mt-2 flex min-h-10 items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={showItemTimes} onChange={(event) => setShowItemTimes(event.target.checked)} data-testid="toggle-item-times" /> Mostrar horário dos lançamentos</label>
                   {grouped ? (
                     <div className="mt-2 space-y-0 divide-y divide-white/10 rounded-sm border border-white/10" data-testid="table-order-grouped">
+                      {items.length > 0 && <div className="apollo-order-column-labels" aria-hidden="true">
+                        <span>Qtd.</span><span>Produto</span><span>Unitário</span><span>Total</span>
+                      </div>}
                       {groupItems(items).map((g) => (
-                        <div key={g.key} className="flex flex-wrap items-center gap-3 bg-muted/35 px-3 py-3 text-sm" data-testid="grouped-line">
+                        <div key={g.key} className="apollo-order-row flex flex-wrap items-center gap-2 bg-muted/35 px-3 py-2 text-sm" data-testid="grouped-line">
                           <span className="min-w-8 font-mono text-primary" data-testid="grouped-line-qty">{g.qty}x</span>
                           <div className="min-w-0 grow basis-[8rem]">
                             <p className="wrap-anywhere text-foreground">{g.name}</p>
