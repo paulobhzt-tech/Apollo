@@ -219,6 +219,7 @@ function CloudBackups() {
     queryFn: () => apiGet<{
       configured: boolean; manual_enabled: boolean; destination: string; status: keyof typeof backupStatus;
       latest: CloudRun | null; history: CloudRun[]; next_scheduled_at: string | null;
+      last_restore: { at: string; name: string; duration_seconds: number; sha256: string } | null;
     }>("/backups/cloud"),
     refetchInterval: 10_000,
   });
@@ -237,6 +238,10 @@ function CloudBackups() {
           <div><dt className="text-muted-foreground">Destino</dt><dd className="break-words">{backup.destination}</dd></div>
           <div><dt className="text-muted-foreground">Última cópia verificada</dt><dd>{backup.latest ? backupTime.format(new Date(backup.latest.at)) : "Pendente"}{backup.latest?.size_bytes != null && ` · ${new Intl.NumberFormat("pt-BR").format(backup.latest.size_bytes)} bytes`}</dd></div>
           {backup.latest?.sha256 && <div><dt className="text-muted-foreground">SHA-256</dt><dd className="break-all font-mono text-xs">{backup.latest.sha256}</dd></div>}
+          <div><dt className="text-muted-foreground">Última restauração validada</dt>
+            <dd>{backup.last_restore ? `${backupTime.format(new Date(backup.last_restore.at))} · ${backup.last_restore.duration_seconds} s` : "Sem ensaio registrado"}</dd>
+            {backup.last_restore && <dd className="break-all font-mono text-xs">{backup.last_restore.name}</dd>}
+          </div>
           {backup.next_scheduled_at && <div><dt className="text-muted-foreground">Próxima cópia prevista</dt><dd>{backupTime.format(new Date(backup.next_scheduled_at))}</dd></div>}
         </dl>
         {backup.manual_enabled && <Button className="mt-3" variant="outline" disabled={request.isPending || backup.status === "running"}

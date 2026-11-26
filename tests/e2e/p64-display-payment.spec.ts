@@ -37,6 +37,14 @@ test("keeps payment totals and actions in the viewport across zoom settings", as
       await expect(confirm).toBeInViewport({ ratio: 1 });
       await expect(page.getByTestId("payment-total")).toBeInViewport({ ratio: 1 });
       expect(await popup.evaluate((element) => element.scrollWidth <= element.clientWidth + 2), `${width}×${height} / ${level}%`).toBe(true);
+      if (width === 1366 && level === 100) {
+        const methods = await popup.getByRole("navigation", { name: "Formas de pagamento" }).boundingBox();
+        const summary = await popup.getByTestId("payment-footer").boundingBox();
+        expect(methods).not.toBeNull();
+        expect(summary).not.toBeNull();
+        expect(summary!.x).toBeGreaterThan(methods!.x + methods!.width);
+        expect(Math.abs(summary!.y - methods!.y)).toBeLessThan(25);
+      }
       if ((width === 800 && level === 175) || (width === 1366 && level === 100)) {
         await popup.screenshot({ path: info.outputPath(`pagamento-${width}-${level}.png`) });
       }
@@ -160,7 +168,11 @@ test("keeps each operator's zoom and supports the table workspace shortcuts", as
   expect(adminProducts.find((product: { id: string }) => product.id === "p40product").cost).toBe(4);
   await switchOperator();
   await signIn("p40garcom");
+  await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByTestId("waiter-mobile-navigation")).toBeVisible();
+  await expect(page.getByTestId("top-menu-groups")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Bloquear ou trocar operador" })).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath("garcom-mobile.png") });
   for (const endpoint of ["/backups/cloud", "/cash/current", "/reports/executive", "/ingredients", "/employees"]) {
     expect((await page.request.get(base + "/api" + endpoint)).status(), endpoint).toBe(403);
   }

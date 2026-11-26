@@ -113,6 +113,10 @@ async def test_cloud_status_and_manual_signal_are_admin_only(health_context, mon
     app, _, _ = health_context
     status_file = tmp_path / "status.json"
     signal = tmp_path / "request"
+    (tmp_path / "restore.json").write_text(json.dumps({
+        "at": datetime.now(timezone.utc).isoformat(), "name": "fictitious.age",
+        "duration_seconds": 14, "sha256": "a" * 64,
+    }))
     monkeypatch.setenv("APOLLO_CLOUD_BACKUP_STATUS_FILE", str(status_file))
     monkeypatch.setenv("APOLLO_CLOUD_BACKUP_REQUEST_DIR", str(tmp_path))
     audit = AsyncMock()
@@ -135,6 +139,8 @@ async def test_cloud_status_and_manual_signal_are_admin_only(health_context, mon
         body = response.json()
         assert body["status"] == "failed"
         assert body["manual_enabled"] is True
+        assert body["last_restore"]["duration_seconds"] == 14
+        assert body["last_restore"]["sha256"] == "a" * 64
         assert body["latest"]["size_bytes"] == 200
         assert body["latest"]["sha256"] == "a" * 64
         assert "credential" not in body["history"][0]

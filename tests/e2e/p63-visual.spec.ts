@@ -44,6 +44,18 @@ for (const theme of ['dark', 'light'] as const) {
       });
     }
     if (theme === 'dark') {
+      if (process.env.GITHUB_REF_NAME === "feat/p64-6-finalizacao-interface-homologacao-operacional" && info.project.use.browserName === "chromium") {
+        for (const [width, height] of [[1024, 768], [1280, 720], [1366, 768], [1440, 900], [1600, 900], [1920, 1080], [2560, 1440]]) {
+          await page.setViewportSize({ width, height });
+          for (const route of ["", "pdv", "mesas", "estoque", "caixa", "financeiro", "config?tab=backup"]) {
+            await page.goto(base + "/" + route, { waitUntil: "domcontentloaded" });
+            await expect(page.getByTestId("apollo-ribbon")).toBeVisible();
+            await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2),
+              { message: `${route || "painel"} ${width}×${height}` }).toBe(true);
+          }
+        }
+        await capture("backup-desktop");
+      }
       for (const width of [390, 768, 1366]) {
         await page.setViewportSize({ width, height: 900 });
         await page.goto(base + '/caixa');

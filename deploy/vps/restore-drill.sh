@@ -13,7 +13,7 @@ checksum="${archive}.sha256"
 gzip -t "$archive"
 command -v docker >/dev/null || { echo "Docker nao instalado" >&2; exit 2; }
 container="apollo-restore-drill-$$"
-cleanup() { docker rm -f "$container" >/dev/null 2>&1 || true; }
+cleanup() { docker rm -fv "$container" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 # No published ports, no host volumes, no network. Mongo data is discarded on exit.
 docker run -d --name "$container" --network none mongo:7.0 --bind_ip 127.0.0.1 >/dev/null

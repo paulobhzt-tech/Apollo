@@ -155,3 +155,10 @@ unidades e habilite o path com `systemctl enable --now apollo-cloud-backup.path`
 A solicitação aciona o mesmo service do timer. O aplicativo só grava o sinal;
 o serviço de backup o consome. Ajuste a propriedade e o grupo das pastas de
 acordo com o usuário Docker e aplique permissões que preservem os limites das montagens.
+
+Para registrar a última restauração no painel, execute o ensaio com
+`APOLLO_RESTORE_STATUS_DIR` apontando para o diretório administrativo de
+metadados. O ensaio registra o SHA-256 e o tempo da leitura remota até o fim
+da validação. Se o ensaio rodar em outro host, transfira apenas `restore.json`
+ao diretório de status pelo canal administrativo autorizado. A chave privada
+de recuperação permanece no host de recuperação.

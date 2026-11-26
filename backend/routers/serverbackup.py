@@ -13,7 +13,7 @@ from typing import Literal
 from bson import Binary
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import AwareDatetime, BaseModel, Field, TypeAdapter, ValidationError
 
 from lib.auth import require
 from lib.db import db
@@ -41,24 +41,39 @@ class CloudBackupRun(BaseModel):
     sha256: str | None = None
 
 
+class CloudRestoreDrill(BaseModel):
+    at: AwareDatetime
+    name: str = Field(max_length=128)
+    duration_seconds: int = Field(ge=0)
+    sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+def read_cloud_metadata(path: Path, schema: TypeAdapter):
+    with path.open("rb") as source:
+        content = source.read(32769)
+    if len(content) > 32768:
+        raise ValueError("status exceeds metadata limit")
+    return schema.validate_json(content)
+
+
 @router.get("/backups/cloud")
 def cloud_backup_status(_: dict = Depends(require())):
     state = os.environ.get("APOLLO_CLOUD_BACKUP_STATUS_FILE")
     requests = os.environ.get("APOLLO_CLOUD_BACKUP_REQUEST_DIR")
     result = {"configured": bool(state), "manual_enabled": bool(state and requests),
               "destination": os.environ.get("APOLLO_CLOUD_BACKUP_DISPLAY_NAME", "Armazenamento externo"),
-              "history": [], "next_scheduled_at": None, "status": "unconfigured", "latest": None}
+              "history": [], "next_scheduled_at": None, "status": "unconfigured", "latest": None, "last_restore": None}
     if not state:
         return result
     now = datetime.now(timezone.utc)
     result["next_scheduled_at"] = now.replace(second=0, microsecond=0) + timedelta(minutes=15 - now.minute % 15)
     result["status"] = "waiting"
     try:
-        with Path(state).open("rb") as source:
-            content = source.read(32769)
-        if len(content) > 32768:
-            raise ValueError("status exceeds metadata limit")
-        history = TypeAdapter(list[CloudBackupRun]).validate_json(content)
+        result["last_restore"] = read_cloud_metadata(Path(state).with_name("restore.json"), TypeAdapter(CloudRestoreDrill))
+    except (OSError, ValueError):
+        pass
+    try:
+        history = read_cloud_metadata(Path(state), TypeAdapter(list[CloudBackupRun]))
     except FileNotFoundError:
         return result
     except (OSError, ValidationError, ValueError):

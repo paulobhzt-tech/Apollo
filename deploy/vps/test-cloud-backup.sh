@@ -87,10 +87,14 @@ manifests=("$fixture/remote/backups/"*.sha256)
 [[ "${#manifests[@]}" -eq 1 ]]
 manifest="${manifests[0]}"
 name="$(basename "${manifest%.sha256}")"
+export APOLLO_RESTORE_STATUS_DIR="$APOLLO_BACKUP_STATE/status"
 bash "$scripts/restore-cloud-drill.sh" "$name"
+test -s "$APOLLO_RESTORE_STATUS_DIR/restore.json"
+cp "$APOLLO_RESTORE_STATUS_DIR/restore.json" "$fixture/verified-restore.json"
 printf 'corruption' >> "$fixture/remote/backups/$name"
 if bash "$scripts/restore-cloud-drill.sh" "$name"; then
   echo 'Restauração aceitou arquivo corrompido' >&2
   exit 1
 fi
+cmp "$fixture/verified-restore.json" "$APOLLO_RESTORE_STATUS_DIR/restore.json"
 echo 'BACKUP_SFTP_DRILL_PASS'
