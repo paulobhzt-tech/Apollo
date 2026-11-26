@@ -68,7 +68,8 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
     return list.filter((m) => m.active && (!partialMode || m.key !== "fiado")).sort((a, b) => a.sort - b.sort).map((m) => ({ m: m.key, label: m.name, icon: ICONS[m.key] ?? Ticket }));
   }, [cfg.data, partialMode]);
   const [amount, setAmount] = useState("");
-  const [cardFields, setCardFields] = useState({ pos_terminal: "", authorization_code: "", nsu: "" });
+  const emptyCardFields = { pos_terminal: "", authorization_code: "", nsu: "", acquirer: "", installments: "" };
+  const [cardFields, setCardFields] = useState(emptyCardFields);
   const [brand, setBrand] = useState<CardBrand | null>(null);
   const isCard = method === "credito" || method === "debito";
   const [fiadoId, setFiadoId] = useState("");
@@ -105,6 +106,8 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
   const cardCodesValid = [cardFields.authorization_code, cardFields.nsu].every((code) => /^[a-z0-9._/-]*$/i.test(code.trim()));
   const cardDetails = isCard ? {
     pos_terminal: cardFields.pos_terminal.trim(), authorization_code: cardFields.authorization_code.trim(), nsu: cardFields.nsu.trim(),
+    acquirer: cardFields.acquirer.trim(),
+    installments: method === "credito" && cardFields.installments ? Number(cardFields.installments) : undefined,
   } : {};
   const canAdd = !pending && validDiscount && methodsReady && roundedValue > 0 && remaining > 0 &&
     (method === "dinheiro" || roundedValue <= remaining) &&
@@ -119,7 +122,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
   function selectMethod(next: PayMethod) {
     if (next === method) return;
     setMethod(next);
-    setCardFields({ pos_terminal: "", authorization_code: "", nsu: "" });
+    setCardFields(emptyCardFields);
     setConfirmedPixAmount(null);
     setReference("");
   }
@@ -135,7 +138,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
     setPayments((current) => [...current, { method, amount: roundedValue, brand: isCard ? brand : null, details }]);
     setAmount("");
     setNote("");
-    setCardFields({ pos_terminal: "", authorization_code: "", nsu: "" });
+    setCardFields(emptyCardFields);
     setReference("");
     setConfirmedPixAmount(null);
   }
@@ -199,7 +202,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
               {!brand && <p className="text-xs text-amber-300">Selecione a bandeira para adicionar o pagamento.</p>}
               <div className="grid gap-2 sm:grid-cols-2">
                 {([
-                  ["pos_terminal", "Terminal POS", 80], ["authorization_code", "Nº de autorização", 40], ["nsu", "NSU", 40],
+                  ["acquirer", "Operadora", 80], ["pos_terminal", "Terminal POS", 80], ["authorization_code", "Nº de autorização", 40], ["nsu", "NSU", 40],
                 ] as const).map(([field, label, limit]) => (
                   <label className="block text-xs text-muted-foreground" key={field}>
                     {label}
@@ -207,6 +210,16 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
                       onChange={(event) => setCardFields((current) => ({ ...current, [field]: event.target.value }))} />
                   </label>
                 ))}
+                {method === "credito" && <label className="block text-xs text-muted-foreground">
+                  Parcelas
+                  <select className="mt-1 min-h-8 w-full rounded-md border border-border bg-elevated px-2"
+                    value={cardFields.installments} disabled={pending}
+                    onChange={(event) => setCardFields((current) => ({ ...current, installments: event.target.value }))}>
+                    <option value="">À vista</option>
+                    {Array.from({ length: 23 }, (_, index) => index + 2).map((quantity) =>
+                      <option key={quantity} value={quantity}>{quantity}×</option>)}
+                  </select>
+                </label>}
               </div>
               {!cardCodesValid && <p role="alert" className="text-xs text-destructive">Use letras, números ou os sinais . _ / - na autorização e no NSU.</p>}
 
@@ -313,6 +326,8 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
             {payments.map((p, i) => (
               <div key={i} className="flex items-center justify-between rounded-lg bg-panel px-3 py-2 text-sm" data-testid={`payment-line-${i}`}>
                 <span className="min-w-0 break-words">{payLabel(p.method, p.brand)}
+                  {p.details?.acquirer && <small className="block text-muted-foreground">{p.details.acquirer}</small>}
+                  {p.details?.installments && <small className="block text-muted-foreground">{p.details.installments} parcelas</small>}
                   {p.details?.pos_terminal && <small className="block text-muted-foreground">POS {p.details.pos_terminal}</small>}
                   {p.details?.authorization_code && <small className="block text-muted-foreground">Aut. {p.details.authorization_code}</small>}
                   {p.details?.nsu && <small className="block text-muted-foreground">NSU {p.details.nsu}</small>}

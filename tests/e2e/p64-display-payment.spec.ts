@@ -77,11 +77,17 @@ test("keeps payment totals and actions in the viewport across zoom settings", as
   await page.getByTestId("payment-add-button").click();
   await page.getByTestId("payment-method-credito").click();
   await page.getByTestId("card-brand-visa").click();
+  await popup.getByLabel("Operadora", { exact: true }).fill("Operadora fictícia");
+  await popup.getByLabel("Parcelas", { exact: true }).selectOption("3");
   await page.getByTestId("payment-add-button").click();
   await expect(page.getByTestId("payment-remaining")).toContainText("0,00");
   const sale = page.waitForResponse((response) => response.url().endsWith("/api/pdv/sale") && response.request().method() === "POST");
   await confirm.click();
-  expect((await sale).ok()).toBe(true);
+  const settled = await sale;
+  expect(settled.ok()).toBe(true);
+  expect((await settled.json()).order.payments).toContainEqual(expect.objectContaining({
+    method: "credito", details: expect.objectContaining({ acquirer: "Operadora fictícia", installments: 3 }),
+  }));
   await expect(popup).toBeHidden();
 });
 

@@ -320,15 +320,18 @@ class PaymentDetails(BaseModel):
     authorization_code: Annotated[str, StringConstraints(strip_whitespace=True, max_length=40, pattern=r"^[A-Za-z0-9._/-]*$")] = ""
     nsu: Annotated[str, StringConstraints(strip_whitespace=True, max_length=40, pattern=r"^[A-Za-z0-9._/-]*$")] = ""
 
-    def card_metadata(self) -> dict[str, str]:
-        return {field: value for field in ("pos_terminal", "authorization_code", "nsu")
+    acquirer: Annotated[str, StringConstraints(strip_whitespace=True, max_length=80)] = ""
+    installments: int | None = Field(default=None, ge=1, le=24, strict=True)
+
+    def card_metadata(self) -> dict[str, str | int]:
+        return {field: value for field in ("pos_terminal", "authorization_code", "nsu", "acquirer", "installments")
                 if (value := getattr(self, field))}
 
     @model_serializer(mode="wrap")
     def preserve_legacy_details(self, handler):
         data = handler(self)
         # Blank new fields must not change fingerprints of already recorded payments.
-        for field in ("pos_terminal", "authorization_code", "nsu"):
+        for field in ("pos_terminal", "authorization_code", "nsu", "acquirer", "installments"):
             if not data.get(field):
                 data.pop(field, None)
         return data
@@ -343,7 +346,9 @@ class Payment(BaseModel):
     @model_validator(mode="after")
     def validate_card_metadata(self):
         if self.details and self.details.card_metadata() and self.method not in ("credito", "debito"):
-            raise ValueError("POS, autorização e NSU são exclusivos de crédito e débito")
+            raise ValueError("Dados de cartão são exclusivos de crédito e débito")
+        if self.details and self.details.installments is not None and self.method != "credito":
+            raise ValueError("Parcelamento é exclusivo de cartão de crédito")
         return self
 
 

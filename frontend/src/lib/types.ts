@@ -112,7 +112,7 @@ export interface OrderItem {
 }
 export interface OrderItemIn { product_id: string; qty: number; notes: string; options?: ChosenOption[] }
 export type CardBrand = "visa" | "mastercard" | "elo";
-export interface Payment { method: PayMethod; amount: number; brand?: CardBrand | null; details?: { note: string; reference: string; pix_key_label: string; pix_received: boolean; pos_terminal?: string; authorization_code?: string; nsu?: string } }
+export interface Payment { method: PayMethod; amount: number; brand?: CardBrand | null; details?: { note: string; reference: string; pix_key_label: string; pix_received: boolean; pos_terminal?: string; authorization_code?: string; nsu?: string; acquirer?: string; installments?: number } }
 export interface Refund { item_name: string; amount: number; method: string; brand: string | null; reason: string; by_name: string; at: string }
 export interface Order {
   id: string;

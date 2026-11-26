@@ -90,6 +90,12 @@ jobs:
           python local-server/gerar-certificado.py /tmp/apollo-p41-tls 127.0.0.1
           sudo cp /tmp/apollo-p41-tls/apollo-local-ca.crt /usr/local/share/ca-certificates/apollo-p646.crt
           sudo update-ca-certificates
+          if [[ "$P47_BROWSER" == firefox ]]; then
+            sudo apt-get install -y libnss3-tools
+            mkdir -p "$HOME/.pki/nssdb"
+            certutil -N -d "sql:$HOME/.pki/nssdb" --empty-password
+            certutil -A -d "sql:$HOME/.pki/nssdb" -n Apollo-P646-disposable-CA -t "C,," -i /tmp/apollo-p41-tls/apollo-local-ca.crt
+          fi
           export APOLLO_TEST_TLS_SPKI="$(openssl x509 -in /tmp/apollo-p41-tls/server.crt -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl base64)"
           python backend/p40_seed_ci.py
           (

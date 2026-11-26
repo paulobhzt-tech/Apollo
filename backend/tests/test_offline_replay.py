@@ -169,6 +169,12 @@ def test_card_metadata_is_optional_validated_and_auditable():
         Payment(method="pix", amount=10, details={"nsu": "012"})
     with pytest.raises(ValidationError):
         Payment(method="credito", amount=10, details={"authorization_code": "código com espaço"})
+    with pytest.raises(ValidationError):
+        Payment(method="debito", amount=10, details={"installments": 2})
+    with pytest.raises(ValidationError):
+        Payment(method="credito", amount=10, details={"installments": 25})
+    credit = Payment(method="credito", amount=10, details={"acquirer": " Operadora teste ", "installments": 3})
+    assert credit.details.card_metadata() == {"acquirer": "Operadora teste", "installments": 3}
 
 
 @pytest.mark.asyncio
