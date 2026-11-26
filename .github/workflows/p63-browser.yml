@@ -175,6 +175,7 @@ jobs:
           name: APOLLO-P64.8-PREVIA-INTERFACE-COMPLETA
           path: |
             tests/test-results/p647-comparison/**/*.png
+            tests/test-results/p647-comparison/p648/**/*.webm
             tests/test-results/p47/**/*.png
           if-no-files-found: error
           retention-days: 14
