@@ -1,7 +1,7 @@
 name: P64.5 Backup externo e restauração
 on:
   push:
-    branches: [feat/p64-5-interface-consumer-operacional]
+    branches: [feat/p64-5-interface-consumer-operacional, feat/p64-6-finalizacao-interface-homologacao-operacional]
   workflow_dispatch:
 
 permissions:

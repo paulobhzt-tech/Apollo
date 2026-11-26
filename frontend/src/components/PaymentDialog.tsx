@@ -38,7 +38,7 @@ interface Props {
 export default function PaymentDialog(props: Props) {
   return (
     <Dialog open={props.open} onOpenChange={(open) => { if (open || !props.pending) props.onOpenChange(open); }}>
-      <DialogContent className="flex max-h-[96dvh] max-w-[calc(100%-0.75rem)] flex-col gap-0 border-border bg-elevated p-0 sm:max-w-[min(95vw,68rem)]" data-testid="payment-dialog">
+      <DialogContent className="@container flex max-h-[96dvh] max-w-[calc(100%-0.75rem)] flex-col gap-0 border-border bg-elevated p-0 sm:max-w-[min(95vw,78rem)]" data-testid="payment-dialog">
         {props.open && <PaymentBody {...props} />}
       </DialogContent>
     </Dialog>
@@ -155,13 +155,14 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
       <DialogHeader className="shrink-0 border-b border-border px-4 py-3 pr-12 sm:px-5 sm:pr-14">
         <DialogTitle className="font-heading text-xl text-foreground">{title}</DialogTitle>
       </DialogHeader>
-      <div className="@container min-h-0 min-w-0 overflow-y-auto overscroll-contain p-2 sm:p-3">
+      <div className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_auto] @min-[66rem]:grid-cols-[minmax(0,1fr)_14rem] @min-[66rem]:grid-rows-[minmax(0,1fr)]">
+      <div className="min-h-0 min-w-0 overflow-y-auto overscroll-contain p-2 sm:p-3">
         <div role="group" aria-label="Seções do pagamento" className="mb-2 grid grid-cols-2 gap-1 @min-[52rem]:hidden">
           <Button size="sm" variant={panel === "pay" ? "default" : "outline"} aria-pressed={panel === "pay"} onClick={() => setPanel("pay")}>Pagamento</Button>
           <Button size="sm" variant={panel === "order" ? "default" : "outline"} aria-pressed={panel === "order"} onClick={() => setPanel("order")}>Consumo e ajustes</Button>
         </div>
-        <div className="grid min-w-0 gap-2 @min-[52rem]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-          <nav aria-label="Formas de pagamento" className={cn("grid content-start grid-cols-2 gap-1 @min-[28rem]:grid-cols-3 @min-[52rem]:col-span-2 @min-[52rem]:grid-cols-5", panel === "order" && "hidden @min-[52rem]:grid")}>
+        <div className="grid min-w-0 gap-2 @min-[52rem]:grid-cols-[8rem_minmax(0,1.15fr)_minmax(0,1fr)]">
+          <nav aria-label="Formas de pagamento" className={cn("grid content-start grid-cols-2 gap-1 @min-[28rem]:grid-cols-3 @min-[52rem]:grid-cols-1", panel === "order" && "hidden @min-[52rem]:grid")}>
             <p className="col-span-full text-xs font-semibold text-muted-foreground">Formas de pagamento</p>
             {METHODS.map(({ m, label, icon: Icon }) => (
               <button
@@ -385,8 +386,8 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
           </section>
         </div>
       </div>
-      <div data-testid="payment-footer" className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 rounded-b-xl border-t border-border bg-elevated px-2 py-2 sm:px-4">
-        <dl className="grid basis-full grid-cols-[repeat(auto-fit,minmax(min(100%,5.25rem),1fr))] gap-x-2 gap-y-1 text-xs">
+      <footer data-testid="payment-footer" className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 border-t border-border bg-elevated px-2 py-2 sm:px-4 @min-[66rem]:content-start @min-[66rem]:items-start @min-[66rem]:border-t-0 @min-[66rem]:border-l">
+        <dl className="grid basis-full grid-cols-[repeat(auto-fit,minmax(min(100%,5.25rem),1fr))] gap-x-2 gap-y-1 text-xs @min-[66rem]:grid-cols-2">
           <Row k="Subtotal" v={brl(subtotal)} />
           <Row k="Desconto" v={brl(disc)} />
           <Row k="Serviço" v={brl(serviceFee)} />
@@ -405,6 +406,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
         <Button size="sm" disabled={!canConfirm} data-testid="payment-confirm-button" onClick={() => finish(false)}>
           {pending ? "Processando…" : "Finalizar pedido"}
         </Button>
+      </footer>
       </div>
     </>
   );

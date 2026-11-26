@@ -291,6 +291,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
   // Keyboard-first navigation without changing the currently selected operator.
   useEffect(() => {
     const openSearch = (event: KeyboardEvent) => {
+      if (me?.role === "garcom") return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setMenuSearch("");
@@ -299,7 +300,7 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
     };
     window.addEventListener("keydown", openSearch);
     return () => window.removeEventListener("keydown", openSearch);
-  }, []);
+  }, [me?.role]);
   useEffect(() => {
     if (!open) return;
     const input = document.getElementById("apollo-menu-search");
@@ -330,6 +331,28 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
 
   if (isLoading) return <div className="grid min-h-screen place-items-center text-zinc-500">Carregando…</div>;
   if (isError || !me) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
+  if (me.role === "garcom" && loc.pathname === "/comanda-mobile" && (!roles || roles.includes(me.role))) {
+    return (
+      <div className="min-h-dvh min-w-0 bg-background">
+        <header data-testid="apollo-ribbon" className="flex min-w-0 flex-wrap items-center justify-between gap-1 border-b border-border bg-shell px-3 py-1.5">
+          <Brand />
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
+            <button type="button" className="grid size-10 shrink-0 place-items-center rounded-lg hover:bg-muted"
+              aria-label={resolvedTheme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
+              onClick={() => saveMenu({ ...menu, theme: resolvedTheme === "dark" ? "light" : "dark" })}>
+              {resolvedTheme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
+            </button>
+            <Button variant="ghost" size="sm" className="min-h-11" aria-label="Bloquear ou trocar operador" onClick={() => setOperatorOpen(true)}>
+              <LockKeyhole className="size-4 shrink-0" /> Operador
+            </Button>
+          </div>
+        </header>
+        <main className="apollo-workspace min-w-0 px-3 py-3">{children}</main>
+        <OperatorDialog open={operatorOpen} onOpenChange={setOperatorOpen} name={me.name} role={me.role} />
+        <Toaster richColors />
+      </div>
+    );
+  }
   const items = NAV.filter((item) => item.roles.includes(me.role));
   const currentItem = items.find((item) => item.to === loc.pathname);
   const groups = RIBBON_GROUPS.filter(({ label }) => items.some((item) => ribbonGroup(item) === label) ||

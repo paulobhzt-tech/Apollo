@@ -1,7 +1,7 @@
 name: Apollo Windows Print Agent
 on:
   push:
-    branches: [feat/p64-3-interface-impressao-final, feat/p64-4-liberacao-final-apollo, feat/p64-4-finalizacao-liberacao-operacional, feat/p64-5-interface-consumer-operacional]
+    branches: [feat/p64-3-interface-impressao-final, feat/p64-4-liberacao-final-apollo, feat/p64-4-finalizacao-liberacao-operacional, feat/p64-5-interface-consumer-operacional, feat/p64-6-finalizacao-interface-homologacao-operacional]
   workflow_dispatch:
 permissions:
   contents: read
@@ -26,7 +26,7 @@ jobs:
           Add-Type -Path desktop/scripts/ApolloAgentReceipt.cs -ReferencedAssemblies System.Drawing
           if (-not [ApolloAgentReceipt].GetMethod('Submit')) { throw 'Método de impressão indisponível.' }
       - name: Exercitar registro e remoção do autoinício em perfil fictício
-        if: contains(fromJSON('["feat/p64-4-liberacao-final-apollo","feat/p64-4-finalizacao-liberacao-operacional","feat/p64-5-interface-consumer-operacional"]'), github.ref_name)
+        if: contains(fromJSON('["feat/p64-4-liberacao-final-apollo","feat/p64-4-finalizacao-liberacao-operacional","feat/p64-5-interface-consumer-operacional","feat/p64-6-finalizacao-interface-homologacao-operacional"]'), github.ref_name)
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'

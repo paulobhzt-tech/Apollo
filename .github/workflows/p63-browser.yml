@@ -1,7 +1,7 @@
 name: P63 - Auditoria visual
 on:
   push:
-    branches: [feat/p63-interface-completa-consumer, feat/p64-4-finalizacao-liberacao-operacional, feat/p64-5-interface-consumer-operacional]
+    branches: [feat/p63-interface-completa-consumer, feat/p64-4-finalizacao-liberacao-operacional, feat/p64-5-interface-consumer-operacional, feat/p64-6-finalizacao-interface-homologacao-operacional]
   workflow_dispatch:
 
 permissions:
@@ -78,15 +78,50 @@ jobs:
           cd tests
           specs=(p63-visual.spec.ts p63-quantity-footer.spec.ts p63-selected-items.spec.ts)
           if [[ "$P47_BROWSER" == chromium ]]; then specs+=(p64-display-payment.spec.ts); fi
-          if [[ "$P47_BROWSER" == chromium && ( "$GITHUB_REF_NAME" == feat/p64-3-interface-impressao-final || "$GITHUB_REF_NAME" == feat/p64-4-liberacao-final-apollo || "$GITHUB_REF_NAME" == feat/p64-4-finalizacao-liberacao-operacional || "$GITHUB_REF_NAME" == feat/p64-5-interface-consumer-operacional ) ]]; then
+          if [[ "$P47_BROWSER" == chromium && ( "$GITHUB_REF_NAME" == feat/p64-3-interface-impressao-final || "$GITHUB_REF_NAME" == feat/p64-4-liberacao-final-apollo || "$GITHUB_REF_NAME" == feat/p64-4-finalizacao-liberacao-operacional || "$GITHUB_REF_NAME" == feat/p64-5-interface-consumer-operacional || "$GITHUB_REF_NAME" == feat/p64-6-finalizacao-interface-homologacao-operacional ) ]]; then
             specs+=(p64-print-agent.spec.ts)
           fi
           npx playwright test --config=p47.config.ts "${specs[@]}" --trace retain-on-failure
+      - name: Testar interrupção HTTPS com banco próprio
+        if: github.ref_name == 'feat/p64-6-finalizacao-interface-homologacao-operacional'
+        run: |
+          set -o pipefail
+          export DB_NAME=apollo_p40_browser_p646_offline
+          python local-server/gerar-certificado.py /tmp/apollo-p41-tls 127.0.0.1
+          sudo cp /tmp/apollo-p41-tls/apollo-local-ca.crt /usr/local/share/ca-certificates/apollo-p646.crt
+          sudo update-ca-certificates
+          export APOLLO_TEST_TLS_SPKI="$(openssl x509 -in /tmp/apollo-p41-tls/server.crt -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl base64)"
+          python backend/p40_seed_ci.py
+          (
+            cd backend
+            exec python -m uvicorn server:app --host 127.0.0.1 --port 8001 --ssl-keyfile /tmp/apollo-p41-tls/server.key --ssl-certfile /tmp/apollo-p41-tls/server.crt
+          ) > evidence/offline-backend.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          curl --retry 15 --retry-connrefused --retry-delay 1 --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS "$APOLLO_E2E_BASE_URL/api/" >/dev/null
+          cd tests
+          npx playwright test --config=p47.config.ts p55-offline-tables.spec.ts --output=test-results/p646-offline --reporter=list --trace retain-on-failure | tee ../evidence/p646-offline.log
+      - name: Testar carga e conciliação em banco separado
+        if: github.ref_name == 'feat/p64-6-finalizacao-interface-homologacao-operacional' && matrix.browser == 'chromium'
+        run: |
+          set -o pipefail
+          export DB_NAME=apollo_p40_browser_fictitious
+          python backend/p40_seed_ci.py
+          (
+            cd backend
+            exec python -m uvicorn server:app --host 127.0.0.1 --port 8001 --ssl-keyfile /tmp/apollo-p41-tls/server.key --ssl-certfile /tmp/apollo-p41-tls/server.crt
+          ) > evidence/load-backend.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          curl --retry 15 --retry-connrefused --retry-delay 1 --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS "$APOLLO_E2E_BASE_URL/api/" >/dev/null
+          python tools/p45-load.py | tee evidence/p646-load.log
+          python tools/p45-two-cashiers.py | tee evidence/p646-cashiers.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: Apollo-P63-${{ matrix.browser }}
           path: |
             tests/test-results/p47/
+            tests/test-results/p646-offline/
             evidence/
           retention-days: 14
