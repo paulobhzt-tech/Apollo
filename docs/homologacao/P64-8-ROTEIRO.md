@@ -38,6 +38,8 @@ sudo nft list ruleset
 docker network ls
 ```
 
+Se o Apache exigir autenticação adicional, forneça ao script o caminho de um arquivo netrc autorizado, com permissão 0600, na variável `APOLLO_HOMOLOGATION_NETRC`. O inventário informa quando o manifesto está inacessível.
+
 Confira o manifesto servido, o VirtualHost, a porta de loopback, as redes internas, a política de DNS e a identidade da réplica MongoDB. Use o console administrativo para confirmar credenciais e configurações locais, preservando os segredos. Valide a autenticação com uma conta de teste autorizada, incluindo a resposta do login, os atributos dos cookies, a sessão após recarga e o log correspondente do Apache e da API. Registre os resultados sem gravar o valor dos cookies.
 
 Uma candidata para avaliação exige serviço, volumes, conta de banco, rede e porta próprios. A publicação exige isolamento comprovado, retorno ensaiado no próprio host e autorização expressa. Para uma instalação que já use o apontamento estático auditado, siga os comandos de troca e reversão do [roteiro Apache](P60-APOLLO-3.0.1.md#procedimento-de-ativação-e-rollback). Em uma instalação com proxy para contêiner, preserve o serviço anterior e valide o retorno do proxy à sua porta de loopback antes de solicitar a troca.

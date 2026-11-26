@@ -124,11 +124,18 @@ jobs:
           curl --retry 15 --retry-connrefused --retry-delay 1 --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS "$APOLLO_E2E_BASE_URL/api/" >/dev/null
           python tools/p45-load.py | tee evidence/p646-load.log
           python tools/p45-two-cashiers.py | tee evidence/p646-cashiers.log
-      - name: Build comparison with the P64.6 source
+      - name: Compare with the previous interface
         if: (github.ref_name == 'feat/p64-7-reconstrucao-completa-interface-consumer' || github.ref_name == 'feat/p64-8-correcao-final-homologacao') && matrix.browser == 'chromium'
         run: |
           set -euo pipefail
           baseline=e02b17f6c5183e78700c23d0f97f099720a6e567
+          before=p646
+          after=p647
+          if [[ "$GITHUB_REF_NAME" == feat/p64-8-correcao-final-homologacao ]]; then
+            baseline=5111b8fcda3fa53399b1c47cf870026750f8f874
+            before=p647
+            after=p648
+          fi
           git merge-base --is-ancestor "$baseline" "$GITHUB_SHA"
           previous="$RUNNER_TEMP/apollo-p646"
           mkdir -p "$previous"
@@ -156,8 +163,8 @@ jobs:
             cd tests
             npx playwright test --config=p47.config.ts p647-visual-comparison.spec.ts --output="test-results/p647-comparison/$side" --reporter=list --trace retain-on-failure
           )
-          compare p646 "$previous/frontend/dist"
-          compare p647 "$GITHUB_WORKSPACE/frontend/dist"
+          compare "$before" "$previous/frontend/dist"
+          compare "$after" "$GITHUB_WORKSPACE/frontend/dist"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

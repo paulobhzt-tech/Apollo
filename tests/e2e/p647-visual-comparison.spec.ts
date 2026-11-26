@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const base = process.env.APOLLO_E2E_BASE_URL || "https://127.0.0.1:8001";
 const side = process.env.APOLLO_P647_SIDE;
-test.skip(side !== "p646" && side !== "p647", "Executar somente na comparação com banco descartável.");
+test.skip(!["p646", "p647", "p648"].includes(side ?? ""), "Executar somente na comparação com banco descartável.");
 
 test("captures the same populated screens in each version", async ({ page }, info) => {
   test.setTimeout(120_000);
@@ -63,7 +63,7 @@ test("captures the same populated screens in each version", async ({ page }, inf
   await capture("pagamento-misto");
   await popup.getByRole("button", { name: "Cancelar", exact: true }).click();
 
-  if (side === "p647") {
+  if (side !== "p646") {
     await page.getByRole("button", { name: "Mais opções" }).click();
     await page.getByRole("menuitem", { name: "Dividir por cliente ou itens" }).click();
   } else {
@@ -93,4 +93,13 @@ test("captures the same populated screens in each version", async ({ page }, inf
   await expect(page.getByRole("heading", { name: "Registrar compra" })).toBeVisible();
   await expect(page.getByRole("cell", { name: "Fornecedor fictício" })).toHaveCount(3);
   await capture("compras");
+  await page.goto(base + "/cozinha");
+  await expect(page.getByTestId("kds-column-novo").getByText("Espetinho P40")).toBeVisible();
+  await capture("kds");
+  await page.goto(base + "/financeiro");
+  await expect(page.getByTestId("dre-gross")).toContainText("10,00");
+  await capture("financeiro");
+  await page.goto(base + "/config");
+  await expect(page.getByTestId("config-tab-printers")).toBeVisible();
+  await capture("configuracoes");
 });
