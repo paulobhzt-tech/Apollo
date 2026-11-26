@@ -71,6 +71,15 @@ done
 mongo_shell "$APOLLO_BACKUP_DATABASE" \
   --eval 'if (!db.sales.insertOne({_id:"fixture", valueInCents:1200}).acknowledged) quit(1)'
 bash "$scripts/backup-cloud.sh"
+python3 - "$APOLLO_BACKUP_STATE/status/status.json" <<'PYTHON'
+import json
+import sys
+
+with open(sys.argv[1]) as source:
+    status = json.load(source)
+assert len(status) == 1 and status[0]["status"] == "verified", status
+assert status[0]["size_bytes"] > 0 and len(status[0]["sha256"]) == 64, status
+PYTHON
 # Remove the source before the restore, so any subsequent data came from SFTP.
 "${compose[@]}" down --volumes
 shopt -s nullglob

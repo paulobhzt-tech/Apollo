@@ -6,6 +6,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 EnvironmentFile=/etc/apollo/cloud-backup.env
+ExecStartPre=/usr/bin/rm -f -- /var/lib/apollo/cloud-backup-request/request
 ExecStart=/opt/apollo/deploy/vps/backup-cloud.sh
 UMask=0077
 TimeoutStartSec=14min

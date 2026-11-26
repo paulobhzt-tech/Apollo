@@ -194,6 +194,64 @@ function CompanyForm({ init }: { init: GeneralSettings }) {
   );
 }
 
+type CloudRun = {
+  status: "running" | "verified" | "failed";
+  at: string;
+  name?: string;
+  size_bytes?: number;
+  sha256?: string;
+};
+
+const backupStatus = {
+  unconfigured: "Aguardando configuração",
+  waiting: "Aguardando primeira execução",
+  running: "Em andamento",
+  verified: "SHA-256 verificado",
+  failed: "Falha na última execução",
+  overdue: "Execução atrasada",
+  unavailable: "Histórico indisponível",
+};
+const backupTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
+
+function CloudBackups() {
+  const status = useQuery({
+    queryKey: ["cloud-backup-status"],
+    queryFn: () => apiGet<{
+      configured: boolean; manual_enabled: boolean; destination: string; status: keyof typeof backupStatus;
+      latest: CloudRun | null; history: CloudRun[]; next_scheduled_at: string | null;
+    }>("/backups/cloud"),
+    refetchInterval: 10_000,
+  });
+  const request = useMutation({
+    mutationFn: () => apiPost<{ message: string }>("/backups/cloud/request"),
+    onSuccess: (result) => { toast.success(result.message); void status.refetch(); },
+    onError: (error) => toast.error(errMsg(error)),
+  });
+  const backup = status.data;
+  if (status.isLoading) return null;
+  return <Panel title="Backup externo">
+    {status.isError ? <p role="alert">Não foi possível consultar o backup externo.</p> : backup && <>
+      <p role="status" className="font-medium">{backupStatus[backup.status]}</p>
+      {backup.configured && <>
+        <dl className="mt-3 grid gap-2 text-sm">
+          <div><dt className="text-muted-foreground">Destino</dt><dd className="break-words">{backup.destination}</dd></div>
+          <div><dt className="text-muted-foreground">Última cópia verificada</dt><dd>{backup.latest ? backupTime.format(new Date(backup.latest.at)) : "Pendente"}{backup.latest?.size_bytes != null && ` · ${new Intl.NumberFormat("pt-BR").format(backup.latest.size_bytes)} bytes`}</dd></div>
+          {backup.latest?.sha256 && <div><dt className="text-muted-foreground">SHA-256</dt><dd className="break-all font-mono text-xs">{backup.latest.sha256}</dd></div>}
+          {backup.next_scheduled_at && <div><dt className="text-muted-foreground">Próxima cópia prevista</dt><dd>{backupTime.format(new Date(backup.next_scheduled_at))}</dd></div>}
+        </dl>
+        {backup.manual_enabled && <Button className="mt-3" variant="outline" disabled={request.isPending || backup.status === "running"}
+          onClick={() => request.mutate()}>Solicitar backup externo</Button>}
+        {backup.history.length > 0 && <details className="mt-3 text-sm">
+          <summary className="cursor-pointer font-medium">Histórico de execuções</summary>
+          <ul className="mt-2 space-y-1">{backup.history.map((entry) =>
+            <li key={entry.at}>{backupTime.format(new Date(entry.at))} · {backupStatus[entry.status]}</li>)}</ul>
+        </details>}
+        <p className="mt-3 text-sm text-muted-foreground">Para conferir uma restauração, use o procedimento de banco descartável do Apollo no host de recuperação.</p>
+      </>}
+    </>}
+  </Panel>;
+}
+
 function Backup({ flash }: { flash: string | null }) {
   const choice = useQuery({ queryKey: ["backup-destination"], queryFn: () => apiGet<{ destination: "pc" | "google_drive" | null }>("/settings/backup-destination") });
   const drive = useQuery({ queryKey: ["drive-status"], queryFn: () => apiGet<{ connected: boolean; auto: boolean }>("/drive/status") });
@@ -233,6 +291,7 @@ function Backup({ flash }: { flash: string | null }) {
       {!drive.data?.connected && <p className="mt-2 text-xs text-amber-200">Para escolher Google Drive, conecte a conta abaixo e ative o backup automático.</p>}
       {choice.data?.destination === "pc" && <p className="mt-2 text-xs text-amber-200">Backup no PC não é automático: baixe e guarde o arquivo em local seguro todos os dias.</p>}
     </div>
+    <CloudBackups />
     <ServerBackups />
     <DriveBackup flash={flash} />
     <Panel title="Backup manual (baixar arquivo)">

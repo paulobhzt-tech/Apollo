@@ -1,0 +1,8 @@
+[Unit]
+Description=Solicitações manuais de backup externo do Apollo
+
+[Path]
+PathExists=/var/lib/apollo/cloud-backup-request/request
+
+[Install]
+WantedBy=multi-user.target

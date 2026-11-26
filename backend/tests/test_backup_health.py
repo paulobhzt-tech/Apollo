@@ -105,3 +105,42 @@ async def test_invalid_threshold_rejected_without_database_read(health_context, 
     response = await get_health(app, f"?overdue_hours={threshold}")
     assert response.status_code == 422
     lookup.assert_not_awaited()
+
+
+async def test_cloud_status_and_manual_signal_are_admin_only(health_context, monkeypatch, tmp_path):
+    import json
+
+    app, _, _ = health_context
+    status_file = tmp_path / "status.json"
+    signal = tmp_path / "request"
+    monkeypatch.setenv("APOLLO_CLOUD_BACKUP_STATUS_FILE", str(status_file))
+    monkeypatch.setenv("APOLLO_CLOUD_BACKUP_REQUEST_DIR", str(tmp_path))
+    audit = AsyncMock()
+    monkeypatch.setattr(serverbackup, "audit_backup", audit)
+    status_file.write_text(json.dumps([
+        {"status": "failed", "at": datetime.now(timezone.utc).isoformat(), "credential": "omit"},
+        {"status": "verified", "at": (datetime.now(timezone.utc) - timedelta(minutes=15)).isoformat(),
+         "name": "fictitious.age", "size_bytes": 200, "sha256": "a" * 64},
+    ]))
+
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        app.dependency_overrides[current_user] = lambda: {"id": "waiter-test", "role": "garcom"}
+        assert (await client.get("/backups/cloud")).status_code == 403
+        assert (await client.post("/backups/cloud/request")).status_code == 403
+        assert not signal.exists()
+
+        app.dependency_overrides[current_user] = lambda: {"id": "admin-test", "role": "admin"}
+        response = await client.get("/backups/cloud")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "failed"
+        assert body["manual_enabled"] is True
+        assert body["latest"]["size_bytes"] == 200
+        assert body["latest"]["sha256"] == "a" * 64
+        assert "credential" not in body["history"][0]
+        assert datetime.fromisoformat(body["next_scheduled_at"]).minute % 15 == 0
+
+        assert (await client.post("/backups/cloud/request")).status_code == 202
+        assert signal.read_bytes() == b""
+        assert (await client.post("/backups/cloud/request")).status_code == 202
+        audit.assert_awaited_once_with("cloud_backup_requested", {"id": "admin-test", "role": "admin"})

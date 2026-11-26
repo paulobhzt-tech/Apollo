@@ -2,6 +2,7 @@
 # Run on the Docker host, with configuration from a protected EnvironmentFile.
 set -euo pipefail
 umask 077
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 : "${APOLLO_BACKUP_COMPOSE_FILE:?Informe o caminho absoluto do Compose}"
 : "${APOLLO_BACKUP_PROJECT:?Informe o projeto Compose da instância}"
@@ -14,16 +15,24 @@ database="${APOLLO_BACKUP_DATABASE:-apollo_pdv}"
 [[ "$APOLLO_BACKUP_REMOTE" =~ ^[a-zA-Z0-9_-]+:[^[:space:]]+$ ]]
 [[ -r "$RCLONE_CONFIG" ]]
 
-mkdir -p "$APOLLO_BACKUP_STATE"
+mkdir -p "$APOLLO_BACKUP_STATE/status"
 exec 9>"$APOLLO_BACKUP_STATE/run.lock"
 if ! flock -n 9; then
   echo 'Backup em andamento. A execução concorrente foi ignorada.'
   exit 0
 fi
 work="$(mktemp -d "$APOLLO_BACKUP_STATE/backup.XXXXXXXX")"
-cleanup() { rm -rf -- "$work"; }
+report() { python3 "$script_dir/backup-cloud-state.py" "$APOLLO_BACKUP_STATE/status" "$@"; }
+cleanup() {
+  local result=$?
+  rm -rf -- "$work"
+  if (( result != 0 )); then
+    report failed || true
+    echo 'Falha no backup externo do Apollo' >&2
+  fi
+}
 trap cleanup EXIT
-trap 'echo "Falha no backup externo do Apollo" >&2' ERR
+report running
 
 name="apollo-$(date -u +%Y%m%dT%H%M%SZ)-${work##*.}.archive.gz.age"
 archive="$work/$name"
@@ -42,4 +51,6 @@ expected="$(cut -d ' ' -f 1 "$archive.sha256")"
 received="$(rclone cat --low-level-retries 5 "$destination" | sha256sum)"
 [[ "${received%% *}" == "$expected" ]] || { echo 'SHA-256 remoto divergente' >&2; exit 1; }
 rclone copyto --immutable --retries 3 --low-level-retries 5 "$archive.sha256" "$destination.sha256"
-echo "Backup externo verificado: $name, $(wc -c < "$archive") bytes, SHA-256 $expected"
+size="$(wc -c < "$archive")"
+report verified "$name" "$size" "$expected"
+echo "Backup externo verificado: $name, $size bytes, SHA-256 $expected"

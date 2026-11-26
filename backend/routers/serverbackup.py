@@ -4,12 +4,16 @@ import gzip
 import hashlib
 import io
 import json
+import os
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Literal
 
 from bson import Binary
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from lib.auth import require
 from lib.db import db
@@ -27,6 +31,64 @@ async def audit_backup(action: str, user: dict, backup_id: str = "") -> None:
         "employee_id": user.get("id", ""),
         "employee_name": user.get("name", ""),
     })
+
+
+class CloudBackupRun(BaseModel):
+    status: Literal["running", "verified", "failed"]
+    at: datetime
+    name: str | None = None
+    size_bytes: int | None = None
+    sha256: str | None = None
+
+
+@router.get("/backups/cloud")
+def cloud_backup_status(_: dict = Depends(require())):
+    state = os.environ.get("APOLLO_CLOUD_BACKUP_STATUS_FILE")
+    requests = os.environ.get("APOLLO_CLOUD_BACKUP_REQUEST_DIR")
+    result = {"configured": bool(state), "manual_enabled": bool(state and requests),
+              "destination": os.environ.get("APOLLO_CLOUD_BACKUP_DISPLAY_NAME", "Armazenamento externo"),
+              "history": [], "next_scheduled_at": None, "status": "unconfigured", "latest": None}
+    if not state:
+        return result
+    now = datetime.now(timezone.utc)
+    result["next_scheduled_at"] = now.replace(second=0, microsecond=0) + timedelta(minutes=15 - now.minute % 15)
+    result["status"] = "waiting"
+    try:
+        with Path(state).open("rb") as source:
+            content = source.read(32769)
+        if len(content) > 32768:
+            raise ValueError("status exceeds metadata limit")
+        history = TypeAdapter(list[CloudBackupRun]).validate_json(content)
+    except FileNotFoundError:
+        return result
+    except (OSError, ValidationError, ValueError):
+        result["status"] = "unavailable"
+        return result
+
+    result["history"] = history[:20]
+    latest = next((entry for entry in history if entry.status == "verified"), None)
+    result["latest"] = latest
+    if history:
+        recent = history[0]
+        age = now - recent.at if recent.at.tzinfo else timedelta.max
+        result["status"] = "overdue" if age > timedelta(minutes=30) else recent.status
+    return result
+
+
+@router.post("/backups/cloud/request", status_code=202)
+async def request_cloud_backup(me: dict = Depends(require())):
+    directory = os.environ.get("APOLLO_CLOUD_BACKUP_REQUEST_DIR")
+    if not directory or not os.environ.get("APOLLO_CLOUD_BACKUP_STATUS_FILE"):
+        raise HTTPException(503, "Backup externo indisponível neste servidor.")
+    try:
+        with (Path(directory) / "request").open("x"):
+            pass
+    except FileExistsError:
+        return OkOut(message="Já existe uma solicitação pendente.")
+    except OSError as exc:
+        raise HTTPException(503, "Não foi possível solicitar o backup externo.") from exc
+    await audit_backup("cloud_backup_requested", me)
+    return OkOut(message="Backup externo solicitado.")
 
 
 @router.get("/backups/server/audit")

@@ -123,3 +123,35 @@ o monitoramento do host. O script preserva os backups existentes. Em Mongo stand
 o dump pode capturar coleções em instantes diferentes durante escritas concorrentes.
 A janela de 15 minutos descreve a frequência agendada. Para validar o RPO, meça o
 atraso das cópias verificadas e a consistência dos dados restaurados.
+
+### Painel de backup externo no Apollo
+
+O painel em Configurações → Backup lê somente metadados, sem acesso ao destino remoto
+ou às chaves. Para habilitá-lo, instale também Python 3 no host e monte
+`/var/lib/apollo/cloud-backup/status` como somente leitura na aplicação. Após criar
+o diretório, configure no contêiner:
+
+```yaml
+environment:
+  APOLLO_CLOUD_BACKUP_STATUS_FILE: /run/apollo-cloud-status/status.json
+  APOLLO_CLOUD_BACKUP_DISPLAY_NAME: Backup externo de homologação
+volumes:
+  - /var/lib/apollo/cloud-backup/status:/run/apollo-cloud-status:ro
+```
+
+Para liberar o botão administrativo de backup manual, crie um diretório dedicado
+`/var/lib/apollo/cloud-backup-request`, gravável pelo usuário do aplicativo.
+Acrescente à configuração da aplicação:
+
+```yaml
+environment:
+  APOLLO_CLOUD_BACKUP_REQUEST_DIR: /run/apollo-cloud-request
+volumes:
+  - /var/lib/apollo/cloud-backup-request:/run/apollo-cloud-request
+```
+
+Instale `apollo-cloud-backup.path` ao lado do timer e do service, recarregue as
+unidades e habilite o path com `systemctl enable --now apollo-cloud-backup.path`.
+A solicitação aciona o mesmo service do timer. O aplicativo só grava o sinal;
+o serviço de backup o consome. Ajuste a propriedade e o grupo das pastas de
+acordo com o usuário Docker e aplique permissões que preservem os limites das montagens.
