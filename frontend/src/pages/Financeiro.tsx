@@ -572,7 +572,7 @@ function CardFeesForm({ fees }: { fees: Record<string, number> }) {
   });
   return (
     <Panel title="Taxas da maquininha por bandeira (%)" className="mt-4" actions={<Button size="sm" onClick={() => save.mutate()} disabled={save.isPending} data-testid="card-fees-save">Salvar taxas</Button>}>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
         {FEE_KEYS.map((k) => (
           <div key={k}>
             <p className="mb-1 text-xs text-zinc-400">{k.startsWith("credito") ? "Crédito" : "Débito"} · {k.split(":")[1] === "mastercard" ? "Master" : k.split(":")[1] === "visa" ? "Visa" : "Elo"}</p>

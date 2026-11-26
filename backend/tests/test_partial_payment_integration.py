@@ -47,6 +47,14 @@ async def test_partial_payment_replay_and_cash_reconciliation(scenario):
             client_ref="partial-" + uuid.uuid4().hex,
             payment=PayIn(payments=[Payment(method="dinheiro", amount=25)],
                           discount=2, service_pct=10, emit_invoice=False))
+        stale_quote = body.model_copy(update={"expected_remaining_subtotal": 31.0})
+        with pytest.raises(HTTPException) as stale_error:
+            await pay_partial_bill(table["id"], stale_quote, {})
+        assert stale_error.value.status_code == 409
+        assert await db.orders.count_documents({"parent_order_id": order["id"]}) == 0
+        assert (await db.orders.find_one({"id": order["id"]}))["total"] == 50
+
+        body = body.model_copy(update={"expected_remaining_subtotal": 30.0})
         result = await pay_partial_bill(table["id"], body, {})
         paid = result["order"]
         assert paid["status"] == "pago"

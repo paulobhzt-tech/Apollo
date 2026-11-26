@@ -194,7 +194,7 @@ async def apply_cancel_order(id: str, body: CancelIn, user: dict, auth: str, *, 
             sum(r["amount"] for r in o.get("refunds", []) if r["method"] == "fiado")
         await fiado_reverse(o, fiado, who, f"Estorno do pedido #{o['number']}", **options)
     if o.get("channel") != "delivery" or o.get("delivery_status") != "pendente":
-        await move_stock([OrderItem(**i) for i in o["items"] if not i.get("cancelled")], user["name"], f"Cancelamento #{o['number']}", sign=1, historical_order_id=id, **options)
+        await move_stock([OrderItem(**i) for i in o["items"] if not i.get("cancelled")], user["name"], f"Cancelamento #{o['number']}", sign=1, historical_order_id=o.get("parent_order_id") or id, **options)
     if o.get("invoice_id"):
         await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}}, **options)
     if o.get("table_id") and o["status"] == "aberto":
@@ -241,11 +241,15 @@ async def apply_refund_item(id: str, item_id: str, body: CancelIn, user: dict, a
         if not result.modified_count:
             raise HTTPException(409, "O pedido mudou. Atualize antes de cancelar o item.")
         if o.get("channel") != "delivery" or o.get("delivery_status") != "pendente":
-            await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1, historical_order_id=id, **options)
+            await move_stock([OrderItem(**item)], user["name"], f"Cancelamento #{o['number']}: {body.reason}", sign=1, historical_order_id=o.get("parent_order_id") or id, **options)
         return await refresh_totals(id, **options)
     live = [i for i in o["items"] if not i.get("cancelled") and i["id"] != item_id]
     old_sub = o["subtotal"] or 1
     new_sub = round(sum(i["qty"] * i["unit_price"] for i in live), 2)
+    if o.get("parent_order_id"):
+        # A receipt may include a cent allocated to the balance left on the
+        # table. Removing an item cannot increase the amount still payable.
+        new_sub = min(new_sub, o["subtotal"])
     service = round(o.get("service_fee", 0) * new_sub / old_sub, 2)
     discount = min(o.get("discount", 0), new_sub)
     total = round(new_sub - discount + service + (o.get("delivery_fee", 0) if live else 0), 2)
@@ -263,7 +267,7 @@ async def apply_refund_item(id: str, item_id: str, body: CancelIn, user: dict, a
     if not result.modified_count:
         raise HTTPException(409, "O pedido mudou. Atualize antes de estornar o item.")
     await record_refund_adjustment(o, refund_cash_id, {pay_key(main): amount}, "item:" + item_id, user, body.reason, session=session)
-    await move_stock([OrderItem(**item)], user["name"], f"Estorno #{o['number']}: {body.reason}", sign=1, historical_order_id=id, **options)
+    await move_stock([OrderItem(**item)], user["name"], f"Estorno #{o['number']}: {body.reason}", sign=1, historical_order_id=o.get("parent_order_id") or id, **options)
     if not live and o.get("invoice_id"):
         await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}}, **options)
     if main["method"] == "fiado":
