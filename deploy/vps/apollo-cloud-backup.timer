@@ -1,0 +1,10 @@
+[Unit]
+Description=Backup externo do Apollo a cada 15 minutos
+
+[Timer]
+OnCalendar=*-*-* *:00/15:00
+AccuracySec=1s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

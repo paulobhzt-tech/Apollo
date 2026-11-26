@@ -1,0 +1,12 @@
+[Unit]
+Description=Backup externo criptografado do Apollo
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/apollo/cloud-backup.env
+ExecStart=/opt/apollo/deploy/vps/backup-cloud.sh
+UMask=0077
+TimeoutStartSec=14min
+NoNewPrivileges=true

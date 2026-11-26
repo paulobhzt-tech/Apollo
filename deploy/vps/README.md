@@ -79,3 +79,47 @@ EXPECTED_COMMIT=SHA_APROVADO EXPECTED_MANIFEST=CAMINHO_DO_MANIFESTO_AUDITADO \
 ```
 
 Em caso de erro, interrompa a troca. A conferência rejeita inclusive uma árvore adulterada cujo manifesto foi recalculado para parecer consistente. Para homologação isolada e autorizada, mantenha duas árvores de release independentes. Registre o DocumentRoot e a árvore vigente antes de mudar o apontamento, preserve seu manifesto e verifique o retorno do manifesto, do worker e de `/login` após a troca. Em caso de rollback, recoloque o apontamento anterior e rode o verificador público contra o manifesto daquela versão. A troca do build não requer restaurar o MongoDB.
+
+## Backup externo da instância isolada
+
+O timer `apollo-cloud-backup.timer` inicia um backup completo a cada 15 minutos. O dump é
+criptografado com a chave pública `age` antes de tocar o disco. O script relê o objeto
+remoto para conferir o SHA-256 e publica o manifesto correspondente após essa conferência.
+O backup usa o Mongo da instância identificada pelo arquivo e pelo projeto Compose.
+
+Instale `age`, `rclone`, `flock` e Docker Compose no host. Crie uma identidade com
+`age-keygen` em um ambiente separado e mantenha a chave privada disponível para a equipe
+de recuperação. Configure um remoto rclone com transporte autenticado e criptografado
+(HTTPS ou SFTP com verificação de host) e um prefixo exclusivo para a instância.
+Proteja a configuração do rclone e o arquivo `/etc/apollo/cloud-backup.env` com modo
+`0600`. Exemplo de variáveis para homologação:
+
+```dotenv
+APOLLO_BACKUP_COMPOSE_FILE=/opt/apollo/deploy/vps/compose.yaml
+APOLLO_BACKUP_PROJECT=apollo-p645-homolog
+APOLLO_BACKUP_DATABASE=apollo_pdv
+APOLLO_BACKUP_STATE=/var/lib/apollo/cloud-backup
+APOLLO_BACKUP_REMOTE=homologacao:backup/apollo-p645
+APOLLO_BACKUP_RECIPIENT=age1...
+RCLONE_CONFIG=/etc/apollo/rclone.conf
+```
+
+Ajuste o caminho em `ExecStart` para o checkout instalado e instale as unidades em
+`/etc/systemd/system`. Após `systemctl daemon-reload`, execute
+`systemctl start apollo-cloud-backup.service` para o primeiro backup manual. Confira o
+histórico com `journalctl -u apollo-cloud-backup.service` e o próximo horário com
+`systemctl list-timers apollo-cloud-backup.timer`.
+
+Antes de ativar o timer com `systemctl enable --now apollo-cloud-backup.timer`, execute
+`bash deploy/vps/restore-cloud-drill.sh NOME.archive.gz.age` em um host de recuperação
+com Docker e as variáveis `APOLLO_BACKUP_REMOTE`, `APOLLO_BACKUP_DATABASE`,
+`RCLONE_CONFIG` e `APOLLO_BACKUP_IDENTITY`. Use espaço temporário privado para o arquivo
+decifrado. O ensaio importa apenas o banco informado em um contêiner sem rede, volumes
+do host ou portas publicadas.
+
+Configure no provedor a retenção do prefixo dedicado, com a mesma duração para o
+arquivo e o manifesto. Monitore falhas da unidade e a idade do último manifesto com
+o monitoramento do host. O script preserva os backups existentes. Em Mongo standalone,
+o dump pode capturar coleções em instantes diferentes durante escritas concorrentes.
+A janela de 15 minutos descreve a frequência agendada. Para validar o RPO, meça o
+atraso das cópias verificadas e a consistência dos dados restaurados.

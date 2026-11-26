@@ -3,6 +3,8 @@
 # Usage: ./restore-drill.sh /var/backups/apollo-pdv/apollo-YYYYMMDDTHHMMSSZ.archive.gz
 set -euo pipefail
 if [[ $# -ne 1 ]]; then echo "Uso: $0 arquivo.archive.gz" >&2; exit 2; fi
+database="${APOLLO_BACKUP_DATABASE:-apollo_pdv}"
+[[ "$database" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo "Nome de banco inválido" >&2; exit 2; }
 archive="$(realpath "$1")"
 [[ -f "$archive" && -s "$archive" ]] || { echo "Backup ausente ou vazio" >&2; exit 2; }
 checksum="${archive}.sha256"
@@ -21,7 +23,7 @@ for _ in $(seq 1 40); do
   sleep 1
 done
 [[ "$ready" -eq 1 ]] || { echo "Mongo isolado nao iniciou" >&2; exit 1; }
-docker exec -i "$container" mongorestore --archive --gzip --nsFrom='apollo_pdv.*' --nsTo='apollo_restore_drill.*' --stopOnError < "$archive"
+docker exec -i "$container" mongorestore --archive --gzip --nsInclude="$database.*" --nsFrom="$database.*" --nsTo='apollo_restore_drill.*' --stopOnError < "$archive"
 count="$(docker exec "$container" mongosh --quiet apollo_restore_drill --eval 'db.getCollectionNames().length')"
 [[ "$count" =~ ^[0-9]+$ ]] && [[ "$count" -gt 0 ]] || { echo "Restauracao sem colecoes" >&2; exit 1; }
 echo "RESTORE_DRILL_PASS: $count colecoes restauradas em Mongo isolado; producao intocada"
