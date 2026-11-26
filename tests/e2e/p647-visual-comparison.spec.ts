@@ -32,7 +32,14 @@ test("captures the same populated screens in each version", async ({ page }, inf
     client_ref: crypto.randomUUID(),
     items: [{ product_id: "p40product", qty: 2 }, { product_id: "p41drink", qty: 1 }, { product_id: "p41portion", qty: 1 }],
   });
+  await post("/pdv/sale", {
+    client_ref: crypto.randomUUID(),
+    items: [{ product_id: "p40product", qty: 1 }],
+    payments: [{ method: "dinheiro", amount: 5 }, { method: "pix", amount: 5 }],
+    emit_invoice: false,
+  });
   await page.goto(base + "/");
+  await expect(page.getByTestId("stat-revenue")).toContainText("10,00");
   await expect(page.getByTestId("daily-goal-value")).toBeVisible();
   await expect(page.getByTestId("executive-metric-1")).toBeVisible();
   await capture("painel-gerencial", true);

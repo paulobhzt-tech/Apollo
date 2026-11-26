@@ -37,16 +37,23 @@ function ExecutivePanel() {
     </div>
     {q.isError && <p role="alert" className="text-red-400">Não foi possível carregar o resumo executivo.</p>}
     {q.data && <>
-      <div className="grid grid-cols-2 gap-2">
-        <Stat testid="executive-metric-1" label="Faturamento do período" value={brl(q.data.revenue)} />
-        <Stat testid="executive-metric-2" label="Saldo indicativo" value={brl(q.data.indicative_balance)} />
-        <Stat testid="executive-metric-3" label="Despesas lançadas" value={brl(q.data.recorded_expenses)} />
-        <Stat testid="executive-metric-4" label="CMV registrado" value={brl(q.data.recorded_cmv)} />
-        <Stat testid="executive-metric-5" label="Pedidos pagos" value={String(q.data.paid_orders)} />
-        <Stat testid="executive-metric-6" label="Ticket médio" value={brl(q.data.average_ticket)} />
-        <Stat testid="executive-metric-7" label="Estoque crítico" value={String(q.data.critical_stock_count)} />
-        <Stat testid="executive-metric-8" label="Funcionários ativos" value={String(q.data.active_employees)} />
-      </div>
+      <dl className="divide-y divide-border rounded-xl border border-border bg-panel px-3">
+        {[
+          ["executive-metric-1", "Faturamento do período", brl(q.data.revenue)],
+          ["executive-metric-2", "Saldo indicativo", brl(q.data.indicative_balance)],
+          ["executive-metric-3", "Despesas lançadas", brl(q.data.recorded_expenses)],
+          ["executive-metric-4", "CMV registrado", brl(q.data.recorded_cmv)],
+          ["executive-metric-5", "Pedidos pagos", String(q.data.paid_orders)],
+          ["executive-metric-6", "Ticket médio", brl(q.data.average_ticket)],
+          ["executive-metric-7", "Estoque crítico", String(q.data.critical_stock_count)],
+          ["executive-metric-8", "Funcionários ativos", String(q.data.active_employees)],
+        ].map(([key, label, value]) => (
+          <div key={key} className="flex items-baseline justify-between gap-3 py-2 text-sm">
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd data-testid={key} className="text-right font-mono tabular-nums">{value}</dd>
+          </div>
+        ))}
+      </dl>
       <Panel title="Alertas gerenciais"><ul className="space-y-2 text-sm">{q.data.alerts.map((a, i) => <li key={i} className="rounded-lg border border-white/10 p-3"><strong>{a.title}</strong><p className="text-zinc-400">{a.detail}</p></li>)}{!q.data.alerts.length && <li className="text-zinc-400">Nenhum alerta nas verificações disponíveis.</li>}</ul></Panel>
       <p className="text-xs text-zinc-400">{q.data.note}</p>
     </>}
@@ -111,7 +118,6 @@ export default function Dashboard() {
 
       <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <section aria-label="Movimento e vendas" className="grid min-w-0 gap-3 md:grid-cols-2">
-
           <Panel title="Faturamento últimos 7 dias" className="md:col-span-2">
             <ResponsiveContainer width="100%" height={210}>
               <AreaChart data={d?.last7 ?? []}>
@@ -141,6 +147,14 @@ export default function Dashboard() {
               </ResponsiveContainer>
             ) : <Empty />}
           </Panel>
+          <Panel title="Canais de venda (hoje)">
+            <ul className="space-y-2">
+              {(d?.by_channel ?? []).map((c) => (
+                <li key={c.name} className="flex justify-between text-sm"><span className="text-zinc-300">{c.name}</span><span className="font-mono">{brl(c.value)}</span></li>
+              ))}
+              {d && d.by_channel.length === 0 && <Empty />}
+            </ul>
+          </Panel>
           <Panel title="Vendas por hora (hoje)" className="md:col-span-2">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={d?.sales_by_hour ?? []}>
@@ -165,14 +179,6 @@ export default function Dashboard() {
               {d && d.top_products.length === 0 && <Empty />}
             </ul>
           </Panel>
-          <Panel title="Canais de venda (hoje)">
-            <ul className="space-y-2">
-              {(d?.by_channel ?? []).map((c) => (
-                <li key={c.name} className="flex justify-between text-sm"><span className="text-zinc-300">{c.name}</span><span className="font-mono">{brl(c.value)}</span></li>
-              ))}
-              {d && d.by_channel.length === 0 && <Empty />}
-            </ul>
-          </Panel>
         </section>
         <section aria-label="Metas e alertas" className="grid min-w-0 gap-3">
           <DailyGoalPanel />
@@ -187,10 +193,10 @@ export default function Dashboard() {
               {d && d.low_stock.length === 0 && <p className="text-sm text-zinc-500">Nenhum insumo abaixo do mínimo.</p>}
             </ul>
           </Panel>
+          <ExecutivePanel />
         </section>
       </div>
-      <div className="mt-4 grid min-w-0 items-start gap-4 xl:grid-cols-2">
-        <ExecutivePanel />
+      <div className="mt-4">
         <BillAlertsPanel />
       </div>
     </AppShell>
