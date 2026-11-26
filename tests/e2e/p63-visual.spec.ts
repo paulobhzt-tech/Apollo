@@ -44,7 +44,7 @@ for (const theme of ['dark', 'light'] as const) {
       });
     }
     if (theme === 'dark') {
-      if (process.env.GITHUB_REF_NAME === "feat/p64-6-finalizacao-interface-homologacao-operacional" && info.project.use.browserName === "chromium") {
+      if (["feat/p64-6-finalizacao-interface-homologacao-operacional", "feat/p64-7-reformulacao-integral-interface-consumer"].includes(process.env.GITHUB_REF_NAME ?? "") && info.project.use.browserName === "chromium") {
         for (const [width, height] of [[1024, 768], [1280, 720], [1366, 768], [1440, 900], [1600, 900], [1920, 1080], [2560, 1440]]) {
           await page.setViewportSize({ width, height });
           for (const route of ["", "pdv", "mesas", "estoque", "caixa", "financeiro", "config?tab=backup"]) {

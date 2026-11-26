@@ -1,7 +1,7 @@
 name: P64.4 Windows portátil de homologação
 on:
   push:
-    branches: [feat/p64-4-liberacao-final-apollo, feat/p64-4-finalizacao-liberacao-operacional, feat/p64-5-interface-consumer-operacional, feat/p64-6-finalizacao-interface-homologacao-operacional]
+    branches: [feat/p64-4-liberacao-final-apollo, feat/p64-4-finalizacao-liberacao-operacional, feat/p64-5-interface-consumer-operacional, feat/p64-6-finalizacao-interface-homologacao-operacional, feat/p64-7-reformulacao-integral-interface-consumer]
   workflow_dispatch:
 permissions:
   contents: read

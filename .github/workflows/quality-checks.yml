@@ -79,7 +79,7 @@ jobs:
       - name: Compilar interface
         run: npm run build
       - uses: actions/upload-artifact@v4
-        if: github.ref_name == 'feat/p64-5-interface-consumer-operacional' || github.ref_name == 'feat/p64-6-finalizacao-interface-homologacao-operacional'
+        if: github.ref_name == 'feat/p64-5-interface-consumer-operacional' || github.ref_name == 'feat/p64-6-finalizacao-interface-homologacao-operacional' || github.ref_name == 'feat/p64-7-reformulacao-integral-interface-consumer'
         with:
           name: Apollo-Web-PWA-${{ github.sha }}
           path: frontend/dist/

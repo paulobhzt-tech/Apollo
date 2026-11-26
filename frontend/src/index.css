@@ -243,3 +243,54 @@
 @container (width >= 85rem) {
     .apollo-shortcut-row > a:nth-child(n + 11) { display: none; }
 }
+
+/* Atendimento is an in-flow route workspace. Each desktop panel scrolls independently. */
+.apollo-station {
+  height: 100dvh;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--background);
+}
+.apollo-station[data-layout="centered"] {
+  max-width: 76rem;
+  margin-inline: auto;
+}
+.apollo-station-header,
+.apollo-station-footer {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem 1rem;
+  padding: .65rem .9rem;
+  background: var(--panel);
+}
+.apollo-station-header { border-bottom: 1px solid var(--border); }
+.apollo-station-footer { border-top: 1px solid var(--border); }
+.apollo-station-header button,
+.apollo-station-footer button { white-space: normal; height: auto; }
+.apollo-station-body {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.apollo-station-panel {
+  min-width: 0;
+  padding: .8rem;
+  overflow-wrap: anywhere;
+}
+.apollo-station-catalog { background: var(--panel); }
+.apollo-station-order { border-top: 1px solid var(--border); }
+@media (min-width: 64rem) {
+  .apollo-station-body {
+    grid-template-columns: minmax(10rem, .9fr) minmax(0, 2fr) minmax(0, 1.55fr);
+    overflow-y: visible;
+  }
+  .apollo-station-panel { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .apollo-station-body > :not(:first-child) { border-left: 1px solid var(--border); border-top: 0; }
+}

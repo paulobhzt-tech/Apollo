@@ -86,6 +86,8 @@ test('UI operational shift: tables, shared customers, transfer, comanda, mixed p
     expect((await send).ok()).toBe(true);
     await expect(page.getByTestId('table-order-total')).toContainText('10,00');
     await noOverflow(page);
+    await page.getByRole('button', {name: 'Mais opções'}).click();
+    await page.getByRole('menuitem', {name: 'Transferir mesa'}).click();
     await page.getByTestId('transfer-select').click();
     await page.getByRole('option',{name:new RegExp('Mesa '+(start+1)+'$','i')}).click();
     if (process.env.APOLLO_P57_ONLINE_GUARD === '1') {
@@ -96,12 +98,19 @@ test('UI operational shift: tables, shared customers, transfer, comanda, mixed p
       page.on('request', observe);
       await context.setOffline(true);
       await expect(page.getByTestId('table-online-required')).toBeVisible();
-      for (const testId of ['transfer-button', 'table-cancel-button', 'close-table-button']) {
+      for (const testId of ['transfer-button']) {
         await expect(page.getByTestId(testId)).toBeDisabled();
       }
-      await expect(page.getByRole('button', {name: 'Dividir por cliente ou itens'})).toBeDisabled();
+      await page.getByRole('dialog', {name: 'Transferir mesa'}).getByRole('button', {name: 'Fechar', exact: true}).click();
+      await expect(page.getByTestId('close-table-button')).toBeDisabled();
+      await page.getByRole('button', {name: 'Mais opções'}).click();
+      await expect(page.getByRole('menuitem', {name: 'Cancelar atendimento'})).toHaveAttribute('aria-disabled', 'true');
+      await expect(page.getByRole('menuitem', {name: 'Dividir por cliente ou itens'})).toHaveAttribute('aria-disabled', 'true');
+      await page.keyboard.press('Escape');
       expect(operations).toEqual([]);
       await context.setOffline(false);
+      await page.getByRole('button', {name: 'Mais opções'}).click();
+      await page.getByRole('menuitem', {name: 'Transferir mesa'}).click();
       await expect(page.getByTestId('transfer-button')).toBeEnabled();
       expect(operations).toEqual([]);
       page.off('request', observe);

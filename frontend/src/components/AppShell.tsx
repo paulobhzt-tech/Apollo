@@ -279,7 +279,7 @@ export function OfflineBadge() {
   );
 }
 
-export default function AppShell({ children, roles }: { children: ReactNode; roles?: Role[] }) {
+export default function AppShell({ children, roles, workspace = false }: { children: ReactNode; roles?: Role[]; workspace?: boolean }) {
   const { data: me, isLoading, isError } = useMe();
   const [open, setOpen] = useState(false);
   const [menuSearch, setMenuSearch] = useState("");
@@ -331,6 +331,9 @@ export default function AppShell({ children, roles }: { children: ReactNode; rol
 
   if (isLoading) return <div className="grid min-h-screen place-items-center text-zinc-500">Carregando…</div>;
   if (isError || !me) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
+  if (workspace && (!roles || me.role === "admin" || roles.includes(me.role))) {
+    return <main className="min-w-0 bg-background">{children}<Toaster richColors /></main>;
+  }
   if (me.role === "garcom" && loc.pathname === "/comanda-mobile" && (!roles || roles.includes(me.role))) {
     return (
       <div className="min-h-dvh min-w-0 bg-background">

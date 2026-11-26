@@ -123,36 +123,32 @@ export default function Pdv() {
       <PageHeader title="Frente de Caixa" subtitle="F2 pagamento · F3 buscar · F4 limpar · Enter na busca adiciona o item" actions={
         offline ? <span className="flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs text-amber-200" data-testid="pdv-offline-banner"><WifiOff className="size-3.5" /> Contingência offline · {queue.length} na fila</span> : null
       } />
-      <div className="mb-4 grid grid-cols-3 gap-2" data-testid="pdv-sale-summary">
-        <div className="rounded-md border border-white/10 bg-panel p-3"><p className="text-xs text-zinc-400">Itens no pedido</p><p className="text-xl font-semibold tabular-nums text-white">{itemCount}</p></div>
-        <div className="rounded-md border border-white/10 bg-panel p-3"><p className="text-xs text-zinc-400">Total da venda</p><p className="text-xl font-semibold tabular-nums text-emerald-300">{brl(subtotal)}</p></div>
-        <div className="rounded-md border border-white/10 bg-panel p-3"><p className="flex items-center gap-1 text-xs text-zinc-400"><ReceiptText className="size-3" /> Vendas pendentes</p><p className="text-xl font-semibold tabular-nums text-amber-300">{queue.length}</p></div>
-      </div>
-      <div className="grid gap-5 xl:grid-cols-12">
-        <div className="xl:col-span-7 2xl:col-span-8">
-          <ProductGrid products={prodList} categories={categories.data ?? []} onAdd={add} searchInputRef={searchInputRef} />
-        </div>
-        <aside className="xl:col-span-5 2xl:col-span-4">
-          <div className="sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col rounded-2xl border border-white/5 bg-[#121520] p-4" data-testid="pdv-cart">
+      <div className="@container border border-border bg-panel">
+        <div className="grid min-w-0 @min-[55rem]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+          <section className="min-w-0 p-3" aria-label="Catálogo de balcão">
+            <h2 className="mb-2 text-base font-semibold text-foreground">Catálogo de balcão</h2>
+            <ProductGrid products={prodList} categories={categories.data ?? []} onAdd={add} searchInputRef={searchInputRef} compact />
+          </section>
+          <aside className="min-w-0 border-t border-border bg-background p-3 @min-[55rem]:border-t-0 @min-[55rem]:border-l" data-testid="pdv-cart">
             <div className="flex items-center justify-between">
-              <h3 className="flex items-center gap-2 font-heading text-lg text-white"><ShoppingBag className="size-5 text-primary" /> Venda atual</h3>
+              <h3 className="flex items-center gap-2 font-heading text-lg text-foreground"><ShoppingBag className="size-5 text-primary" /> Venda atual</h3>
               {cart.length > 0 && <Button variant="ghost" size="sm" onClick={() => { if (window.confirm("Limpar todos os itens da venda atual?")) setCart([]); }} disabled={sale.isPending} data-testid="pdv-clear-cart">Limpar</Button>}
             </div>
             <Input placeholder="Nome do cliente (opcional)" value={customer} onChange={(e) => setCustomer(e.target.value)} className="mt-3" data-testid="pdv-customer-input" />
-            <div className="mt-3 flex-1 space-y-2 overflow-y-auto pr-1">
+            <div className="mt-3 max-h-[46dvh] divide-y divide-border overflow-y-auto border-y border-border">
               {cart.map((l, i) => (
-                <div key={l.key} className="rounded-xl bg-panel p-3 animate-rise" data-testid={`cart-line-${i}`}>
+                <div key={l.key} className="min-w-0 px-1 py-2" data-testid={`cart-line-${i}`}>
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium text-white">{l.product.name}{l.labels.length > 0 && <span className="block text-xs text-primary">{l.labels.join(" · ")}</span>}</p>
-                    <p className="font-mono text-sm text-white">{brl(l.qty * (l.product.price + l.extra))}</p>
+                    <p className="min-w-0 wrap-anywhere text-sm font-medium text-foreground">{l.product.name}{l.labels.length > 0 && <span className="block text-xs text-primary">{l.labels.join(" · ")}</span>}</p>
+                    <p className="font-mono text-sm text-foreground">{brl(l.qty * (l.product.price + l.extra))}</p>
                   </div>
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
                     <Button size="icon-xs" variant="outline" onClick={() => setQty(i, -1)} data-testid={`cart-dec-${i}`}><Minus /></Button>
                     <span data-testid={`cart-qty-${i}`}><SaleQuantityInput qty={l.qty} unit={l.product.sale_unit}
                       onChange={(qty) => setCart((current) => current.map((line) => line.key === l.key ? { ...line, qty } : line))} /></span>
                     <Button size="icon-xs" variant="outline" onClick={() => setQty(i, 1)} data-testid={`cart-inc-${i}`}><Plus /></Button>
                     <Input value={l.notes} placeholder="Obs.: sem cebola…" onChange={(e) => setCart((c) => c.map((x, j) => (j === i ? { ...x, notes: e.target.value } : x)))}
-                      className="h-7 flex-1 text-xs" data-testid={`cart-notes-${i}`} />
+                      className="min-w-0 grow basis-28 text-xs" data-testid={`cart-notes-${i}`} />
                     <Button size="icon-xs" variant="ghost" onClick={() => setQty(i, -l.qty)} data-testid={`cart-remove-${i}`}><Trash2 /></Button>
                   </div>
                 </div>
@@ -162,15 +158,16 @@ export default function Pdv() {
             <label className="mt-3 flex items-center gap-2 text-xs text-zinc-400">
               <Checkbox checked={kitchen} onCheckedChange={(v) => setKitchen(!!v)} data-testid="pdv-send-kitchen-checkbox" /> Enviar itens para a cozinha (KDS)
             </label>
-            <div className="mt-3 flex items-end justify-between border-t border-white/10 pt-3">
-              <span className="text-sm text-zinc-400">{cart.reduce((s, l) => s + l.qty, 0)} itens</span>
-              <span className="font-mono text-3xl font-medium text-white" data-testid="pdv-subtotal">{brl(subtotal)}</span>
-            </div>
-            <Button className="mt-3 h-14 text-lg" disabled={!cart.length || sale.isPending} onClick={() => setPayOpen(true)} data-testid="pdv-checkout-button">
-              Pagamento (F2)
-            </Button>
-          </div>
-        </aside>
+          </aside>
+        </div>
+        <footer className="sticky bottom-0 z-10 flex min-w-0 flex-wrap items-center justify-between gap-2 border-t border-border bg-elevated p-3">
+          <dl className="flex min-w-0 flex-wrap gap-x-5 gap-y-1 text-xs" data-testid="pdv-sale-summary">
+            <div><dt className="text-muted-foreground">Itens no pedido</dt><dd className="font-semibold">{itemCount}</dd></div>
+            <div><dt className="text-muted-foreground">Vendas pendentes</dt><dd className="flex items-center gap-1 font-semibold"><ReceiptText className="size-3" /> {queue.length}</dd></div>
+            <div><dt className="text-muted-foreground">Total da venda</dt><dd className="font-mono text-base font-semibold text-foreground" data-testid="pdv-subtotal">{brl(subtotal)}</dd></div>
+          </dl>
+          <Button className="min-h-11 whitespace-normal" disabled={!cart.length || sale.isPending} onClick={() => setPayOpen(true)} data-testid="pdv-checkout-button">Pagamento (F2)</Button>
+        </footer>
       </div>
       <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={subtotal} items={cart.map((line) => ({ name: line.product.name, qty: line.qty, unit_price: line.product.price + line.extra }))} title="Pagamento · Balcão" pending={sale.isPending} onConfirm={confirm} />
       <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />

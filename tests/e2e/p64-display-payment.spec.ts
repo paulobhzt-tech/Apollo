@@ -157,10 +157,29 @@ test("keeps each operator's zoom and supports the table workspace shortcuts", as
   const open = page.getByTestId("open-table-button");
   if (await open.isVisible()) await open.click();
   await expect(page.getByTestId("table-product-search")).toBeEnabled();
-  await page.getByRole("button", { name: "Maximizar janela de atendimento" }).click();
+  const workspace = page.getByRole("region", { name: "Atendimento — Mesa 401" });
+  await expect(workspace.getByRole("region", { name: "Catálogo de produtos" })).toBeVisible();
+  await expect(workspace.getByRole("region", { name: "Itens do pedido" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Atendimento — Mesa 401" })).toHaveCount(0);
+  for (const [width, height] of [[1366, 768], [1920, 1080], [2560, 1440]]) {
+    await page.setViewportSize({ width, height });
+    const catalog = await workspace.getByRole("region", { name: "Catálogo de produtos" }).boundingBox();
+    const order = await workspace.getByRole("region", { name: "Itens do pedido" }).boundingBox();
+    expect(catalog && order && order.x >= catalog.x + catalog.width - 1 && Math.abs(order.y - catalog.y) < 1).toBeTruthy();
+    await expect(workspace.getByTestId("close-table-button")).toBeInViewport({ ratio: 1 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
+  }
   await page.keyboard.press("F3");
   await expect(page.getByTestId("table-product-search")).toBeFocused();
-  await page.getByRole("button", { name: "Centralizar janela de atendimento" }).click();
+  await page.getByRole("button", { name: "Centralizar área de atendimento" }).click();
+  await expect(workspace).toHaveAttribute("data-layout", "centered");
+  await page.getByRole("button", { name: "Expandir área de atendimento" }).click();
+  await expect(workspace).toHaveAttribute("data-layout", "wide");
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.getByTestId("product-card-p40product").click();
+  await page.getByTestId("product-card-p40product").click();
+  await expect(workspace.getByTestId("pending-line-0")).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath("atendimento-p647-desktop.png") });
   await page.getByTestId("table-workspace-close").click();
   await switchOperator();
   await signIn("p40caixa1");

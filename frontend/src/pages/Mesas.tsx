@@ -6,6 +6,7 @@ import { ArrowRightLeft, Bell, Clock, Ellipsis, Maximize, Minimize, Minus, Penci
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
+import { DisplayControls } from "@/components/DisplayPreferences";
 import ProductGrid from "@/components/ProductGrid";
 import OptionsDialog, { type Picked } from "@/components/OptionsDialog";
 import PaymentDialog from "@/components/PaymentDialog";
@@ -40,21 +41,23 @@ interface TablePrintStatus {
   created_at: string;
   printed: boolean;
   attempt: PrintAttempt | null;
+  item_ids?: string[];
 }
 
-function TablePrintStatusList({ tableId, orderId }: { tableId: string; orderId: string }) {
-  const [open, setOpen] = useState(false);
-  const environments = useEnvironments();
-  const status = useQuery({
+function useTablePrintStatus(tableId: string, orderId?: string | null) {
+  return useQuery({
     queryKey: ["table-print-status", tableId, orderId],
-    queryFn: () => apiGet<TablePrintStatus[]>(`/tables/${tableId}/print-status?order_id=${encodeURIComponent(orderId)}`),
-    enabled: open,
+    queryFn: () => apiGet<TablePrintStatus[]>(`/tables/${tableId}/print-status?order_id=${encodeURIComponent(orderId ?? "")}`),
+    enabled: !!orderId,
     refetchInterval: 8000,
   });
+}
+
+function TablePrintStatusList({ status }: { status: ReturnType<typeof useTablePrintStatus> }) {
+  const environments = useEnvironments();
   return (
-    <details className="mt-3 rounded-md border border-border p-3 text-sm" onToggle={(event) => setOpen(event.currentTarget.open)}>
+    <details className="mt-3 rounded-md border border-border p-3 text-sm">
       <summary className="cursor-pointer font-medium">Status da impressão por setor</summary>
-      {open && (
         <div className="mt-2">
           {status.isPending && <p role="status">Consultando impressão…</p>}
           {status.isError && <p role="status">Não foi possível atualizar a impressão. Confira a conexão.</p>}
@@ -71,7 +74,6 @@ function TablePrintStatusList({ tableId, orderId }: { tableId: string; orderId: 
             </ul>
           )}
         </div>
-      )}
     </details>
   );
 }
@@ -130,7 +132,7 @@ export default function Mesas() {
   const [kind, setKind] = useState<Kind>("mesa");
   const [mobileSection, setMobileSection] = useState<"mesa" | "comanda" | "fechar">("mesa");
   const [creating, setCreating] = useState(false);
-  const all = tables.isError ? [] : tables.data ?? [];
+  const all = tables.data ?? [];
   const openTables = new Map(all.filter((table) => table.order_id).map((table) => [table.order_id, table]));
   const ready = (readyTickets.data ?? []).flatMap((ticket) => {
     const table = openTables.get(ticket.order_id);
@@ -170,6 +172,15 @@ export default function Mesas() {
   };
   const counts = list.reduce<Record<string, number>>((a, t) => ({ ...a, [t.status]: (a[t.status] ?? 0) + 1 }), {});
   const canCreate = me?.role === "admin" || me?.role === "caixa";
+
+  if (sel) {
+    return <AppShell roles={["caixa", "garcom"]} workspace>
+      <TableWorkspace key={`${sel.id}:${sel.order_id ?? ""}`} clock={clock} table={sel} onClose={() => setSelId(null)}
+        onQr={setQrTable} qrOpen={!!qrTable} tables={all} canDelete={canCreate}
+        draft={draftKey ? drafts[draftKey] : undefined} onDraftChange={storeDraft} />
+      <QrDialog table={qrTable} onClose={() => setQrTable(null)} />
+    </AppShell>;
+  }
 
   return (
     <AppShell roles={["caixa", "garcom"]}>
@@ -270,9 +281,20 @@ export default function Mesas() {
       {tables.isError && <div role="alert" className="mb-3 rounded border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">Não foi possível carregar as mesas. Confira a conexão e tente atualizar.</div>}
       {tables.isLoading && <p role="status" className="mb-3 text-sm text-zinc-400">Carregando mesas e comandas…</p>}
       {!tables.isLoading && !tables.isError && list.length === 0 && (
-        <p className="py-12 text-center text-sm text-zinc-500" data-testid="tables-empty">
-          {mobileMode ? "Nenhuma mesa ou comanda corresponde aos filtros." : `Nenhuma ${kind} encontrada.`}
-        </p>
+        <div className="py-8 text-center text-sm text-muted-foreground" data-testid="tables-empty">
+          <p>{all.length ? "Nenhum atendimento corresponde à seleção." : "Nenhuma mesa ou comanda cadastrada."}</p>
+          {!!all.length && <div className="mt-3 flex flex-wrap justify-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => {
+              setDesktopStatus("todas"); setDesktopSearch(""); setMobileSearch(""); setMobileFilter("todas");
+              if (mobileSection === "fechar") { setMobileSection("mesa"); setKind("mesa"); }
+            }}>Limpar busca e filtros</Button>
+            {all.some((table) => table.kind !== kind) && <Button size="sm" variant="outline" onClick={() => {
+              const otherKind = kind === "mesa" ? "comanda" : "mesa";
+              setKind(otherKind); setMobileSection(otherKind); setDesktopStatus("todas"); setDesktopSearch("");
+              setMobileSearch(""); setMobileFilter("todas");
+            }}>{kind === "mesa" ? "Mostrar comandas" : "Mostrar mesas"}</Button>}
+          </div>}
+        </div>
       )}
       {([
         { title: "Pedidos em andamento", items: sortedList.filter(t => t.status === "ocupada"), color: "bg-[#298858]" },
@@ -310,10 +332,6 @@ export default function Mesas() {
           <Plus className="size-4" /> Adicionar mais {kind === "mesa" ? "mesas" : "comandas"}
         </button>
       )}
-      {sel && <TableWorkspace key={`${sel.id}:${sel.order_id ?? ""}`} clock={clock} table={sel} onClose={() => setSelId(null)}
-        onQr={setQrTable} qrOpen={!!qrTable} tables={all} canDelete={canCreate}
-        draft={draftKey ? drafts[draftKey] : undefined} onDraftChange={storeDraft} />}
-      <QrDialog table={qrTable} onClose={() => setQrTable(null)} />
       <NewTableDialog open={creating} kind={kind} existing={all.filter((t) => t.kind === kind)} onClose={() => setCreating(false)} />
     </AppShell>
   );
@@ -433,7 +451,6 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const [name, setName] = useState("");
   const pending = draft ?? [];
   const setPending = onDraftChange;
-  const [adding, setAdding] = useState(!!draft?.length);
   const [reviewOpen, setReviewOpen] = useState(false);
   const { context, offline } = useOffline();
   const [legacySubmission, setLegacySubmission] = useOperatorDraft<TableSubmission | null>(
@@ -468,8 +485,15 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const [selectedOperation, setSelectedOperation] = useState<"transfer" | "copy" | null>(null);
   const [grouped, setGrouped] = useTablePreference(`apollo-table-grouped:${me?.id}`, true);
   const [showItemTimes, setShowItemTimes] = useTablePreference(`apollo-table-times:${me?.id}`, false);
-  const [maximized, setMaximized] = useState(false);
-  const [productSearch, setProductSearch] = useState("");
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => headingRef.current?.focus({ preventScroll: true }), []);
+  const printStatus = useTablePrintStatus(table.id, table.order_id);
+  const confirmedPrints = new Set(printStatus.data?.flatMap((entry) => entry.attempt?.state === "operator_confirmed" ? entry.item_ids ?? [] : []));
+  const spoolerItems = new Set(printStatus.data?.flatMap((entry) =>
+    entry.attempt?.state === "spooler_accepted" || entry.attempt?.state === "operator_confirmed" ? entry.item_ids ?? [] : [],
+  ));
+  const [screenMode, setScreenMode] = useState<"wide" | "centered">("wide");
+  const [organization, setOrganization] = useState<"transfer" | "merge" | null>(null);
   const productSearchRef = useRef<HTMLInputElement>(null);
   const [showDetails, setShowDetails] = useTablePreference(`apollo-table-details:${me?.id}`, true);
   const [removing, setRemoving] = useState<GroupedItem | null>(null);
@@ -478,7 +502,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const onErr = (e: unknown) => toast.error(errMsg(e));
   const openT = useMutation({
     mutationFn: () => apiPost<Table>(`/tables/${table!.id}/open`, { people: Number(people) || 1, customer_name: name }),
-    onSuccess: () => { toast.success(`${tableLabel(table!)} aberta`); setAdding(true); invalidateTables(); },
+    onSuccess: () => { toast.success(`${tableLabel(table!)} aberta`); invalidateTables(); },
     onError: (error) => { onErr(error); invalidateTables(); },
   });
   const send = useMutation({
@@ -524,7 +548,6 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
       setReviewOpen(false);
       if (result === "queued") {
         setPending([]);
-        setAdding(false);
         toast.info("Itens salvos neste dispositivo. Envio pendente de conexão.");
         return;
       }
@@ -533,7 +556,6 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
       void queryClient.invalidateQueries({ queryKey: ["table-print-status", table.id, table.order_id] });
       toast.success("Pedido enviado para preparo", { style: { pointerEvents: "none" } });
       setPending([]);
-      setAdding(false);
       invalidateTables();
     },
     onError: (error) => {
@@ -643,16 +665,16 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     const line = { key: uid(), product, qty, notes: item.notes, options, labels, extra, customerName: item.customer_name ?? "" };
     if (edit) setEditingDraft(line);
     else setPending((current) => [...current, line]);
-    setAdding(true);
+
   };
   const addPending = (p: Product) => (p.options?.length ? setOptFor(p) : push(p));
   const o = table?.order_id ? order.data ?? null : null;
   const items = (o?.items ?? []);
-  const visibleProducts = (products.data ?? []).filter((p) => p.active && (p.channels?.includes("comanda") ?? true) && (!productSearch.trim() || [p.name, p.code, p.description, categories.data?.find((category) => category.id === p.category_id)?.name].some((v) => v?.toLocaleLowerCase("pt-BR").includes(productSearch.trim().toLocaleLowerCase("pt-BR")))));
+  const visibleProducts = (products.data ?? []).filter((product) => product.active && (product.channels?.includes("comanda") ?? true));
 
   const busy = openT.isPending || send.isPending || removeItems.isPending || status.isPending ||
     release.isPending || cancelTable.isPending || transfer.isPending || merge.isPending || pay.isPending;
-  const nestedOpen = customerSearchOpen || !!selectedOperation || qrOpen || reviewOpen || partialOpen || payOpen || preBill || !!invoice || !!removing || !!editingDraft || !!optFor;
+  const nestedOpen = !!organization || customerSearchOpen || !!selectedOperation || qrOpen || reviewOpen || partialOpen || payOpen || preBill || !!invoice || !!removing || !!editingDraft || !!optFor;
   const editingOpening = !table.order_id && (people !== "2" || !!name.trim());
   const [editingCustomers, setEditingCustomers] = useState(false);
   const requestClose = () => {
@@ -686,35 +708,46 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     </ItemActions>;
   };
 
-  const content = (
-          <div className="@container min-h-0 min-w-0 overflow-y-auto overscroll-contain text-foreground"
-            onKeyDown={(event) => {
-              if (event.key !== "F3" || event.defaultPrevented || nestedOpen || !table.order_id || pendingConfirmation || busy) return;
-              event.preventDefault();
-              setAdding(true);
-              productSearchRef.current?.focus();
-              productSearchRef.current?.select();
-            }}>
-            <header className="flex flex-wrap items-start justify-between gap-2 border-b border-border bg-elevated px-3 py-2 pr-14 @min-[50rem]:sticky @min-[50rem]:top-0 @min-[50rem]:z-10">
-              <div className="min-w-0 wrap-anywhere">
-                <DialogTitle className="font-heading text-xl leading-tight" data-testid="table-sheet-title">
-                  Atendimento — {kindLabel(table.kind)} {table.number}
-                </DialogTitle>
-                {table.name && <p className="mt-1 text-sm font-medium">{table.name}</p>}
-                <p className="mt-1 text-sm text-muted-foreground">{STATUS[table.status].label}{o ? ` · Pedido #${o.number}` : ""}</p>
-              </div>
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                {table.order_id && <label className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-2">
-                  <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                  <Input ref={productSearchRef} aria-keyshortcuts="F3" aria-label="Buscar produto na comanda" placeholder="Produto, categoria ou código" value={productSearch}
-                    disabled={!!submission} onChange={(event) => { setProductSearch(event.target.value); setAdding(true); }}
-                    className="min-w-0 border-0 bg-transparent shadow-none" data-testid="table-product-search" />
-                </label>}
+  const hasItems = items.some((item) => !item.cancelled);
+  const requestCancellation = () => {
+    const reason = window.prompt(`Motivo do cancelamento de ${tableLabel(table)}:`);
+    if (!reason || reason.trim().length < 3) return;
+    const manager_pin = canCancel(me) ? undefined : window.prompt("Sem permissão. PIN do gerente para autorizar:") ?? "";
+    cancelTable.mutate({ reason, manager_pin });
+  };
+  const draftTotal = pending.reduce((sum, item) => sum + item.qty * (item.product.price + item.extra), 0);
+  const confirmedCount = items.reduce((sum, item) => item.cancelled ? sum : sum + item.qty, 0);
+
+  return (
+    <>
+      <section aria-labelledby="table-workspace-heading" className="apollo-station" data-layout={screenMode} data-testid="table-sheet"
+        onKeyDown={(event) => {
+          if (event.defaultPrevented || nestedOpen) return;
+          if (event.key === "Escape") { event.preventDefault(); requestClose(); }
+          if (event.key === "F3" && table.order_id && !pendingConfirmation && !busy) {
+            event.preventDefault();
+            productSearchRef.current?.focus();
+            productSearchRef.current?.select();
+          }
+        }}>
+        <header className="apollo-station-header">
+          <div className="min-w-0">
+            <h1 ref={headingRef} tabIndex={-1} id="table-workspace-heading" className="font-heading text-2xl font-semibold leading-tight" data-testid="table-sheet-title">Atendimento — {kindLabel(table.kind)} {table.number}</h1>
+            <p className="text-sm text-muted-foreground">{table.name && `${table.name} · `}{STATUS[table.status].label}{o && ` · Pedido #${o.number}`}</p>
+          </div>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="rounded border border-border px-2 py-1 text-xs" role="status">{offline ? "Offline" : "Online"}</span>
                 {table.order_id && <DropdownMenu modal={false}>
                   <DropdownMenuTrigger className="inline-flex min-h-10 items-center gap-2 rounded-md border border-border px-3 text-xs font-medium hover:bg-muted">
                     <Ellipsis className="size-4" aria-hidden="true" /> Mais opções
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem disabled={offline || !transferTargets.length || pendingConfirmation || !!pending.length} onClick={() => setOrganization("transfer")}>Transferir mesa</DropdownMenuItem>
+                    {canDelete && <DropdownMenuItem disabled={offline || pendingConfirmation || !!pending.length || !tables.some((target) => target.id !== table.id && !!target.order_id)} onClick={() => setOrganization("merge")}>Juntar contas</DropdownMenuItem>}
+                    {canDelete && <DropdownMenuItem disabled={offline || pendingConfirmation || !!pending.length || !hasItems} onClick={() => setPartialOpen(true)}>Dividir por cliente ou itens</DropdownMenuItem>}
+                    <DropdownMenuItem disabled={offline || status.isPending} onClick={() => status.mutate(table.status === "conta" ? "ocupada" : "conta")}>{table.status === "conta" ? "Voltar para ocupada" : "Marcar conta"}</DropdownMenuItem>
+                    <DropdownMenuItem disabled={offline || pendingConfirmation || !!pending.length || release.isPending || hasItems} onClick={() => release.mutate()}>Liberar mesa</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" disabled={offline || pendingConfirmation || !!pending.length || cancelTable.isPending} onClick={requestCancellation}>Cancelar atendimento</DropdownMenuItem>
                     <DropdownMenuItem disabled={!items.some((item) => !item.cancelled)} onClick={() => setPreBill("view")}>Consultar conta</DropdownMenuItem>
                     <DropdownMenuItem disabled={!items.some((item) => !item.cancelled)} onClick={() => setPreBill("print")}>Imprimir conferência</DropdownMenuItem>
                     {pending.length > 0 && <DropdownMenuItem disabled={busy || pendingConfirmation} onClick={() => setReviewOpen(true)}>Revisar lançamento</DropdownMenuItem>}
@@ -739,17 +772,27 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>}
-                <Button type="button" variant="outline" size="icon" className="hidden sm:inline-flex"
-                  aria-label={maximized ? "Centralizar janela de atendimento" : "Maximizar janela de atendimento"}
-                  title={maximized ? "Restaurar janela centralizada" : "Maximizar janela"}
-                  onClick={() => setMaximized((current) => !current)}>
-                  {maximized ? <Minimize /> : <Maximize />}
-                </Button>
-                <Button variant="outline" onClick={requestClose} disabled={busy || partialOpen} data-testid="table-workspace-close">Voltar</Button>
+            <details className="relative z-20">
+              <summary className="cursor-pointer rounded-md border border-border px-2 py-1 text-xs">Tela</summary>
+              <div className="absolute right-0 mt-1 w-[min(20rem,75vw)] rounded-lg border border-border bg-elevated p-3 shadow-lg">
+                <DisplayControls />
+                {document.fullscreenEnabled && <Button type="button" size="sm" variant="outline" className="mt-2"
+                  onClick={() => void (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen())
+                    .catch(() => toast.error("O dispositivo não disponibilizou tela cheia."))}>Alternar tela cheia</Button>}
               </div>
-            </header>
-            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] @min-[50rem]:grid-cols-[minmax(12rem,1fr)_minmax(0,3fr)]">
-              <aside className="min-w-0 space-y-3 border-b border-border bg-muted/30 p-4 wrap-anywhere @min-[50rem]:border-r @min-[50rem]:border-b-0">
+            </details>
+            <Button type="button" variant="outline" size="icon" className="hidden sm:inline-flex"
+              aria-label={screenMode === "wide" ? "Centralizar área de atendimento" : "Expandir área de atendimento"}
+              title={screenMode === "wide" ? "Centralizar área de atendimento" : "Expandir área de atendimento"}
+              onClick={() => setScreenMode((mode) => mode === "wide" ? "centered" : "wide")}>
+              {screenMode === "wide" ? <Minimize /> : <Maximize />}
+            </Button>
+            <Button variant="outline" onClick={requestClose} disabled={busy || partialOpen} data-testid="table-workspace-close">Voltar</Button>
+          </div>
+        </header>
+        <div className="apollo-station-body" data-testid="table-workspace-panels">
+          <aside className="apollo-station-panel space-y-3" aria-label="Dados da mesa">
+            <h2 className="text-sm font-semibold">Dados do atendimento</h2>
                 <p className="flex items-start gap-2 text-sm"><Clock className="size-4 shrink-0" /> <span>{table.opened_at ? `${minutesSince(table.opened_at, clock)} min de ocupação · desde ${fmtTime(table.opened_at)}` : "Aguardando abertura"}</span></p>
                 <p className="flex items-start gap-2 text-sm"><Users className="size-4 shrink-0" /> <span>{table.people ?? 0} cliente(s){table.waiter_name ? ` · Garçom: ${table.waiter_name}` : " · Garçom não atribuído"}</span></p>
                 {table.customer_name && <p className="text-sm text-muted-foreground">{table.customer_name}</p>}
@@ -761,8 +804,6 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                   </p>}
                   <TableCustomers key={table.id + (table.order_id ?? "")} table={table} onDirtyChange={setEditingCustomers} />
                 </>}
-              </aside>
-              <div className="min-w-0 p-3 wrap-anywhere [&_button]:whitespace-normal">
               {table.call && (
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-orange-200">
                   <span className="flex items-center gap-2"><Bell className="size-4" /> Cliente {table.call === "conta" ? "pediu a conta" : "chamou o garçom"}</span>
@@ -770,80 +811,20 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                 </div>
               )}
 
-              {!table.order_id ? (
-                <div className="mt-6 space-y-4 rounded-2xl border border-white/5 bg-panel p-4">
-                  <p className="text-sm text-zinc-300">Abrir {table.kind === "comanda" ? "comanda" : "mesa"}</p>
-                  <div className="grid gap-3 @min-[35rem]:grid-cols-2">
-                    <div><Label htmlFor="table-people" className="text-sm text-muted-foreground">Pessoas</Label><Input id="table-people" value={people} onChange={(e) => setPeople(e.target.value)} inputMode="numeric" className="mt-1" data-testid="open-table-people-input" /></div>
-                    <div><Label htmlFor="table-customer" className="text-sm text-muted-foreground">Cliente</Label><Input id="table-customer" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" data-testid="open-table-name-input" /></div>
-                  </div>
-                  <Button className="w-full" onClick={() => openT.mutate()} disabled={openT.isPending} data-testid="open-table-button">Abrir {table.kind === "comanda" ? "comanda" : "mesa"}</Button>
-                  <div className="flex flex-wrap gap-2">
-                    {(["livre", "ocupada", "reservada"] as const).map((st) => (
-                      <Button key={st} size="sm" variant={table.status === st ? "default" : "outline"} disabled={offline || status.isPending}
-                        onClick={() => status.mutate(st)} data-testid={`table-status-${st}`}>{STATUS[st].label}</Button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className={cn("grid min-w-0 items-start gap-3", adding && "@min-[62rem]:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]")} data-testid="table-workspace-panels">
-                  <section className="min-w-0 rounded-lg border border-border bg-panel/40 p-2" aria-label="Itens do pedido">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
-                    <div className="flex items-center gap-2"><strong className="text-sm text-foreground">Itens do Pedido ({items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)})</strong></div>
-                    <button type="button" onClick={() => setGrouped((g) => !g)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-300 transition-colors duration-150 hover:border-primary/50" data-testid="toggle-group-items">
-                      {grouped ? "Ver item a item (cancelar)" : "Agrupar quantidades"}
-                    </button>
-                  </div>
-                  <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={showDetails} onChange={(event) => setShowDetails(event.target.checked)} /> Exibição completa</label>
-                  <label className="mt-2 flex min-h-10 items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={showItemTimes} onChange={(event) => setShowItemTimes(event.target.checked)} data-testid="toggle-item-times" /> Mostrar horário dos lançamentos</label>
-                  {grouped ? (
-                    <div className="mt-2 space-y-0 divide-y divide-white/10 rounded-sm border border-white/10" data-testid="table-order-grouped">
-                      {groupItems(items).map((g) => (
-                        <div key={g.key} className="flex flex-wrap items-center gap-3 bg-muted/35 px-3 py-3 text-sm" data-testid="grouped-line">
-                          <span className="min-w-8 font-mono text-primary" data-testid="grouped-line-qty">{g.qty}x</span>
-                          <div className="min-w-0 grow basis-[8rem]">
-                            <p className="wrap-anywhere text-foreground">{g.name}</p>
-                            <p className="text-xs text-muted-foreground">{[...new Set(g.lines.map((line) => progressLabel(line.id)))].join(" · ")}</p>
-                            {showDetails && g.options.length > 0 && <p className="truncate text-xs text-primary">{g.options.join(" · ")}</p>}
-                            {showDetails && g.notes.length > 0 && <p className="truncate text-xs text-amber-300">{g.notes.join(" · ")}</p>}
-                            <p className="text-xs text-zinc-400">Cliente: {g.customer_name || "Mesa inteira"}{g.ordered_by ? ` · Lançado por: ${g.ordered_by}` : ""}{showItemTimes && g.lines.some((line) => line.ordered_at) ? ` · Horário: ${g.lines.filter((line) => line.ordered_at).map((line) => fmtTime(line.ordered_at!)).join(", ")}` : ""}</p>
-                          </div>
-                          <span className="font-mono text-xs text-zinc-500">{brl(g.unit_price)}</span>
-                          <span className="font-mono text-zinc-200">{brl(g.total)}</span>
-                          {o?.status === "aberto" && !submission && sentActions(g)}
-                        </div>
-                      ))}
-                      {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
-                    </div>
-                  ) : (
-                  <div className="mt-2 space-y-2" data-testid="table-order-items">
-                    {items.map((i) => (
-                      <div key={i.id} className={cn("flex flex-wrap items-center gap-2 rounded-lg bg-panel px-2 py-2 text-sm", i.cancelled && "opacity-40 line-through")}>
-                        <span className="font-mono text-zinc-400">{i.qty}x</span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-foreground">{i.name}</p>
-                          <p className="text-xs text-muted-foreground">{i.cancelled ? "Cancelado" : progressLabel(i.id)}</p>
-                          {showDetails && i.options?.length > 0 && <p className="truncate text-xs text-primary">{i.options.join(" · ")}</p>}
-                          {(i.cancel_reason || (showDetails && i.notes)) && <p className="truncate text-xs text-amber-300">{i.cancel_reason || i.notes}</p>}
-                          <p className="text-xs text-zinc-400">Cliente: {i.customer_name || "Mesa inteira"}{i.ordered_by ? ` · Lançado por: ${i.ordered_by}` : ""}{showItemTimes && i.ordered_at ? ` · Horário: ${fmtTime(i.ordered_at)}` : ""}</p>
-                        </div>
-                        <span className="font-mono text-xs text-muted-foreground">{brl(i.unit_price)} un.</span>
-                        <span className="font-mono text-zinc-200">{brl(i.qty * i.unit_price)}</span>
-                        {o?.status === "aberto" && !submission && !i.cancelled && sentActions(groupItems([i])[0], i)}
-                      </div>
-                    ))}
-                    {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
-                  </div>
-                  )}
-                  {submissionQuery.isError && <p role="alert" className="mt-4 text-sm text-red-500">Não foi possível verificar o envio salvo neste dispositivo.</p>}
-                  {submission && <p role="status" className="mt-4 text-sm text-amber-600 dark:text-amber-300">{offline ? "Envio salvo neste dispositivo. Aguardando conexão." : "Envio aguardando confirmação. Confira ou reenvie os mesmos itens."}</p>}
-                  </section>
-                  {adding ? (
-                    <fieldset aria-label="Catálogo e rascunho" disabled={send.isPending || !!submission} className="min-w-0 space-y-3 rounded-lg border border-border bg-panel p-2">
-                      <ProductGrid products={visibleProducts} categories={categories.data ?? []} onAdd={addPending} compact />
-                      {visibleProducts.length === 0 && <p className="text-xs text-amber-200">Nenhum produto encontrado. Confira o nome ou código.</p>}
-                      <p className="text-xs text-zinc-400">Novo pedido: ajuste quantidades, cliente e observações antes de revisar. O operador será registrado automaticamente.</p>
+          </aside>
+          {table.order_id ? <>
+            <section className="apollo-station-panel apollo-station-catalog @container" aria-label="Catálogo de produtos">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-base font-semibold">Catálogo de produtos</h2>
+                <Button type="button" size="sm" variant="outline" onClick={() => productSearchRef.current?.focus()} data-testid="add-items-button"><Search className="size-4" /> Localizar · F3</Button>
+              </div>
+              <fieldset disabled={send.isPending || !!submission} className="min-w-0" aria-label="Produtos disponíveis">
+                <ProductGrid products={visibleProducts} categories={categories.data ?? []} onAdd={addPending} compact searchInputRef={productSearchRef} searchTestId="table-product-search" />
+              </fieldset>
+            </section>
+            <section className="apollo-station-panel apollo-station-order" aria-label="Itens do pedido">
+              {!!pending.length && <fieldset disabled={send.isPending || !!submission} className="mb-4 min-w-0 space-y-3 rounded-lg border border-primary/35 bg-background p-2">
+                <legend className="px-1 text-sm font-semibold">Rascunho · {brl(draftTotal)}</legend>
                       {pending.map((p, i) => (
                         <div key={p.key} className="flex flex-wrap items-center gap-2 text-sm" data-testid={`pending-line-${i}`}>
                           <Button size="icon-xs" variant="outline" onClick={() => setPending((c) => c.flatMap((x, j) => j !== i ? [x] : x.qty <= 1 ? [] : [{ ...x, qty: Number((x.qty - 1).toFixed(4)) }]))}><Minus /></Button>
@@ -866,32 +847,101 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                           <Input value={p.notes} placeholder="Observação: sem cebola, ponto da carne..." aria-label={`Observação do item ${p.product.name}`} onChange={(e) => setPending((c) => c.map((x, j) => j === i ? { ...x, notes: e.target.value } : x))} className="w-full text-sm" data-testid={`pending-notes-${i}`} />
                         </div>
                       ))}
-                      <div className="flex flex-wrap gap-2">
-                        <Button variant="ghost" disabled={send.isPending} onClick={() => {
-                          if (!pending.length || window.confirm("Descartar os itens ainda não enviados?")) { setAdding(false); setPending([]); }
-                        }}>Cancelar</Button>
-                        <Button className="flex-1" disabled={!pending.length || send.isPending || pendingConfirmation} onClick={() => setReviewOpen(true)} data-testid="send-to-kitchen-button">
-                          <Send className="size-4" /> Revisar {pending.reduce((s, p) => s + p.qty, 0)} itens
-                        </Button>
-                      </div>
-                    </fieldset>
+                <Button variant="ghost" size="sm" onClick={() => {
+                  if (window.confirm("Descartar os itens ainda não enviados?")) setPending([]);
+                }}>Descartar rascunho</Button>
+              </fieldset>}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
+                    <div className="flex items-center gap-2"><strong className="text-sm text-foreground">Itens do Pedido ({items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)})</strong></div>
+                    <button type="button" onClick={() => setGrouped((g) => !g)} className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-300 transition-colors duration-150 hover:border-primary/50" data-testid="toggle-group-items">
+                      {grouped ? "Ver item a item (cancelar)" : "Agrupar quantidades"}
+                    </button>
+                  </div>
+                  <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={showDetails} onChange={(event) => setShowDetails(event.target.checked)} /> Exibição completa</label>
+                  <label className="mt-2 flex min-h-10 items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={showItemTimes} onChange={(event) => setShowItemTimes(event.target.checked)} data-testid="toggle-item-times" /> Mostrar horário dos lançamentos</label>
+                  {grouped ? (
+                    <div className="mt-2 space-y-0 divide-y divide-white/10 rounded-sm border border-white/10" data-testid="table-order-grouped">
+                      {groupItems(items).map((g) => (
+                        <div key={g.key} className="flex flex-wrap items-center gap-3 bg-muted/35 px-3 py-3 text-sm" data-testid="grouped-line">
+                          <span className="min-w-8 font-mono text-primary" data-testid="grouped-line-qty">{g.qty}x</span>
+                          <div className="min-w-0 grow basis-[8rem]">
+                            <p className="wrap-anywhere text-foreground">{g.name}</p>
+                            <p className="text-xs text-muted-foreground">{[...new Set(g.lines.map((line) => progressLabel(line.id)))].join(" · ")}</p>
+                            {g.lines.length > 0 && g.lines.every((line) => spoolerItems.has(line.id)) && <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">{g.lines.every((line) => confirmedPrints.has(line.id)) ? "Impressão confirmada pelo operador" : "Aceito pelo spooler"}</p>}
+                            {showDetails && g.options.length > 0 && <p className="truncate text-xs text-primary">{g.options.join(" · ")}</p>}
+                            {showDetails && g.notes.length > 0 && <p className="truncate text-xs text-amber-300">{g.notes.join(" · ")}</p>}
+                            <p className="text-xs text-zinc-400">Cliente: {g.customer_name || "Mesa inteira"}{g.ordered_by ? ` · Lançado por: ${g.ordered_by}` : ""}{showItemTimes && g.lines.some((line) => line.ordered_at) ? ` · Horário: ${g.lines.filter((line) => line.ordered_at).map((line) => fmtTime(line.ordered_at!)).join(", ")}` : ""}</p>
+                          </div>
+                          <span className="font-mono text-xs text-zinc-500">{brl(g.unit_price)}</span>
+                          <span className="font-mono text-zinc-200">{brl(g.total)}</span>
+                          {o?.status === "aberto" && !submission && sentActions(g)}
+                        </div>
+                      ))}
+                      {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
+                    </div>
                   ) : (
-                    <Button className="h-auto min-h-12 justify-self-start" onClick={() => { setProductSearch(""); setAdding(true); productSearchRef.current?.focus(); }} data-testid="add-items-button"><Plus className="size-4" /> Adicionar produtos</Button>
+                  <div className="mt-2 space-y-2" data-testid="table-order-items">
+                    {items.map((i) => (
+                      <div key={i.id} className={cn("flex flex-wrap items-center gap-2 rounded-lg bg-panel px-2 py-2 text-sm", i.cancelled && "opacity-40 line-through")}>
+                        <span className="font-mono text-zinc-400">{i.qty}x</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-foreground">{i.name}</p>
+                          <p className="text-xs text-muted-foreground">{i.cancelled ? "Cancelado" : progressLabel(i.id)}</p>
+                          {spoolerItems.has(i.id) && !i.cancelled && <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">{confirmedPrints.has(i.id) ? "Impressão confirmada pelo operador" : "Aceito pelo spooler"}</p>}
+                          {showDetails && i.options?.length > 0 && <p className="truncate text-xs text-primary">{i.options.join(" · ")}</p>}
+                          {(i.cancel_reason || (showDetails && i.notes)) && <p className="truncate text-xs text-amber-300">{i.cancel_reason || i.notes}</p>}
+                          <p className="text-xs text-zinc-400">Cliente: {i.customer_name || "Mesa inteira"}{i.ordered_by ? ` · Lançado por: ${i.ordered_by}` : ""}{showItemTimes && i.ordered_at ? ` · Horário: ${fmtTime(i.ordered_at)}` : ""}</p>
+                        </div>
+                        <span className="font-mono text-xs text-muted-foreground">{brl(i.unit_price)} un.</span>
+                        <span className="font-mono text-zinc-200">{brl(i.qty * i.unit_price)}</span>
+                        {o?.status === "aberto" && !submission && !i.cancelled && sentActions(groupItems([i])[0], i)}
+                      </div>
+                    ))}
+                    {items.length === 0 && <p className="py-6 text-center text-sm text-zinc-500">Comanda vazia. Adicione itens.</p>}
+                  </div>
                   )}
-
+                  {submissionQuery.isError && <p role="alert" className="mt-4 text-sm text-red-500">Não foi possível verificar o envio salvo neste dispositivo.</p>}
+                  {submission && <p role="status" className="mt-4 text-sm text-amber-600 dark:text-amber-300">{offline ? "Envio salvo neste dispositivo. Aguardando conexão." : "Envio aguardando confirmação. Confira ou reenvie os mesmos itens."}</p>}
+              {table.order_id && <TablePrintStatusList status={printStatus} />}
+              {offline && <p role="status" data-testid="table-online-required" className="mt-3 text-sm text-amber-600 dark:text-amber-300">Transferência, cancelamento e recebimento exigem conexão.</p>}
+            </section>
+          </> : <section className="apollo-station-panel">
+                <div className="mt-6 space-y-4 rounded-2xl border border-white/5 bg-panel p-4">
+                  <p className="text-sm text-zinc-300">Abrir {table.kind === "comanda" ? "comanda" : "mesa"}</p>
+                  <div className="grid gap-3 @min-[35rem]:grid-cols-2">
+                    <div><Label htmlFor="table-people" className="text-sm text-muted-foreground">Pessoas</Label><Input id="table-people" value={people} onChange={(e) => setPeople(e.target.value)} inputMode="numeric" className="mt-1" data-testid="open-table-people-input" /></div>
+                    <div><Label htmlFor="table-customer" className="text-sm text-muted-foreground">Cliente</Label><Input id="table-customer" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" data-testid="open-table-name-input" /></div>
                   </div>
-                  {offline && <p role="status" data-testid="table-online-required" className="mt-3 text-sm text-amber-300">Transferência, cancelamento e recebimento exigem conexão.</p>}
-                  {table.order_id && <TablePrintStatusList key={table.order_id} tableId={table.id} orderId={table.order_id} />}
-                  {submission && <Button className="mt-2" onClick={() => setReviewOpen(true)}>Conferir envio pendente</Button>}
-                  <div className="mt-3 grid gap-2 @min-[35rem]:grid-cols-2">
-                    <Button variant="outline" onClick={() => setPreBill("view")} disabled={!items.some((i) => !i.cancelled)} data-testid="request-bill-button">
-                      <Receipt className="size-4" /> Ver conta
-                    </Button>
-                    <Button variant="outline" onClick={() => setPreBill("print")} disabled={!items.some((i) => !i.cancelled)}>
-                      <Printer className="size-4" /> Pré-conta e impressão
-                    </Button>
+                  <Button className="w-full" onClick={() => openT.mutate()} disabled={openT.isPending} data-testid="open-table-button">Abrir {table.kind === "comanda" ? "comanda" : "mesa"}</Button>
+                  <div className="flex flex-wrap gap-2">
+                    {(["livre", "ocupada", "reservada"] as const).map((st) => (
+                      <Button key={st} size="sm" variant={table.status === st ? "default" : "outline"} disabled={offline || status.isPending}
+                        onClick={() => status.mutate(st)} data-testid={`table-status-${st}`}>{STATUS[st].label}</Button>
+                    ))}
                   </div>
-                  {["admin", "caixa"].includes(me?.role ?? "") && <Button className="mt-2 w-full" variant="outline" disabled={offline || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled)} onClick={() => setPartialOpen(true)}>Dividir por cliente ou itens</Button>}
+                </div>
+          </section>}
+        </div>
+        {table.order_id && <footer className="apollo-station-footer">
+          <dl className="flex min-w-0 flex-wrap gap-x-5 gap-y-1 text-xs">
+            <div><dt className="text-muted-foreground">Enviados</dt><dd className="font-semibold">{confirmedCount}</dd></div>
+            <div><dt className="text-muted-foreground">Subtotal</dt><dd className="font-semibold">{brl(o?.subtotal ?? table.total)}</dd></div>
+            {!!o?.discount && <div><dt className="text-muted-foreground">Desconto</dt><dd>{brl(o.discount)}</dd></div>}
+            {!!o?.service_fee && <div><dt className="text-muted-foreground">Serviço</dt><dd>{brl(o.service_fee)}</dd></div>}
+            <div><dt className="text-muted-foreground">Total</dt><dd className="font-mono text-base font-semibold" data-testid="table-order-total">{brl(o?.total ?? table.total)}</dd></div>
+          </dl>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPreBill("view")} disabled={!hasItems} data-testid="request-bill-button"><Receipt className="size-4" /> Pré-conta</Button>
+            <Button variant="outline" size="sm" disabled={(!pending.length && !submission) || send.isPending || (pendingConfirmation && !submission)} onClick={() => setReviewOpen(true)} data-testid="send-to-kitchen-button"><Send className="size-4" /> {submission ? "Conferir envio pendente" : `Revisar envio (${pending.length})`}</Button>
+            {me?.role === "garcom" && <Button size="sm" variant="outline" onClick={() => { if (window.confirm("Solicitar fechamento desta conta ao caixa?")) status.mutate("conta"); }} disabled={offline || status.isPending || pendingConfirmation || !!pending.length || !hasItems || table.status === "conta"} data-testid="waiter-request-close">{table.status === "conta" ? "Conta solicitada" : "Solicitar fechamento"}</Button>}
+            {canDelete && <Button size="sm" className="bg-emerald-700 text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={offline || pendingConfirmation || !!pending.length || !hasItems || pay.isPending} data-testid="close-table-button"><Receipt className="size-4" /> Pagamento</Button>}
+          </div>
+        </footer>}
+      </section>
+      <Dialog open={!!organization} onOpenChange={(open) => { if (!open && !busy) setOrganization(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{organization === "transfer" ? "Transferir mesa" : "Juntar contas"}</DialogTitle></DialogHeader>
+          {organization === "transfer" ? (
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Select value={transferTarget?.id ?? ""} onValueChange={(v: string) => setTransferTo(v)} disabled={offline || !transferTargets.length || transfer.isPending}>
                       <SelectTrigger className="min-w-0 flex-1" data-testid="transfer-select"><SelectValue placeholder="Transferir para…">{(v) => v ? (() => { const x = tables.find((t) => t.id === v); return x ? tableLabel(x) : ""; })() : "Transferir para…"}</SelectValue></SelectTrigger>
@@ -905,6 +955,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                       }
                     }} data-testid="transfer-button"><ArrowRightLeft className="size-4" /> Transferir</Button>
                   </div>
+          ) : <>
                   {(me?.role === "admin" || me?.role === "caixa") && <div className="mt-3 space-y-2 rounded-lg border border-white/10 p-3" data-testid="merge-tables-panel">
                     <p className="text-xs text-zinc-300">Juntar contas — escolha a mesa que receberá todos os itens</p>
                     <div className="flex flex-wrap gap-2">
@@ -916,47 +967,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     </div>
                     <p className="text-xs text-zinc-500">Disponível para caixa e administrador. Requer banco de dados com transações.</p>
                   </div>}
-                  <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
-                    <Button size="sm" variant="outline" disabled={offline || status.isPending}
-                      onClick={() => status.mutate(table.status === "conta" ? "ocupada" : "conta")} data-testid="table-toggle-status-button">
-                      {table.status === "conta" ? "Voltar p/ ocupada" : "Marcar conta"}
-                    </Button>
-                    <Button size="sm" variant="outline" disabled={offline || pendingConfirmation || !!pending.length || release.isPending || items.some((i) => !i.cancelled)}
-                      title={items.some((i) => !i.cancelled) ? "Só libera sem consumo: feche a conta ou cancele" : ""}
-                      onClick={() => release.mutate()} data-testid="table-release-button">Liberar</Button>
-                    <Button size="sm" variant="destructive" disabled={offline || pendingConfirmation || !!pending.length || cancelTable.isPending} data-testid="table-cancel-button" onClick={() => {
-                      const reason = window.prompt(`Motivo do cancelamento de ${tableLabel(table)}:`);
-                      if (!reason || reason.trim().length < 3) return;
-                      const manager_pin = canCancel(me) ? undefined : window.prompt("Sem permissão. PIN do gerente para autorizar:") ?? "";
-                      cancelTable.mutate({ reason, manager_pin });
-                    }}>Cancelar {table.kind === "comanda" ? "comanda" : "mesa"}</Button>
-                  </div>
-                </>
-              )}
-              </div>
-            </div>
-          </div>
-  );
-
-  return (
-    <>
-      <Dialog open onOpenChange={(value) => { if (!value) requestClose(); }} disablePointerDismissal>
-        <DialogContent overlayClassName="bg-black/55"
-          className={cn("w-[calc(100%-1rem)] grid-rows-[minmax(0,1fr)_auto] grid-cols-[minmax(0,1fr)] gap-0 overflow-hidden border border-border bg-elevated p-0",
-            maximized ? "h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] max-w-[calc(100%-1rem)] sm:max-w-[calc(100%-1rem)]"
-              : "max-h-[90dvh] max-w-[min(calc(100%-1rem),1080px)] sm:max-w-[min(calc(100%-2rem),1080px)]")}
-          data-testid="table-sheet">
-          {content}
-          {table.order_id && <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-panel px-4 py-2">
-            <div>
-              <p className="text-xs text-muted-foreground">Subtotal</p>
-              <p className="font-mono text-xl font-semibold" data-testid="table-order-total">{brl(o?.total ?? table.total)}</p>
-            </div>
-            {me?.role === "garcom" && <Button className="h-auto min-h-12" variant="outline" onClick={() => { if (window.confirm("Solicitar fechamento desta conta ao caixa?")) status.mutate("conta"); }} disabled={offline || status.isPending || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || table.status === "conta"} data-testid="waiter-request-close"><Receipt className="size-4" /> {table.status === "conta" ? "Conta solicitada" : "Solicitar fechamento"}</Button>}
-            {["admin", "caixa"].includes(me?.role ?? "") && <Button className="h-auto min-h-12 bg-emerald-700 font-semibold text-white hover:bg-emerald-600" onClick={() => setPayOpen(true)} disabled={offline || pendingConfirmation || !!pending.length || !items.some((i) => !i.cancelled) || !["admin", "caixa"].includes(me?.role ?? "") || pay.isPending} data-testid="close-table-button">
-              <Receipt className="size-4" /> PAGAMENTO
-            </Button>}
-          </footer>}
+          </>}
         </DialogContent>
       </Dialog>
       <Dialog open={reviewOpen} onOpenChange={(open) => { if (!send.isPending) setReviewOpen(open); }}>

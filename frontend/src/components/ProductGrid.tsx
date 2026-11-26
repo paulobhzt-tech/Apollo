@@ -8,11 +8,12 @@ import { FAVORITES_KEY, readFavorites, saveFavorites, toggleFavorite } from "@/l
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export default function ProductGrid({ products, categories, onAdd, compact, searchInputRef }: {
+export default function ProductGrid({ products, categories, onAdd, compact, searchInputRef, searchTestId = "product-search-input" }: {
   products: Product[];
   categories: Category[];
   onAdd: (p: Product) => void;
   compact?: boolean;
+  searchTestId?: string;
   searchInputRef?: RefObject<HTMLInputElement | null>;
 }) {
   const [cat, setCat] = useState<string>("all");
@@ -33,9 +34,9 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
   const list = useMemo(() => searchProducts(products, cat, q, favoritesOnly ? favorites : undefined), [products, cat, q, favoritesOnly, favorites]);
 
   return (
-    <div className="grid min-h-0 min-w-0 gap-3 sm:grid-cols-[minmax(8rem,1fr)_minmax(0,3fr)]">
-      <div className="flex min-w-0 flex-wrap items-center gap-2 sm:col-span-2">
-        <div className="relative min-w-40 flex-1">
+    <div className="@container min-w-0"><div className="grid min-h-0 min-w-0 gap-3 @min-[30rem]:grid-cols-[minmax(8rem,1fr)_minmax(0,3fr)]">
+      <div className="flex min-w-0 flex-wrap items-center gap-2 @min-[30rem]:col-span-2">
+        <div className="relative min-w-0 flex-1 basis-40">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
         <Input
           ref={searchInputRef}
@@ -46,7 +47,9 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
             if (e.key === "Enter" && list.length === 1) { onAdd(list[0]); setQ(""); }
           }}
           className="h-11 pl-9"
-          data-testid="product-search-input"
+          aria-label="Buscar produto por nome, código ou descrição"
+          aria-keyshortcuts="F3"
+          data-testid={searchTestId}
         />
         </div>
         <button type="button" onClick={() => setListMode((value) => !value)}
@@ -54,7 +57,7 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
           {listMode ? "Exibir cartões" : "Exibir lista"}
         </button>
       </div>
-      <div role="group" aria-label="Categorias de produtos" className="flex min-w-0 flex-wrap content-start gap-1.5 sm:max-h-96 sm:flex-col sm:flex-nowrap sm:overflow-y-auto sm:border-r sm:border-border sm:pr-3">
+      <div role="group" aria-label="Categorias de produtos" className="flex min-w-0 flex-wrap content-start gap-1.5 @min-[30rem]:max-h-96 @min-[30rem]:flex-col @min-[30rem]:flex-nowrap @min-[30rem]:overflow-y-auto @min-[30rem]:border-r @min-[30rem]:border-border @min-[30rem]:pr-3">
         <button type="button" onClick={() => setFavoritesOnly((value) => !value)} aria-pressed={favoritesOnly} data-testid="product-favorites-filter"
           className={cn("flex items-center gap-1.5 min-h-10 rounded-lg border px-3 py-1.5 text-sm", favoritesOnly ? "border-primary bg-primary text-white" : "border-white/10 text-zinc-300 hover:border-white/25")}>
           <Star className="size-4" fill={favoritesOnly ? "currentColor" : "none"} aria-hidden="true" /> Favoritos
@@ -75,7 +78,7 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
           </button>
         ))}
       </div>
-      <div className={cn("grid min-w-0 content-start gap-2", listMode ? "grid-cols-1" : compact ? "grid-cols-2 @min-[45rem]:grid-cols-3" : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4")}>
+      <div className={cn("grid min-w-0 content-start gap-2", listMode ? "grid-cols-1" : compact ? "grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))]" : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4")}>
         {list.map((p) => (
           <div key={p.id} className="relative min-w-0">
           <button
@@ -90,7 +93,8 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
               </div>
             )}
             <div className={cn("p-2 pr-11", listMode && "flex flex-wrap items-center justify-between gap-2")}>
-              <p className="line-clamp-2 text-sm font-medium text-foreground">{p.name}</p>
+              <p className="wrap-anywhere text-sm font-medium text-foreground">{p.name}</p>
+              {p.description && <p className="wrap-anywhere text-xs text-muted-foreground">{p.description}</p>}
               <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2">
                 <span className="font-mono text-sm text-primary">{brl(p.price)}{p.sale_unit && p.sale_unit !== "un" ? ` / ${p.sale_unit}` : ""}</span>
                 <span className="font-mono text-[10px] text-zinc-500">{p.code}</span>
@@ -106,6 +110,6 @@ export default function ProductGrid({ products, categories, onAdd, compact, sear
         ))}
         {list.length === 0 && <p className="col-span-full py-10 text-center text-sm text-zinc-500">{favoritesOnly ? "Nenhum favorito nesta seleção. Use a estrela dos produtos para montar seus atalhos." : "Nenhum produto encontrado."}</p>}
       </div>
-    </div>
+    </div></div>
   );
 }

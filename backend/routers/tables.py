@@ -244,6 +244,7 @@ class TablePrintStatus(BaseModel):
     created_at: datetime
     printed: bool
     attempt: PrintAttempt | None = None
+    item_ids: list[str] = Field(default_factory=list)
 
 
 @router.get("/tables/{id}/print-status", response_model=list[TablePrintStatus])
@@ -253,7 +254,7 @@ async def table_print_status(id: str, order_id: str, _: dict = Depends(require(*
         raise HTTPException(409, "Atendimento alterado. Atualize a mesa.")
     response = []
     query = {"order_id": order_id, "items": {"$elemMatch": {"print_ticket": {"$ne": False}}}}
-    projection = {"id": 1, "created_at": 1, "items.station": 1, "items.print_ticket": 1,
+    projection = {"id": 1, "created_at": 1, "items.station": 1, "items.print_ticket": 1, "items.order_item_id": 1,
                   "printed": 1, "print_attempts": 1}
     tickets = db.kitchen_tickets.find(query, projection).sort("created_at", -1).limit(100)
     async for ticket in tickets:
@@ -263,6 +264,11 @@ async def table_print_status(id: str, order_id: str, _: dict = Depends(require(*
             response.append(TablePrintStatus(
                 ticket_id=ticket["id"], station=station, created_at=ticket["created_at"],
                 printed=station in ticket.get("printed", []), attempt=attempts.get(station),
+                item_ids=list(dict.fromkeys(
+                    item["order_item_id"] for item in ticket["items"]
+                    if item.get("order_item_id") and item.get("print_ticket") is not False
+                    and item.get("station", "cozinha") == station
+                )),
             ))
     return response
 

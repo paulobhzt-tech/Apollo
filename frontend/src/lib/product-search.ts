@@ -10,5 +10,5 @@ export function searchProducts(products: Product[], category: string, query: str
   }
   const favoriteIds = favorites ? new Set(favorites) : null;
   return active.filter((product) => (!favoriteIds || favoriteIds.has(product.id)) && (category === "all" || product.category_id === category) &&
-    (!q || normalize(product.name).includes(q)));
+    (!q || [product.name, product.description ?? "", product.code ?? ""].some((text) => normalize(text).includes(q))));
 }
