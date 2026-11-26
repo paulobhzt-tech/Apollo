@@ -212,7 +212,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
                 ))}
                 {method === "credito" && <label className="block text-xs text-muted-foreground">
                   Parcelas
-                  <select className="mt-1 min-h-8 w-full rounded-md border border-border bg-elevated px-2"
+                  <select aria-label="Parcelas" className="mt-1 min-h-8 w-full rounded-md border border-border bg-elevated px-2"
                     value={cardFields.installments} disabled={pending}
                     onChange={(event) => setCardFields((current) => ({ ...current, installments: event.target.value }))}>
                     <option value="">À vista</option>
