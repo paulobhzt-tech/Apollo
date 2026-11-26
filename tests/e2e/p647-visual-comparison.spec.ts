@@ -91,5 +91,6 @@ test("captures the same populated screens in each version", async ({ page }, inf
   await capture("estoque");
   await page.getByTestId("tab-compras").click();
   await expect(page.getByRole("heading", { name: "Registrar compra" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Fornecedor fictício" })).toHaveCount(3);
   await capture("compras");
 });
