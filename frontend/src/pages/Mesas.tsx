@@ -695,7 +695,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
               productSearchRef.current?.focus();
               productSearchRef.current?.select();
             }}>
-            <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border p-4 pr-14">
+            <header className="flex flex-wrap items-start justify-between gap-2 border-b border-border bg-elevated px-3 py-2 pr-14 @min-[50rem]:sticky @min-[50rem]:top-0 @min-[50rem]:z-10">
               <div className="min-w-0 wrap-anywhere">
                 <DialogTitle className="font-heading text-xl leading-tight" data-testid="table-sheet-title">
                   Atendimento — {kindLabel(table.kind)} {table.number}
@@ -754,10 +754,15 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                 <p className="flex items-start gap-2 text-sm"><Users className="size-4 shrink-0" /> <span>{table.people ?? 0} cliente(s){table.waiter_name ? ` · Garçom: ${table.waiter_name}` : " · Garçom não atribuído"}</span></p>
                 {table.customer_name && <p className="text-sm text-muted-foreground">{table.customer_name}</p>}
                 <Button variant="outline" onClick={() => onQr(table)} data-testid="table-qr-button"><QrCode className="size-4" /> QR {table.kind === "mesa" ? "da mesa" : "da comanda"}</Button>
+                <RenameRow key={table.id + table.name} table={table} canDelete={canDelete} onDeleted={onClose} />
+                {table.order_id && <>
+                  {o?.registered_customer_name && <p className="mb-2 text-sm text-foreground">
+                    Cliente cadastrado: <strong>{o.registered_customer_name}</strong>
+                  </p>}
+                  <TableCustomers key={table.id + (table.order_id ?? "")} table={table} onDirtyChange={setEditingCustomers} />
+                </>}
               </aside>
-              <div className="min-w-0 p-4 wrap-anywhere [&_button]:whitespace-normal">
-              <RenameRow key={table.id + table.name} table={table} canDelete={canDelete} onDeleted={onClose} />
-
+              <div className="min-w-0 p-3 wrap-anywhere [&_button]:whitespace-normal">
               {table.call && (
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-orange-200">
                   <span className="flex items-center gap-2"><Bell className="size-4" /> Cliente {table.call === "conta" ? "pediu a conta" : "chamou o garçom"}</span>
@@ -782,11 +787,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                 </div>
               ) : (
                 <>
-                  {o?.registered_customer_name && <p className="mb-2 text-sm text-foreground">
-                    Cliente cadastrado: <strong>{o.registered_customer_name}</strong>
-                  </p>}
-                  <TableCustomers key={table.id + (table.order_id ?? "")} table={table} onDirtyChange={setEditingCustomers} />
-                  <div className={cn("mt-3 grid min-w-0 items-start gap-3", adding && "@min-[62rem]:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]")} data-testid="table-workspace-panels">
+                  <div className={cn("grid min-w-0 items-start gap-3", adding && "@min-[62rem]:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]")} data-testid="table-workspace-panels">
                   <section className="min-w-0 rounded-lg border border-border bg-panel/40 p-2" aria-label="Itens do pedido">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
                     <div className="flex items-center gap-2"><strong className="text-sm text-foreground">Itens do Pedido ({items.filter((i) => !i.cancelled).reduce((s, i) => s + i.qty, 0)})</strong></div>
@@ -1315,10 +1316,10 @@ function TableCustomers({ table, onDirtyChange }: { table: Table; onDirtyChange:
     if (names.length >= 50) { toast.error("Limite de 50 clientes por mesa"); return; }
     setNames(old => [...old, name]); setDraft("");
   };
-  return <section className="mt-4 rounded-xl border border-white/10 bg-panel p-3" data-testid="table-customers">
+  return <section className="min-w-0 rounded-lg border border-border bg-panel p-2" data-testid="table-customers">
     <p className="flex items-center gap-2 text-sm font-semibold"><Users className="size-4" /> Clientes nesta mesa ({names.length})</p>
     <div className="mt-2 flex flex-wrap gap-2">
-      {names.map((name, index) => <span key={index} className="flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs">
+      {names.map((name, index) => <span key={index} className="flex min-w-0 max-w-full items-center gap-2 rounded-full border border-border px-2 py-1 text-xs wrap-anywhere">
         {name}<button type="button" aria-label={`Remover ${name}`} onClick={() => setNames(old => old.filter((_, i) => i !== index))} className="text-red-300">×</button>
       </span>)}
     </div>
@@ -1328,6 +1329,5 @@ function TableCustomers({ table, onDirtyChange }: { table: Table; onDirtyChange:
       <Button type="button" variant="outline" onClick={add} disabled={!draft.trim()}>Adicionar</Button>
     </div>
     <Button className="mt-2 w-full" type="button" disabled={save.isPending} onClick={() => save.mutate(names)} data-testid="table-save-customers">Salvar clientes</Button>
-    <p className="mt-2 text-xs text-zinc-400">Todos compartilham a mesma mesa e comanda. A divisão de pagamentos continua disponível no caixa.</p>
   </section>;
 }
