@@ -14,7 +14,7 @@ from lib.cash_scope import cash_scope, claim_cash, independent_cash
 from lib.auth import authenticated_identity, cancel_authorizer, current_user, require
 from lib.db import client, db
 from lib.sync_identity import sync_context, validate_sync_context
-from lib.orders import (build_items, card_payment_audit, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, validate_methods, validate_payment_details,
+from lib.orders import (build_items, card_payment_audit, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, order_for_operator, validate_methods, validate_payment_details,
                         refresh_totals)
 from models.schemas import (SaleQuantity, AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, OrderItem, PayIn, PrintAttempt, SaleResult, Table, TableIn,
                             OrderItemIn, SyncContext, TablePayIn, TableStatusIn, TableUpdate, TransferIn, table_label)
@@ -139,7 +139,7 @@ async def link_registered_customer(id: str, body: RegisteredCustomerIn, user: di
     )
     if not order:
         raise HTTPException(409, "Atendimento alterado. Atualize antes de vincular.")
-    return order
+    return order_for_operator(order, user)
 
 
 class TableCustomersIn(BaseModel):
@@ -217,11 +217,12 @@ async def clear_call(id: str, _: dict = Depends(require(*STAFF))):
 
 
 @router.get("/tables/{id}/order", response_model=Order | None)
-async def table_order(id: str, _: dict = Depends(current_user)):
+async def table_order(id: str, user: dict = Depends(current_user)):
     t = await get_table(id)
     if not t.get("order_id"):
         return None
-    return await db.orders.find_one({"id": t["order_id"]}, {"_id": 0})
+    order = await db.orders.find_one({"id": t["order_id"]}, {"_id": 0})
+    return order_for_operator(order, user)
 
 
 @router.get("/tables/{id}/item-progress", response_model=dict[str, str])
@@ -269,7 +270,8 @@ async def table_print_status(id: str, order_id: str, _: dict = Depends(require(*
 @router.post("/tables/{id}/items", response_model=Order)
 async def add_items(id: str, body: AddItemsIn, user: dict = Depends(require(*STAFF))):
     await validate_sync_context(body.sync_context, user)
-    return await with_order_transaction(lambda session: apply_add_items(id, body, user, session=session))
+    order = await with_order_transaction(lambda session: apply_add_items(id, body, user, session=session))
+    return order_for_operator(order, user)
 
 
 async def apply_add_items(id: str, body: AddItemsIn, user: dict, *, session=None, expected_prices=None):
@@ -451,7 +453,8 @@ async def sync_offline_table(body: OfflineTableIn, user: dict = Depends(require(
 @router.post("/tables/{id}/items/{item_id}/cancel", response_model=Order)
 async def cancel_item(id: str, item_id: str, body: CancelIn, user: dict = Depends(current_user)):
     auth = await cancel_authorizer(user, body.manager_pin)
-    return await with_order_transaction(lambda session: apply_cancel_item(id, item_id, body, user, auth, session=session))
+    order = await with_order_transaction(lambda session: apply_cancel_item(id, item_id, body, user, auth, session=session))
+    return order_for_operator(order, user)
 
 
 async def apply_cancel_item(id: str, item_id: str, body: CancelIn, user: dict, auth: str, *, session=None):

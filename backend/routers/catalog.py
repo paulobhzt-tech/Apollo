@@ -70,7 +70,12 @@ async def delete_category(id: str, _: dict = Depends(require())):
 
 # ---------- products ----------
 @router.get("/products", response_model=list[Product])
-async def list_products(_: dict = Depends(current_user)):
+async def list_products(user: dict = Depends(current_user)):
+    if user["role"] == "garcom":
+        projection = {field: 0 for field in (
+            "_id", "cost", "cost_price", "margin_pct", "recipe", "stock_ingredient_id",
+        )}
+        return await db.products.find({}, projection).sort("name", 1).to_list(2000)
     return await products_with_cost({})
 
 
@@ -444,7 +449,7 @@ async def apply_inventory_count(body: InventoryCountIn, user: dict, *, session=N
 
 # ---------- ingredients / stock ----------
 @router.get("/ingredients", response_model=list[Ingredient])
-async def list_ingredients(_: dict = Depends(current_user)):
+async def list_ingredients(_: dict = Depends(require("caixa", "cozinha"))):
     return await db.ingredients.find({}, {"_id": 0}).sort("name", 1).to_list(5000)
 
 

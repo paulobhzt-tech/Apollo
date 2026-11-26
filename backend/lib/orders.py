@@ -20,6 +20,17 @@ SOURCE_LABEL = {"ifood": "iFood", "99food": "99Food", "keeta": "Keeta", "site": 
                 "pdv": "Balcão", "mesa": "Mesa", "cardapio": "QR Mesa"}
 
 
+def order_for_operator(order: dict | None, user: dict) -> dict | None:
+    if order is None or user.get("role") != "garcom":
+        return order
+    return {
+        **order,
+        "cmv": 0,
+        "items": [{**item, "unit_cost": 0, "stock_recipe": None, "stock_ref": None}
+                  for item in order.get("items", [])],
+    }
+
+
 def now() -> datetime:
     return datetime.now(timezone.utc)
 

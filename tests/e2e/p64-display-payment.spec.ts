@@ -155,4 +155,31 @@ test("keeps each operator's zoom and supports the table workspace shortcuts", as
   await switchOperator();
   await signIn("p40admin");
   await expect(zoom).toHaveValue("80");
+
+  const adminProducts = await (await page.request.get(base + "/api/products")).json();
+  expect(adminProducts.find((product: { id: string }) => product.id === "p40product").cost).toBe(4);
+  await switchOperator();
+  await signIn("p40garcom");
+  await expect(page.getByTestId("waiter-mobile-navigation")).toBeVisible();
+  for (const endpoint of ["/backups/cloud", "/cash/current", "/reports/executive", "/ingredients", "/employees"]) {
+    expect((await page.request.get(base + "/api" + endpoint)).status(), endpoint).toBe(403);
+  }
+  const products = await (await page.request.get(base + "/api/products")).json();
+  expect(products.find((product: { id: string }) => product.id === "p40product")).toMatchObject({
+    price: 10, cost: 0, cost_price: 0, margin_pct: 0, recipe: [], stock_ingredient_id: null,
+  });
+  const tablePath = base + "/api/tables/p40table401";
+  const order = await (await page.request.get(tablePath + "/order")).json();
+  const launch = await page.request.post(tablePath + "/items", {
+    headers: { Origin: base },
+    data: { order_id: order.id, client_ref: crypto.randomUUID(), items: [{ product_id: "p40product", qty: 1 }] },
+  });
+  expect(launch.ok()).toBe(true);
+  for (const response of [launch, await page.request.get(tablePath + "/order")]) {
+    const body = await response.json();
+    expect(body.cmv).toBe(0);
+    expect(body.items).toContainEqual(expect.objectContaining({
+      product_id: "p40product", unit_cost: 0, stock_ref: null, stock_recipe: null,
+    }));
+  }
 });

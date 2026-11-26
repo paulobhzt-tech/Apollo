@@ -16,7 +16,7 @@ from lib.cash_scope import cash_scope, independent_cash, claim_cash, prepare_cas
 from lib.auth import cancel_authorizer, current_user, require
 from lib.sync_identity import validate_sync_context
 from lib.db import db
-from lib.orders import (MARKET_FEES, build_items, create_ticket, current_cash, day_bounds, emit_invoice, finalize_payment,
+from lib.orders import (MARKET_FEES, build_items, create_ticket, current_cash, day_bounds, emit_invoice, finalize_payment, order_for_operator,
                         fiado_reverse, free_table, method_totals, move_stock, new_order, now, pay_key, refresh_totals)
 from models.schemas import (CancelIn, CashCloseIn, CashMovement, CashMoveIn, CashOpenIn, CashSession,
                             DeliveryStatusIn, EmitInvoiceIn, Invoice, KitchenTicket, Order, OrderItem,
@@ -135,7 +135,8 @@ async def list_orders(status: Optional[str] = None, channel: Optional[str] = Non
 @router.post("/orders/{id}/cancel", response_model=Order)
 async def cancel_order(id: str, body: CancelIn, user: dict = Depends(current_user)):
     auth = await cancel_authorizer(user, body.manager_pin)
-    return await with_order_transaction(lambda session: apply_cancel_order(id, body, user, auth, session=session))
+    order = await with_order_transaction(lambda session: apply_cancel_order(id, body, user, auth, session=session))
+    return order_for_operator(order, user)
 
 
 async def guard_refund_cash(order: dict, user: dict, *, session=None):
@@ -206,7 +207,8 @@ async def apply_cancel_order(id: str, body: CancelIn, user: dict, auth: str, *, 
 async def refund_item(id: str, item_id: str, body: CancelIn, user: dict = Depends(current_user)):
     """Cancel one item. Open orders: just removed. Paid orders: partial refund (estorno) recorded on the order."""
     auth = await cancel_authorizer(user, body.manager_pin)
-    return await with_order_transaction(lambda session: apply_refund_item(id, item_id, body, user, auth, session=session))
+    order = await with_order_transaction(lambda session: apply_refund_item(id, item_id, body, user, auth, session=session))
+    return order_for_operator(order, user)
 
 
 async def apply_refund_item(id: str, item_id: str, body: CancelIn, user: dict, auth: str, *, session=None):
