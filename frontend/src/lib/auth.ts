@@ -41,10 +41,11 @@ async function fetchMe({ signal }: QueryFunctionContext): Promise<Employee> {
   }
 }
 
-export function useMe() {
+export function useMe(enabled = true) {
   return useQuery({
     queryKey: ["me"],
     queryFn: fetchMe,
+    enabled,
     retry: false,
     staleTime: 60_000,
   });

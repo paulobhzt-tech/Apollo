@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const base = process.env.APOLLO_E2E_BASE_URL || "https://127.0.0.1:8001";
 const levels = Array.from({ length: 26 }, (_, index) => 50 + index * 5);
-const sizes = [[800, 600], [1024, 768], [1280, 720], [1366, 768], [1600, 900], [1920, 1080]];
+const sizes = [[800, 600], [1024, 768], [1280, 720], [1366, 768], [1440, 900], [1600, 900], [1920, 1080], [2560, 1440]];
 
 test("keeps payment totals and actions in the viewport across zoom settings", async ({ page }, info) => {
   test.setTimeout(180_000);
@@ -29,6 +29,8 @@ test("keeps payment totals and actions in the viewport across zoom settings", as
     for (const level of levels) {
       await zoom.selectOption(String(level));
       await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--apollo-display-zoom"))).toBe(`${level}%`);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2),
+        `PDV ${width}×${height} / ${level}%`).toBe(true);
       // Opening the dialog exercises the portal and its fixed footer at the new root scale.
       await checkout.click();
       await expect(popup).toBeVisible();

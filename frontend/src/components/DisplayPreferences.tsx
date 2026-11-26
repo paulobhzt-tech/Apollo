@@ -1,5 +1,7 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Maximize, Minus, Plus, RotateCcw } from "lucide-react";
+import { useMe } from "@/lib/auth";
+import { useSessionLock } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 
 const levels = Array.from({ length: 26 }, (_, index) => 50 + index * 5);
@@ -8,10 +10,10 @@ type Density = keyof typeof densities;
 type Preferences = { zoom: number | "auto"; density: Density; lowEffects: boolean };
 const storageKey = "apollo-display-preferences";
 
-function readPreferences(): Preferences {
+function readPreferences(key: string): Preferences {
   const defaults: Preferences = { zoom: 100, density: "normal", lowEffects: false };
   try {
-    const saved = JSON.parse(localStorage.getItem(storageKey) ?? "null") as Partial<Preferences> | null;
+    const saved = JSON.parse(localStorage.getItem(key) ?? localStorage.getItem(storageKey) ?? "null") as Partial<Preferences> | null;
     const zoom = saved?.zoom ?? Number(localStorage.getItem("apollo-display-zoom"));
     if (zoom === "auto" || levels.includes(zoom)) defaults.zoom = zoom;
     if (saved?.density === "compact" || saved?.density === "spacious") defaults.density = saved.density;
@@ -29,7 +31,15 @@ function fittedZoom() {
 const DisplayContext = createContext<{ preferences: Preferences; actual: number; update: (value: Partial<Preferences>) => void } | null>(null);
 
 export function DisplayPreferences({ children }: { children: ReactNode }) {
-  const [preferences, setPreferences] = useState(readPreferences);
+  const locked = useSessionLock();
+  // Observe the authenticated route's query without starting authentication on public pages.
+  const { data: operator, isError } = useMe(false);
+  const key = !locked && !isError && operator ? `${storageKey}:operator:${operator.id}` : storageKey;
+  const [stored, setStored] = useState<{ key: string; value: Preferences }>();
+  const preferences = useMemo(
+    () => stored?.key === key ? stored.value : readPreferences(key),
+    [key, stored],
+  );
   const [fitted, setFitted] = useState(fittedZoom);
   const auto = preferences.zoom === "auto";
   const actual = preferences.zoom === "auto" ? fitted : preferences.zoom;
@@ -47,14 +57,17 @@ export function DisplayPreferences({ children }: { children: ReactNode }) {
     root.style.setProperty("--apollo-display-zoom", `${actual}%`);
     root.dataset.apolloDensity = preferences.density;
     root.dataset.apolloLowEffects = String(preferences.lowEffects);
+  }, [actual, preferences]);
+
+  return <DisplayContext.Provider value={{ preferences, actual, update: (value) => {
+    const next = { ...preferences, ...value };
+    setStored({ key, value: next });
     try {
-      localStorage.setItem(storageKey, JSON.stringify(preferences));
+      localStorage.setItem(key, JSON.stringify(next));
     } catch {
       // The active settings still work when the browser blocks storage.
     }
-  }, [actual, preferences]);
-
-  return <DisplayContext.Provider value={{ preferences, actual, update: (value) => setPreferences((current) => ({ ...current, ...value })) }}>
+  } }}>
     {children}
   </DisplayContext.Provider>;
 }

@@ -1,5 +1,5 @@
 import SaleQuantityInput from "@/components/SaleQuantityInput";
-import { type SetStateAction, useEffect, useState } from "react";
+import { type SetStateAction, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRightLeft, Bell, Clock, Ellipsis, Minus, Pencil, Plus, Printer, QrCode, Receipt, RefreshCw, Search, Send, Trash2, Users } from "lucide-react";
@@ -112,7 +112,7 @@ export default function Mesas() {
   });
   const pendingSplits = splitAlerts.data ?? [];
   const [showReady, setShowReady] = useState(true);
-  const readyTickets = useQuery({ queryKey: ["waiter-ready-tickets"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets"), refetchInterval: 5000, enabled: mobileMode && showReady });
+  const readyTickets = useQuery({ queryKey: ["waiter-ready-tickets"], queryFn: () => apiGet<KitchenTicket[]>("/kds/tickets"), refetchInterval: 5000, enabled: !mobileMode || showReady });
   const [selId, setSelId] = useState<string | null>(null);
   const [drafts, setDrafts] = useOperatorDraft<Record<string, Pending[]>>(`apollo-table-drafts:${me?.id}`, {});
   useEffect(() => {
@@ -136,6 +136,7 @@ export default function Mesas() {
     const table = openTables.get(ticket.order_id);
     return ticket.status === "pronto" && table ? [{ ticket, table }] : [];
   });
+  const readyTableIds = new Set(ready.map(({ table }) => table.id));
   const myReady = ready.filter(({ table }) => table.waiter_id === me?.id);
   const list = all.filter((t) => {
     if (t.kind !== kind && !(mobileMode && mobileSection === "fechar")) return false;
@@ -293,6 +294,9 @@ export default function Mesas() {
                 {t.call && <Bell className="absolute right-1 top-1 size-3 animate-pulse" aria-label="Chamada pendente" />}
                 <span className="text-2xl font-bold tabular-nums">{String(t.number).padStart(2, "0")}</span>
                 <span className="w-full truncate text-xs tabular-nums">{t.order_id && (mobileMode || showTableTotals) ? brl(t.total) : (t.name || t.customer_name || " ")}</span>
+                {t.order_id && (t.customer_name || t.name) && (mobileMode || showTableTotals) &&
+                  <span className="w-full truncate text-[10px]" title={t.customer_name || t.name}>{t.customer_name || t.name}</span>}
+                {t.order_id && readyTableIds.has(t.id) && <span className="rounded bg-white/20 px-1.5 text-[10px] font-semibold">Pedido pronto</span>}
                 {t.waiter_name && t.order_id && <span className="w-full truncate text-[10px]" title={t.waiter_name}>{t.waiter_name}</span>}
                 {drafts[keyForDraft(t) ?? ""]?.length > 0 && <span className="text-xs font-medium">Rascunho</span>}
               </button>
@@ -465,6 +469,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const [grouped, setGrouped] = useTablePreference(`apollo-table-grouped:${me?.id}`, true);
   const [showItemTimes, setShowItemTimes] = useTablePreference(`apollo-table-times:${me?.id}`, false);
   const [productSearch, setProductSearch] = useState("");
+  const productSearchRef = useRef<HTMLInputElement>(null);
   const [showDetails, setShowDetails] = useTablePreference(`apollo-table-details:${me?.id}`, true);
   const [removing, setRemoving] = useState<GroupedItem | null>(null);
   const [editingDraft, setEditingDraft] = useState<Pending | null>(null);
@@ -681,7 +686,14 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   };
 
   const content = (
-          <div className="@container min-h-0 min-w-0 overflow-y-auto overscroll-contain text-foreground">
+          <div className="@container min-h-0 min-w-0 overflow-y-auto overscroll-contain text-foreground"
+            onKeyDown={(event) => {
+              if (event.key !== "F3" || event.defaultPrevented || nestedOpen || !table.order_id || pendingConfirmation || busy) return;
+              event.preventDefault();
+              setAdding(true);
+              productSearchRef.current?.focus();
+              productSearchRef.current?.select();
+            }}>
             <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border p-4 pr-14">
               <div className="min-w-0 wrap-anywhere">
                 <DialogTitle className="font-heading text-xl leading-tight" data-testid="table-sheet-title">
@@ -693,7 +705,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 {table.order_id && <label className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-2">
                   <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                  <Input aria-label="Buscar produto na comanda" placeholder="Produto, categoria ou código" value={productSearch}
+                  <Input ref={productSearchRef} aria-keyshortcuts="F3" aria-label="Buscar produto na comanda" placeholder="Produto, categoria ou código" value={productSearch}
                     disabled={!!submission} onChange={(event) => { setProductSearch(event.target.value); setAdding(true); }}
                     className="min-w-0 border-0 bg-transparent shadow-none" data-testid="table-product-search" />
                 </label>}
@@ -854,7 +866,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                       </div>
                     </fieldset>
                   ) : (
-                    <Button className="mt-4 h-auto min-h-12" onClick={() => { setProductSearch(""); setAdding(true); document.querySelector<HTMLInputElement>('[data-testid="table-product-search"]')?.focus(); }} data-testid="add-items-button"><Plus className="size-4" /> Adicionar produtos</Button>
+                    <Button className="mt-4 h-auto min-h-12" onClick={() => { setProductSearch(""); setAdding(true); productSearchRef.current?.focus(); }} data-testid="add-items-button"><Plus className="size-4" /> Adicionar produtos</Button>
                   )}
 
                   {offline && <p role="status" data-testid="table-online-required" className="mt-3 text-sm text-amber-300">Transferência, cancelamento e recebimento exigem conexão.</p>}
