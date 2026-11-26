@@ -26,6 +26,15 @@ def scenario():
     return table, order
 
 
+async def test_fractional_split_preserves_the_rounded_bill():
+    from routers.tables import partial_bill_totals
+
+    selected, remaining = partial_bill_totals(
+        {"portion": {"qty": 0.6, "unit_price": 0.01}}, {"portion": 0.3},
+    )
+    assert (selected, remaining) == (0.01, 0.0)
+
+
 async def test_partial_payment_replay_and_cash_reconciliation(scenario):
     table, order = scenario
     cash_id = "cash-" + uuid.uuid4().hex

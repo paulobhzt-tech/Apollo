@@ -375,9 +375,19 @@ export default function Financeiro() {
       {validPeriod && dre.isLoading && <p role="status" className="mb-4 text-sm text-muted-foreground">Carregando o DRE do período…</p>}
       {dre.isError && <p role="alert" className="mb-4 text-sm text-red-400">{errMsg(dre.error)}</p>}
       {showAnnual && comparisonYear >= 2 && <AnnualDre year={comparisonYear} />}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label="Receita bruta" value={brl(d?.gross_revenue ?? 0)} hint={`${d?.orders ?? 0} pedidos`} testid="dre-gross" />
+        <Stat label="CMV" value={brl(d?.cmv ?? 0)} hint={d?.gross_revenue ? `${((d.cmv / d.gross_revenue) * 100).toFixed(1)}% da receita` : undefined} testid="dre-cmv" />
+        <Stat label="Lucro líquido" value={brl(d?.net_profit ?? 0)} testid="dre-net" accent={(d?.net_profit ?? 0) >= 0 ? "text-emerald-300" : "text-red-300"} />
+        <Stat label="Margem líquida" value={`${d?.margin_pct ?? 0}%`} testid="dre-margin" accent="text-primary" />
+      </div>
+      <div className="my-4 grid min-w-0 items-start gap-4 xl:grid-cols-2">
+        <div className="min-w-0">
       <OperatingCosts dre={d} />
       <BreakEvenPanel dre={d} />
       <OpeningWeekdays dre={d} />
+        </div>
+        <div className="min-w-0">
       <section className="mb-5 space-y-3" data-testid="sales-intelligence">
         <h2 className="text-lg font-semibold text-white">Inteligência de vendas</h2>
         {intelligence.isError && <p role="alert" className="text-red-400">{errMsg(intelligence.error)}</p>}
@@ -393,7 +403,7 @@ export default function Financeiro() {
         <h2 className="text-lg font-semibold text-white">Rentabilidade por produto</h2>
         {productProfit.isError && <p role="alert" className="text-red-400">{errMsg(productProfit.error)}</p>}
         {productProfit.data && <>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <Stat label="Receita dos itens" value={brl(productProfit.data.revenue)} testid="product-profit-revenue" />
             <Stat label="Custo dos itens" value={brl(productProfit.data.cost)} testid="product-profit-cost" />
             <Stat label="Margem bruta em R$" value={brl(productProfit.data.profit)} testid="product-profit-gross" />
@@ -418,11 +428,7 @@ export default function Financeiro() {
         </>}
       </section>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Receita bruta" value={brl(d?.gross_revenue ?? 0)} hint={`${d?.orders ?? 0} pedidos`} testid="dre-gross" />
-        <Stat label="CMV" value={brl(d?.cmv ?? 0)} hint={d?.gross_revenue ? `${((d.cmv / d.gross_revenue) * 100).toFixed(1)}% da receita` : undefined} testid="dre-cmv" />
-        <Stat label="Lucro líquido" value={brl(d?.net_profit ?? 0)} testid="dre-net" accent={(d?.net_profit ?? 0) >= 0 ? "text-emerald-300" : "text-red-300"} />
-        <Stat label="Margem líquida" value={`${d?.margin_pct ?? 0}%`} testid="dre-margin" accent="text-primary" />
+        </div>
       </div>
       <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
         <Panel title="DRE simplificado">
@@ -566,7 +572,7 @@ function CardFeesForm({ fees }: { fees: Record<string, number> }) {
   });
   return (
     <Panel title="Taxas da maquininha por bandeira (%)" className="mt-4" actions={<Button size="sm" onClick={() => save.mutate()} disabled={save.isPending} data-testid="card-fees-save">Salvar taxas</Button>}>
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:grid-cols-6">
         {FEE_KEYS.map((k) => (
           <div key={k}>
             <p className="mb-1 text-xs text-zinc-400">{k.startsWith("credito") ? "Crédito" : "Débito"} · {k.split(":")[1] === "mastercard" ? "Master" : k.split(":")[1] === "visa" ? "Visa" : "Elo"}</p>

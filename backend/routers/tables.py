@@ -766,6 +766,16 @@ async def clear_split_request(id: str, _: dict = Depends(require("caixa"))):
     return OkOut(message="Solicitação de divisão removida")
 
 
+def partial_bill_totals(available: dict, quantities: dict) -> tuple[float, float]:
+    """Preserve the rounded value of the open bill when splitting fractional units."""
+    before = round(sum(item["qty"] * item["unit_price"] for item in available.values()), 2)
+    remaining = round(sum(
+        round(item["qty"] - quantities.get(item_id, 0), 4) * item["unit_price"]
+        for item_id, item in available.items()
+    ), 2)
+    return round(before - remaining, 2), remaining
+
+
 class PartialBillIn(BaseModel):
     """Item quantities to include in a separate bill preview."""
     quantities: dict[str, SaleQuantity] = Field(min_length=1)
@@ -790,9 +800,7 @@ async def preview_partial_bill(id: str, body: PartialBillIn, _: dict = Depends(r
             raise HTTPException(400, f"Quantidade inválida para {item['name']}")
         chosen.append({"item_id": item_id, "name": item["name"], "qty": qty,
                        "unit_price": item["unit_price"], "total": round(qty * item["unit_price"], 2)})
-    subtotal = round(sum(i["qty"] * i["unit_price"] for i in chosen), 2)
-    remaining = round(sum((item["qty"] - body.quantities.get(item_id, 0)) * item["unit_price"]
-                          for item_id, item in available.items()), 2)
+    subtotal, remaining = partial_bill_totals(available, body.quantities)
     return {"table_id": id, "order_id": order["id"], "items": chosen,
             "subtotal": subtotal, "remaining_subtotal": remaining,
             "message": "Prévia apenas: nenhum pagamento foi registrado"}
@@ -803,6 +811,7 @@ class PartialPaymentIn(PartialBillIn):
     payment: PayIn
     expected_order_id: str | None = Field(default=None, min_length=1, max_length=120)
     expected_subtotal: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    expected_remaining_subtotal: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     client_ref: str = Field(min_length=6, max_length=120)
 
 
@@ -825,7 +834,7 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
         raise HTTPException(400, "Abra o caixa para receber pagamentos")
     request_data = body.model_dump(mode="json", exclude={"client_ref"})
     # Preserve fingerprints of requests sent before the preview fields existed.
-    for key in ("expected_order_id", "expected_subtotal"):
+    for key in ("expected_order_id", "expected_subtotal", "expected_remaining_subtotal"):
         if request_data[key] is None:
             del request_data[key]
     request_data["table_id"] = id
@@ -884,7 +893,10 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
                         raise HTTPException(400, "Cliente não cadastrado na mesa")
                     if any(i.get("customer_name") not in ("", guest, None) for i in chosen):
                         raise HTTPException(400, "Há itens de outro cliente na seleção")
-                subtotal = round(sum(i["qty"] * i["unit_price"] for i in chosen), 2)
+                available = {item["id"]: item for item in order["items"] if not item.get("cancelled")}
+                subtotal, remaining_sub = partial_bill_totals(available, body.quantities)
+                if body.expected_remaining_subtotal is not None and remaining_sub != body.expected_remaining_subtotal:
+                    raise HTTPException(409, "O saldo da comanda mudou. Calcule a divisão novamente.")
                 if body.expected_subtotal is not None and subtotal != body.expected_subtotal:
                     raise HTTPException(409, "O subtotal mudou. Calcule a divisão novamente.")
                 if body.payment.discount > subtotal:
@@ -914,7 +926,6 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
                 receipt["parent_order_id"] = order["id"]
                 receipt["partial_table_id"] = id
                 await db.orders.insert_one(dict(receipt), session=session)
-                remaining_sub = round(sum(i["qty"] * i["unit_price"] for i in remaining if not i.get("cancelled")), 2)
                 result = await db.orders.update_one({"id": order["id"], "status": "aberto"},
                     {"$set": {"items": remaining, "subtotal": remaining_sub, "total": remaining_sub}}, session=session)
                 if result.modified_count != 1:

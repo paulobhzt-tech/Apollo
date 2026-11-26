@@ -1,7 +1,7 @@
 name: P63 - Auditoria visual
 on:
   push:
-    branches: [feat/p63-interface-completa-consumer, feat/p64-4-finalizacao-liberacao-operacional, feat/p64-5-interface-consumer-operacional, feat/p64-6-finalizacao-interface-homologacao-operacional, feat/p64-7-reconstrucao-completa-interface-consumer]
+    branches: [feat/p63-interface-completa-consumer, feat/p64-4-finalizacao-liberacao-operacional, feat/p64-5-interface-consumer-operacional, feat/p64-6-finalizacao-interface-homologacao-operacional, feat/p64-7-reconstrucao-completa-interface-consumer, feat/p64-8-correcao-final-homologacao]
   workflow_dispatch:
 
 permissions:
@@ -80,12 +80,12 @@ jobs:
           cd tests
           specs=(p63-visual.spec.ts p63-quantity-footer.spec.ts p63-selected-items.spec.ts)
           if [[ "$P47_BROWSER" == chromium ]]; then specs+=(p64-display-payment.spec.ts); fi
-          if [[ "$P47_BROWSER" == chromium && ( "$GITHUB_REF_NAME" == feat/p64-3-interface-impressao-final || "$GITHUB_REF_NAME" == feat/p64-4-liberacao-final-apollo || "$GITHUB_REF_NAME" == feat/p64-4-finalizacao-liberacao-operacional || "$GITHUB_REF_NAME" == feat/p64-5-interface-consumer-operacional || "$GITHUB_REF_NAME" == feat/p64-6-finalizacao-interface-homologacao-operacional || "$GITHUB_REF_NAME" == feat/p64-7-reconstrucao-completa-interface-consumer ) ]]; then
+          if [[ "$P47_BROWSER" == chromium && ( "$GITHUB_REF_NAME" == feat/p64-3-interface-impressao-final || "$GITHUB_REF_NAME" == feat/p64-4-liberacao-final-apollo || "$GITHUB_REF_NAME" == feat/p64-4-finalizacao-liberacao-operacional || "$GITHUB_REF_NAME" == feat/p64-5-interface-consumer-operacional || "$GITHUB_REF_NAME" == feat/p64-6-finalizacao-interface-homologacao-operacional || "$GITHUB_REF_NAME" == feat/p64-7-reconstrucao-completa-interface-consumer || "$GITHUB_REF_NAME" == feat/p64-8-correcao-final-homologacao ) ]]; then
             specs+=(p64-print-agent.spec.ts)
           fi
           npx playwright test --config=p47.config.ts "${specs[@]}" --trace retain-on-failure
       - name: Testar interrupção HTTPS com banco próprio
-        if: (github.ref_name == 'feat/p64-6-finalizacao-interface-homologacao-operacional' || github.ref_name == 'feat/p64-7-reconstrucao-completa-interface-consumer')
+        if: (github.ref_name == 'feat/p64-6-finalizacao-interface-homologacao-operacional' || (github.ref_name == 'feat/p64-7-reconstrucao-completa-interface-consumer' || github.ref_name == 'feat/p64-8-correcao-final-homologacao'))
         run: |
           set -o pipefail
           export DB_NAME=apollo_p40_browser_p646_offline
@@ -110,7 +110,7 @@ jobs:
           cd tests
           npx playwright test --config=p47.config.ts p55-offline-tables.spec.ts --output=test-results/p646-offline --reporter=list --trace retain-on-failure | tee ../evidence/p646-offline.log
       - name: Testar carga e conciliação em banco separado
-        if: (github.ref_name == 'feat/p64-6-finalizacao-interface-homologacao-operacional' || github.ref_name == 'feat/p64-7-reconstrucao-completa-interface-consumer') && matrix.browser == 'chromium'
+        if: (github.ref_name == 'feat/p64-6-finalizacao-interface-homologacao-operacional' || (github.ref_name == 'feat/p64-7-reconstrucao-completa-interface-consumer' || github.ref_name == 'feat/p64-8-correcao-final-homologacao')) && matrix.browser == 'chromium'
         run: |
           set -o pipefail
           export DB_NAME=apollo_p40_browser_fictitious
@@ -125,7 +125,7 @@ jobs:
           python tools/p45-load.py | tee evidence/p646-load.log
           python tools/p45-two-cashiers.py | tee evidence/p646-cashiers.log
       - name: Build comparison with the P64.6 source
-        if: github.ref_name == 'feat/p64-7-reconstrucao-completa-interface-consumer' && matrix.browser == 'chromium'
+        if: (github.ref_name == 'feat/p64-7-reconstrucao-completa-interface-consumer' || github.ref_name == 'feat/p64-8-correcao-final-homologacao') && matrix.browser == 'chromium'
         run: |
           set -euo pipefail
           baseline=e02b17f6c5183e78700c23d0f97f099720a6e567

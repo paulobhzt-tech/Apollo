@@ -34,8 +34,8 @@ export default function Config() {
   return (
     <AppShell roles={[]}>
       <PageHeader title="Configurações" subtitle="Impressoras, dados da empresa e PIX, taxas de cartão, backup e auto teste" />
-      <Tabs defaultValue={params.get("tab") ?? "impressoras"}>
-        <TabsList className="max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto">
+      <Tabs className="gap-x-5 lg:grid lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start" defaultValue={params.get("tab") ?? "impressoras"}>
+        <TabsList className="max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto lg:w-full lg:flex-col lg:items-stretch lg:gap-1 lg:border lg:border-border lg:bg-panel lg:p-2 [&>[data-slot=tabs-trigger]]:lg:justify-start">
           <TabsTrigger value="impressoras" data-testid="config-tab-printers">Impressoras</TabsTrigger>
           <TabsTrigger value="empresa" data-testid="config-tab-company">Empresa & PIX</TabsTrigger>
           <TabsTrigger value="taxas" data-testid="config-tab-fees">Taxas de cartão</TabsTrigger>
@@ -44,13 +44,13 @@ export default function Config() {
           <TabsTrigger value="sync" data-testid="config-tab-sync">Sincronização</TabsTrigger>
           <TabsTrigger value="sistema" data-testid="config-tab-system">Sistema</TabsTrigger>
         </TabsList>
-        <TabsContent value="impressoras" className="mt-4"><Printers /></TabsContent>
-        <TabsContent value="empresa" className="mt-4"><Company /></TabsContent>
+        <TabsContent value="impressoras" className="mt-3 lg:mt-0"><Printers /></TabsContent>
+        <TabsContent value="empresa" className="mt-3 lg:mt-0"><Company /></TabsContent>
         <TabsContent value="taxas" className="mt-0"><CardFeesPanel /></TabsContent>
-        <TabsContent value="backup" className="mt-4"><Backup flash={params.get("drive")} /></TabsContent>
-        <TabsContent value="autoteste" className="mt-4"><SelfTest /></TabsContent>
-        <TabsContent value="sync" className="mt-4"><SyncPanel /></TabsContent>
-        <TabsContent value="sistema" className="mt-4"><ReleaseDiagnostics /><SystemPanel /></TabsContent>
+        <TabsContent value="backup" className="mt-3 lg:mt-0"><Backup flash={params.get("drive")} /></TabsContent>
+        <TabsContent value="autoteste" className="mt-3 lg:mt-0"><SelfTest /></TabsContent>
+        <TabsContent value="sync" className="mt-3 lg:mt-0"><SyncPanel /></TabsContent>
+        <TabsContent value="sistema" className="mt-3 lg:mt-0"><ReleaseDiagnostics /><SystemPanel /></TabsContent>
       </Tabs>
     </AppShell>
   );

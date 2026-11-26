@@ -84,34 +84,35 @@ export default function Kds() {
               </button>
             ))}
           </div>
-          <Button variant="outline" size="icon" onClick={() => setSound(!sound)} data-testid="kds-sound-toggle">{sound ? <Volume2 /> : <VolumeX />}</Button>
+          <Button variant="outline" size="icon" aria-label={sound ? "Silenciar novos pedidos" : "Ativar som de novos pedidos"} onClick={() => setSound(!sound)} data-testid="kds-sound-toggle">{sound ? <Volume2 /> : <VolumeX />}</Button>
         </>
       } />
       <div className="mb-3 flex flex-wrap gap-2" aria-label="Visualização da produção">
         <Button size="sm" variant={history ? "outline" : "default"} aria-pressed={!history} onClick={() => setHistory(false)}>Em andamento</Button>
         <Button size="sm" variant={history ? "default" : "outline"} aria-pressed={history} onClick={() => setHistory(true)}>Histórico de entregas</Button>
       </div>
+      {!history && tickets.isError && <p role="alert" className="py-4 text-sm text-destructive">Não foi possível atualizar os pedidos da produção.</p>}
       {history && delivered.isPending && <p role="status" className="py-4 text-sm text-muted-foreground">Carregando entregas…</p>}
       {history && delivered.isError && <p role="alert" className="py-4 text-sm text-destructive">Não foi possível carregar o histórico de entregas.</p>}
       {!history && <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm" data-testid="kds-summary"><span>Novos: <strong>{waiting}</strong></span><span>Em preparo: <strong>{preparing}</strong></span><span>Prontos: <strong>{ready}</strong></span><span>Maior espera: <strong>{oldestWaiting} min</strong></span><span className={delayed ? "font-semibold text-amber-300" : ""}>Atrasados (15min+): <strong>{delayed}</strong></span><span className={critical ? "font-semibold text-red-300" : ""}>Críticos (25min+): <strong>{critical}</strong></span><Button size="sm" variant={onlyLate ? "default" : "outline"} onClick={() => setOnlyLate((v) => !v)} data-testid="kds-late-filter" aria-pressed={onlyLate}>{onlyLate ? "Mostrar todos" : "Ver atrasados"}</Button><Button size="sm" variant="outline" onClick={() => setOldestFirst((v) => !v)} data-testid="kds-sort-toggle">{oldestFirst ? "Mais antigos primeiro" : "Mais recentes primeiro"}</Button><Button size="sm" variant="outline" onClick={() => void tickets.refetch()}>Atualizar</Button></div>}
-      <div className={cn("grid min-w-0 gap-4", !history && "grid-cols-[repeat(auto-fit,minmax(min(100%,19rem),1fr))]")}>
+      <div className={cn("grid min-w-0 items-start gap-4", !history && "grid-cols-[repeat(auto-fit,minmax(min(100%,19rem),1fr))]")}>
         {columns.map((c) => {
           const col = history ? historyTickets : list.filter((t) => t.status === c.key);
           return (
-            <section key={c.key} className="rounded-2xl border border-white/5 bg-shell p-3" data-testid={`kds-column-${c.key}`}>
-              <h3 className="mb-3 flex items-center justify-between px-1 text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-400">
+            <section key={c.key} className="min-w-0 overflow-hidden rounded-xl border border-border bg-shell" data-testid={`kds-column-${c.key}`}>
+              <h3 className="flex items-center justify-between gap-2 border-b border-border bg-panel px-3 py-3 text-sm font-semibold text-foreground">
                 {c.label} <span className="rounded-full bg-white/10 px-2 py-0.5 font-mono text-white">{col.length}</span>
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-3 p-3">
                 {col.map((t) => {
                   const m = minutesSince(t.created_at);
                   const urgent = m > 25 && c.key !== "pronto" && c.key !== "entregue";
                   const mixedStations = station !== "all" && tickets.data?.find((ticket) => ticket.id === t.id)?.items.some((item) => item.station !== station);
                   return (
                     <article key={t.id} data-testid={`kds-ticket-${t.order_number}`}
-                      className={cn("rounded-xl border p-3 animate-rise", urgent ? "animate-urgent border-red-400 bg-[#2A1418]" : "border-white/8 bg-[#1A1E2E]")}>
+                      className={cn("rounded-xl border p-3 animate-rise", urgent ? "animate-urgent border-red-400 bg-[#2A1418]" : "border-border bg-panel")}>
                       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                        <p className="min-w-0 wrap-anywhere font-heading text-lg font-semibold text-white">{t.label}</p>
+                        <p className="min-w-0 wrap-anywhere font-heading text-lg font-semibold text-foreground">{t.label}</p>
                         <span className={cn("rounded-md px-2 py-0.5 font-mono text-xs", m < 15 ? "bg-emerald-400/15 text-emerald-300" : m <= 25 ? "bg-amber-400/15 text-amber-300" : "bg-red-400/20 text-red-300")}>
                           {history ? `Entregue às ${fmtTime(t.updated_at)}` : `${m}min`}
                         </span>
@@ -128,7 +129,7 @@ export default function Kds() {
                           const confirmed = attempt?.state === "operator_confirmed";
                           return <li key={idx} className="text-sm wrap-anywhere">
                             <span className="font-mono text-primary">{i.qty}x</span>{" "}
-                            <span className={confirmed ? "font-medium text-emerald-300" : "text-zinc-100"}>{i.name}</span>
+                            <span className={confirmed ? "font-medium text-emerald-300" : "text-foreground"}>{i.name}</span>
                             {status && <span className={cn("ml-2 text-xs", confirmed ? "text-emerald-300" : needsPrintReview(attempt) ? "text-amber-300" : "text-muted-foreground")}>{status}</span>}
                             {i.options?.map((o) => <p key={o} className="ml-6 text-xs font-semibold text-sky-300" data-testid="kds-item-option">▸ {o}</p>)}
                             {i.customer_name && <p className="ml-6 text-xs text-zinc-400">Cliente: {i.customer_name}</p>}

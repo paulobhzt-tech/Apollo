@@ -12,7 +12,7 @@ on:
           - test
           - production
   push:
-    branches: ["fix/windows-production-server", "feat/apollo-3.0.1-caixa-offline-auditoria", "feat/p64-4-finalizacao-liberacao-operacional", "feat/p64-6-finalizacao-interface-homologacao-operacional","feat/p64-7-reconstrucao-completa-interface-consumer"]
+    branches: ["fix/windows-production-server", "feat/apollo-3.0.1-caixa-offline-auditoria", "feat/p64-4-finalizacao-liberacao-operacional", "feat/p64-6-finalizacao-interface-homologacao-operacional","feat/p64-7-reconstrucao-completa-interface-consumer", "feat/p64-8-correcao-final-homologacao"]
     tags: ["v*"]
 
 jobs:
@@ -39,7 +39,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
         run: |
           $channel = if ($env:EVENT_NAME -eq "workflow_dispatch") { $env:REQUESTED_CHANNEL } else { "production" }
-          if ($env:BUILD_REF -in @("feat/apollo-3.0.1-caixa-offline-auditoria", "feat/p64-4-finalizacao-liberacao-operacional", "feat/p64-6-finalizacao-interface-homologacao-operacional", "feat/p64-7-reconstrucao-completa-interface-consumer")) { $channel = "test" }
+          if ($env:BUILD_REF -in @("feat/apollo-3.0.1-caixa-offline-auditoria", "feat/p64-4-finalizacao-liberacao-operacional", "feat/p64-6-finalizacao-interface-homologacao-operacional", "feat/p64-7-reconstrucao-completa-interface-consumer", "feat/p64-8-correcao-final-homologacao")) { $channel = "test" }
           if ($channel -eq "test") {
             "PDV_BUILD_CHANNEL=test" >> $env:GITHUB_ENV
             "PDV_HOMOLOGATION_URL=https://homologacao.apollo-pdv.com" >> $env:GITHUB_ENV

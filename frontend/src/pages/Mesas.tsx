@@ -1227,6 +1227,7 @@ function PartialBillDialog({ table, items, open, onClose }: { table: Table; item
         customer_name: selectedCustomer,
         expected_order_id: quote.order_id,
         expected_subtotal: quote.subtotal,
+        expected_remaining_subtotal: quote.remaining_subtotal,
       })),
     onSuccess: (result) => {
       toast.success(`Pagamento parcial registrado: ${brl(result.order.total)}`);
