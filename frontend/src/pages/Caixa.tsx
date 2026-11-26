@@ -125,7 +125,25 @@ export default function Caixa() {
             <Stat label="Dinheiro esperado" value={blind ? "••••" : brl(s.expected_cash)} hint="conferência cega" testid="cash-expected" accent="text-primary" />
           </div>
           {s.opening_note && <p className="mt-3 break-words text-sm text-zinc-300">Observações da abertura · {s.opening_note}</p>}
-          <div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(min(100%,19rem),1fr))] gap-4">
+          <div className="@container mt-4">
+            <div className="grid min-w-0 items-start gap-3 @min-[48rem]:grid-cols-[minmax(0,1.55fr)_minmax(17rem,1fr)]">
+          <Panel title="Movimentações manuais do turno" className="min-w-0 self-start">
+            <Table stacked aria-label="Movimentações manuais do turno">
+              <TableHeader><TableRow><TableHead>Data e hora</TableHead><TableHead>Tipo</TableHead><TableHead>Operador</TableHead><TableHead>Motivo</TableHead><TableHead className="text-right">Entrada</TableHead><TableHead className="text-right">Saída</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {s.movements.map((movement, index) => <TableRow key={`${movement.at}-${index}`}>
+                  <TableCell label="Data e hora">{fmtDateTime(movement.at)}</TableCell>
+                  <TableCell label="Tipo">{movement.type === "sangria" ? "Sangria" : "Suprimento"}</TableCell>
+                  <TableCell label="Operador">{movement.by_name}</TableCell>
+                  <TableCell label="Motivo" className="whitespace-normal wrap-anywhere">{movement.note}</TableCell>
+                  <TableCell label="Entrada" className="text-right">{movement.type === "suprimento" ? brl(movement.amount) : "—"}</TableCell>
+                  <TableCell label="Saída" className="text-right">{movement.type === "sangria" ? brl(movement.amount) : "—"}</TableCell>
+                </TableRow>)}
+                {!s.movements.length && <TableRow><TableCell colSpan={6} className="text-muted-foreground">Nenhuma movimentação manual neste turno.</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </Panel>
+              <aside className="grid min-w-0 gap-3" aria-label="Conferência e operações do caixa">
             <Panel title="Totais por forma de pagamento">
               <ul className="space-y-2">
                 {Object.entries(s.totals_by_method).map(([k, v]) => (
@@ -157,23 +175,9 @@ export default function Caixa() {
               <Textarea id="cash-closing-note" maxLength={500} value={closingNote} onChange={(event) => setClosingNote(event.target.value)} className="mt-1" />
               <Button variant="destructive" className="mt-3 h-11 w-full" disabled={offline || updating || countedAmount === null} onClick={() => window.confirm("Confirmar fechamento do caixa?") && close.mutate()} data-testid="cash-close-button"><LockKeyhole /> Fechar caixa</Button>
             </Panel>
+              </aside>
+            </div>
           </div>
-          <Panel title="Movimentações manuais do turno" className="mt-4">
-            <Table stacked aria-label="Movimentações manuais do turno">
-              <TableHeader><TableRow><TableHead>Data e hora</TableHead><TableHead>Tipo</TableHead><TableHead>Operador</TableHead><TableHead>Motivo</TableHead><TableHead className="text-right">Entrada</TableHead><TableHead className="text-right">Saída</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {s.movements.map((movement, index) => <TableRow key={`${movement.at}-${index}`}>
-                  <TableCell label="Data e hora">{fmtDateTime(movement.at)}</TableCell>
-                  <TableCell label="Tipo">{movement.type === "sangria" ? "Sangria" : "Suprimento"}</TableCell>
-                  <TableCell label="Operador">{movement.by_name}</TableCell>
-                  <TableCell label="Motivo" className="whitespace-normal wrap-anywhere">{movement.note}</TableCell>
-                  <TableCell label="Entrada" className="text-right">{movement.type === "suprimento" ? brl(movement.amount) : "—"}</TableCell>
-                  <TableCell label="Saída" className="text-right">{movement.type === "sangria" ? brl(movement.amount) : "—"}</TableCell>
-                </TableRow>)}
-                {!s.movements.length && <TableRow><TableCell colSpan={6} className="text-muted-foreground">Nenhuma movimentação manual neste turno.</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </Panel>
         </>
       )}
       <Panel title="Turnos anteriores" className="mt-6">

@@ -158,7 +158,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
       <DialogHeader className="shrink-0 border-b border-border px-4 py-3 pr-12 sm:px-5 sm:pr-14">
         <DialogTitle className="font-heading text-xl text-foreground">{title}</DialogTitle>
       </DialogHeader>
-      <div className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_auto] @min-[66rem]:grid-cols-[minmax(0,1fr)_14rem] @min-[66rem]:grid-rows-[minmax(0,1fr)]">
+      <div className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_auto] @min-[66rem]:grid-cols-[minmax(0,1fr)_15rem] @min-[66rem]:grid-rows-[minmax(0,1fr)]">
       <div className="min-h-0 min-w-0 overflow-y-auto overscroll-contain p-2 sm:p-3">
         <div role="group" aria-label="Seções do pagamento" className="mb-2 grid grid-cols-2 gap-1 @min-[52rem]:hidden">
           <Button size="sm" variant={panel === "pay" ? "default" : "outline"} aria-pressed={panel === "pay"} onClick={() => setPanel("pay")}>Pagamento</Button>
@@ -402,15 +402,20 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
         </div>
       </div>
       <footer data-testid="payment-footer" className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 border-t border-border bg-elevated px-2 py-2 sm:px-4 @min-[66rem]:content-start @min-[66rem]:items-start @min-[66rem]:border-t-0 @min-[66rem]:border-l">
-        <dl className="grid basis-full grid-cols-[repeat(auto-fit,minmax(min(100%,5.25rem),1fr))] gap-x-2 gap-y-1 text-xs @min-[66rem]:grid-cols-2">
-          <Row k="Subtotal" v={brl(subtotal)} />
-          <Row k="Desconto" v={brl(disc)} />
-          <Row k="Serviço" v={brl(serviceFee)} />
-          <Row k="Total a pagar" v={brl(total)} testid="payment-total" />
-          <Row k="Total pago" v={brl(paid)} />
-          <Row k="Falta pagar" v={brl(remaining)} testid="payment-remaining" accent={remaining > 0 ? "text-amber-400" : "text-emerald-400"} />
-          <Row k="Troco" v={brl(change)} testid="payment-change" />
-        </dl>
+        <div className="grid min-w-0 basis-full gap-2">
+          <h3 className="hidden font-semibold @min-[66rem]:block">Resumo do recebimento</h3>
+          <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,5.25rem),1fr))] gap-1.5 rounded-md border border-border bg-panel p-1.5 text-xs @min-[66rem]:grid-cols-2">
+            <Row k="Total a pagar" v={brl(total)} testid="payment-total" />
+            <Row k="Falta pagar" v={brl(remaining)} testid="payment-remaining" accent={remaining > 0 ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300"} />
+            <Row k="Total pago" v={brl(paid)} />
+            <Row k="Troco" v={brl(change)} testid="payment-change" />
+          </dl>
+          <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,5.25rem),1fr))] gap-x-2 gap-y-1 text-xs @min-[66rem]:grid-cols-2">
+            <Row k="Subtotal" v={brl(subtotal)} />
+            <Row k="Desconto" v={brl(disc)} />
+            <Row k="Serviço" v={brl(serviceFee)} />
+          </dl>
+        </div>
         <p role="status" className="basis-full text-xs text-muted-foreground">
           {connectionRequired ? "Reconecte para confirmar o pagamento." : review ? "Resultado incerto. Consulte o servidor antes de confirmar novamente." : pending ? "Aguardando confirmação do servidor." : canConfirm ? "Valores conferidos. Confirme para registrar o pagamento." :
             remaining > 0 ? `Falta lançar ${brl(remaining)}.` : "Confira os lançamentos e a justificativa do desconto, quando aplicável."}

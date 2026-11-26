@@ -26,6 +26,8 @@ jobs:
       SERVE_FRONTEND_DIR: ${{ github.workspace }}/frontend/dist
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -122,6 +124,40 @@ jobs:
           curl --retry 15 --retry-connrefused --retry-delay 1 --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS "$APOLLO_E2E_BASE_URL/api/" >/dev/null
           python tools/p45-load.py | tee evidence/p646-load.log
           python tools/p45-two-cashiers.py | tee evidence/p646-cashiers.log
+      - name: Build comparison with the P64.6 source
+        if: github.ref_name == 'feat/p64-7-reformulacao-integral-interface-consumer' && matrix.browser == 'chromium'
+        run: |
+          set -euo pipefail
+          baseline=e02b17f6c5183e78700c23d0f97f099720a6e567
+          git merge-base --is-ancestor "$baseline" "$GITHUB_SHA"
+          previous="$RUNNER_TEMP/apollo-p646"
+          mkdir -p "$previous"
+          git archive "$baseline" frontend | tar -x -C "$previous"
+          ln -s "$GITHUB_WORKSPACE/frontend/node_modules" "$previous/frontend/node_modules"
+          APOLLO_SOURCE_COMMIT="$baseline" npm --prefix "$previous/frontend" run build
+          EXPECTED_COMMIT="$baseline" node frontend/scripts/verify-build.mjs "$previous/frontend/dist"
+          compare() (
+            side="$1"
+            export DB_NAME="apollo_p40_browser_${side}_comparison"
+            export SERVE_FRONTEND_DIR="$2"
+            export APOLLO_P647_SIDE="$side"
+            python backend/p40_seed_ci.py
+            (
+              cd backend
+              exec python -m uvicorn server:app --host 127.0.0.1 --port 8001 --ssl-keyfile /tmp/apollo-p41-tls/server.key --ssl-certfile /tmp/apollo-p41-tls/server.crt
+            ) > "evidence/$side-comparison-backend.log" 2>&1 &
+            server_pid=$!
+            stop_comparison() {
+              kill "$server_pid" 2>/dev/null || true
+              wait "$server_pid" 2>/dev/null || true
+            }
+            trap stop_comparison EXIT
+            curl --retry 15 --retry-connrefused --retry-delay 1 --cacert /tmp/apollo-p41-tls/apollo-local-ca.crt -fsS "$APOLLO_E2E_BASE_URL/api/" >/dev/null
+            cd tests
+            npx playwright test --config=p47.config.ts p647-visual-comparison.spec.ts --output="test-results/p647-comparison/$side" --reporter=list --trace retain-on-failure
+          )
+          compare p646 "$previous/frontend/dist"
+          compare p647 "$GITHUB_WORKSPACE/frontend/dist"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -129,5 +165,6 @@ jobs:
           path: |
             tests/test-results/p47/
             tests/test-results/p646-offline/
+            tests/test-results/p647-comparison/
             evidence/
           retention-days: 14
