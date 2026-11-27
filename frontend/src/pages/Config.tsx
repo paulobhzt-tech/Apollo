@@ -9,7 +9,7 @@ import { ServerBackups, SystemPanel } from "@/components/SystemPanels";
 import DevicePrinterField from "@/components/DevicePrinterField";
 import DriveBackup from "@/components/DriveBackup";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CloudUpload, Download, Pencil, Plus, Printer as PrinterIcon, Trash2, Upload } from "lucide-react";
+import { CloudUpload, Download, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import AppShell, { PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/api";
 import { errMsg } from "@/lib/format";
@@ -72,28 +73,35 @@ function Printers() {
   const del = useMutation({ mutationFn: (id: string) => apiDelete(`/printers/${id}`), onSuccess: invP, onError: (e) => toast.error(errMsg(e)) });
   return (
     <>
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-zinc-400">Cada impressora atende um ambiente. Os tickets saem automaticamente pela Central de Impressão.</p>
         <Button onClick={() => setEditing("new")} data-testid="printer-new-button"><Plus className="size-4" /> Nova impressora</Button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {(q.data ?? []).map((p) => (
-          <article key={p.id} className="rounded-2xl border border-white/5 bg-panel p-4" data-testid={`printer-card-${p.id}`}>
-            <div className="flex items-start gap-3">
-              <span className="grid size-10 place-items-center rounded-xl bg-primary/15 text-primary"><PrinterIcon className="size-5" /></span>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-white">{p.name}</p>
-                <p className="text-xs text-zinc-500">{label(p.purpose)} · {p.paper}{p.device_name && ` · ${p.device_name}`}{p.ip && ` · ${p.ip}`} · {p.copies} via(s)</p>
-              </div>
-              {!p.active && <Badge variant="outline">Inativa</Badge>}
-            </div>
-            <div className="mt-3 flex gap-2">
-              <Button size="sm" variant="outline" className="flex-1" onClick={() => setEditing(p)} data-testid={`printer-edit-${p.id}`}><Pencil className="size-3.5" /> Editar</Button>
-              <Button size="sm" variant="ghost" onClick={() => window.confirm(`Excluir ${p.name}?`) && del.mutate(p.id)} data-testid={`printer-delete-${p.id}`}><Trash2 className="size-3.5" /></Button>
-            </div>
-          </article>
-        ))}
-        {q.data?.length === 0 && <p className="col-span-full py-10 text-center text-sm text-zinc-500">Nenhuma impressora cadastrada.</p>}
+      <div className="mb-3 rounded border border-border bg-panel">
+        <Table stacked aria-label="Impressoras cadastradas">
+          <TableHeader><TableRow>
+            <TableHead>Impressora</TableHead><TableHead>Destino</TableHead><TableHead>Papel e vias</TableHead>
+            <TableHead>Situação</TableHead><TableHead className="text-right">Ações</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {(q.data ?? []).map((p) => (
+              <TableRow key={p.id} data-testid={`printer-card-${p.id}`}>
+                <TableCell label="Impressora" className="whitespace-normal wrap-anywhere font-medium">{p.name}</TableCell>
+                <TableCell label="Destino" className="whitespace-normal wrap-anywhere">
+                  {label(p.purpose)}{p.device_name && ` · ${p.device_name}`}{p.ip && ` · ${p.ip}`}
+                </TableCell>
+                <TableCell label="Papel e vias">{p.paper} · {p.copies} via(s)</TableCell>
+                <TableCell label="Situação"><Badge variant="outline">{p.active ? "Ativa" : "Inativa"}</Badge></TableCell>
+                <TableCell label="Ações" className="text-right">
+                  <Button size="sm" variant="ghost" onClick={() => setEditing(p)} data-testid={`printer-edit-${p.id}`}><Pencil className="size-3.5" /> Editar</Button>
+                  <Button size="sm" variant="ghost" aria-label={`Excluir ${p.name}`} onClick={() => window.confirm(`Excluir ${p.name}?`) && del.mutate(p.id)} data-testid={`printer-delete-${p.id}`}><Trash2 className="size-3.5" /></Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {q.data?.length === 0 && <TableRow><TableCell colSpan={5} className="py-4 text-center text-muted-foreground">Nenhuma impressora cadastrada.</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+        {q.isError && <p role="alert" className="p-2 text-sm text-destructive">{errMsg(q.error)}</p>}
       </div>
       <PrintAgentSettings printers={q.data ?? []} />
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>

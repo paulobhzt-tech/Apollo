@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDownToLine, ClipboardList, Plus } from "lucide-react";
 import { toast } from "sonner";
-import AppShell, { PageHeader } from "@/components/AppShell";
+import AppShell, { PageHeader, Stat } from "@/components/AppShell";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -479,7 +479,7 @@ export default function Estoque() {
                         <span className="flex min-w-0 items-center gap-2 wrap-anywhere">{isLow && <AlertTriangle className="size-4 text-red-400" />}{i.name}</span>
                         {i.unit === "kg" && !!i.units_per_kg && <span className="text-xs text-zinc-400">Produção estimada: {Math.floor(Math.max(0, i.stock * i.units_per_kg))} un. ({i.units_per_kg} por kg)</span>}
                       </TableCell>
-                      <TableCell label="Estoque" className={cn("text-right font-mono", isLow ? "text-red-300" : "text-zinc-200")} data-testid={`ingredient-stock-${i.id}`}>{i.stock.toFixed(2)} {i.unit}</TableCell>
+                      <TableCell label="Estoque" className={cn("text-right font-mono", isLow ? "text-red-700 dark:text-red-300" : "text-foreground")} data-testid={`ingredient-stock-${i.id}`}>{i.stock.toFixed(2)} {i.unit}</TableCell>
                       <TableCell label="Mínimo" className="text-right font-mono text-zinc-500">{i.min_stock} {i.unit}</TableCell>
                       <TableCell label="Custo unitário" className="text-right font-mono text-zinc-400">{brl(i.cost_per_unit)}</TableCell>
                       <TableCell label="Ações" className="text-right">
@@ -518,10 +518,10 @@ export default function Estoque() {
       </Tabs>
           <aside className="min-w-0" aria-label="Posição e planejamento de estoque">
             <h2 className="mb-2 text-base font-semibold">Posição e planejamento</h2>
-      <div className="mb-4 grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-3 wrap-anywhere">
-        <div className="rounded-2xl border border-white/5 bg-panel p-4"><p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Insumos</p><p className="mt-1 font-mono text-2xl text-white">{list.length}</p></div>
-        <div className="rounded-2xl border border-white/5 bg-panel p-4"><p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500">Valor em estoque</p><p className="mt-1 font-mono text-2xl text-white" data-testid="stock-value">{brl(value)}</p></div>
-        <div className="rounded-2xl border border-red-400/20 bg-red-400/5 p-4"><p className="text-[11px] uppercase tracking-[0.15em] text-red-300">Reposição urgente</p><p className="mt-1 font-mono text-2xl text-red-200" data-testid="stock-low-count">{low.length}</p></div>
+      <div className="mb-2 grid gap-1">
+        <Stat label="Insumos" value={String(list.length)} testid="stock-ingredient-count" />
+        <Stat label="Valor em estoque" value={brl(value)} testid="stock-value" />
+        <Stat label="Reposição urgente" value={String(low.length)} testid="stock-low-count" accent="text-red-700 dark:text-red-300" />
       </div>
       {alerts.data && alerts.data.total > 0 && <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/5 p-3 text-sm wrap-anywhere" data-testid="inventory-alert-summary"><strong className="text-red-200">Alertas de estoque:</strong> {alerts.data.out_of_stock} sem estoque · {alerts.data.low_stock} abaixo do mínimo · Custo estimado para atingir os mínimos: <strong>{brl(alerts.data.estimated_minimum_cost)}</strong></div>}
       {overstock.length > 0 && <details className="mb-4 rounded-xl border border-amber-400/25 bg-amber-400/5 p-3 text-sm">

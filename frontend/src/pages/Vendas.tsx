@@ -44,8 +44,19 @@ export default function Vendas() {
   return (
     <AppShell roles={["caixa"]}>
       <PageHeader title="Histórico de Vendas" subtitle="Últimos itens vendidos, estornos e cancelamentos"
-        actions={<div className="relative w-full max-w-64"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
-          <Input placeholder="Produto ou nº do pedido" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full max-w-64 pl-9" data-testid="history-search-input" /></div>} />
+      />
+      <div className="@container">
+      <div className="grid min-w-0 items-start gap-2 @min-[65rem]:grid-cols-[11rem_minmax(0,1fr)]">
+      <aside aria-label="Filtro do histórico" className="min-w-0 rounded border border-border bg-panel p-2">
+        <label htmlFor="history-search" className="text-xs font-semibold">Localizar venda</label>
+        <div className="relative mt-1">
+          <Search aria-hidden="true" className="absolute left-2 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input id="history-search" placeholder="Produto ou pedido" value={search} onChange={(e) => setSearch(e.target.value)}
+            className="min-w-0 pl-7" data-testid="history-search-input" />
+        </div>
+        {search && <Button size="sm" variant="ghost" className="mt-1" onClick={() => setSearch("")}>Limpar busca</Button>}
+      </aside>
+      <div className="min-w-0">
       {!allowed && (
         <p className="mb-4 flex items-center gap-2 rounded-xl border border-white/8 bg-panel px-4 py-3 text-sm text-zinc-400" data-testid="history-no-permission">
           <Lock className="size-4" /> Você pode consultar o histórico, mas estornos e cancelamentos exigem o PIN de um gerente autorizado.
@@ -126,6 +137,9 @@ export default function Vendas() {
           ))}
         </TabsContent>
       </Tabs>
+      </div>
+      </div>
+      </div>
       <ReasonDialog target={target} allowed={allowed} onClose={() => setTarget(null)} />
     </AppShell>
   );

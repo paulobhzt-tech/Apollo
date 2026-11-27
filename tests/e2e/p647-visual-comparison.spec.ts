@@ -114,4 +114,30 @@ test("captures the same populated screens in each version", async ({ page }, inf
   await page.goto(base + "/config");
   await expect(page.getByTestId("config-tab-printers")).toBeVisible();
   await capture("configuracoes");
+  if (side === "p649") {
+    const printer = await post("/printers", { name: "Impressora fictícia", device_name: "Fila de laboratório", active: false });
+    await page.reload();
+    const row = page.getByTestId(`printer-card-${printer.id}`);
+    await expect(row).toContainText("Fila de laboratório");
+    await row.getByRole("button", { name: "Editar" }).click();
+    const printerDialog = page.getByTestId("printer-dialog");
+    await expect(printerDialog).toBeVisible();
+    await printerDialog.getByRole("button", { name: "Fechar", exact: true }).click();
+    await capture("configuracoes-impressoras");
+
+    await page.goto(base + "/produtos");
+    const search = page.getByTestId("products-search");
+    await search.fill("Espetinho P40");
+    const product = page.getByRole("row").filter({ hasText: "Espetinho P40" });
+    await expect(product).toBeVisible();
+    await product.getByRole("checkbox").check();
+    await expect(product).toHaveAttribute("data-state", "selected");
+    await capture("produtos-selecao");
+    await page.setViewportSize({ width: 1024, height: 640 });
+    await capture("produtos-1024");
+    await page.goto(base + "/vendas");
+    await page.getByTestId("history-search-input").fill("Espetinho P40");
+    await expect(page.getByRole("row").filter({ hasText: "Espetinho P40" }).first()).toBeVisible();
+    await capture("historico-vendas");
+  }
 });

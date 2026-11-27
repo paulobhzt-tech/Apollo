@@ -361,15 +361,25 @@ export default function Financeiro() {
 
   return (
     <AppShell roles={[]}>
-      <PageHeader title="Financeiro & DRE" subtitle="Demonstrativo de resultado simplificado com CMV real das fichas técnicas" actions={
-        <>
+      <PageHeader title="Financeiro & DRE" subtitle="Demonstrativo de resultado simplificado com CMV real das fichas técnicas" />
+      <div className="@container">
+      <div className="grid min-w-0 items-start gap-2 @min-[65rem]:grid-cols-[10rem_minmax(0,1fr)]">
+      <aside aria-label="Filtros do DRE" className="grid min-w-0 gap-2 rounded border border-border bg-panel p-2 @min-[65rem]:sticky @min-[65rem]:top-32">
+        <div className="flex flex-wrap gap-1">
           <Button size="sm" variant="outline" onClick={() => preset(7)} data-testid="dre-preset-7">7 dias</Button>
           <Button size="sm" variant="outline" onClick={() => preset(30)} data-testid="dre-preset-30">30 dias</Button>
-          <Input aria-label="Início do período financeiro" type="date" value={start} onChange={(e) => setStart(e.target.value)} className="w-40" data-testid="dre-start-input" />
-          <Input aria-label="Fim do período financeiro" type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="w-40" data-testid="dre-end-input" />
-          <Button size="sm" variant="outline" aria-pressed={showAnnual} disabled={comparisonYear < 2} onClick={() => setShowAnnual(!showAnnual)}>Comparar anos</Button>
-        </>
-      } />
+        </div>
+        <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-1">
+          <label className="grid gap-1 text-xs text-muted-foreground">Início
+            <Input aria-label="Início do período financeiro" type="date" value={start} onChange={(e) => setStart(e.target.value)} data-testid="dre-start-input" />
+          </label>
+          <label className="grid gap-1 text-xs text-muted-foreground">Fim
+            <Input aria-label="Fim do período financeiro" type="date" value={end} onChange={(e) => setEnd(e.target.value)} data-testid="dre-end-input" />
+          </label>
+        </div>
+        <Button size="sm" variant="outline" aria-pressed={showAnnual} disabled={comparisonYear < 2} onClick={() => setShowAnnual(!showAnnual)}>Comparar anos</Button>
+      </aside>
+      <div className="min-w-0">
       {(!start || !end) && <p role="status" className="mb-4 text-sm text-muted-foreground">Informe as duas datas para consultar o período.</p>}
       {start > end && <p role="alert" className="mb-4 text-sm text-amber-300">A data inicial não pode ser posterior à data final.</p>}
       {validPeriod && dre.isLoading && <p role="status" className="mb-4 text-sm text-muted-foreground">Carregando o DRE do período…</p>}
@@ -500,6 +510,9 @@ export default function Financeiro() {
       <CashflowPanel start={start} end={end} />
       <ForecastPanel />
       <Despesas />
+      </div>
+      </div>
+      </div>
     </AppShell>
   );
 }

@@ -70,9 +70,9 @@ export default function Produtos() {
           <TabsTrigger value="categorias" data-testid="tab-categorias">Categorias</TabsTrigger>
           <TabsTrigger value="ambientes" data-testid="tab-ambientes">Ambientes</TabsTrigger>
         </TabsList>
-        <TabsContent value="produtos" className="mt-4">
-          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-panel p-3" data-testid="products-toolbar">
-            <div className="relative min-w-52 flex-1"><Search className="absolute left-3 top-2.5 size-4 text-zinc-400" /><Input className="pl-9" placeholder="Pesquisar nome, código ou categoria..." value={search} onChange={e => setSearch(e.target.value)} data-testid="products-search" /></div>
+        <TabsContent value="produtos" className="mt-2">
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded border border-border bg-panel p-2" data-testid="products-toolbar">
+            <div className="relative min-w-0 grow basis-48"><Search className="absolute left-3 top-2.5 size-4 text-zinc-400" /><Input className="pl-9" placeholder="Pesquisar nome, código ou categoria..." value={search} onChange={e => setSearch(e.target.value)} data-testid="products-search" /></div>
             <select aria-label="Ordenar produtos" className="h-9 rounded-md border border-white/15 bg-background px-3 text-sm" value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}>
               <option value="name">Nome</option><option value="code">Código</option><option value="price">Preço de venda</option><option value="cost">Preço de custo</option>
             </select>
@@ -93,35 +93,35 @@ export default function Produtos() {
               </div>
             </div>
           )}
-          <div className="rounded-2xl border border-white/5 bg-panel">
-            <Table>
+          <div className="rounded border border-border bg-panel">
+            <Table stacked aria-label="Cadastro de produtos">
               <TableHeader>
                 <TableRow><TableHead className="w-8"><Checkbox checked={all.length > 0 && sel.length === all.length} onCheckedChange={(v) => setSel(v ? all.map((p) => p.id) : [])} data-testid="product-select-all" /></TableHead><TableHead>Cód. PDV</TableHead><TableHead>Produto</TableHead><TableHead>Categoria</TableHead><TableHead>Ambiente</TableHead><TableHead className="text-right">Preço</TableHead><TableHead className="text-right">Custo</TableHead><TableHead className="text-right">Margem</TableHead><TableHead>Status venda</TableHead><TableHead /></TableRow>
               </TableHeader>
               <TableBody>
                 {visible.map((p) => (
-                  <TableRow key={p.id} data-testid={`product-row-${p.code || p.id}`}>
-                    <TableCell><Checkbox checked={sel.includes(p.id)} onCheckedChange={() => toggle(p.id)} data-testid={`product-select-${p.code || p.id}`} /></TableCell>
-                    <TableCell className="font-mono text-xs text-zinc-400">{p.code || "—"}</TableCell>
-                    <TableCell>
+                  <TableRow key={p.id} data-state={sel.includes(p.id) ? "selected" : undefined} data-testid={`product-row-${p.code || p.id}`}>
+                    <TableCell label="Selecionar"><Checkbox aria-label={`Selecionar ${p.name}`} checked={sel.includes(p.id)} onCheckedChange={() => toggle(p.id)} data-testid={`product-select-${p.code || p.id}`} /></TableCell>
+                    <TableCell label="Cód. PDV" className="font-mono text-xs text-zinc-400">{p.code || "—"}</TableCell>
+                    <TableCell label="Produto" className="whitespace-normal wrap-anywhere">
                       <div className="flex items-center gap-3">
-                        {p.image ? <img src={p.image} alt="" className="size-10 rounded-lg object-cover" /> : <div className="size-10 rounded-lg bg-muted" />}
+                        {p.image ? <img src={p.image} alt="" className="size-7 shrink-0 rounded object-cover" /> : null}
                         <div>
-                          <p className="font-medium text-white">{p.name} {!p.active && <Badge variant="outline">Inativo</Badge>}</p>
+                          <p className="font-medium text-foreground">{p.name} {!p.active && <Badge variant="outline">Inativo</Badge>}</p>
                           <p className="font-mono text-xs text-zinc-500">{p.recipe.length} insumo(s)</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-zinc-300">{catName(p.category_id)}</TableCell>
-                    <TableCell className="text-zinc-300" data-testid={`product-env-${p.code || p.id}`}>
+                    <TableCell label="Categoria" className="whitespace-normal text-foreground">{catName(p.category_id)}</TableCell>
+                    <TableCell label="Ambiente" className="whitespace-normal text-foreground" data-testid={`product-env-${p.code || p.id}`}>
                       {envName(envs.data, p.station || cats.find((c) => c.id === p.category_id)?.station || "cozinha")}
                       {p.print_ticket === false ? <Badge variant="outline" className="ml-1">não imprime</Badge> : <PrinterIcon className="ml-1 inline size-3 text-zinc-500" />}
                     </TableCell>
-                    <TableCell className="text-right font-mono">{brl(p.price)}</TableCell>
-                    <TableCell className="text-right font-mono text-zinc-400">{brl(p.cost)}{p.cost_price > 0 && <span className="ml-1 text-[10px] text-zinc-500">manual</span>}</TableCell>
-                    <TableCell className={cn("text-right font-mono", p.margin_pct >= 65 ? "text-emerald-300" : p.margin_pct >= 45 ? "text-amber-300" : "text-red-300")}>{p.margin_pct}%</TableCell>
-                    <TableCell><span className={p.active ? "text-emerald-300" : "text-zinc-400"}>{p.active ? "● Ativo" : "○ Inativo"}</span></TableCell>
-                    <TableCell className="text-right">
+                    <TableCell label="Preço" className="text-right font-mono">{brl(p.price)}</TableCell>
+                    <TableCell label="Custo" className="text-right font-mono text-muted-foreground">{brl(p.cost)}{p.cost_price > 0 && <span className="ml-1 text-[10px] text-zinc-500">manual</span>}</TableCell>
+                    <TableCell label="Margem" className={cn("text-right font-mono", p.margin_pct >= 65 ? "text-emerald-300" : p.margin_pct >= 45 ? "text-amber-300" : "text-red-300")}>{p.margin_pct}%</TableCell>
+                    <TableCell label="Status"><span className={p.active ? "text-emerald-700 dark:text-emerald-300" : "text-muted-foreground"}>{p.active ? "● Ativo" : "○ Inativo"}</span></TableCell>
+                    <TableCell label="Ações" className="text-right">
                       <Button size="icon-sm" variant="ghost" aria-label={`Duplicar ${p.name}`} title="Duplicar produto" onClick={() => { setCopySource(p); setEditing("new"); }}><Copy /></Button>
                       <Button size="icon-sm" variant="ghost" aria-label={`Editar ${p.name}`} onClick={() => setEditing(p)} data-testid={`edit-product-${p.code || p.id}`}><Pencil /></Button>
                       <Button size="icon-sm" variant="ghost" onClick={() => window.confirm(`Apagar ${p.name}?`) && del.mutate(p.id)} data-testid={`delete-product-${p.code || p.id}`}><Trash2 /></Button>

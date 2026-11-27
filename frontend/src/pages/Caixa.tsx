@@ -103,15 +103,19 @@ export default function Caixa() {
       </div>}
       {current.isError && <div role="alert" className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">Não foi possível consultar o estado do caixa. Verifique a conexão antes de abrir ou fechar um turno. <Button size="sm" variant="outline" onClick={() => void current.refetch()}>Tentar novamente</Button></div>}
       {current.isLoading ? <p role="status" className="text-sm text-zinc-400">Consultando caixa…</p> : current.isError ? null : !s ? (
-        <div className="max-w-md rounded-2xl border border-white/5 bg-panel p-6" data-testid="cash-open-panel">
-          <h3 className="font-heading text-xl text-white">Caixa fechado</h3>
-          <p className="mt-1 text-sm text-zinc-400">Informe o fundo de troco para iniciar o turno.</p>
+        <section className="max-w-lg rounded border border-border bg-panel" aria-label="Abertura de caixa" data-testid="cash-open-panel">
+          <header className="border-b border-border bg-muted/50 px-3 py-2">
+            <h3 className="font-heading text-sm font-semibold text-foreground">Caixa fechado</h3>
+            <p className="text-xs text-muted-foreground">Informe o fundo de troco para iniciar o turno.</p>
+          </header>
+          <div className="p-3">
           <Label htmlFor="cash-opening" className="mt-4 block text-xs text-zinc-400">Fundo de troco (R$)</Label>
           <Input id="cash-opening" value={opening} onChange={(e) => setOpening(formatCurrencyTyping(e.target.value))} inputMode="decimal" className="mt-1 font-mono" data-testid="cash-opening-input" />
           <Label htmlFor="cash-opening-note" className="mt-3 block text-xs text-zinc-400">Observações da abertura</Label>
           <Textarea id="cash-opening-note" maxLength={500} value={openingNote} onChange={(event) => setOpeningNote(event.target.value)} className="mt-1" />
-          <Button className="mt-4 h-12 w-full" onClick={() => open.mutate()} disabled={offline || updating || openingAmount === null} data-testid="cash-open-button"><LockKeyholeOpen /> Abrir caixa</Button>
-        </div>
+          <Button className="mt-3" onClick={() => open.mutate()} disabled={offline || updating || openingAmount === null} data-testid="cash-open-button"><LockKeyholeOpen /> Abrir caixa</Button>
+          </div>
+        </section>
       ) : (
         <>
           <div className="mb-3 flex flex-wrap items-center gap-3">
