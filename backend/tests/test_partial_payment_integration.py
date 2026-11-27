@@ -157,7 +157,8 @@ async def test_concurrent_purchases_and_transaction_rollback(monkeypatch):
     from models.schemas import PurchaseIn
     from routers import catalog
 
-    if db.name not in {"apollo_partial_payment_ci", "apollo_partial_ci"}:
+    if (db.name not in {"apollo_partial_payment_ci", "apollo_partial_ci"}
+            and not db.name.startswith("apollo_partial_ci_")):
         pytest.skip("Compra concorrente exige o banco descartável da CI")
     prefix = "purchase-test-" + uuid.uuid4().hex
     supplier_id = f"{prefix}-supplier"
@@ -208,7 +209,8 @@ async def test_counter_payment_rolls_back_on_insufficient_stock_and_retries(monk
     from routers import operations
     from lib.orders import now
 
-    if db.name not in {"apollo_partial_payment_ci", "apollo_partial_ci"}:
+    if (db.name not in {"apollo_partial_payment_ci", "apollo_partial_ci"}
+            and not db.name.startswith("apollo_partial_ci_")):
         pytest.skip("Venda transacional exige a réplica descartável da CI")
     prefix = "counter-stock-" + uuid.uuid4().hex
     product_id = prefix + "-product"
@@ -314,7 +316,8 @@ async def test_lot_count_rolls_back_if_audit_write_fails(monkeypatch):
     from models.schemas import LotCountIn
     from routers import catalog
 
-    if db.name not in {"apollo_partial_payment_ci", "apollo_partial_ci"}:
+    if (db.name not in {"apollo_partial_payment_ci", "apollo_partial_ci"}
+            and not db.name.startswith("apollo_partial_ci_")):
         pytest.skip("Conferência de lote exige o banco descartável replicado da CI")
     prefix = uuid.uuid4().hex
     ingredient_id, lot_id = f"lot-ingredient-{prefix}", f"lot-count-{prefix}"

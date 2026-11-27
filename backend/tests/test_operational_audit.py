@@ -12,6 +12,12 @@ from models.schemas import CashMoveIn, CashCloseIn, CancelIn, TicketStatusIn
 from routers import operations
 
 
+@pytest.fixture(autouse=True)
+def shared_register(monkeypatch):
+    # These unit doubles model the shared-register write protocol.
+    monkeypatch.setenv("APOLLO_CASH_MODE", "shared")
+
+
 def test_signed_event_detects_tampering_and_filters_credentials(monkeypatch):
     monkeypatch.setenv("AUDIT_SIGNING_KEY", "test-only-key-longer-than-32-characters")
     event = audit_event("cash_sangria", {"id": "u1", "name": "Admin", "role": "admin", "pin_hash": "private"},

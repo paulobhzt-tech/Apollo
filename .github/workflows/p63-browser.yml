@@ -55,6 +55,14 @@ jobs:
             sleep 1
           done
           exit 1
+      - name: Executar bateria completa do backend em bancos descartáveis
+        if: github.ref_name == 'feat/p64-9-reconstrucao-integral-interface-consumer' && matrix.browser == 'chromium'
+        env:
+          APOLLO_DISPOSABLE_TESTS: '1'
+        run: |
+          set -o pipefail
+          mkdir -p evidence
+          bash backend/scripts/test-full-disposable.sh 2>&1 | tee evidence/backend-completo.log
       - name: Run visual checks with fictitious data
         run: |
           mkdir -p evidence

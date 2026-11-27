@@ -13,6 +13,7 @@ from models.schemas import PayIn, Payment
 
 @pytest.fixture
 def payment_context(monkeypatch):
+    monkeypatch.setenv("APOLLO_CASH_MODE", "shared")
     order = {
         "id": "simulated-order", "number": 1, "status": "aberto",
         "items": [{"qty": 2, "unit_price": 10, "unit_cost": 4},

@@ -26,6 +26,9 @@ def test_catalog_normalizes_names_and_rejects_whitespace_only(schema, fields):
 async def test_catalog_purchase_recovers_replay_without_duplicating_stock(monkeypatch):
     if not db.name.startswith("apollo_restore_test_"):
         pytest.skip("Requer um MongoDB descartável")
+    # Select the standalone purchase protocol while using the disposable
+    # collection fixtures. Replica-set purchases have their own integration test.
+    monkeypatch.setattr(db, "command", AsyncMock(return_value={}))
     prefix = f"catalog-test-{uuid4().hex}"
     user = {"id": prefix, "name": "Operador fictício"}
     station = prefix

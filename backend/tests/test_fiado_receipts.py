@@ -12,6 +12,7 @@ from routers import fiado
 
 @pytest.fixture
 def ledger(monkeypatch):
+    monkeypatch.setenv("APOLLO_CASH_MODE", "shared")
     customer = {"id": "client", "balance": 100, "credit_limit": 150}
     moves = {}
 
