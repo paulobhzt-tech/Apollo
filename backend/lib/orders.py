@@ -378,6 +378,8 @@ async def finalize_payment(order: dict, pay: PayIn, actor: dict | None = None, *
                           for p in receipt["payments"]]
         if cents(total) < cents(advance):
             raise HTTPException(409, "O total ficou abaixo do valor já recebido. Estorne a parcela antes de fechar.")
+    if order.get("table_receipts") and any(p.method == "pix" and p.details is None for p in pay.payments):
+        raise HTTPException(422, "Informe a referência e confirme o recebimento do PIX.")
     historic_pix = pix_references(
         p for receipt in order.get("table_receipts", []) for p in receipt["payments"])
     if historic_pix & pix_references(p.model_dump() for p in pay.payments):

@@ -174,7 +174,34 @@ test("captures the same populated screens in each version", async ({ page }, inf
     await page.getByTestId("close-table-button").click();
     await expect(page.getByTestId("payment-remaining")).toContainText("7,00");
     await capture("fechamento-com-parcelas");
-    await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+    await page.getByTestId("payment-add-button").click();
+    const settled = page.waitForResponse((response) =>
+      response.url().endsWith(`/api/tables/${newTable.id}/pay`) && response.request().method() === "POST");
+    await page.getByTestId("payment-confirm-button").click();
+    const settlement = await settled;
+    expect(settlement.ok()).toBe(true);
+    expect((await settlement.json()).order).toMatchObject({ total: 11, advance_paid: 4, change: 0 });
+    const register = await page.request.get(base + "/api/cash/current");
+    expect((await register.json()).expected_cash).toBe(76);
 
+    await page.goto(base + `/auditoria?registro=${attending.order_id}`);
+    const audited = page.getByRole("row").filter({ hasText: "Parcela por valor" });
+    await expect(audited).toHaveCount(2);
+    await audited.first().getByText("Ver detalhes", { exact: true }).click();
+    await expect(audited.first()).toContainText("Saldo:");
+    await capture("auditoria-parcelas");
+
+    const person = await post("/customers", { name: "Pessoa fictícia P64.9" });
+    await page.goto(base + "/clientes");
+    await page.getByTestId("customer-search-input").fill("Pessoa fictícia P64.9");
+    await expect(page.getByTestId(`customer-row-${person.id}`)).toBeVisible();
+    await capture("clientes-lista");
+    await page.getByTestId(`customer-edit-${person.id}`).click();
+    await expect(page.getByTestId("customer-dialog")).toBeVisible();
+    await capture("cliente-edicao");
+    await page.goto(base + "/fornecedores");
+    await page.getByTestId("supplier-search-input").fill("Fornecedor fictício");
+    await expect(page.getByTestId("supplier-row-p40supplier")).toBeVisible();
+    await capture("fornecedores-busca");
   }
 });

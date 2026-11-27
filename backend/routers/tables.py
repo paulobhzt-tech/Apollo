@@ -187,17 +187,27 @@ async def set_table_status(id: str, body: TableStatusIn, _: dict = Depends(requi
 @router.post("/tables/{id}/release", response_model=Table)
 async def release_table(id: str, user: dict = Depends(require(*STAFF))):
     """Liberar: frees a table/comanda that has nothing to charge (empty or every item cancelled)."""
-    t = await get_table(id)
-    if t.get("order_id"):
-        o = await db.orders.find_one({"id": t["order_id"]}, {"_id": 0, "items": 1, "status": 1})
-        if o and o["status"] == "aberto":
-            if any(not i.get("cancelled") for i in o["items"]):
-                raise HTTPException(400, "Há itens na comanda: feche a conta ou cancele a mesa")
-            await db.orders.update_one({"id": t["order_id"]}, {"$set": {"status": "cancelado", "cancel_reason": "Liberada sem consumo",
-                                                                        "cancelled_by": user["name"], "cancelled_at": now()}})
-            await db.kitchen_tickets.update_many({"order_id": t["order_id"]}, {"$set": {"status": "entregue"}})
-    await free_table(id)
-    return await get_table(id)
+    async def apply(session):
+        options = {"session": session} if session is not None else {}
+        t = await get_table(id, **options)
+        if t.get("order_id"):
+            order = await db.orders.find_one({"id": t["order_id"]}, {"_id": 0, "items": 1, "status": 1, "advance_paid": 1}, **options)
+            if order and order["status"] == "aberto":
+                guard_open_receipts(order)
+                if any(not i.get("cancelled") for i in order["items"]):
+                    raise HTTPException(400, "Há itens na comanda: feche a conta ou cancele a mesa")
+                result = await db.orders.update_one(
+                    {"id": t["order_id"], "status": "aberto", "items": order["items"]},
+                    {"$set": {"status": "cancelado", "cancel_reason": "Liberada sem consumo",
+                              "cancelled_by": user["name"], "cancelled_at": now()}}, **options)
+                if not result.modified_count:
+                    raise HTTPException(409, "A comanda mudou. Atualize a mesa antes de liberar.")
+                await db.kitchen_tickets.update_many({"order_id": t["order_id"]},
+                    {"$set": {"status": "entregue"}}, **options)
+        await free_table(id, expected_order_id=t.get("order_id"), **options)
+        return await get_table(id, **options)
+
+    return await with_order_transaction(apply)
 
 
 @router.post("/tables/{id}/cancel", response_model=Table)
@@ -1042,6 +1052,8 @@ async def receive_monetary_partial(id: str, body: MonetaryReceiptIn, user: dict 
             raise HTTPException(422, "A soma dos pagamentos deve ser igual à parcela em centavos.")
         if any(p.method in ("credito", "debito") and not p.brand for p in body.payments):
             raise HTTPException(422, "Informe a bandeira do cartão.")
+        if any(p.method == "pix" and p.details is None for p in body.payments):
+            raise HTTPException(422, "Informe a referência e confirme o recebimento do PIX.")
         payment = PayIn(payments=body.payments, emit_invoice=False)
         validate_payment_details(payment)
         await validate_methods([p.method for p in body.payments])
