@@ -29,3 +29,25 @@ def test_cashflow_does_not_mutate_input():
     result = summarize_cashflow([], [], expenses, "2026-11-01", "2026-11-30")
     assert result["totals"]["expenses"] == 1.24
     assert expenses[0]["amount"] == 1.235
+
+
+def test_cashflow_posts_receipts_and_remaining_settlement_on_separate_days():
+    from datetime import datetime, timezone
+
+    def at(day):
+        return datetime(2026, 11, day, 12, tzinfo=timezone.utc)
+
+    orders = [{"paid_at": at(4), "payments": [
+        {"method": "dinheiro", "amount": 18},
+        {"method": "dinheiro", "amount": 17},
+    ], "closing_payments": [{"method": "dinheiro", "amount": 17}], "change": 2}]
+    receipts = [
+        {"at": at(2), "totals_by_method": {"dinheiro": 18}},
+        {"at": at(3), "totals_by_method": {"pix": 5}},
+        {"at": at(5), "totals_by_method": {"pix": -5}},
+    ]
+    cancelled = [{"cancelled_at": at(5), "advance_paid": 8}]
+    result = summarize_cashflow(orders, [], [], "2026-11-01", "2026-11-30",
+                                table_receipts=receipts, cancelled_tables=cancelled)
+    assert [row["sales"] for row in result["days"]] == [18, 5, 15, -13]
+    assert result["totals"]["sales"] == 25

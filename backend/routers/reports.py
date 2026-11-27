@@ -284,7 +284,8 @@ async def dre(start: Optional[str] = None, end: Optional[str] = None, _: dict = 
     }
 
 
-def summarize_cashflow(orders: list[dict], bills: list[dict], expenses: list[dict], start: str, end: str) -> dict:
+def summarize_cashflow(orders: list[dict], bills: list[dict], expenses: list[dict], start: str, end: str,
+                       *, table_receipts=(), cancelled_tables=()) -> dict:
     """Operational cash-flow estimate by payment/settlement date, not an accounting bank reconciliation."""
     days: dict[str, dict] = {}
     def day(key: str) -> dict:
@@ -296,8 +297,17 @@ def summarize_cashflow(orders: list[dict], bills: list[dict], expenses: list[dic
         key = paid_at.astimezone(TZ).date().isoformat()
         if start <= key <= end:
             # Fiado is a receivable, not cash collected on the sale date.
-            amount = sum(float(p.get("amount", 0)) for p in order.get("payments", []) if p.get("method") != "fiado")
-            day(key)["sales"] += amount
+            amount = sum(float(p.get("amount", 0)) for p in order.get("closing_payments", order.get("payments", []))
+                         if p.get("method") != "fiado")
+            day(key)["sales"] += amount - order.get("change", 0)
+    for entry in table_receipts:
+        key = entry["at"].astimezone(TZ).date().isoformat()
+        if start <= key <= end:
+            day(key)["sales"] += sum(entry["totals_by_method"].values())
+    for order in cancelled_tables:
+        key = order["cancelled_at"].astimezone(TZ).date().isoformat()
+        if start <= key <= end:
+            day(key)["sales"] -= order["advance_paid"]
     for bill in bills:
         key = bill.get("paid_date") or ""
         if not start <= key <= end:
@@ -315,7 +325,7 @@ def summarize_cashflow(orders: list[dict], bills: list[dict], expenses: list[dic
         rows.append(rounded)
     totals = {k: round(sum(row[k] for row in rows), 2) for k in ("sales", "receivables", "payables", "expenses", "balance")}
     return {"start": start, "end": end, "days": rows, "totals": totals,
-            "note": "Fluxo operacional estimado: vendas recebidas (exceto fiado), contas baixadas e despesas lançadas. Não concilia extratos bancários, estornos ou recebimentos de fiado; despesas duplicadas em contas e lançamentos podem ser contadas duas vezes."}
+            "note": "Fluxo operacional estimado: parcelas por valor, vendas recebidas (exceto fiado), contas baixadas e despesas lançadas. A conciliação de extratos, estornos de itens e recebimentos de fiado ocorre fora deste relatório; despesas duplicadas em contas e lançamentos podem ser contadas duas vezes."}
 
 
 @router.get("/reports/cashflow")
@@ -334,7 +344,15 @@ async def cashflow(start: Optional[str] = None, end: Optional[str] = None, _: di
     orders = await paid_between(s, e)
     bills = await db.bills.find({"status": "pago", "paid_date": {"$gte": start, "$lte": end}}, {"_id": 0}).to_list(10000)
     expenses = await db.expenses.find({"date": {"$gte": start, "$lte": end}}, {"_id": 0}).to_list(10000)
-    return summarize_cashflow(orders, bills, expenses, start, end)
+    table_receipts = await db.cash_adjustments.find({
+        "kind": {"$in": ["table_receipt", "table_receipt_reversal"]}, "at": {"$gte": s, "$lt": e},
+    }, {"_id": 0, "at": 1, "totals_by_method": 1}).to_list(None)
+    cancelled_tables = await db.orders.find({
+        "status": "cancelado", "cancellation_kind": "full", "paid_at": {"$type": "date"},
+        "advance_paid": {"$gt": 0}, "cancelled_at": {"$gte": s, "$lt": e},
+    }, {"_id": 0, "cancelled_at": 1, "advance_paid": 1}).to_list(None)
+    return summarize_cashflow(orders, bills, expenses, start, end,
+                              table_receipts=table_receipts, cancelled_tables=cancelled_tables)
 
 
 def employee_sales_summary(orders: list[dict], employees: list[dict]) -> list[dict]:
