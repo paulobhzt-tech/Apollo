@@ -81,10 +81,10 @@ export default function Produtos() {
             <Button variant="outline" onClick={exportProducts} data-testid="products-export-csv"><Download className="size-4" /> Exportar Excel (CSV)</Button>
             <Button onClick={() => setEditing("new")}><Plus className="size-4" /> Novo</Button>
           </div>
-          <div className="mb-2 text-sm text-zinc-300">Produtos ({visible.length}) · Ativos ({visible.filter(p => p.active).length})</div>
+          <div className="mb-2 text-sm text-foreground">Produtos ({visible.length}) · Ativos ({visible.filter(p => p.active).length})</div>
           {sel.length > 0 && (
             <div className="mb-3 flex items-center justify-between rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2 animate-rise" data-testid="product-bulk-bar">
-              <span className="text-sm text-red-200">{sel.length} produto(s) selecionado(s)</span>
+              <span className="text-sm text-red-700 dark:text-red-200">{sel.length} produto(s) selecionado(s)</span>
               <div className="flex gap-2">
                 <Button size="sm" variant="ghost" onClick={() => setSel([])}>Limpar seleção</Button>
                 <Button size="sm" variant="destructive" disabled={bulk.isPending} onClick={() => window.confirm(`Apagar ${sel.length} produto(s)? As vendas antigas continuam no histórico.`) && bulk.mutate(sel)} data-testid="product-bulk-delete-button">
@@ -119,7 +119,7 @@ export default function Produtos() {
                     </TableCell>
                     <TableCell label="Preço" className="text-right font-mono">{brl(p.price)}</TableCell>
                     <TableCell label="Custo" className="text-right font-mono text-muted-foreground">{brl(p.cost)}{p.cost_price > 0 && <span className="ml-1 text-[10px] text-zinc-500">manual</span>}</TableCell>
-                    <TableCell label="Margem" className={cn("text-right font-mono", p.margin_pct >= 65 ? "text-emerald-300" : p.margin_pct >= 45 ? "text-amber-300" : "text-red-300")}>{p.margin_pct}%</TableCell>
+                    <TableCell label="Margem" className={cn("text-right font-mono", p.margin_pct >= 65 ? "text-emerald-700 dark:text-emerald-300" : p.margin_pct >= 45 ? "text-amber-800 dark:text-amber-300" : "text-red-700 dark:text-red-300")}>{p.margin_pct}%</TableCell>
                     <TableCell label="Status"><span className={p.active ? "text-emerald-700 dark:text-emerald-300" : "text-muted-foreground"}>{p.active ? "● Ativo" : "○ Inativo"}</span></TableCell>
                     <TableCell label="Ações" className="text-right">
                       <Button size="icon-sm" variant="ghost" aria-label={`Duplicar ${p.name}`} title="Duplicar produto" onClick={() => { setCopySource(p); setEditing("new"); }}><Copy /></Button>
@@ -272,7 +272,7 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
               <div className="mt-2 flex flex-col gap-3">
                 <div className="aspect-square w-full max-h-64 overflow-hidden rounded-xl border border-white/10 bg-muted">{f.image && <img src={f.image} alt="" className="size-full object-cover" data-testid="product-image-preview" />}</div>
                 <div className="flex-1 space-y-2">
-                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-white/15 px-3 py-2 text-sm text-zinc-300 transition-colors duration-150 hover:border-primary/50">
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-white/15 px-3 py-2 text-sm text-foreground transition-colors duration-150 hover:border-primary/50">
                     <ImagePlus className="size-4" /> Enviar foto do computador/celular
                     <input type="file" accept="image/*" className="hidden" data-testid="product-image-upload"
                       disabled={uploading}
@@ -313,7 +313,7 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
               </div>
               <div className="flex flex-col justify-center rounded-xl border border-white/5 bg-panel px-3 py-2">
                 <p className="text-[11px] text-zinc-500">Lucro por unidade</p>
-                <p className={cn("font-mono text-lg", price - cost >= 0 ? "text-emerald-300" : "text-red-300")} data-testid="product-profit">{brl(price - cost)} <span className="text-xs text-zinc-400">({margin.toFixed(1)}%)</span></p>
+                <p className={cn("font-mono text-lg", price - cost >= 0 ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300")} data-testid="product-profit">{brl(price - cost)} <span className="text-xs text-zinc-400">({margin.toFixed(1)}%)</span></p>
               </div>
               <div><Label htmlFor="product-code" className="text-xs text-zinc-400">Código / PLU</Label><Input value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} className="mt-1 font-mono" id="product-code" data-testid="product-code-input" /></div>
               <div>
@@ -326,11 +326,11 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
                   </SelectContent>
                 </Select>
               </div>
-              <label className="flex items-center gap-2 self-end rounded-xl border border-white/5 bg-panel px-3 py-2.5 text-sm text-zinc-300">
+              <label className="flex items-center gap-2 self-end rounded-xl border border-white/5 bg-panel px-3 py-2.5 text-sm text-foreground">
                 <Checkbox checked={f.print_ticket} onCheckedChange={(v) => setF({ ...f, print_ticket: !!v })} data-testid="product-print-checkbox" />
                 <PrinterIcon className="size-4 text-primary" /> Imprimir ticket no ambiente
               </label>
-              <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={f.active} onCheckedChange={(v) => setF({ ...f, active: !!v })} data-testid="product-active-checkbox" /> Disponível para venda</label>
+              <label className="flex items-center gap-2 text-sm text-foreground"><Checkbox checked={f.active} onCheckedChange={(v) => setF({ ...f, active: !!v })} data-testid="product-active-checkbox" /> Disponível para venda</label>
               <fieldset className="grid gap-2 rounded-xl border border-white/10 p-3 sm:col-span-2 sm:grid-cols-2">
                 <legend className="px-1 text-sm font-medium">Disponibilidade por canal</legend>
                 {CHANNELS.map(({ id, label }) => <label key={id} className="flex items-center gap-2 text-sm">
@@ -344,7 +344,7 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
         </TabsContent>
         <TabsContent value="estoque" className="mt-4 rounded-xl border border-white/10 bg-panel p-5">
           <h3 className="font-semibold text-white">Controle de estoque</h3>
-          <p className="mt-2 text-sm text-zinc-300">As entradas, compras, lotes e quantidades são controladas no módulo Estoque. A ficha técnica deste produto define os insumos consumidos nas vendas.</p>
+          <p className="mt-2 text-sm text-foreground">As entradas, compras, lotes e quantidades são controladas no módulo Estoque. A ficha técnica deste produto define os insumos consumidos nas vendas.</p>
           <label className="mt-4 block text-sm">Unidade de venda
             <select className="ml-3 rounded-md border border-white/15 bg-background p-2" value={f.sale_unit ?? "un"} onChange={(event) => setF({ ...f, sale_unit: event.target.value as ProductIn["sale_unit"], stock_ingredient_id: null })}>
               <option value="un">Unidade (un)</option><option value="kg">Quilo (kg)</option><option value="L">Litro (L)</option>
@@ -377,7 +377,7 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
           <Input placeholder={`Qtd${ingId ? ` (${ingMap[ingId]?.unit})` : ""}`} aria-label="Quantidade do insumo" value={qty} inputMode={selectedIngredient?.unit === "un" ? "numeric" : "decimal"} onChange={(e) => setQty(e.target.value)} className="w-28 font-mono" data-testid="recipe-qty-input" />
           <Button variant="outline" onClick={addRecipe} disabled={!selectedIngredient || !validRecipeQuantity} aria-label="Adicionar insumo à ficha técnica" data-testid="recipe-add-button"><Plus /></Button>
         </div>
-        {selectedIngredient && qty.trim() && !validRecipeQuantity && <p role="status" className="mt-2 text-xs text-amber-300">
+        {selectedIngredient && qty.trim() && !validRecipeQuantity && <p role="status" className="mt-2 text-xs text-amber-800 dark:text-amber-300">
           {selectedIngredient.unit === "un" ? "Informe um número inteiro maior que zero." : "Informe uma quantidade maior que zero."}
         </p>}
         <ul className="mt-3 space-y-1.5">
@@ -385,8 +385,8 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
             const i = ingMap[r.ingredient_id];
             return (
               <li key={r.ingredient_id} className="flex items-center justify-between text-sm" data-testid={`recipe-line-${r.ingredient_id}`}>
-                <span className="text-zinc-200">{i?.name ?? "?"} · <span className="font-mono text-zinc-400">{r.qty} {i?.unit}</span></span>
-                <span className="flex items-center gap-2 font-mono text-zinc-300">{brl((i?.cost_per_unit ?? 0) * r.qty)}
+                <span className="text-foreground">{i?.name ?? "?"} · <span className="font-mono text-zinc-400">{r.qty} {i?.unit}</span></span>
+                <span className="flex items-center gap-2 font-mono text-foreground">{brl((i?.cost_per_unit ?? 0) * r.qty)}
                   <button type="button" onClick={() => setF({ ...f, recipe: f.recipe.filter((x) => x.ingredient_id !== r.ingredient_id) })}><Trash2 className="size-3.5 text-zinc-500" /></button>
                 </span>
               </li>
@@ -395,19 +395,19 @@ function ProductForm({ editing, copySource, onClose, cats, ings }: { editing: Pr
         </ul>
         <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/5 pt-3 text-center">
           <div><p className="text-[10px] uppercase text-zinc-500">{manualCost > 0 ? "Custo (manual)" : "CMV ficha"}</p><p className="font-mono text-white" data-testid="recipe-cost">{brl(cost)}</p></div>
-          <div><p className="text-[10px] uppercase text-zinc-500">Margem</p><p className={cn("font-mono", margin >= 65 ? "text-emerald-300" : "text-amber-300")} data-testid="recipe-margin">{margin.toFixed(1)}%</p></div>
+          <div><p className="text-[10px] uppercase text-zinc-500">Margem</p><p className={cn("font-mono", margin >= 65 ? "text-emerald-700 dark:text-emerald-300" : "text-amber-800 dark:text-amber-300")} data-testid="recipe-margin">{margin.toFixed(1)}%</p></div>
           <div><p className="text-[10px] uppercase text-zinc-500">Preço sugerido</p><p className="font-mono text-primary" data-testid="suggested-price">{brl(suggestedPrice)}</p></div>
         </div>
         <div className="mt-3 flex flex-wrap items-end gap-2"><div><Label>Margem bruta desejada (%)</Label><Input className="mt-1 w-28" inputMode="decimal" value={targetMargin} onChange={(e) => setTargetMargin(e.target.value)} data-testid="target-margin" /></div><Button type="button" variant="outline" disabled={!suggestedPrice || suggestedPrice > 1000000} onClick={() => setPriceStr(suggestedPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }))} data-testid="apply-suggested-price">Aplicar preço sugerido</Button></div>
-        {cost > 0 && price > 0 && desiredMargin !== null && margin < desiredMargin && <p className="mt-2 text-xs text-amber-300" role="status">Atenção: margem atual de {margin.toFixed(1)}% abaixo da meta de {desiredMargin}%.</p>}
+        {cost > 0 && price > 0 && desiredMargin !== null && margin < desiredMargin && <p className="mt-2 text-xs text-amber-800 dark:text-amber-300" role="status">Atenção: margem atual de {margin.toFixed(1)}% abaixo da meta de {desiredMargin}%.</p>}
         <p className="mt-2 text-xs text-zinc-400">Custo calculado pela ficha técnica e preços atuais dos insumos, salvo quando houver custo manual. Margem bruta não inclui impostos, taxas e despesas fixas.</p>
       </div>
         </TabsContent>
       </Tabs>
       {!f.name.trim() && <p className="text-sm text-zinc-400">Informe o nome do produto.</p>}
-      {!categoryExists && <p className="text-sm text-amber-300">{cats.length ? "Selecione uma categoria válida." : "Cadastre uma categoria na aba Categorias antes de salvar o produto."}</p>}
-      {invalidAmounts && <p className="text-sm text-amber-300">Informe um preço válido. Preço e custo devem ser zero ou maiores.</p>}
-      {invalidOptions && <p role="alert" className="text-sm text-amber-300">Revise Complementos e Perguntas. Cada grupo precisa de nome e de pelo menos uma opção com nome e preço válido.</p>}
+      {!categoryExists && <p className="text-sm text-amber-800 dark:text-amber-300">{cats.length ? "Selecione uma categoria válida." : "Cadastre uma categoria na aba Categorias antes de salvar o produto."}</p>}
+      {invalidAmounts && <p className="text-sm text-amber-800 dark:text-amber-300">Informe um preço válido. Preço e custo devem ser zero ou maiores.</p>}
+      {invalidOptions && <p role="alert" className="text-sm text-amber-800 dark:text-amber-300">Revise Complementos e Perguntas. Cada grupo precisa de nome e de pelo menos uma opção com nome e preço válido.</p>}
       {copySource && <p className="text-sm text-zinc-400">A cópia começa inativa e com o código em branco. Revise antes de salvar.</p>}
       {save.isError && <p role="alert" className="text-sm text-destructive">{errMsg(save.error)}</p>}
       <Button className="mt-2 h-11" disabled={!f.name.trim() || !categoryExists || invalidAmounts || invalidOptions || uploading || save.isPending} onClick={() => save.mutate({ ...f, category_id: categoryId, name: f.name.trim(), code: f.code.trim(), price, cost_price: manualCost })} data-testid="product-save-button">{save.isPending ? "Salvando…" : "Salvar produto"}</Button>
@@ -482,7 +482,7 @@ function Ambientes() {
         <p className="text-sm font-medium text-white">Novo ambiente</p>
         <p className="text-xs text-zinc-500">Ex.: Churrasqueira, Bar, Cozinha, Sobremesas. Vincule uma impressora em Configurações → Impressoras.</p>
         <Input placeholder="Nome do ambiente" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} data-testid="env-name-input" />
-        <label className="flex items-center gap-2 text-sm text-zinc-300"><Checkbox checked={f.auto_print} onCheckedChange={(v) => setF({ ...f, auto_print: !!v })} data-testid="env-auto-new" /> Impressão automática</label>
+        <label className="flex items-center gap-2 text-sm text-foreground"><Checkbox checked={f.auto_print} onCheckedChange={(v) => setF({ ...f, auto_print: !!v })} data-testid="env-auto-new" /> Impressão automática</label>
         <Button className="w-full" disabled={f.name.trim().length < 2 || create.isPending} onClick={() => create.mutate()} data-testid="env-save-button">Salvar ambiente</Button>
       </div>
     </div>

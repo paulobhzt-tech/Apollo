@@ -381,14 +381,14 @@ export default function Financeiro() {
       </aside>
       <div className="min-w-0">
       {(!start || !end) && <p role="status" className="mb-4 text-sm text-muted-foreground">Informe as duas datas para consultar o período.</p>}
-      {start > end && <p role="alert" className="mb-4 text-sm text-amber-300">A data inicial não pode ser posterior à data final.</p>}
+      {start > end && <p role="alert" className="mb-4 text-sm text-amber-800 dark:text-amber-300">A data inicial não pode ser posterior à data final.</p>}
       {validPeriod && dre.isLoading && <p role="status" className="mb-4 text-sm text-muted-foreground">Carregando o DRE do período…</p>}
       {dre.isError && <p role="alert" className="mb-4 text-sm text-red-400">{errMsg(dre.error)}</p>}
       {showAnnual && comparisonYear >= 2 && <AnnualDre year={comparisonYear} />}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Receita bruta" value={brl(d?.gross_revenue ?? 0)} hint={`${d?.orders ?? 0} pedidos`} testid="dre-gross" />
         <Stat label="CMV" value={brl(d?.cmv ?? 0)} hint={d?.gross_revenue ? `${((d.cmv / d.gross_revenue) * 100).toFixed(1)}% da receita` : undefined} testid="dre-cmv" />
-        <Stat label="Lucro líquido" value={brl(d?.net_profit ?? 0)} testid="dre-net" accent={(d?.net_profit ?? 0) >= 0 ? "text-emerald-300" : "text-red-300"} />
+        <Stat label="Lucro líquido" value={brl(d?.net_profit ?? 0)} testid="dre-net" accent={(d?.net_profit ?? 0) >= 0 ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300"} />
         <Stat label="Margem líquida" value={`${d?.margin_pct ?? 0}%`} testid="dre-margin" accent="text-primary" />
       </div>
       <div className="my-4 grid min-w-0 items-start gap-4 xl:grid-cols-2">
@@ -483,7 +483,7 @@ export default function Financeiro() {
               </ResponsiveContainer>
             </Panel>
             <Panel title="Por pagamento">
-              <ul className="space-y-1.5 text-sm">{(d?.by_payment ?? []).map((p) => <li key={p.name} className="flex justify-between"><span className="text-zinc-300">{p.name}</span><span className="font-mono">{brl(p.value)}</span></li>)}</ul>
+              <ul className="space-y-1.5 text-sm">{(d?.by_payment ?? []).map((p) => <li key={p.name} className="flex justify-between"><span className="text-foreground">{p.name}</span><span className="font-mono">{brl(p.value)}</span></li>)}</ul>
             </Panel>
           </div>
         </div>
@@ -521,7 +521,7 @@ function L({ k, v, strong, line, big }: { k: string; v: number; strong?: boolean
   return (
     <div className={cn("flex justify-between py-1", line && "border-t border-white/10 pt-2", strong ? "text-white" : "text-zinc-400", big && "text-lg")}>
       <dt className="font-sans">{k}</dt>
-      <dd className={cn(v < 0 && !strong && "text-red-300/80", big && (v >= 0 ? "text-emerald-300" : "text-red-300"))}>{brl(v)}</dd>
+      <dd className={cn(v < 0 && !strong && "text-red-700 dark:text-red-300/80", big && (v >= 0 ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300"))}>{brl(v)}</dd>
     </div>
   );
 }
@@ -612,7 +612,7 @@ function OptionRanking({ start, end }: { start: string; end: string }) {
                 <p className="mb-2 text-sm font-medium text-white">{g}</p>
                 {rows.map((r) => (
                   <div key={r.name} className="mb-1.5" data-testid={`option-rank-${g}-${r.name}`}>
-                    <div className="flex justify-between text-xs"><span className="text-zinc-300">{r.name}</span><span className="font-mono text-white">{r.qty}x</span></div>
+                    <div className="flex justify-between text-xs"><span className="text-foreground">{r.name}</span><span className="font-mono text-white">{r.qty}x</span></div>
                     <div className="mt-0.5 h-1.5 rounded-full bg-white/5"><div className="h-full rounded-full bg-primary" style={{ width: `${(r.qty / top) * 100}%` }} /></div>
                   </div>
                 ))}

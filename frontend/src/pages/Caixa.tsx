@@ -96,12 +96,12 @@ export default function Caixa() {
   return (
     <AppShell roles={["caixa"]}>
       <PageHeader title="Controle de Caixa" subtitle="Abertura, sangria, suprimento e fechamento com conferência cega" />
-      {offline && <p role="status" data-testid="cash-online-required" className="mb-3 text-sm text-amber-300">Abertura, movimentos e fechamento de caixa exigem conexão.</p>}
+      {offline && <p role="status" data-testid="cash-online-required" className="mb-3 text-sm text-amber-800 dark:text-amber-300">Abertura, movimentos e fechamento de caixa exigem conexão.</p>}
       {needsReview && <div role="alert" className="mb-4 rounded-md border border-white/15 p-3">
         Resultado incerto. Consulte o caixa e o histórico antes de repetir a operação.
         <Button size="sm" variant="outline" className="ml-2" disabled={offline || checking} onClick={() => void consult()}>Consultar servidor</Button>
       </div>}
-      {current.isError && <div role="alert" className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">Não foi possível consultar o estado do caixa. Verifique a conexão antes de abrir ou fechar um turno. <Button size="sm" variant="outline" onClick={() => void current.refetch()}>Tentar novamente</Button></div>}
+      {current.isError && <div role="alert" className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200">Não foi possível consultar o estado do caixa. Verifique a conexão antes de abrir ou fechar um turno. <Button size="sm" variant="outline" onClick={() => void current.refetch()}>Tentar novamente</Button></div>}
       {current.isLoading ? <p role="status" className="text-sm text-zinc-400">Consultando caixa…</p> : current.isError ? null : !s ? (
         <section className="max-w-lg rounded border border-border bg-panel" aria-label="Abertura de caixa" data-testid="cash-open-panel">
           <header className="border-b border-border bg-muted/50 px-3 py-2">
@@ -119,7 +119,7 @@ export default function Caixa() {
       ) : (
         <>
           <div className="mb-3 flex flex-wrap items-center gap-3">
-            <span className="rounded-md bg-emerald-500/15 px-3 py-1 text-sm font-medium text-emerald-300">Caixa aberto</span>
+            <span className="rounded-md bg-emerald-500/15 px-3 py-1 text-sm font-medium text-emerald-700 dark:text-emerald-300">Caixa aberto</span>
             <span className="text-sm text-muted-foreground">Turno {s.id.slice(0, 8)}</span>
           </div>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,11rem),1fr))] gap-3">
@@ -128,7 +128,7 @@ export default function Caixa() {
             <Stat label="Fundo de troco" value={brl(s.opening_amount)} testid="cash-opening" />
             <Stat label="Dinheiro esperado" value={blind ? "••••" : brl(s.expected_cash)} hint="conferência cega" testid="cash-expected" accent="text-primary" />
           </div>
-          {s.opening_note && <p className="mt-3 break-words text-sm text-zinc-300">Observações da abertura · {s.opening_note}</p>}
+          {s.opening_note && <p className="mt-3 break-words text-sm text-foreground">Observações da abertura · {s.opening_note}</p>}
           <div className="@container mt-4">
             <div className="grid min-w-0 items-start gap-3 @min-[48rem]:grid-cols-[minmax(0,1.55fr)_minmax(17rem,1fr)]">
           <Panel title="Movimentações manuais do turno" className="min-w-0 self-start">
@@ -151,12 +151,12 @@ export default function Caixa() {
             <Panel title="Totais por forma de pagamento">
               <ul className="space-y-2">
                 {Object.entries(s.totals_by_method).map(([k, v]) => (
-                  <li key={k} className="flex justify-between text-sm"><span className="text-zinc-300">{payLabel(k)}</span><span className="font-mono">{blind ? "••••" : brl(v)}</span></li>
+                  <li key={k} className="flex justify-between text-sm"><span className="text-foreground">{payLabel(k)}</span><span className="font-mono">{blind ? "••••" : brl(v)}</span></li>
                 ))}
                 {Object.keys(s.totals_by_method).length === 0 && <p className="text-sm text-zinc-500">Sem vendas neste turno.</p>}
               </ul>
               {(s.refund_adjustments?.length ?? 0) > 0 && <div className="mt-3 border-t border-white/10 pt-3" data-testid="cash-refund-adjustments">
-                <p className="text-xs font-semibold text-amber-300">Devoluções de turnos anteriores</p>
+                <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">Devoluções de turnos anteriores</p>
                 {s.refund_adjustments?.map((entry) => <p key={entry.id} className="mt-1 break-words text-xs text-zinc-400">{fmtDateTime(entry.at)} · {entry.by_name} · {entry.reason} · {blind ? "••••" : brl(Object.values(entry.totals_by_method).reduce((a, b) => a + b, 0))}</p>)}
               </div>}
               <Button size="sm" variant="ghost" className="mt-3" onClick={() => setBlind(!blind)} data-testid="cash-toggle-blind">{blind ? "Revelar valores" : "Ocultar valores"}</Button>
@@ -190,9 +190,9 @@ export default function Caixa() {
           <Label className="grid gap-1">Fechados até<Input type="date" value={historyEnd} onChange={(event) => setHistoryEnd(event.target.value)} /></Label>
           <Button variant="outline" onClick={() => { setHistoryStart(""); setHistoryEnd(""); }}>Limpar datas</Button>
         </div>
-        {!validHistory && <p role="alert" className="text-sm text-amber-300">A data inicial deve ser igual ou anterior à final.</p>}
+        {!validHistory && <p role="alert" className="text-sm text-amber-800 dark:text-amber-300">A data inicial deve ser igual ou anterior à final.</p>}
         {validHistory && history.isLoading && <p role="status" className="text-sm text-muted-foreground">Consultando turnos…</p>}
-        {validHistory && history.isError && <p role="alert" className="text-sm text-red-300">{errMsg(history.error)}</p>}
+        {validHistory && history.isError && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{errMsg(history.error)}</p>}
         {validHistory && !history.isError && history.data && <Table stacked aria-label="Turnos anteriores">
           <TableHeader><TableRow><TableHead>Abertura</TableHead><TableHead>Fechamento</TableHead><TableHead>Operador</TableHead><TableHead className="text-right">Vendas</TableHead><TableHead className="text-right">Esperado</TableHead><TableHead className="text-right">Contado</TableHead><TableHead className="text-right">Diferença</TableHead><TableHead /></TableRow></TableHeader>
           <TableBody>
@@ -205,7 +205,7 @@ export default function Caixa() {
                 <TableCell label="Vendas" className="text-right font-mono">{brl(h.sales_total)}</TableCell>
                 <TableCell label="Esperado" className="text-right font-mono">{brl(h.expected_cash)}</TableCell>
                 <TableCell label="Contado" className="text-right font-mono">{brl(h.counted_amount ?? 0)}</TableCell>
-                <TableCell label="Diferença" className={cn("text-right font-mono", h.difference < 0 ? "text-red-300" : h.difference > 0 ? "text-amber-300" : "text-emerald-300")}>{brl(h.difference)}</TableCell>
+                <TableCell label="Diferença" className={cn("text-right font-mono", h.difference < 0 ? "text-red-700 dark:text-red-300" : h.difference > 0 ? "text-amber-800 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300")}>{brl(h.difference)}</TableCell>
                 <TableCell label="Ações" className="text-right"><Button size="icon-xs" variant="ghost" aria-label="Imprimir fechamento" onClick={() => setPrinting(h)} data-testid={`cash-print-${h.id}`}><Printer /></Button></TableCell>
               </TableRow>
             ))}

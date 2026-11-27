@@ -20,9 +20,9 @@ import { cn } from "@/lib/utils";
 type Target = { kind: "order"; order: Order } | { kind: "item"; order: Order; item: OrderItem };
 
 const STATUS_BADGE: Record<Order["status"], { label: string; cls: string }> = {
-  pago: { label: "Pago", cls: "border-emerald-400/30 text-emerald-300" },
-  aberto: { label: "Em aberto", cls: "border-amber-400/30 text-amber-300" },
-  cancelado: { label: "Estornado", cls: "border-red-400/30 text-red-300" },
+  pago: { label: "Pago", cls: "border-emerald-400/30 text-emerald-700 dark:text-emerald-300" },
+  aberto: { label: "Em aberto", cls: "border-amber-400/30 text-amber-800 dark:text-amber-300" },
+  cancelado: { label: "Estornado", cls: "border-red-400/30 text-red-700 dark:text-red-300" },
 };
 const origin = (o: Order) => o.table_label || (o.table_number ? `Mesa ${o.table_number}` : SOURCE_LABEL[o.source]);
 
@@ -66,7 +66,7 @@ export default function Vendas() {
         <Stat label="Vendas listadas" value={String(orders.length)} testid="history-count" />
         <Stat label="Pagas" value={brl(paid.reduce((t, o) => t + o.total, 0))} hint={`${paid.length} pedidos`} testid="history-paid-total" />
         <Stat label="Itens vendidos" value={String(items.filter(({ i }) => !i.cancelled).reduce((t, { i }) => t + i.qty, 0))} testid="history-items-count" />
-        <Stat label="Estornado" value={brl(refunded)} testid="history-refunded" accent="text-red-300" />
+        <Stat label="Estornado" value={brl(refunded)} testid="history-refunded" accent="text-red-700 dark:text-red-300" />
       </div>
       <Tabs defaultValue="itens">
         <TabsList>
@@ -82,11 +82,11 @@ export default function Vendas() {
                   <TableRow key={i.id} className={cn(i.cancelled && "opacity-50")} data-testid={`history-item-${i.id}`}>
                     <TableCell className="text-xs text-zinc-400">{fmtDateTime(o.paid_at ?? o.created_at)}</TableCell>
                     <TableCell className={cn("text-white", i.cancelled && "line-through")}>
-                      {i.name}{i.cancelled && <span className="block text-xs text-red-300 no-underline">Cancelado: {i.cancel_reason}</span>}
+                      {i.name}{i.cancelled && <span className="block text-xs text-red-700 dark:text-red-300 no-underline">Cancelado: {i.cancel_reason}</span>}
                     </TableCell>
                     <TableCell className="text-right font-mono">{i.qty}</TableCell>
                     <TableCell className="text-right font-mono">{brl(i.qty * i.unit_price)}</TableCell>
-                    <TableCell className="text-zinc-300">{origin(o)}</TableCell>
+                    <TableCell className="text-foreground">{origin(o)}</TableCell>
                     <TableCell><span className="font-mono">#{o.number}</span> <Badge variant="outline" className={STATUS_BADGE[o.status].cls}>{STATUS_BADGE[o.status].label}</Badge></TableCell>
                     <TableCell className="text-right">
                       {!i.cancelled && o.status !== "cancelado" && (
@@ -119,9 +119,9 @@ export default function Vendas() {
               </ul>
               {o.payments.length > 0 && <p className="mt-2 text-xs text-zinc-400">{o.payments.map((p) => `${payLabel(p.method, p.brand)} ${brl(p.amount)}`).join(" + ")}</p>}
               {o.refunds.map((r, idx) => (
-                <p key={idx} className="text-xs text-red-300">Estorno {brl(r.amount)} · {r.item_name} · {r.reason} ({r.by_name})</p>
+                <p key={idx} className="text-xs text-red-700 dark:text-red-300">Estorno {brl(r.amount)} · {r.item_name} · {r.reason} ({r.by_name})</p>
               ))}
-              {o.status === "cancelado" && o.cancel_reason && <p className="text-xs text-red-300">Motivo: {o.cancel_reason}{o.cancelled_by && ` · por ${o.cancelled_by}`}</p>}
+              {o.status === "cancelado" && o.cancel_reason && <p className="text-xs text-red-700 dark:text-red-300">Motivo: {o.cancel_reason}{o.cancelled_by && ` · por ${o.cancelled_by}`}</p>}
               <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
                 <span className="font-mono text-lg text-white">{brl(o.total)}</span>
                 {o.status === "pago" && (

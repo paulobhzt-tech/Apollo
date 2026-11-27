@@ -166,22 +166,22 @@ function PurchasePanel({ ingredients, products, onSaved }: { ingredients: Ingred
         <div><Label htmlFor="purchase-lot">Número do lote</Label><Input id="purchase-lot" value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} placeholder="Opcional" /></div>
       </div>
       <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Observações / nota fiscal (opcional)" />
-      {suppliers.isError && <p role="alert" className="text-sm text-amber-300">Não foi possível carregar os fornecedores. <Button type="button" variant="outline" size="xs" onClick={() => void suppliers.refetch()}>Tentar novamente</Button></p>}
+      {suppliers.isError && <p role="alert" className="text-sm text-amber-800 dark:text-amber-300">Não foi possível carregar os fornecedores. <Button type="button" variant="outline" size="xs" onClick={() => void suppliers.refetch()}>Tentar novamente</Button></p>}
       {suppliers.isSuccess && !suppliers.data.length && <p className="text-sm text-zinc-400">Cadastre um fornecedor antes de registrar a compra.</p>}
       {!ingredients.length && <p className="text-sm text-zinc-400">Cadastre um insumo antes de registrar a compra.</p>}
       {((qty && (quantity === null || quantity <= 0)) || (unitCost && (unitPrice === null || unitPrice < 0))) &&
-        <p role="status" className="text-sm text-amber-300">Informe uma quantidade maior que zero e um preço unitário válido. Use vírgula ou ponto para decimais.</p>}
+        <p role="status" className="text-sm text-amber-800 dark:text-amber-300">Informe uma quantidade maior que zero e um preço unitário válido. Use vírgula ou ponto para decimais.</p>}
       {!!qty && selected?.unit === "un" && quantity !== null && !Number.isInteger(quantity) && <p role="status" className="text-sm text-muted-foreground">Compras por unidade exigem uma quantidade inteira.</p>}
       {!validDates && <p role="status" className="text-sm text-muted-foreground">A fabricação deve ser anterior ou igual à validade.</p>}
-      {expiredLot && <p role="alert" data-testid="purchase-expired-warning" className="text-sm text-amber-300">A validade informada já passou. Esta compra não pode ser registrada com lote vencido. Corrija a data ou confira o fornecedor.</p>}
+      {expiredLot && <p role="alert" data-testid="purchase-expired-warning" className="text-sm text-amber-800 dark:text-amber-300">A validade informada já passou. Esta compra não pode ser registrada com lote vencido. Corrija a data ou confira o fornecedor.</p>}
       {!validLink && <p role="status" className="text-sm text-muted-foreground">O produto selecionado precisa de um item de estoque na mesma unidade.</p>}
       <p className="text-xs text-muted-foreground">Frete e impostos são incorporados ao custo médio do estoque. O vencimento do boleto é apenas informativo; nenhuma cobrança é criada automaticamente.</p>
       <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm">Custo total: <strong>{Number.isFinite(amount) ? brl(amount) : "—"}</strong></span><Button type="submit" className="h-11" disabled={!valid || save.isPending} data-testid="purchase-save">{save.isPending ? "Registrando…" : "Registrar compra"}</Button></div>
     </form>
     <div className="rounded-2xl border border-amber-400/20 bg-panel p-4">
-      <h3 className="mb-2 font-semibold text-amber-200">Validades próximas (até 7 dias) e vencidas</h3>
+      <h3 className="mb-2 font-semibold text-amber-800 dark:text-amber-200">Validades próximas (até 7 dias) e vencidas</h3>
       <p className="mb-3 text-xs text-zinc-400">Os alertas consideram a data de validade dos lotes com saldo.</p>
-      {expiry.isError ? <p role="alert" className="text-sm text-destructive">Não foi possível consultar a validade dos lotes.</p> : (expiry.data ?? []).length === 0 ? <p className="text-sm text-zinc-400">Nenhum lote com alerta.</p> : <ul className="space-y-2 text-sm">{(expiry.data ?? []).map((p) => <li key={p.id} className="flex flex-wrap justify-between gap-2"><span>{p.ingredient_name} · {p.supplier_name} · lote {p.lot_number || "não informado"}</span><strong className={p.days_to_expiry < 0 ? "text-red-300" : "text-amber-200"}>{p.days_to_expiry < 0 ? "Vencido" : p.days_to_expiry === 0 ? "Vence hoje" : "Vence em " + p.days_to_expiry + " dias"} ({dateBR(p.expiry_date)})</strong></li>)}</ul>}
+      {expiry.isError ? <p role="alert" className="text-sm text-destructive">Não foi possível consultar a validade dos lotes.</p> : (expiry.data ?? []).length === 0 ? <p className="text-sm text-zinc-400">Nenhum lote com alerta.</p> : <ul className="space-y-2 text-sm">{(expiry.data ?? []).map((p) => <li key={p.id} className="flex flex-wrap justify-between gap-2"><span>{p.ingredient_name} · {p.supplier_name} · lote {p.lot_number || "não informado"}</span><strong className={p.days_to_expiry < 0 ? "text-red-700 dark:text-red-300" : "text-amber-800 dark:text-amber-200"}>{p.days_to_expiry < 0 ? "Vencido" : p.days_to_expiry === 0 ? "Vence hoje" : "Vence em " + p.days_to_expiry + " dias"} ({dateBR(p.expiry_date)})</strong></li>)}</ul>}
     </div>
     {purchases.isError && <p role="alert" className="text-sm text-destructive">Não foi possível carregar o histórico de compras.</p>}
     <div className="rounded-2xl border border-white/5 bg-panel"><Table stacked><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Fornecedor</TableHead><TableHead>Insumo</TableHead><TableHead>Qtd.</TableHead><TableHead>Custo un.</TableHead><TableHead>Total</TableHead><TableHead>Validade</TableHead></TableRow></TableHeader><TableBody>{(purchases.data ?? []).map((p) => <TableRow key={p.id}><TableCell label="Data">{fmtDateTime(p.created_at)}</TableCell><TableCell label="Fornecedor">{p.supplier_name}</TableCell><TableCell label="Insumo">{p.product_name || p.ingredient_name}</TableCell><TableCell label="Quantidade">{p.qty} {p.unit}</TableCell><TableCell label="Custo unitário">{brl(p.unit_cost)}</TableCell><TableCell label="Total">{brl(p.total_cost)}</TableCell><TableCell label="Validade">{dateBR(p.expiry_date)}</TableCell></TableRow>)}</TableBody></Table></div>
@@ -213,7 +213,7 @@ function InventoryPanel({ ingredients, onSaved }: { ingredients: Ingredient[]; o
   return <div className="space-y-4">
     <div className="rounded-2xl border border-white/5 bg-panel p-4 space-y-3">
       <h3 className="font-semibold">Conferência física do estoque</h3>
-      <p className="text-xs text-amber-200">Ajusta o estoque total do insumo. A conciliação de saldos por lote deve ser feita separadamente.</p>
+      <p className="text-xs text-amber-800 dark:text-amber-200">Ajusta o estoque total do insumo. A conciliação de saldos por lote deve ser feita separadamente.</p>
       <Select value={ingredientId} onValueChange={setIngredientId}><SelectTrigger><SelectValue placeholder="Selecione o insumo" /></SelectTrigger><SelectContent>{ingredients.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}</SelectContent></Select>
       {current && <p className="text-sm">Estoque registrado: {current.stock} {current.unit}</p>}
       <div><Label>Quantidade contada fisicamente</Label><Input value={qty} onChange={(e) => setQty(e.target.value)} inputMode={current?.unit === "un" ? "numeric" : "decimal"} /></div>
@@ -270,17 +270,17 @@ function ConsumptionForecastPanel() {
       <div><Label htmlFor="forecast-lead">Prazo informado de entrega (1 a 60 dias)</Label><Input id="forecast-lead" type="number" min="1" max="60" step="1" value={leadDays} onChange={(e) => setLeadDays(e.target.value)} /></div>
       <div><Label htmlFor="forecast-buffer">Margem de segurança (0 a 30 dias)</Label><Input id="forecast-buffer" type="number" min="0" max="30" step="1" value={bufferDays} onChange={(e) => setBufferDays(e.target.value)} /></div>
     </div>
-    {!valid && <p role="alert" className="text-sm text-amber-300">Informe dias inteiros dentro dos intervalos indicados.</p>}
+    {!valid && <p role="alert" className="text-sm text-amber-800 dark:text-amber-300">Informe dias inteiros dentro dos intervalos indicados.</p>}
     {valid && forecast.isFetching && <p className="text-sm text-zinc-400">Calculando previsão…</p>}
-    {valid && forecast.isError && <p role="alert" className="text-sm text-amber-300">Não foi possível consultar o histórico. Confira a conexão.</p>}
+    {valid && forecast.isError && <p role="alert" className="text-sm text-amber-800 dark:text-amber-300">Não foi possível consultar o histórico. Confira a conexão.</p>}
     {valid && forecast.data && <div className="space-y-3">
       <p className="text-xs text-zinc-400">Meta: maior valor entre estoque mínimo e consumo previsto para prazo + margem. Unidades inteiras são arredondadas para cima. Exige vendas registradas em pelo menos 3 dias distintos; histórico incompleto não gera quantidade sugerida.</p>
-      {forecast.data.history_truncated && <p role="alert" className="text-sm text-amber-300">A janela excedeu 50 mil movimentos. Reduza o período para calcular sugestões completas.</p>}
+      {forecast.data.history_truncated && <p role="alert" className="text-sm text-amber-800 dark:text-amber-300">A janela excedeu 50 mil movimentos. Reduza o período para calcular sugestões completas.</p>}
       {forecast.data.items.length === 0 && <p className="text-sm text-zinc-400">Nenhum insumo disponível para previsão.</p>}
       {forecast.data.items.map((i) => <div key={i.ingredient_id} className="rounded-lg border border-white/10 p-3 text-sm">
         <div className="flex flex-wrap justify-between gap-2"><strong>{i.name}</strong><span>{i.insufficient_history ? "Histórico insuficiente para sugestão" : `Planejar ${i.suggested} ${i.unit}`}</span></div>
         <p className="mt-1 text-xs text-zinc-400">Vendas: {i.sales_consumption} {i.unit} em {i.sales_days} dia(s) com registro · média {i.daily_average} {i.unit}/dia · perdas separadas: {i.loss_qty} {i.unit} · cobertura estimada: {i.coverage_days === null ? "indisponível" : `${i.coverage_days} dias`}</p>
-        {i.review_negative_stock && <p className="mt-1 text-xs text-amber-300">Confira o saldo negativo antes de decidir a reposição.</p>}
+        {i.review_negative_stock && <p className="mt-1 text-xs text-amber-800 dark:text-amber-300">Confira o saldo negativo antes de decidir a reposição.</p>}
       </div>)}
     </div>}
   </details>;
@@ -383,7 +383,7 @@ function InventoryReports({ isAdmin }: { isAdmin: boolean }) {
       {movement.isError && <p role="alert">Não foi possível carregar o relatório de movimentações.</p>}
       {movement.data && <>
         <p className="text-sm">{movement.data.purchases.count} compra(s) · {brl(movement.data.purchases.cost)}</p>
-        {movement.data.truncated && <p className="text-xs text-amber-300">Exibindo até mil combinações de item e tipo. Reduza o período para detalhar.</p>}
+        {movement.data.truncated && <p className="text-xs text-amber-800 dark:text-amber-300">Exibindo até mil combinações de item e tipo. Reduza o período para detalhar.</p>}
         <div className="overflow-x-auto">
           <Table>
             <TableHeader><TableRow><TableHead>Item</TableHead><TableHead>Tipo</TableHead><TableHead>Quantidade</TableHead><TableHead>Registros</TableHead><TableHead>Custo registrado</TableHead></TableRow></TableHeader>
@@ -400,7 +400,7 @@ function InventoryReports({ isAdmin }: { isAdmin: boolean }) {
       {review.isPending && <p role="status">Consultando inconsistências…</p>}
       {review.isError && <p role="alert">Não foi possível carregar a conferência.</p>}
       {review.data && <>
-        {review.data.truncated && <p className="text-xs text-amber-300">Amostra limitada a 100 registros por categoria.</p>}
+        {review.data.truncated && <p className="text-xs text-amber-800 dark:text-amber-300">Amostra limitada a 100 registros por categoria.</p>}
         <details><summary>Envios interrompidos de mesas e comandas ({review.data.table_batches?.length ?? 0})</summary>
           <ul className="space-y-2 text-sm">{review.data.table_batches?.map((batch) => <li key={batch.batch_id} className="rounded-md border border-border p-2">
             <p>Pedido #{batch.number}{batch.table_label && ` · ${batch.table_label}`}{batch.operator_name && ` · ${batch.operator_name}`}{batch.created_at && ` · ${fmtDateTime(batch.created_at)}`}</p>
@@ -506,8 +506,8 @@ export default function Estoque() {
                   <TableRow key={m.id}>
                     <TableCell label="Data" className="text-xs text-zinc-400">{fmtDateTime(m.created_at)}</TableCell>
                     <TableCell label="Insumo" className="text-white">{m.ingredient_name}</TableCell>
-                    <TableCell label="Tipo" className="text-zinc-300">{MOVE_LABEL[m.type]}</TableCell>
-                    <TableCell label="Quantidade" className={cn("text-right font-mono", m.qty < 0 ? "text-red-300" : "text-emerald-300")}>{m.qty > 0 ? "+" : ""}{m.qty}</TableCell>
+                    <TableCell label="Tipo" className="text-foreground">{MOVE_LABEL[m.type]}</TableCell>
+                    <TableCell label="Quantidade" className={cn("text-right font-mono", m.qty < 0 ? "text-red-700 dark:text-red-300" : "text-emerald-700 dark:text-emerald-300")}>{m.qty > 0 ? "+" : ""}{m.qty}</TableCell>
                     <TableCell label="Observação" className="text-xs text-zinc-500">{m.reason && `${m.reason} · `}{m.note} {m.by_name && `· ${m.by_name}`}{m.type === "perda" && ` · ${brl(m.cost_total ?? 0)}`}</TableCell>
                   </TableRow>
                 ))}
@@ -523,24 +523,24 @@ export default function Estoque() {
         <Stat label="Valor em estoque" value={brl(value)} testid="stock-value" />
         <Stat label="Reposição urgente" value={String(low.length)} testid="stock-low-count" accent="text-red-700 dark:text-red-300" />
       </div>
-      {alerts.data && alerts.data.total > 0 && <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/5 p-3 text-sm wrap-anywhere" data-testid="inventory-alert-summary"><strong className="text-red-200">Alertas de estoque:</strong> {alerts.data.out_of_stock} sem estoque · {alerts.data.low_stock} abaixo do mínimo · Custo estimado para atingir os mínimos: <strong>{brl(alerts.data.estimated_minimum_cost)}</strong></div>}
+      {alerts.data && alerts.data.total > 0 && <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/5 p-3 text-sm wrap-anywhere" data-testid="inventory-alert-summary"><strong className="text-red-700 dark:text-red-200">Alertas de estoque:</strong> {alerts.data.out_of_stock} sem estoque · {alerts.data.low_stock} abaixo do mínimo · Custo estimado para atingir os mínimos: <strong>{brl(alerts.data.estimated_minimum_cost)}</strong></div>}
       {overstock.length > 0 && <details className="mb-4 rounded-xl border border-amber-400/25 bg-amber-400/5 p-3 text-sm">
         <summary>{overstock.length} item(ns) acima do estoque máximo</summary>
         <ul className="mt-2 space-y-1 wrap-anywhere">{overstock.map((item) => <li key={item.id}>{item.name} · saldo {item.stock} {item.unit} · máximo {item.max_stock} {item.unit}</li>)}</ul>
       </details>}
-      {replenishment.isError && <p role="alert" className="mb-4 text-sm text-amber-300">Não foi possível carregar o planejamento de reposição. Confira a conexão e tente novamente.</p>}
+      {replenishment.isError && <p role="alert" className="mb-4 text-sm text-amber-800 dark:text-amber-300">Não foi possível carregar o planejamento de reposição. Confira a conexão e tente novamente.</p>}
       {shopping.length > 0 && <div className="mb-4 rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4" data-testid="stock-shopping-list">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-200"><ClipboardList className="size-4" /> Planejamento de reposição ({shopping.length})</h3>
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-200"><ClipboardList className="size-4" /> Planejamento de reposição ({shopping.length})</h3>
           <Button size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(shoppingText).then(() => toast.success("Lista copiada")).catch(() => toast.error("Não foi possível copiar a lista"))} data-testid="stock-copy-shopping">Copiar lista</Button>
         </div>
         <div className="mb-3 flex flex-wrap items-center gap-2"><Label htmlFor="replenishment-target">Meta de reposição</Label><select id="replenishment-target" value={targetMultiplier} onChange={(e) => setTargetMultiplier(e.target.value)} className="rounded-md border border-white/20 bg-panel p-2" data-testid="replenishment-target"><option value="1">1 × estoque mínimo</option><option value="2">2 × estoque mínimo</option><option value="3">3 × estoque mínimo</option></select></div>
         <p className="mb-2 text-xs text-zinc-400">Consulta para planejamento: não registra compras nem altera estoque. Confira saldos negativos e defina mínimos antes de comprar. Custos usam o cadastro, sem cotação de fornecedor.</p>
         <p className="mb-2 text-sm">Custo conhecido estimado: <strong>{brl(replenishment.data?.estimated_known_cost ?? 0)}</strong>{!!replenishment.data?.items_without_cost && ` · ${replenishment.data.items_without_cost} item(ns) sem estimativa`}</p>
-        <ul className="space-y-2 text-sm wrap-anywhere">{shopping.map((i) => <li key={i.ingredient_id} className="flex flex-wrap justify-between gap-2"><span className="min-w-0">{i.name}{i.review_required && <span className="block text-xs text-amber-200">{i.reason === "configure_minimum" ? "Defina o estoque mínimo" : "Confira o saldo negativo"}</span>}</span><span className="min-w-0 font-mono text-amber-200">{i.suggested === null ? "Quantidade a definir" : `${i.suggested} ${i.unit}`}{i.estimated_cost !== null && ` · ${brl(i.estimated_cost)}`}</span></li>)}</ul>
+        <ul className="space-y-2 text-sm wrap-anywhere">{shopping.map((i) => <li key={i.ingredient_id} className="flex flex-wrap justify-between gap-2"><span className="min-w-0">{i.name}{i.review_required && <span className="block text-xs text-amber-800 dark:text-amber-200">{i.reason === "configure_minimum" ? "Defina o estoque mínimo" : "Confira o saldo negativo"}</span>}</span><span className="min-w-0 font-mono text-amber-800 dark:text-amber-200">{i.suggested === null ? "Quantidade a definir" : `${i.suggested} ${i.unit}`}{i.estimated_cost !== null && ` · ${brl(i.estimated_cost)}`}</span></li>)}</ul>
       </div>}
       <ConsumptionForecastPanel />
-      <div className="mb-4 rounded-2xl border border-white/5 bg-panel p-4"><p className="text-xs text-zinc-400">Prejuízo por perdas (últimas 300 movimentações)</p><p className="font-mono text-xl text-red-300">{brl(lossTotal)}</p><p className="text-xs text-zinc-500">{losses.length} ocorrências</p></div>
+      <div className="mb-4 rounded-2xl border border-white/5 bg-panel p-4"><p className="text-xs text-zinc-400">Prejuízo por perdas (últimas 300 movimentações)</p><p className="font-mono text-xl text-red-700 dark:text-red-300">{brl(lossTotal)}</p><p className="text-xs text-zinc-500">{losses.length} ocorrências</p></div>
           </aside>
         </div>
       </div>
@@ -597,9 +597,9 @@ function IngredientForm({ editing, onClose }: { editing: Ingredient | "new"; onC
       </div>
       <div><Label htmlFor="ingredient-max" className="text-xs text-zinc-400">Estoque máximo (opcional)</Label><Input id="ingredient-max" inputMode="decimal" value={maximum} onChange={(event) => setMaximum(event.target.value)} /></div>
       <label className="flex items-center gap-2 text-sm"><Checkbox checked={blockNegative} onCheckedChange={(checked) => setBlockNegative(!!checked)} /> Bloquear saída e venda com saldo insuficiente</label>
-      {invalidMaximum && <p role="alert" className="text-sm text-amber-300">O estoque máximo deve ser igual ou maior que o mínimo.</p>}
+      {invalidMaximum && <p role="alert" className="text-sm text-amber-800 dark:text-amber-300">O estoque máximo deve ser igual ou maior que o mínimo.</p>}
       {!f.name.trim() && <p className="text-sm text-zinc-400">Informe o nome do insumo.</p>}
-      {!numbers && <p role="alert" className="text-sm text-amber-300">Preencha os valores numéricos. Use vírgula ou ponto para decimais; custo, mínimo e rendimento devem ser zero ou positivos.</p>}
+      {!numbers && <p role="alert" className="text-sm text-amber-800 dark:text-amber-300">Preencha os valores numéricos. Use vírgula ou ponto para decimais; custo, mínimo e rendimento devem ser zero ou positivos.</p>}
       {save.isError && <p role="alert" className="text-sm text-destructive">{errMsg(save.error)}</p>}
       <Button type="submit" className="h-11" disabled={!f.name.trim() || !numbers || invalidMaximum || save.isPending} data-testid="ingredient-save-button">{save.isPending ? "Salvando…" : "Salvar insumo"}</Button>
     </form>
@@ -628,10 +628,10 @@ function MoveDialog({ ing, onClose }: { ing: Ingredient | null; onClose: () => v
             <Button key={t} variant={type === t ? "default" : "outline"} onClick={() => setType(t)} data-testid={`stock-move-type-${t}`}>{MOVE_LABEL[t].split("/")[0]}</Button>
           ))}
         </div>
-        {type === "perda" && <div><Label>Motivo da perda</Label><Select value={reason} onValueChange={setReason}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="vencimento">Vencimento</SelectItem><SelectItem value="quebra">Quebra</SelectItem><SelectItem value="desperdicio">Desperdício</SelectItem><SelectItem value="outro">Outro</SelectItem></SelectContent></Select><p className="mt-2 text-xs text-red-300">Prejuízo estimado: {brl(Math.max(0, parsedQty ?? 0) * (ing?.cost_per_unit ?? 0))}</p></div>}
+        {type === "perda" && <div><Label>Motivo da perda</Label><Select value={reason} onValueChange={setReason}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="vencimento">Vencimento</SelectItem><SelectItem value="quebra">Quebra</SelectItem><SelectItem value="desperdicio">Desperdício</SelectItem><SelectItem value="outro">Outro</SelectItem></SelectContent></Select><p className="mt-2 text-xs text-red-700 dark:text-red-300">Prejuízo estimado: {brl(Math.max(0, parsedQty ?? 0) * (ing?.cost_per_unit ?? 0))}</p></div>}
         <Input placeholder={type === "ajuste" ? "Novo saldo contado" : "Quantidade"} value={qty} inputMode="decimal" onChange={(e) => setQty(e.target.value)} className="font-mono" data-testid="stock-move-qty-input" />
         <Input placeholder="Observação (NF fornecedor, perda…)" value={note} onChange={(e) => setNote(e.target.value)} data-testid="stock-move-note-input" />
-        {!!qty && !validQty && <p role="alert" className="text-sm text-amber-300">Informe uma quantidade válida. Entradas e saídas devem ser maiores que zero; ajustes podem ser zero. Itens por unidade exigem números inteiros.</p>}
+        {!!qty && !validQty && <p role="alert" className="text-sm text-amber-800 dark:text-amber-300">Informe uma quantidade válida. Entradas e saídas devem ser maiores que zero; ajustes podem ser zero. Itens por unidade exigem números inteiros.</p>}
         <Button disabled={!validQty || save.isPending} onClick={() => save.mutate()} data-testid="stock-move-save-button">Confirmar</Button>
       </DialogContent>
     </Dialog>
