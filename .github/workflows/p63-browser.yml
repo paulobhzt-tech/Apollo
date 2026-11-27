@@ -79,7 +79,12 @@ jobs:
           test -s evidence/health.json || { cat evidence/backend.log; exit 1; }
           cd tests
           specs=(p63-visual.spec.ts p63-quantity-footer.spec.ts p63-selected-items.spec.ts)
-          if [[ "$P47_BROWSER" == chromium ]]; then specs+=(p64-display-payment.spec.ts); fi
+          if [[ "$P47_BROWSER" == chromium ]]; then
+            specs+=(p64-display-payment.spec.ts)
+            if [[ "$GITHUB_REF_NAME" == feat/p64-9-reconstrucao-integral-interface-consumer ]]; then
+              specs+=(operator-session.spec.ts)
+            fi
+          fi
           if [[ "$P47_BROWSER" == chromium && ( "$GITHUB_REF_NAME" == feat/p64-9-reconstrucao-integral-interface-consumer || "$GITHUB_REF_NAME" == feat/p64-3-interface-impressao-final || "$GITHUB_REF_NAME" == feat/p64-4-liberacao-final-apollo || "$GITHUB_REF_NAME" == feat/p64-4-finalizacao-liberacao-operacional || "$GITHUB_REF_NAME" == feat/p64-5-interface-consumer-operacional || "$GITHUB_REF_NAME" == feat/p64-6-finalizacao-interface-homologacao-operacional || "$GITHUB_REF_NAME" == feat/p64-7-reconstrucao-completa-interface-consumer || "$GITHUB_REF_NAME" == feat/p64-8-correcao-final-homologacao ) ]]; then
             specs+=(p64-print-agent.spec.ts)
           fi

@@ -483,8 +483,8 @@ const SHORTCUT_COLORS: Record<string, string> = {
   "/clientes": "text-teal-700 dark:text-teal-400",
 };
 
-const ICON_SIZES = { small: ".875rem", medium: "1.125rem", large: "1.375rem" };
-const BUTTON_SIZES = { small: "1.875rem", medium: "2.125rem", large: "2.625rem" };
+const ICON_SIZES = { small: ".875rem", medium: "1.125rem", large: "2rem" };
+const BUTTON_SIZES = { small: "1.875rem", medium: "2.125rem", large: "4.25rem" };
 
 function RibbonShortcuts({ items, available, principal, settings }: {
   items: NavItem[]; available: NavItem[]; principal: boolean; settings: MenuSettings;
