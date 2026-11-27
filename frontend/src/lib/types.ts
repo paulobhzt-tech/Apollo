@@ -114,6 +114,16 @@ export interface OrderItemIn { product_id: string; qty: number; notes: string; o
 export type CardBrand = "visa" | "mastercard" | "elo";
 export interface Payment { method: PayMethod; amount: number; brand?: CardBrand | null; details?: { note: string; reference: string; pix_key_label: string; pix_received: boolean; pos_terminal?: string; authorization_code?: string; nsu?: string; acquirer?: string; installments?: number } }
 export interface Refund { item_name: string; amount: number; method: string; brand: string | null; reason: string; by_name: string; at: string }
+export interface TableReceipt {
+  id: string;
+  amount: number;
+  mode: "amount" | "percentage";
+  value: number;
+  at: string;
+  by_name: string;
+  reversed_at?: string;
+}
+
 export interface Order {
   id: string;
   number: number;
@@ -133,6 +143,8 @@ export interface Order {
   service_fee: number;
   delivery_fee: number;
   total: number;
+  advance_paid?: number;
+  table_receipts?: TableReceipt[];
   payments: Payment[];
   change: number;
   pay_on_delivery: string | null;

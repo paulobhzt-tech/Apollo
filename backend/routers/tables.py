@@ -2,6 +2,7 @@ import hashlib
 import json
 import re
 from uuid import uuid4
+from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
@@ -10,14 +11,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from pymongo.errors import DuplicateKeyError
 
 from lib.audit import audit_event
+from lib.table_receipts import cents, guard_open_receipts, pix_references, require_receipt_transaction
 from lib.cash_scope import cash_scope, claim_cash, independent_cash
 from lib.auth import authenticated_identity, cancel_authorizer, current_user, require
 from lib.db import client, db
 from lib.sync_identity import sync_context, validate_sync_context
-from lib.orders import (build_items, card_payment_audit, create_ticket, current_cash, finalize_payment, free_table, move_stock, new_order, next_seq, now, order_for_operator, validate_methods, validate_payment_details,
+from lib.orders import (build_items, card_payment_audit, compute_subtotal, create_ticket, current_cash, finalize_payment, free_table, method_totals, move_stock, new_order, next_seq, now, order_for_operator, validate_methods, validate_payment_details,
                         refresh_totals)
 from models.schemas import (SaleQuantity, AddItemsIn, CancelIn, OkOut, OpenTableIn, Order, OrderItem, PayIn, PrintAttempt, SaleResult, Table, TableIn,
-                            OrderItemIn, SyncContext, TablePayIn, TableStatusIn, TableUpdate, TransferIn, table_label)
+                            OrderItemIn, Payment, SyncContext, TablePayIn, TableStatusIn, TableUpdate, TransferIn, table_label)
 
 from routers.operations import with_order_transaction
 
@@ -469,6 +471,7 @@ async def apply_cancel_item(id: str, item_id: str, body: CancelIn, user: dict, a
     order = await db.orders.find_one({"id": t.get("order_id"), "status": "aberto"}, {"_id": 0}, **options)
     if not order:
         raise HTTPException(400, "Mesa sem comanda aberta")
+    guard_open_receipts(order)
     item = next((i for i in order["items"] if i["id"] == item_id and not i.get("cancelled")), None)
     if not item:
         raise HTTPException(404, "Item não encontrado")
@@ -517,6 +520,8 @@ async def apply_transfer(id: str, target_id: str, *, session=None):
     if dst.get("order_id") or dst["status"] != "livre":
         raise HTTPException(400, "Mesa de destino precisa estar livre e não reservada")
     order_id = src["order_id"]
+    order = await db.orders.find_one({"id": order_id}, {"advance_paid": 1}, **options)
+    guard_open_receipts(order or {})
     destination_label = table_label(dst)
     updated_order = await db.orders.update_one(
         {"id": order_id, "status": "aberto", "table_id": {"$in": [id, None]}},
@@ -587,7 +592,7 @@ async def apply_selected_items(id: str, body: SelectedItemsIn, user: dict, *, se
     if not source or not target:
         raise HTTPException(409, "Origem e destino precisam estar abertos.")
     for order in (source, target):
-        if order.get("payments") or any(not batch.get("complete") for batch in order.get("table_item_batches", {}).values()):
+        if order.get("payments") or order.get("advance_paid", 0) or any(not batch.get("complete") for batch in order.get("table_item_batches", {}).values()):
             raise HTTPException(409, "Confira os pagamentos e envios pendentes antes de continuar.")
 
     ids = set(body.item_quantities)
@@ -685,7 +690,7 @@ async def merge_tables(id: str, body: MergeTablesIn, _: dict = Depends(require("
                 target = await db.orders.find_one({"id": dst["order_id"], "status": "aberto"}, session=session)
                 if not source or not target:
                     raise HTTPException(409, "Comanda alterada. Atualize as mesas.")
-                if source.get("payments") or target.get("payments"):
+                if any(order.get("payments") or order.get("advance_paid", 0) for order in (source, target)):
                     raise HTTPException(400, "Não é possível juntar comandas com pagamentos registrados")
                 source_items = source.get("items", [])
                 target_items = target.get("items", [])
@@ -790,6 +795,7 @@ async def preview_partial_bill(id: str, body: PartialBillIn, _: dict = Depends(r
     order = await db.orders.find_one({"id": t["order_id"], "status": "aberto"}, {"_id": 0})
     if not order:
         raise HTTPException(400, "Comanda não está aberta")
+    guard_open_receipts(order)
     available = {i["id"]: i for i in order["items"] if not i.get("cancelled")}
     chosen = []
     for item_id, qty in body.quantities.items():
@@ -873,6 +879,7 @@ async def pay_partial_bill(id: str, body: PartialPaymentIn, user: dict = Depends
                 order = await db.orders.find_one({"id": table["order_id"], "status": "aberto"}, session=session)
                 if not order:
                     raise HTTPException(409, "Comanda foi alterada ou fechada")
+                guard_open_receipts(order)
                 chosen = []
                 remaining = []
                 for item in order["items"]:
@@ -950,5 +957,171 @@ async def apply_pay_table(id: str, body: TablePayIn, user: dict, *, session=None
     order = await db.orders.find_one({"id": t.get("order_id")}, {"_id": 0}, **options) if t.get("order_id") else None
     if not order:
         raise HTTPException(400, "Mesa sem comanda aberta")
+    received = order.get("advance_paid", 0)
+    if (received or body.expected_advance_paid is not None) and body.expected_advance_paid != received:
+        raise HTTPException(409, "Recebimentos alterados. Atualize a conta antes de fechar.")
+    if not body.payments and not received:
+        raise HTTPException(400, "Informe uma forma de pagamento.")
     order, inv = await finalize_payment(order, body, actor=user, **options)
     return {"order": order, "invoice": inv}
+
+
+class MonetaryReceiptIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    mode: Literal["amount", "percentage"]
+    value: Decimal = Field(gt=0, decimal_places=2, max_digits=10)
+    expected_order_id: str = Field(min_length=1, max_length=128)
+    expected_balance: Decimal = Field(gt=0, decimal_places=2, max_digits=10)
+    client_ref: str = Field(min_length=6, max_length=128)
+    payments: list[Payment] = Field(min_length=1, max_length=20)
+
+
+async def monetary_order(table_id: str, order_id: str, *, session):
+    table = await get_table(table_id, session=session)
+    if table.get("order_id") != order_id:
+        raise HTTPException(409, "Atendimento alterado. Atualize os valores.")
+    order = await db.orders.find_one({"id": order_id, "status": "aberto"}, {"_id": 0}, session=session)
+    if not order:
+        raise HTTPException(409, "Conta encerrada. Consulte o histórico.")
+    if order.get("stock_completion") == "pending" or any(
+        not batch.get("complete") for batch in order.get("table_item_batches", {}).values()
+    ):
+        raise HTTPException(409, "Confira os envios pendentes antes de receber.")
+    return order
+
+
+async def write_monetary_adjustment(order, receipt, cash, user, kind, reason, *, session):
+    totals = method_totals([receipt], with_brand=True)
+    if kind == "table_receipt_reversal":
+        totals = {method: -amount for method, amount in totals.items()}
+    key = receipt["id"] + (":reversal" if kind == "table_receipt_reversal" else "")
+    await db.cash_adjustments.insert_one({
+        "_id": key, "id": key, "kind": kind, "cash_session_id": cash["id"],
+        "source_cash_session_id": receipt["cash_session_id"], "order_id": order["id"],
+        "table_id": order["table_id"],
+        "operator_id": user["id"], "by_name": user["name"], "at": now(),
+        "reason": reason, "totals_by_method": totals,
+    }, session=session)
+
+
+@router.post("/tables/{id}/monetary-receipts")
+async def receive_monetary_partial(id: str, body: MonetaryReceiptIn, user: dict = Depends(require("caixa"))):
+    # The order owns the receipt and the cash ledger owns a globally unique key.
+    key = "table-receipt:" + hashlib.sha256(body.client_ref.encode()).hexdigest()
+    payload = body.model_dump(mode="json", exclude={"client_ref", "value", "expected_balance"})
+    fingerprint = hashlib.sha256(json.dumps(
+        [id, cents(body.value), cents(body.expected_balance), payload], sort_keys=True).encode()).hexdigest()
+
+    async def apply(session):
+        require_receipt_transaction(session)
+        previous = await db.cash_adjustments.find_one({"_id": key}, {"order_id": 1}, session=session)
+        if previous:
+            recorded = await db.orders.find_one({"id": previous["order_id"]},
+                {"table_receipts": {"$elemMatch": {"id": key}}}, session=session)
+            if not recorded or not recorded.get("table_receipts"):
+                raise HTTPException(409, "Recebimento em conferência. Consulte o caixa.")
+            receipt = recorded["table_receipts"][0]
+            if receipt["operator_id"] != user["id"] or receipt["fingerprint"] != fingerprint:
+                raise HTTPException(409, "Referência de recebimento já utilizada.")
+            return {"id": key, "amount": receipt["amount"]}
+
+        order = await monetary_order(id, body.expected_order_id, session=session)
+        received = cents(order.get("advance_paid", 0))
+        balance = cents(compute_subtotal(order)) - received
+        if balance != cents(body.expected_balance):
+            raise HTTPException(409, "Saldo alterado. Confira a conta e calcule a parcela novamente.")
+        if body.mode == "percentage" and body.value >= 100:
+            raise HTTPException(422, "Informe um percentual menor que 100% do saldo.")
+        amount = cents(body.value) if body.mode == "amount" else int(
+            (Decimal(balance) * body.value / 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        if not 0 < amount < balance:
+            raise HTTPException(422, "A parcela deve ser positiva e menor que o saldo. Use o fechamento para quitar a conta.")
+        if any(p.method == "fiado" for p in body.payments):
+            raise HTTPException(422, "Fiado está disponível no fechamento da conta.")
+        if any(cents(p.amount) / 100 != p.amount for p in body.payments) or sum(cents(p.amount) for p in body.payments) != amount:
+            raise HTTPException(422, "A soma dos pagamentos deve ser igual à parcela em centavos.")
+        if any(p.method in ("credito", "debito") and not p.brand for p in body.payments):
+            raise HTTPException(422, "Informe a bandeira do cartão.")
+        payment = PayIn(payments=body.payments, emit_invoice=False)
+        validate_payment_details(payment)
+        await validate_methods([p.method for p in body.payments])
+        payments = [p.model_dump() for p in body.payments]
+        previous_pix = pix_references(
+            p for entry in order.get("table_receipts", []) for p in entry["payments"])
+        if previous_pix & pix_references(payments):
+            raise HTTPException(409, "Referência PIX já registrada nesta conta.")
+
+        cash = await current_cash(session=session, **cash_scope(user))
+        if not cash:
+            raise HTTPException(409, "Abra o caixa para receber a parcela.")
+        await claim_cash(cash, session=session)
+        receipt = {
+            "id": key, "fingerprint": fingerprint, "operator_id": user["id"],
+            "cash_session_id": cash["id"], "amount": amount / 100, "payments": payments,
+            "mode": body.mode, "value": float(body.value), "at": now(), "by_name": user["name"],
+        }
+        await write_monetary_adjustment(order, receipt, cash, user, "table_receipt",
+                                        f"Parcela do pedido #{order['number']}", session=session)
+        await db.orders.update_one({"id": order["id"], "status": "aberto"},
+            {"$set": {"advance_paid": (received + amount) / 100},
+             "$push": {"table_receipts": receipt, "audit_events": audit_event(
+                 "table_receipt_recorded", user, correlation=key, values={
+                     "amount": amount / 100, "remaining": (balance - amount) / 100,
+                     "mode": body.mode, **card_payment_audit(payment)})}}, session=session)
+        await db.tables.update_one({"id": id, "order_id": order["id"]},
+                                   {"$set": {"total": (balance - amount) / 100}}, session=session)
+        return {"id": key, "amount": amount / 100}
+
+    try:
+        return await with_order_transaction(apply)
+    except DuplicateKeyError as exc:
+        raise HTTPException(409, "Recebimento concorrente. Consulte a conta e repita com a mesma referência.") from exc
+
+
+class MonetaryReversalIn(BaseModel):
+    expected_order_id: str = Field(min_length=1, max_length=128)
+    reason: str = Field(min_length=3, max_length=300)
+    manager_pin: str | None = None
+
+
+@router.post("/tables/{id}/monetary-receipts/{receipt_id}/reverse")
+async def reverse_monetary_partial(id: str, receipt_id: str, body: MonetaryReversalIn, user: dict = Depends(require("caixa"))):
+    authorized = await cancel_authorizer(user, body.manager_pin)
+    reason = body.reason.strip()
+    if len(reason) < 3:
+        raise HTTPException(422, "Informe o motivo do estorno.")
+
+    async def apply(session):
+        require_receipt_transaction(session)
+        prior = await db.cash_adjustments.find_one({"_id": receipt_id + ":reversal"}, session=session)
+        if prior:
+            if (prior.get("table_id") != id or prior["order_id"] != body.expected_order_id
+                    or prior["operator_id"] != user["id"] or prior["reason"] != reason):
+                raise HTTPException(409, "Recebimento já estornado.")
+            return {"id": receipt_id, "amount": round(-sum(prior["totals_by_method"].values()), 2)}
+        order = await monetary_order(id, body.expected_order_id, session=session)
+        receipt = next((r for r in order.get("table_receipts", []) if r["id"] == receipt_id), None)
+        if not receipt:
+            raise HTTPException(404, "Recebimento não encontrado.")
+        if receipt.get("reversed_at"):
+            if receipt.get("reversal_reason") != reason or receipt.get("reversed_by_id") != user["id"]:
+                raise HTTPException(409, "Recebimento já estornado.")
+            return {"id": receipt_id, "amount": receipt["amount"]}
+        cash = await current_cash(session=session, **cash_scope(user))
+        if not cash:
+            raise HTTPException(409, "Abra o caixa para registrar a devolução.")
+        await claim_cash(cash, session=session)
+        await write_monetary_adjustment(order, receipt, cash, user, "table_receipt_reversal",
+                                        reason, session=session)
+        received = cents(order["advance_paid"]) - cents(receipt["amount"])
+        await db.orders.update_one({"id": order["id"], "table_receipts.id": receipt_id},
+            {"$set": {"advance_paid": received / 100, "table_receipts.$.reversed_at": now(),
+                      "table_receipts.$.reversal_reason": reason, "table_receipts.$.reversed_by_id": user["id"]},
+             "$push": {"audit_events": audit_event("table_receipt_reversed", user, correlation=receipt_id,
+                                                  authorized_by=authorized, reason=reason,
+                                                  values={"amount": receipt["amount"]})}}, session=session)
+        await db.tables.update_one({"id": id, "order_id": order["id"]},
+            {"$set": {"total": (cents(compute_subtotal(order)) - received) / 100}}, session=session)
+        return {"id": receipt_id, "amount": receipt["amount"]}
+
+    return await with_order_transaction(apply)

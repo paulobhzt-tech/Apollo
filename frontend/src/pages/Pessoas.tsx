@@ -35,19 +35,21 @@ export default function Pessoas() {
           <TabsTrigger value="clientes" data-testid="tab-clientes">Clientes</TabsTrigger>
           <TabsTrigger value="fornecedores" data-testid="tab-fornecedores">Fornecedores</TabsTrigger>
         </TabsList>
-        <TabsContent value="clientes" className="mt-4"><Clientes /></TabsContent>
-        <TabsContent value="fornecedores" className="mt-4"><Fornecedores /></TabsContent>
+        <TabsContent value="clientes" className="mt-2"><Clientes /></TabsContent>
+        <TabsContent value="fornecedores" className="mt-2"><Fornecedores /></TabsContent>
       </Tabs>
     </AppShell>
   );
 }
 
-function Toolbar({ search, setSearch, onNew, label, testid, canCreate = true }: { search: string; setSearch: (s: string) => void; onNew: () => void; label: string; testid: string; canCreate?: boolean }) {
+function Toolbar({ search, setSearch, onNew, label, testid, count, canCreate = true }: { search: string; setSearch: (s: string) => void; onNew: () => void; label: string; testid: string; count: number; canCreate?: boolean }) {
   return (
-    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-      <div className="relative w-full sm:w-72"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
-        <Input placeholder="Buscar por nome, telefone ou documento" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9" data-testid={`${testid}-search-input`} /></div>
-      {canCreate && <Button onClick={onNew} data-testid={`${testid}-new-button`}><Plus className="size-4" /> {label}</Button>}
+    <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2 rounded border border-border bg-panel px-2 py-1.5">
+      <div className="relative min-w-0 grow basis-64"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500" />
+        <Input aria-label="Buscar por nome, telefone ou documento" placeholder="Buscar por nome, telefone ou documento" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9" data-testid={`${testid}-search-input`} /></div>
+      {search && <Button size="sm" variant="ghost" onClick={() => setSearch("")}>Limpar busca</Button>}
+      <span className="text-xs text-muted-foreground">{count} registro(s)</span>
+      {canCreate && <Button size="sm" onClick={onNew} data-testid={`${testid}-new-button`}><Plus className="size-4" /> {label}</Button>}
     </div>
   );
 }
@@ -65,21 +67,21 @@ function Clientes() {
   const list = (q.data ?? []).filter((c) => match(search, c.name, c.phone, c.cpf, c.cnpj, c.email, c.address));
   return (
     <>
-      <Toolbar search={search} setSearch={setSearch} onNew={() => setEditing("new")} label="Novo cliente" testid="customer" />
-      <div className="rounded-2xl border border-white/5 bg-panel">
+      <Toolbar search={search} setSearch={setSearch} onNew={() => setEditing("new")} label="Novo cliente" testid="customer" count={list.length} />
+      <div className="rounded border border-border bg-panel">
         <Table stacked aria-label="Clientes">
           <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Contato</TableHead><TableHead>CPF / CNPJ</TableHead><TableHead className="text-right">Limite fiado</TableHead><TableHead className="text-right">Deve</TableHead><TableHead /></TableRow></TableHeader>
           <TableBody>
             {list.map((c) => (
               <TableRow key={c.id} data-testid={`customer-row-${c.id}`}>
-                <TableCell label="Cliente"><p className="font-medium text-white">{c.name}</p>{c.address && <p className="text-xs text-zinc-500">{c.address}</p>}</TableCell>
-                <TableCell label="Contato" className="text-zinc-300">{c.phone || "—"}{c.email && <span className="block text-xs text-zinc-500">{c.email}</span>}</TableCell>
+                <TableCell label="Cliente" className="whitespace-normal wrap-anywhere"><p className="font-medium text-white">{c.name}</p>{c.address && <p className="text-xs text-zinc-500">{c.address}</p>}</TableCell>
+                <TableCell label="Contato" className="whitespace-normal wrap-anywhere text-foreground">{c.phone || "—"}{c.email && <span className="block text-xs text-zinc-500">{c.email}</span>}</TableCell>
                 <TableCell label="CPF / CNPJ" className="font-mono text-xs text-zinc-400">{c.cpf || c.cnpj || "—"}</TableCell>
                 <TableCell label="Limite fiado" className="text-right font-mono text-zinc-400">{c.credit_limit ? brl(c.credit_limit) : "—"}</TableCell>
-                <TableCell label="Deve" className={cn("text-right font-mono", c.balance > 0.009 ? "text-red-300" : "text-zinc-500")}>{brl(c.balance)}</TableCell>
+                <TableCell label="Deve" className={cn("text-right font-mono", c.balance > 0.009 ? "text-red-700 dark:text-red-300" : "text-zinc-500")}>{brl(c.balance)}</TableCell>
                 <TableCell label="Ações" className="text-right">
-                  <Button size="icon-sm" variant="ghost" onClick={() => setEditing(c)} data-testid={`customer-edit-${c.id}`}><Pencil /></Button>
-                  <Button size="icon-sm" variant="ghost" onClick={() => window.confirm(`Descadastrar ${c.name}?`) && del.mutate(c.id)} data-testid={`customer-delete-${c.id}`}><Trash2 /></Button>
+                  <Button size="icon-sm" variant="ghost" onClick={() => setEditing(c)} aria-label={`Editar ${c.name}`} data-testid={`customer-edit-${c.id}`}><Pencil /></Button>
+                  <Button size="icon-sm" variant="ghost" onClick={() => window.confirm(`Descadastrar ${c.name}?`) && del.mutate(c.id)} aria-label={`Descadastrar ${c.name}`} data-testid={`customer-delete-${c.id}`}><Trash2 /></Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -113,8 +115,8 @@ function CustomerForm({ c, onClose }: { c: FiadoCustomer | null; onClose: () => 
   );
   return (
     <>
-      <DialogHeader><DialogTitle className="font-heading text-white">{c ? `Editar ${c.name}` : "Novo cliente"}</DialogTitle></DialogHeader>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <DialogHeader><DialogTitle className="font-heading text-base text-foreground">{c ? `Editar ${c.name}` : "Novo cliente"}</DialogTitle></DialogHeader>
+      <div className="grid gap-2 sm:grid-cols-2">
         {field("name", "Nome", "Nome do cliente", true)}
         {field("phone", "Telefone / WhatsApp", "(31) 99999-0000")}
         {field("cpf", "CPF", "000.000.000-00")}
@@ -150,28 +152,28 @@ function Fornecedores() {
   const list = (q.data ?? []).filter((s) => match(search, s.name, s.phone, s.doc, s.cpf || "", s.cnpj || "", s.supplies, s.contact));
   return (
     <>
-      <Toolbar search={search} setSearch={setSearch} onNew={() => setEditing("new")} label="Novo fornecedor" testid="supplier" canCreate={isAdmin} />
+      <Toolbar search={search} setSearch={setSearch} onNew={() => setEditing("new")} label="Novo fornecedor" testid="supplier" count={list.length} canCreate={isAdmin} />
       {q.isError && <p role="alert" className="mb-3 text-sm text-destructive">Não foi possível carregar fornecedores. <Button type="button" variant="outline" size="xs" onClick={() => void q.refetch()}>Tentar novamente</Button></p>}
-      <div className="rounded-2xl border border-white/5 bg-panel">
+      <div className="rounded border border-border bg-panel">
         <Table stacked aria-label="Fornecedores">
           <TableHeader><TableRow><TableHead>Fornecedor</TableHead><TableHead>Fornece</TableHead><TableHead>Contato</TableHead><TableHead>CNPJ/CPF</TableHead><TableHead /></TableRow></TableHeader>
           <TableBody>
             {list.map((s) => (
               <TableRow key={s.id} data-testid={`supplier-row-${s.id}`}>
-                <TableCell label="Fornecedor"><p className="font-medium text-white">{s.name}</p>{s.address && <p className="text-xs text-zinc-500">{s.address}</p>}</TableCell>
-                <TableCell label="Fornece" className="text-zinc-300">{s.supplies || "—"}</TableCell>
-                <TableCell label="Contato" className="text-zinc-300">{s.contact && <span className="block">{s.contact}</span>}{s.phone || "—"}{s.email && <span className="block text-xs text-zinc-500">{s.email}</span>}</TableCell>
+                <TableCell label="Fornecedor" className="whitespace-normal wrap-anywhere"><p className="font-medium text-white">{s.name}</p>{s.address && <p className="text-xs text-zinc-500">{s.address}</p>}</TableCell>
+                <TableCell label="Fornece" className="whitespace-normal wrap-anywhere text-foreground">{s.supplies || "—"}</TableCell>
+                <TableCell label="Contato" className="whitespace-normal wrap-anywhere text-foreground">{s.contact && <span className="block">{s.contact}</span>}{s.phone || "—"}{s.email && <span className="block text-xs text-zinc-500">{s.email}</span>}</TableCell>
                 <TableCell label="CNPJ / CPF" className="font-mono text-xs text-zinc-400">{s.cpf || s.cnpj || s.doc || "—"}</TableCell>
                 <TableCell label="Ações" className="text-right">
                   {isAdmin && <>
                     <Button size="sm" variant="outline" onClick={() => setBillFor(s)} data-testid={`supplier-bill-${s.id}`}><Receipt className="size-3.5" /> Lançar conta</Button>
-                    <Button size="icon-sm" variant="ghost" onClick={() => setEditing(s)} data-testid={`supplier-edit-${s.id}`}><Pencil /></Button>
-                    <Button size="icon-sm" variant="ghost" onClick={() => window.confirm(`Descadastrar ${s.name}?`) && del.mutate(s.id)} data-testid={`supplier-delete-${s.id}`}><Trash2 /></Button>
+                    <Button size="icon-sm" variant="ghost" onClick={() => setEditing(s)} aria-label={`Editar ${s.name}`} data-testid={`supplier-edit-${s.id}`}><Pencil /></Button>
+                    <Button size="icon-sm" variant="ghost" onClick={() => window.confirm(`Descadastrar ${s.name}?`) && del.mutate(s.id)} aria-label={`Descadastrar ${s.name}`} data-testid={`supplier-delete-${s.id}`}><Trash2 /></Button>
                   </>}
                 </TableCell>
               </TableRow>
             ))}
-            {!list.length && <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-zinc-500" data-testid="suppliers-empty">Nenhum fornecedor cadastrado.</TableCell></TableRow>}
+            {!list.length && <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-zinc-500" data-testid="suppliers-empty">{q.isPending ? "Carregando fornecedores…" : q.isError ? "Consulta indisponível." : search.trim() ? "Nenhum fornecedor encontrado." : "Nenhum fornecedor cadastrado."}</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
@@ -207,8 +209,8 @@ function SupplierForm({ s, onClose }: { s: Supplier | null; onClose: () => void 
       event.preventDefault();
       if (f.name.trim().length >= 2 && !save.isPending) save.mutate();
     }}>
-      <DialogHeader><DialogTitle className="font-heading text-white">{s ? `Editar ${s.name}` : "Novo fornecedor"}</DialogTitle></DialogHeader>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <DialogHeader><DialogTitle className="font-heading text-base text-foreground">{s ? `Editar ${s.name}` : "Novo fornecedor"}</DialogTitle></DialogHeader>
+      <div className="grid gap-2 sm:grid-cols-2">
         {field("name", "Nome / razão social", "Ex.: Frigorífico Boi Bom", true)}
         {field("cpf", "CPF", "000.000.000-00")}
         {field("cnpj", "CNPJ", "00.000.000/0000-00")}

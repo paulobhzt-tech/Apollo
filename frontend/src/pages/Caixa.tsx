@@ -156,7 +156,7 @@ export default function Caixa() {
                 {Object.keys(s.totals_by_method).length === 0 && <p className="text-sm text-zinc-500">Sem vendas neste turno.</p>}
               </ul>
               {(s.refund_adjustments?.length ?? 0) > 0 && <div className="mt-3 border-t border-white/10 pt-3" data-testid="cash-refund-adjustments">
-                <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">Devoluções de turnos anteriores</p>
+                <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">Recebimentos parciais e ajustes de caixa</p>
                 {s.refund_adjustments?.map((entry) => <p key={entry.id} className="mt-1 break-words text-xs text-zinc-400">{fmtDateTime(entry.at)} · {entry.by_name} · {entry.reason} · {blind ? "••••" : brl(Object.values(entry.totals_by_method).reduce((a, b) => a + b, 0))}</p>)}
               </div>}
               <Button size="sm" variant="ghost" className="mt-3" onClick={() => setBlind(!blind)} data-testid="cash-toggle-blind">{blind ? "Revelar valores" : "Ocultar valores"}</Button>

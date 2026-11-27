@@ -362,6 +362,16 @@ class Refund(BaseModel):
     at: datetime = Field(default_factory=_now)
 
 
+class TableReceiptSummary(BaseModel):
+    id: str
+    amount: float
+    mode: Literal["amount", "percentage"]
+    value: float
+    at: datetime
+    by_name: str
+    reversed_at: datetime | None = None
+
+
 class Order(BaseModel):
     id: str = Field(default_factory=_id)
     number: int
@@ -381,6 +391,8 @@ class Order(BaseModel):
     service_fee: float = 0
     delivery_fee: float = 0
     total: float = 0
+    advance_paid: float = 0
+    table_receipts: list[TableReceiptSummary] = Field(default_factory=list)
     payments: list[Payment] = []
     change: float = 0
     pay_on_delivery: Optional[str] = None
@@ -417,6 +429,8 @@ class PayIn(BaseModel):
 
 
 class TablePayIn(PayIn):
+    payments: list[Payment] = Field(max_length=50)
+    expected_advance_paid: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     expected_order_id: Optional[str] = Field(default=None, min_length=1, max_length=128)
 
 

@@ -139,5 +139,42 @@ test("captures the same populated screens in each version", async ({ page }, inf
     await page.getByTestId("history-search-input").fill("Espetinho P40");
     await expect(page.getByRole("row").filter({ hasText: "Espetinho P40" }).first()).toBeVisible();
     await capture("historico-vendas");
+
+    await page.setViewportSize({ width: 1024, height: 640 });
+    const newTable = await post("/tables", { number: 6491 });
+    const attending = await post(`/tables/${newTable.id}/open`, { people: 2 });
+    await post(`/tables/${newTable.id}/items`, {
+      order_id: attending.order_id, client_ref: crypto.randomUUID(),
+      items: [{ product_id: "p40product", qty: 1 }],
+    });
+    await page.goto(base + "/mesas");
+    await page.getByTestId("table-card-6491").click();
+    const openOptions = async () => {
+      await page.getByRole("button", { name: "Mais opções" }).click();
+      await page.getByRole("menuitem", { name: "Receber por valor ou percentual" }).click();
+    };
+    const acceptInstallment = async () => {
+      await page.getByRole("button", { name: "Receber parcela", exact: true }).click();
+      await page.getByTestId("payment-add-button").click();
+      await page.getByRole("button", { name: "Registrar parcela", exact: true }).click();
+      await expect(page.getByTestId("payment-dialog")).toBeHidden();
+    };
+    await openOptions();
+    await page.getByLabel("Forma de cálculo").selectOption("percentage");
+    await page.getByLabel("Percentual (%)", { exact: true }).fill("25");
+    await capture("parcela-percentual");
+    await acceptInstallment();
+    await expect(page.getByTestId("table-remaining-balance")).toContainText("7,50");
+
+    await openOptions();
+    await page.getByLabel("Valor (R$)", { exact: true }).fill("1,50");
+    await capture("parcela-valor-livre");
+    await acceptInstallment();
+    await expect(page.getByTestId("table-remaining-balance")).toContainText("6,00");
+    await page.getByTestId("close-table-button").click();
+    await expect(page.getByTestId("payment-remaining")).toContainText("7,00");
+    await capture("fechamento-com-parcelas");
+    await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+
   }
 });

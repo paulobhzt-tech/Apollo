@@ -37,8 +37,10 @@ export default function PreBillDialog({ table, order, open, printEnabled = true,
   const subtotal = r2(groups.reduce((s, g) => s + g.total, 0));
   const fee = service ? r2(subtotal * 0.1) : 0;
   const total = r2(subtotal + fee);
-  const shares = equalBillShares(total, Number(people));
-  const share = splitMode === "people" ? null : previewBillShare(total, splitMode, shareInput);
+  const received = order?.advance_paid ?? 0;
+  const balance = r2(total - received);
+  const shares = equalBillShares(balance, Number(people));
+  const share = splitMode === "people" ? null : previewBillShare(balance, splitMode, shareInput);
   const equalLabel = shares.extraPeople
     ? `${shares.people - shares.extraPeople} × ${brl(shares.amount)} + ${shares.extraPeople} × ${brl(shares.extraAmount)}`
     : brl(shares.amount);
@@ -51,7 +53,8 @@ export default function PreBillDialog({ table, order, open, printEnabled = true,
   const shareText = [
     company, `Pré-conta · ${table.kind === "mesa" ? "Mesa" : "Comanda"} ${table.number}`,
     ...displayLines.map((line) => `${line.qty} × ${line.name} · ${brl(line.total)}`),
-    `Subtotal: ${brl(subtotal)}`, ...(service ? [`Serviço: ${brl(fee)}`] : []), `Total: ${brl(total)}`, splitLabel,
+    `Subtotal: ${brl(subtotal)}`, ...(service ? [`Serviço: ${brl(fee)}`] : []), `Total: ${brl(total)}`,
+    ...(received ? [`Já recebido: ${brl(received)}`, `Saldo: ${brl(balance)}`] : []), splitLabel,
   ].filter(Boolean).join("\n");
 
   const print = async () => {
@@ -82,6 +85,8 @@ export default function PreBillDialog({ table, order, open, printEnabled = true,
       <div class="row"><span>${qtyTotal} itens · Subtotal</span><span>${brl(subtotal)}</span></div>
       ${service ? `<div class="row"><span>Serviço 10% (opcional)</span><span>${brl(fee)}</span></div>` : ""}
       <div class="row tot"><span>TOTAL</span><span>${brl(total)}</span></div>
+      ${received ? `<div class="row"><span>Já recebido</span><span>${brl(received)}</span></div>
+      <div class="row tot"><span>SALDO</span><span>${brl(balance)}</span></div>` : ""}
       ${splitLabel ? `<div class="row">${esc(splitLabel)}</div>` : ""}
       ${pix ? `<div class="sep"></div><div class="c">PIX: ${esc(pix)}${settings.data?.pix_holder ? `<br>${esc(settings.data.pix_holder)}` : ""}</div>` : ""}
       <div class="sep"></div><div class="c"><b>NÃO É DOCUMENTO FISCAL</b><br>Confira seu pedido antes do pagamento</div>
@@ -119,6 +124,10 @@ export default function PreBillDialog({ table, order, open, printEnabled = true,
             <div className="flex justify-between"><span>{qtyTotal} itens · Subtotal</span><span data-testid="prebill-subtotal">{brl(subtotal)}</span></div>
             {service && <div className="flex justify-between"><span>Serviço 10%</span><span data-testid="prebill-service">{brl(fee)}</span></div>}
             <div className="flex justify-between text-base font-bold"><span>TOTAL</span><span data-testid="prebill-total">{brl(total)}</span></div>
+            {received > 0 && <>
+              <div className="flex justify-between"><span>Já recebido</span><span>{brl(received)}</span></div>
+              <div className="flex justify-between font-bold"><span>Saldo</span><span>{brl(balance)}</span></div>
+            </>}
             {splitLabel && <p data-testid={splitMode === "people" ? "prebill-per-person" : "prebill-split-share"}>{splitLabel}</p>}
           </div>
         </div>

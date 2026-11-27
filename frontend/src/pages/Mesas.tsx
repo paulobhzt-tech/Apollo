@@ -9,6 +9,7 @@ import AppShell, { PageHeader } from "@/components/AppShell";
 import { DisplayControls } from "@/components/DisplayPreferences";
 import ProductGrid from "@/components/ProductGrid";
 import OptionsDialog, { type Picked } from "@/components/OptionsDialog";
+import MonetaryReceiptDialog from "@/components/MonetaryReceiptDialog";
 import PaymentDialog from "@/components/PaymentDialog";
 import InvoiceDialog from "@/components/InvoiceDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -481,6 +482,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   const [mergeTo, setMergeTo] = useState("");
   const [preBill, setPreBill] = useState<"view" | "print" | null>(null);
   const [partialOpen, setPartialOpen] = useState(false);
+  const [monetaryOpen, setMonetaryOpen] = useState(false);
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [selectedOperation, setSelectedOperation] = useState<"transfer" | "copy" | null>(null);
   const [grouped, setGrouped] = useTablePreference(`apollo-table-grouped:${me?.id}`, true);
@@ -611,8 +613,8 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
   });
   const pay = useMutation({
     ...onlineMutation,
-    mutationFn: ({ payment, orderId }: { payment: PayIn; orderId: string }) =>
-      onlineOperation(() => apiPost<SaleResult>(`/tables/${table.id}/pay`, { ...payment, expected_order_id: orderId })),
+    mutationFn: ({ payment, orderId, advance }: { payment: PayIn; orderId: string; advance: number }) =>
+      onlineOperation(() => apiPost<SaleResult>(`/tables/${table.id}/pay`, { ...payment, expected_order_id: orderId, expected_advance_paid: advance })),
     onSuccess: (r) => {
       toast.success(`${tableLabel(table!)} fechada${r.order.change ? ` · Troco ${brl(r.order.change)}` : ""}`);
       setPayOpen(false); invalidateTables();
@@ -674,7 +676,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
 
   const busy = openT.isPending || send.isPending || removeItems.isPending || status.isPending ||
     release.isPending || cancelTable.isPending || transfer.isPending || merge.isPending || pay.isPending;
-  const nestedOpen = !!organization || customerSearchOpen || !!selectedOperation || qrOpen || reviewOpen || partialOpen || payOpen || preBill || !!invoice || !!removing || !!editingDraft || !!optFor;
+  const nestedOpen = !!organization || customerSearchOpen || !!selectedOperation || qrOpen || reviewOpen || partialOpen || monetaryOpen || payOpen || preBill || !!invoice || !!removing || !!editingDraft || !!optFor;
   const editingOpening = !table.order_id && (people !== "2" || !!name.trim());
   const [editingCustomers, setEditingCustomers] = useState(false);
   const requestClose = () => {
@@ -683,11 +685,11 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
     onClose();
   };
   useEffect(() => {
-    if (!busy && !partialOpen) return;
+    if (!busy && !partialOpen && !monetaryOpen) return;
     const guard = (event: BeforeUnloadEvent) => guardWorkspaceUnload(event);
     window.addEventListener("beforeunload", guard);
     return () => window.removeEventListener("beforeunload", guard);
-  }, [busy, partialOpen]);
+  }, [busy, partialOpen, monetaryOpen]);
 
   const progressLabel = (id: string) => {
     const status = itemProgress.data?.[id];
@@ -741,15 +743,17 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                   <DropdownMenuTrigger className="inline-flex min-h-10 items-center gap-2 rounded-md border border-border px-3 text-xs font-medium hover:bg-muted">
                     <Ellipsis className="size-4" aria-hidden="true" /> Mais opções
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="grid w-[min(30rem,calc(100vw-1.5rem))] grid-cols-1 gap-1 rounded-md border border-border p-2 min-[30rem]:grid-cols-2" data-testid="table-more-options">
+                  <DropdownMenuContent align="end" className="grid w-[min(30rem,calc(100vw-1.5rem))] grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))] gap-1 rounded-md border border-border p-2" data-testid="table-more-options">
                     <DropdownMenuGroup className="min-w-0">
                     <DropdownMenuLabel>Atendimento</DropdownMenuLabel>
-                    <DropdownMenuItem disabled={offline || !transferTargets.length || pendingConfirmation || !!pending.length} onClick={() => setOrganization("transfer")}>Transferir mesa</DropdownMenuItem>
-                    {canDelete && <DropdownMenuItem disabled={offline || pendingConfirmation || !!pending.length || !tables.some((target) => target.id !== table.id && !!target.order_id)} onClick={() => setOrganization("merge")}>Juntar contas</DropdownMenuItem>}
-                    {canDelete && <DropdownMenuItem disabled={offline || pendingConfirmation || !!pending.length || !hasItems} onClick={() => setPartialOpen(true)}>Dividir por cliente ou itens</DropdownMenuItem>}
+                    <DropdownMenuItem disabled={offline || !transferTargets.length || !!o?.advance_paid || pendingConfirmation || !!pending.length} onClick={() => setOrganization("transfer")}>Transferir mesa</DropdownMenuItem>
+                    {canDelete && <DropdownMenuItem disabled={offline || pendingConfirmation || !!pending.length || !hasItems || !o}
+                      onClick={() => setMonetaryOpen(true)}>Receber por valor ou percentual</DropdownMenuItem>}
+                    {canDelete && <DropdownMenuItem disabled={offline || pendingConfirmation || !!pending.length || !!o?.advance_paid || !tables.some((target) => target.id !== table.id && !!target.order_id)} onClick={() => setOrganization("merge")}>Juntar contas</DropdownMenuItem>}
+                    {canDelete && <DropdownMenuItem disabled={offline || pendingConfirmation || !!pending.length || !hasItems || !!o?.advance_paid} onClick={() => setPartialOpen(true)}>Dividir por cliente ou itens</DropdownMenuItem>}
                     <DropdownMenuItem disabled={offline || status.isPending} onClick={() => status.mutate(table.status === "conta" ? "ocupada" : "conta")}>{table.status === "conta" ? "Voltar para ocupada" : "Marcar conta"}</DropdownMenuItem>
                     <DropdownMenuItem disabled={offline || pendingConfirmation || !!pending.length || release.isPending || hasItems} onClick={() => release.mutate()}>Liberar mesa</DropdownMenuItem>
-                    <DropdownMenuItem variant="destructive" disabled={offline || pendingConfirmation || !!pending.length || cancelTable.isPending} onClick={requestCancellation}>Cancelar atendimento</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" disabled={offline || pendingConfirmation || !!pending.length || !!o?.advance_paid || cancelTable.isPending} onClick={requestCancellation}>Cancelar atendimento</DropdownMenuItem>
                     <DropdownMenuItem disabled={offline || !o || busy} onClick={() => setCustomerSearchOpen(true)}>
                       {o?.registered_customer_id ? "Trocar cliente cadastrado" : "Vincular cliente cadastrado"}
                     </DropdownMenuItem>
@@ -941,6 +945,10 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
             {!!o?.discount && <div><dt className="text-muted-foreground">Desconto</dt><dd>{brl(o.discount)}</dd></div>}
             {!!o?.service_fee && <div><dt className="text-muted-foreground">Serviço</dt><dd>{brl(o.service_fee)}</dd></div>}
             <div><dt className="text-muted-foreground">Total</dt><dd className="font-mono text-base font-semibold" data-testid="table-order-total">{brl(o?.total ?? table.total)}</dd></div>
+            {!!o?.advance_paid && <>
+              <div><dt className="text-muted-foreground">Já recebido</dt><dd>{brl(o.advance_paid)}</dd></div>
+              <div><dt className="text-muted-foreground">Saldo dos itens</dt><dd data-testid="table-remaining-balance">{brl(o.total - o.advance_paid)}</dd></div>
+            </>}
           </dl>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setPreBill("view")} disabled={!hasItems} data-testid="request-bill-button"><Receipt className="size-4" /> Pré-conta</Button>
@@ -1001,10 +1009,12 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
           onPrinted={() => { if (table.status !== "conta") status.mutate("conta"); setPreBill(null); }} />
       )}
       {table && <PartialBillDialog key={table.id} table={table} items={items} open={partialOpen} onClose={() => setPartialOpen(false)} />}
-      <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} items={o?.items.filter((item) => !item.cancelled)} defaultService={10}
+      {monetaryOpen && o && <MonetaryReceiptDialog tableId={table.id} order={o} needsPin={!canCancel(me)}
+        onChange={invalidateTables} onClose={() => setMonetaryOpen(false)} />}
+      <PaymentDialog open={payOpen} onOpenChange={setPayOpen} subtotal={o?.subtotal ?? 0} alreadyReceived={o?.advance_paid ?? 0} items={o?.items.filter((item) => !item.cancelled)} defaultService={10}
         title={`Fechamento · ${table ? tableLabel(table) : ""}`} pending={pay.isPending} connectionRequired={offline}
         review={pay.error instanceof UncertainOperationError ? { pending: checkingPayment, consult: () => void consultPayment() } : undefined}
-        onConfirm={(p) => { if (o && o.id === table.order_id) pay.mutate({ payment: p, orderId: o.id }); }} />
+        onConfirm={(p) => { if (o && o.id === table.order_id) pay.mutate({ payment: p, orderId: o.id, advance: o.advance_paid ?? 0 }); }} />
       <InvoiceDialog invoice={invoice} onClose={() => setInvoice(null)} />
       {editingDraft && <DraftItemDialog line={editingDraft} onClose={() => setEditingDraft(null)} onSave={(line) => {
         if (pending.some((entry) => entry.key === line.key)) updateDraft(line);

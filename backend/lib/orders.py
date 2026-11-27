@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from pymongo import ReturnDocument
 
 from lib.audit import audit_event
+from lib.table_receipts import cents, pix_references, require_receipt_transaction
 from lib.cash_scope import cash_scope, claim_cash, independent_cash
 from lib.db import db
 from models.schemas import Invoice, InvoiceItem, KitchenItem, KitchenTicket, OrderItem, OrderItemIn, PayIn, PRODUCT_CHANNELS, ProductChannel, StockMove
@@ -26,6 +27,7 @@ def order_for_operator(order: dict | None, user: dict) -> dict | None:
     return {
         **order,
         "cmv": 0,
+        "table_receipts": [],
         "items": [{**item, "unit_cost": 0, "stock_recipe": None, "stock_ref": None}
                   for item in order.get("items", [])],
     }
@@ -298,7 +300,9 @@ async def refresh_totals(order_id: str, *, session=None) -> dict:
     total = round(sub - order.get("discount", 0) + order.get("service_fee", 0) + order.get("delivery_fee", 0), 2)
     await db.orders.update_one({"id": order_id}, {"$set": {"subtotal": sub, "total": total}}, **_session_args(session))
     if order.get("table_id"):
-        await db.tables.update_one({"id": order["table_id"]}, {"$set": {"total": total}}, **_session_args(session))
+        balance = round(total - order.get("advance_paid", 0), 2)
+        await db.tables.update_one({"id": order["table_id"], "order_id": order_id},
+                                   {"$set": {"total": balance}}, **_session_args(session))
     order.update(subtotal=sub, total=total)
     return order
 
@@ -366,10 +370,23 @@ async def finalize_payment(order: dict, pay: PayIn, actor: dict | None = None, *
         raise HTTPException(400, "Desconto maior que o subtotal")
     service = round(sub * pay.service_pct / 100, 2)
     total = round(sub - pay.discount + service + order.get("delivery_fee", 0), 2)
+    advance = order.get("advance_paid", 0)
+    prior_payments = []
+    if advance:
+        require_receipt_transaction(session)
+        prior_payments = [p for receipt in order["table_receipts"] if not receipt.get("reversed_at")
+                          for p in receipt["payments"]]
+        if cents(total) < cents(advance):
+            raise HTTPException(409, "O total ficou abaixo do valor já recebido. Estorne a parcela antes de fechar.")
+    historic_pix = pix_references(
+        p for receipt in order.get("table_receipts", []) for p in receipt["payments"])
+    if historic_pix & pix_references(p.model_dump() for p in pay.payments):
+        raise HTTPException(409, "Referência PIX já registrada nesta conta.")
     paid = round(sum(p.amount for p in pay.payments), 2)
-    if paid + 0.009 < total:
-        raise HTTPException(400, f"Valor pago insuficiente (faltam R$ {total - paid:.2f})")
-    change = round(paid - total, 2)
+    remaining = round(total - advance, 2)
+    if paid + 0.009 < remaining:
+        raise HTTPException(400, f"Valor pago insuficiente (faltam R$ {remaining - paid:.2f})")
+    change = round(paid - remaining, 2)
     validate_payment_details(pay)
     await validate_methods([p.method for p in pay.payments])
     if any(p.method in ("credito", "debito") and not p.brand for p in pay.payments):
@@ -392,6 +409,9 @@ async def finalize_payment(order: dict, pay: PayIn, actor: dict | None = None, *
         "payments": [p.model_dump() for p in pay.payments], "change": change, "paid_at": now(),
         "cash_session_id": cash["id"], "cmv": cmv,
     }
+    if advance:
+        upd["closing_payments"] = upd["payments"]
+        upd["payments"] = [*prior_payments, *upd["payments"]]
     if pay.customer_cpf:
         upd["customer.cpf"] = pay.customer_cpf
     if cust:

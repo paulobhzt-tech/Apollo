@@ -12,6 +12,7 @@ from lib.demo_guard import delivery_simulation_enabled
 from lib.counter_sale_gate import counter_sale_gate
 from lib.audit_alerts import summarize_audit_alerts
 from lib.audit import audit_event, verify_event
+from lib.table_receipts import guard_open_receipts, require_receipt_transaction
 from lib.cash_scope import cash_scope, independent_cash, claim_cash, prepare_cash_mode
 from lib.auth import cancel_authorizer, current_user, require
 from lib.sync_identity import validate_sync_context
@@ -179,6 +180,10 @@ async def apply_cancel_order(id: str, body: CancelIn, user: dict, auth: str, *, 
         raise HTTPException(400, "Pedido já cancelado")
     if o.get("stock_completion") == "pending":
         raise HTTPException(409, "Confira a baixa pendente deste pedido antes de estornar.")
+    if o["status"] == "aberto":
+        guard_open_receipts(o)
+    if o.get("advance_paid", 0) > 0:
+        require_receipt_transaction(session)
     refund_cash_id = await guard_refund_cash(o, user, session=session)
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
     result = await db.orders.update_one({"id": id, "status": o["status"], "items": o.get("items", []), "stock_completion": {"$ne": "pending"},
@@ -190,6 +195,11 @@ async def apply_cancel_order(id: str, body: CancelIn, user: dict, auth: str, *, 
         raise HTTPException(409, "Pedido alterado por outro operador. Atualize antes de cancelar.")
     if o["status"] == "pago":
         await record_refund_adjustment(o, refund_cash_id, method_totals([o], with_brand=True), "cancel", user, body.reason, session=session)
+        if refund_cash_id is None and o.get("advance_paid", 0) > 0:
+            prior_payments = [p for receipt in o["table_receipts"] if not receipt.get("reversed_at")
+                              for p in receipt["payments"]]
+            await record_refund_adjustment(o, o["cash_session_id"], method_totals(
+                [{"payments": prior_payments}], with_brand=True), "cancel-table-receipts", user, body.reason, session=session)
         fiado = sum(p["amount"] for p in o.get("payments", []) if p["method"] == "fiado") - \
             sum(r["amount"] for r in o.get("refunds", []) if r["method"] == "fiado")
         await fiado_reverse(o, fiado, who, f"Estorno do pedido #{o['number']}", **options)
@@ -223,6 +233,10 @@ async def apply_refund_item(id: str, item_id: str, body: CancelIn, user: dict, a
     item = next((i for i in o["items"] if i["id"] == item_id and not i.get("cancelled")), None)
     if not item:
         raise HTTPException(404, "Item não encontrado ou já cancelado")
+    if o["status"] == "aberto":
+        guard_open_receipts(o)
+    if o.get("advance_paid", 0) > 0:
+        require_receipt_transaction(session)
     refund_cash_id = await guard_refund_cash(o, user, session=session)
     who = user["name"] if auth == user["name"] else f"{user['name']} (autorizado por {auth})"
     event = audit_event("item_refunded" if o["status"] == "pago" else "item_cancelled", user,
@@ -256,22 +270,36 @@ async def apply_refund_item(id: str, item_id: str, body: CancelIn, user: dict, a
     amount = round(o["total"] - total, 2)
     pays = sorted(o.get("payments", []), key=lambda p: -p["amount"])
     main = pays[0] if pays else {"method": "dinheiro"}
-    refund = {"item_name": f"{item['qty']}x {item['name']}", "amount": amount, "method": main["method"],
-              "brand": main.get("brand"), "reason": body.reason, "by_name": who, "at": now()}
+    allocated = {pay_key(main): amount}
+    if o.get("advance_paid", 0) > 0:
+        allocated = {}
+        remaining = round(amount, 2)
+        for method, available in sorted(method_totals([o], with_brand=True).items(), key=lambda entry: -entry[1]):
+            portion = min(remaining, max(0, available))
+            if portion > 0:
+                allocated[method] = portion
+                remaining = round(remaining - portion, 2)
+        if remaining > 0:
+            raise HTTPException(409, "Confira os valores recebidos antes de estornar.")
+    refunds = []
+    for key, portion in allocated.items():
+        method, _, brand = key.partition(":")
+        refunds.append({"item_name": f"{item['qty']}x {item['name']}", "amount": portion, "method": method,
+                        "brand": brand or None, "reason": body.reason, "by_name": who, "at": now()})
     upd = {**set_item, "subtotal": new_sub, "service_fee": service, "discount": discount, "total": total,
            "cmv": round(sum(i["qty"] * i.get("unit_cost", 0) for i in live), 2)}
     if not live:
         upd.update(status="cancelado", cancellation_kind="last_item", cancel_reason=body.reason, cancelled_by=who, cancelled_at=now())
     result = await db.orders.update_one(criteria,
-        {"$set": upd, "$push": {"refunds": refund, "audit_events": event}, "$inc": {"refunded_total": amount}}, **options)
+        {"$set": upd, "$push": {"refunds": {"$each": refunds}, "audit_events": event}, "$inc": {"refunded_total": amount}}, **options)
     if not result.modified_count:
         raise HTTPException(409, "O pedido mudou. Atualize antes de estornar o item.")
-    await record_refund_adjustment(o, refund_cash_id, {pay_key(main): amount}, "item:" + item_id, user, body.reason, session=session)
+    await record_refund_adjustment(o, refund_cash_id, allocated, "item:" + item_id, user, body.reason, session=session)
     await move_stock([OrderItem(**item)], user["name"], f"Estorno #{o['number']}: {body.reason}", sign=1, historical_order_id=o.get("parent_order_id") or id, **options)
     if not live and o.get("invoice_id"):
         await db.invoices.update_one({"id": o["invoice_id"]}, {"$set": {"status": "cancelada"}}, **options)
-    if main["method"] == "fiado":
-        await fiado_reverse(o, amount, who, f"Estorno de {refund['item_name']} (#{o['number']})", **options)
+    if allocated.get("fiado"):
+        await fiado_reverse(o, allocated["fiado"], who, f"Estorno de {item['name']} (#{o['number']})", **options)
     return await db.orders.find_one({"id": id}, {"_id": 0}, **options)
 
 
@@ -444,8 +472,11 @@ async def cash_summary(s: dict, *, session=None) -> dict:
         {"status": "pago"},
         {"status": "cancelado", "total": 0, "refunds.0": {"$exists": True},
          "cancellation_kind": {"$ne": "full"}},
-    ]}, {"_id": 0, "status": 1, "payments": 1, "change": 1, "total": 1, "refunds": 1}, **options).to_list(None)
-    totals = method_totals(orders, with_brand=True)
+    ]}, {"_id": 0, "status": 1, "payments": 1, "closing_payments": 1, "change": 1, "total": 1, "refunds": 1}, **options).to_list(None)
+    totals = method_totals([
+        {**order, "payments": order.get("closing_payments", order.get("payments", []))}
+        for order in orders
+    ], with_brand=True)
     receipts = {}
     async for receipt in db.customer_moves.find({"cash_session_id": s["id"], "type": "pagamento"}, {"_id": 0}, **options):
         receipts[receipt["id"]] = receipt

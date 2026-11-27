@@ -29,6 +29,9 @@ interface Props {
   title: string;
   defaultService?: number;
   partialMode?: boolean;
+  fixedReceipt?: boolean;
+  alreadyReceived?: number;
+  onRetryUncertain?: () => void;
   pending?: boolean;
   connectionRequired?: boolean;
   review?: { pending: boolean; consult: () => void };
@@ -37,7 +40,7 @@ interface Props {
 
 export default function PaymentDialog(props: Props) {
   return (
-    <Dialog open={props.open} onOpenChange={(open) => { if (open || !props.pending) props.onOpenChange(open); }}>
+    <Dialog open={props.open} onOpenChange={(open) => { if (open || (!props.pending && !props.onRetryUncertain)) props.onOpenChange(open); }}>
       <DialogContent className="@container flex max-h-[96dvh] max-w-[calc(100%-0.75rem)] flex-col gap-0 border-border bg-elevated p-0 sm:max-w-[min(95vw,78rem)]" data-testid="payment-dialog">
         {props.open && <PaymentBody {...props} />}
       </DialogContent>
@@ -45,7 +48,7 @@ export default function PaymentDialog(props: Props) {
   );
 }
 
-function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialMode = false, pending, connectionRequired, review, onConfirm, onOpenChange }: Props) {
+function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialMode = false, fixedReceipt = false, alreadyReceived = 0, onRetryUncertain, pending, connectionRequired, review, onConfirm, onOpenChange }: Props) {
   const [panel, setPanel] = useState<"pay" | "order">("pay");
   const [itemPage, setItemPage] = useState(0);
   const lastItemPage = Math.max(0, Math.ceil(items.length / 6) - 1);
@@ -85,13 +88,13 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
 
   const percentageDiscount = previewBillShare(subtotal, "percentage", discountPercent);
   const discountAmount = discount.trim() ? cashAmount(discount) : 0;
-  const validDiscount = discountAmount !== null && discountAmount >= 0 && discountAmount <= subtotal;
+  const validDiscount = discountAmount !== null && discountAmount >= 0 && discountAmount <= subtotal && Math.round((subtotal - discountAmount + (service ? subtotal * defaultService / 100 : 0)) * 100) >= Math.round(alreadyReceived * 100);
   const disc = validDiscount ? discountAmount : 0;
   const serviceFee = service ? Math.round(subtotal * defaultService) / 100 : 0;
   const total = Math.round((subtotal - disc + serviceFee) * 100) / 100;
   const paid = payments.reduce((sum, payment) => sum + Math.round(payment.amount * 100), 0) / 100;
-  const remaining = Math.max(0, Math.round((total - paid) * 100) / 100);
-  const change = Math.max(0, Math.round((paid - total) * 100) / 100);
+  const remaining = Math.max(0, Math.round((total - alreadyReceived - paid) * 100) / 100);
+  const change = Math.max(0, Math.round((paid + alreadyReceived - total) * 100) / 100);
   const { people, amount: share, extraAmount, extraPeople } = equalBillShares(total, Number(splitN));
   const percentShare = previewBillShare(total, "percentage", percentage);
   const hasFiadoPayment = payments.some((payment) => payment.method === "fiado");
@@ -110,7 +113,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
     installments: method === "credito" && cardFields.installments ? Number(cardFields.installments) : undefined,
   } : {};
   const canAdd = !pending && validDiscount && methodsReady && roundedValue > 0 && remaining > 0 &&
-    (method === "dinheiro" || roundedValue <= remaining) &&
+    ((method === "dinheiro" && !fixedReceipt) || roundedValue <= remaining) &&
     (!isCard || (brand !== null && availableBrands.includes(brand) && cardCodesValid)) && (method !== "fiado" || !!fiadoCust) &&
     (method !== "pix" || (pixReceived && !!reference.trim() && !duplicatePix));
 
@@ -143,7 +146,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
     setConfirmedPixAmount(null);
   }
   const cashChangeOk = change <= payments.filter((payment) => payment.method === "dinheiro").reduce((sum, payment) => sum + payment.amount, 0) + 0.001;
-  const canConfirm = validDiscount && (disc === 0 || discountReason.trim().length >= 3) && payments.length > 0 && remaining === 0 && cashChangeOk && !pending && !connectionRequired && !review;
+  const canConfirm = validDiscount && (disc === 0 || discountReason.trim().length >= 3) && (payments.length > 0 || alreadyReceived > 0) && remaining === 0 && cashChangeOk && !pending && !connectionRequired && !review && !onRetryUncertain;
 
   function finish(print: boolean) {
     if (!canConfirm) return;
@@ -342,6 +345,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
               </div>
             ))}
           </div>
+          {!fixedReceipt && <>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="payment-discount" className="text-xs text-zinc-400">Desconto (R$)</Label>
@@ -398,6 +402,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
               </div>
             )}
           </div>}
+          </>}
           </section>
         </div>
       </div>
@@ -407,24 +412,26 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
           <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,5.25rem),1fr))] gap-1.5 rounded-md border border-border bg-panel p-1.5 text-xs @min-[50rem]:grid-cols-2">
             <Row k="Total a pagar" v={brl(total)} testid="payment-total" />
             <Row k="Falta pagar" v={brl(remaining)} testid="payment-remaining" accent={remaining > 0 ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300"} />
-            <Row k="Total pago" v={brl(paid)} />
+            <Row k="Total pago" v={brl(paid + alreadyReceived)} />
             <Row k="Troco" v={brl(change)} testid="payment-change" />
           </dl>
           <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,5.25rem),1fr))] gap-x-2 gap-y-1 text-xs @min-[50rem]:grid-cols-2">
             <Row k="Subtotal" v={brl(subtotal)} />
+            {alreadyReceived > 0 && <Row k="Já recebido" v={brl(alreadyReceived)} />}
             <Row k="Desconto" v={brl(disc)} />
             <Row k="Serviço" v={brl(serviceFee)} />
           </dl>
         </div>
         <p role="status" className="basis-full text-xs text-muted-foreground">
-          {connectionRequired ? "Reconecte para confirmar o pagamento." : review ? "Resultado incerto. Consulte o servidor antes de confirmar novamente." : pending ? "Aguardando confirmação do servidor." : canConfirm ? "Valores conferidos. Confirme para registrar o pagamento." :
+          {connectionRequired ? "Reconecte para confirmar o pagamento." : onRetryUncertain ? "Confirmação incerta. Repita o mesmo recebimento para consultar o resultado." : review ? "Resultado incerto. Consulte o servidor antes de confirmar novamente." : pending ? "Aguardando confirmação do servidor." : canConfirm ? "Valores conferidos. Confirme para registrar o pagamento." :
             remaining > 0 ? `Falta lançar ${brl(remaining)}.` : "Confira os lançamentos e a justificativa do desconto, quando aplicável."}
         </p>
         {review && <Button variant="outline" disabled={connectionRequired || review.pending} onClick={review.consult}>Consultar servidor</Button>}
-        <Button variant="ghost" size="sm" disabled={pending} onClick={() => onOpenChange(false)}>Cancelar</Button>
-        <Button variant="outline" size="sm" disabled={!canConfirm} onClick={() => finish(true)}>Finalizar e imprimir</Button>
+        {onRetryUncertain && <Button size="sm" disabled={pending || connectionRequired} onClick={onRetryUncertain}>Repetir mesma confirmação</Button>}
+        <Button variant="ghost" size="sm" disabled={pending || !!onRetryUncertain} onClick={() => onOpenChange(false)}>Cancelar</Button>
+        {!fixedReceipt && <Button variant="outline" size="sm" disabled={!canConfirm} onClick={() => finish(true)}>Finalizar e imprimir</Button>}
         <Button size="sm" disabled={!canConfirm} data-testid="payment-confirm-button" onClick={() => finish(false)}>
-          {pending ? "Processando…" : "Finalizar pedido"}
+          {pending ? "Processando…" : fixedReceipt ? "Registrar parcela" : "Finalizar pedido"}
         </Button>
       </footer>
       </div>
