@@ -2,13 +2,19 @@ import { expect, test } from "@playwright/test";
 
 const base = process.env.APOLLO_E2E_BASE_URL || "https://127.0.0.1:8001";
 const side = process.env.APOLLO_P647_SIDE;
-test.skip(!["p646", "p647", "p648"].includes(side ?? ""), "Executar somente na comparação com banco descartável.");
+test.skip(!["p646", "p647", "p648", "p649"].includes(side ?? ""), "Executar somente na comparação com banco descartável.");
 
 test("captures the same populated screens in each version", async ({ page }, info) => {
   test.setTimeout(120_000);
   expect(new URL(base).hostname).toBe("127.0.0.1");
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto(base + "/login");
+  if (side === "p649") {
+    const login = page.getByTestId("pin-panel");
+    await expect(login).toBeVisible();
+    expect(await login.evaluate((element) => element.scrollHeight <= element.clientHeight + 2)).toBe(true);
+    await page.screenshot({ path: info.outputPath("p649-login.png"), animations: "disabled" });
+  }
   await page.getByLabel("Usuário", { exact: true }).fill("p40admin");
   await page.getByLabel("Senha", { exact: true }).fill("P40-Fictitious-Password!");
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
@@ -65,6 +71,12 @@ test("captures the same populated screens in each version", async ({ page }, inf
 
   if (side !== "p646") {
     await page.getByRole("button", { name: "Mais opções" }).click();
+    if (side === "p649") {
+      const options = page.getByTestId("table-more-options");
+      await expect(options).toBeInViewport({ ratio: 1 });
+      expect(await options.evaluate((element) => element.scrollHeight <= element.clientHeight + 2)).toBe(true);
+      await capture("mais-opcoes");
+    }
     await page.getByRole("menuitem", { name: "Dividir por cliente ou itens" }).click();
   } else {
     await page.getByRole("button", { name: "Dividir por cliente ou itens" }).click();

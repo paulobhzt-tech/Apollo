@@ -234,10 +234,10 @@ export default function Mesas() {
       {!mobileMode && (
         <div className="mb-2 flex flex-wrap gap-1" data-testid="tables-summary">
           {([
-            { label: "Em andamento", status: "ocupada", color: "border-emerald-500/40 text-emerald-300" },
-            { label: "Contas solicitadas", status: "conta", color: "border-amber-500/40 text-amber-300" },
-            { label: "Livres", status: "livre", color: "border-zinc-500/40 text-zinc-200" },
-            { label: "Reservadas", status: "reservada", color: "border-violet-500/40 text-violet-300" },
+            { label: "Em andamento", status: "ocupada", color: "border-emerald-500/40 text-emerald-700 dark:text-emerald-300" },
+            { label: "Contas solicitadas", status: "conta", color: "border-amber-500/40 text-amber-700 dark:text-amber-300" },
+            { label: "Livres", status: "livre", color: "border-zinc-500/40 text-muted-foreground" },
+            { label: "Reservadas", status: "reservada", color: "border-violet-500/40 text-violet-700 dark:text-violet-300" },
           ] as const).map(item => (
             <button key={item.status} type="button" onClick={() => setDesktopStatus(desktopStatus === item.status ? "todas" : item.status)}
               aria-pressed={desktopStatus === item.status} className={cn("flex items-center gap-2 rounded border bg-panel px-2 py-1 text-left text-foreground transition-colors hover:bg-muted", item.color, desktopStatus === item.status && "ring-2 ring-primary")}>
@@ -798,7 +798,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
         </header>
         <div className="apollo-station-body" data-testid="table-workspace-panels">
           <details className="apollo-station-details" open={table.order_id ? undefined : true}>
-            <summary className="cursor-pointer font-semibold">Dados do atendimento
+            <summary data-testid="table-details-trigger" className="cursor-pointer font-semibold">Dados do atendimento
               <span className="ml-2 font-normal text-muted-foreground">
                 {table.people ?? 0} pessoas · {table.customers?.length || (table.customer_name ? 1 : 0)} clientes vinculados
               </span>

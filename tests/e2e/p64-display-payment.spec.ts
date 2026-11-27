@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 
 const base = process.env.APOLLO_E2E_BASE_URL || "https://127.0.0.1:8001";
-const levels = [50, 60, 70, 80, 90, 100, 110, 125, 150, 175];
+const levels = Array.from({ length: 26 }, (_, index) => 50 + index * 5);
 const sizes = [[800, 600], [1024, 768], [1280, 720], [1280, 800], [1366, 768], [1440, 900], [1600, 900], [1920, 1080], [2560, 1440]];
 
 test("keeps payment totals and actions in the viewport across zoom settings", async ({ page }, info) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   await page.goto(base);
   await page.getByLabel("Usuário", { exact: true }).fill("p40admin");
   await page.getByLabel("Senha", { exact: true }).fill("P40-Fictitious-Password!");

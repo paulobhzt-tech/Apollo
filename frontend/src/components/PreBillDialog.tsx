@@ -100,15 +100,15 @@ export default function PreBillDialog({ table, order, open, printEnabled = true,
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-md overflow-y-auto border-border bg-shell" data-testid="prebill-dialog">
-        <DialogTitle className="font-heading text-xl text-white">Pré-conta · {tableLabel(table)}</DialogTitle>
-        <label className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground"><Checkbox checked={grouped} onCheckedChange={(v) => setGrouped(!!v)} data-testid="prebill-group-checkbox" /> Agrupar produtos iguais na pré-conta (tela e impressão)</label>
-        <label className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground"><Checkbox checked={showItemTimes} onCheckedChange={(value) => setShowItemTimes(!!value)} /> Mostrar horário dos lançamentos</label>
-        <div className="max-h-[45vh] space-y-1.5 overflow-y-auto rounded-xl bg-white p-4 font-mono text-[12px] text-black" data-testid="prebill-preview">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-md gap-2 rounded-md overflow-y-auto border-border bg-panel" data-testid="prebill-dialog">
+        <DialogTitle className="font-heading pr-8 text-base text-foreground">Pré-conta · {tableLabel(table)}</DialogTitle>
+        <label className="flex min-h-7 items-center gap-2 text-xs text-muted-foreground"><Checkbox checked={grouped} onCheckedChange={(v) => setGrouped(!!v)} data-testid="prebill-group-checkbox" /> Agrupar produtos iguais na pré-conta (tela e impressão)</label>
+        <label className="flex min-h-7 items-center gap-2 text-xs text-muted-foreground"><Checkbox checked={showItemTimes} onCheckedChange={(value) => setShowItemTimes(!!value)} /> Mostrar horário dos lançamentos</label>
+        <div className="max-h-[40dvh] space-y-1 overflow-y-auto rounded bg-white p-3 font-mono text-[12px] text-black" data-testid="prebill-preview">
           {displayLines.map((g) => {
             const times = displayTimes(g.dates);
             return (
-              <div key={g.key} className="flex justify-between gap-2" data-testid="prebill-line">
+              <div key={g.key} className="flex justify-between gap-2 wrap-anywhere" data-testid="prebill-line">
                 <span><b data-testid="prebill-line-qty">{g.qty}x</b> {g.name}{g.options.length > 0 && <span className="block pl-3 text-[10px] text-zinc-600">{g.options.join(" · ")}</span>}{times && <span className="block pl-3 text-[10px] text-zinc-600">Horário: {times}</span>}</span>
                 <span className="whitespace-nowrap">{brl(g.total)}</span>
               </div>
@@ -137,11 +137,11 @@ export default function PreBillDialog({ table, order, open, printEnabled = true,
         </div>
         {splitMode !== "people" && shareInput.trim() && !share && <p role="status" className="text-sm text-muted-foreground">Informe uma parte maior que zero e dentro do total.</p>}
         <p className="text-xs text-muted-foreground">Prévia para conferência. O recebimento é registrado no caixa.</p>
-        {!!groups.length && <a className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted"
+        {!!groups.length && <a className="inline-flex min-h-8 items-center justify-center rounded border border-border px-3 text-sm font-medium hover:bg-muted"
           href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer">
           Compartilhar pré-conta pelo WhatsApp
         </a>}
-        {printEnabled && <Button className="h-11" onClick={() => void print()} disabled={!groups.length || printing} data-testid="prebill-print-button"><PrinterIcon className="size-4" /> Imprimir pré-conta</Button>}
+        {printEnabled && <Button className="h-9" onClick={() => void print()} disabled={!groups.length || printing} data-testid="prebill-print-button"><PrinterIcon className="size-4" /> Imprimir pré-conta</Button>}
       </DialogContent>
     </Dialog>
   );

@@ -230,6 +230,7 @@ test("faixa, tema, zoom e atendimento em mesa e comanda", async ({ page }) => {
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Ativar modo claro" }).click();
   await expect(page.locator("html")).toHaveClass(/light/);
+  await page.getByTestId("display-controls-trigger").click();
   const viewport = page.viewportSize()!;
   for (const width of [viewport.width, 768]) {
     await page.setViewportSize({ width, height: viewport.height });

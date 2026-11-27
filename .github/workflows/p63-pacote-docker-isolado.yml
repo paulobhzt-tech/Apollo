@@ -8,6 +8,7 @@ on:
       - feat/p64-6-finalizacao-interface-homologacao-operacional
       - feat/p64-7-reconstrucao-completa-interface-consumer
       - feat/p64-8-correcao-final-homologacao
+      - feat/p64-9-reconstrucao-integral-interface-consumer
       - audit/p63-pacote-docker-isolado
   workflow_dispatch:
 
@@ -44,10 +45,10 @@ jobs:
           cp "$RUNNER_TEMP/p63-web/build-integrity.json" pacote/build-integrity.json
 
       - name: Ensaiar rollback e restauração com banco fictício
-        if: (github.ref_name == 'feat/p64-7-reconstrucao-completa-interface-consumer' || github.ref_name == 'feat/p64-8-correcao-final-homologacao') || github.ref_name == 'feat/p64-6-finalizacao-interface-homologacao-operacional' || github.ref_name == 'feat/p64-5-interface-consumer-operacional' || github.ref_name == 'feat/p63-final-consolidacao-operacional' || github.ref_name == 'feat/p64-3-interface-impressao-final' || contains(fromJSON('["feat/p64-4-liberacao-final-apollo","feat/p64-4-finalizacao-liberacao-operacional"]'), github.ref_name)
+        if: github.ref_name == 'feat/p64-9-reconstrucao-integral-interface-consumer' || (github.ref_name == 'feat/p64-7-reconstrucao-completa-interface-consumer' || github.ref_name == 'feat/p64-8-correcao-final-homologacao') || github.ref_name == 'feat/p64-6-finalizacao-interface-homologacao-operacional' || github.ref_name == 'feat/p64-5-interface-consumer-operacional' || github.ref_name == 'feat/p63-final-consolidacao-operacional' || github.ref_name == 'feat/p64-3-interface-impressao-final' || contains(fromJSON('["feat/p64-4-liberacao-final-apollo","feat/p64-4-finalizacao-liberacao-operacional"]'), github.ref_name)
         shell: bash
         env:
-          ROLLBACK_SHA: ${{ github.ref_name == 'feat/p64-8-correcao-final-homologacao' && '5111b8fcda3fa53399b1c47cf870026750f8f874' || github.ref_name == 'feat/p64-7-reconstrucao-completa-interface-consumer' && 'e02b17f6c5183e78700c23d0f97f099720a6e567' || (github.ref_name == 'feat/p64-6-finalizacao-interface-homologacao-operacional' || github.ref_name == 'feat/p64-5-interface-consumer-operacional') && '5c35f5e924c44abdeb656ec9587542ce1a53a860' || contains(fromJSON('["feat/p64-4-liberacao-final-apollo","feat/p64-4-finalizacao-liberacao-operacional"]'), github.ref_name) && 'fe85d9ce5fd52ca81cf1a6d020706b1fb50ad972' || github.ref_name == 'feat/p64-3-interface-impressao-final' && 'a116da3d21a397c3a2bbf84d596c77d0b236fb22' || '6795a35d4b7d7a6d539fb5fa6da3b66b25f84f11' }}
+          ROLLBACK_SHA: ${{ github.ref_name == 'feat/p64-9-reconstrucao-integral-interface-consumer' && '196d4dcb0fb6ea8187bb1f4daa1b03d79568d7b5' || github.ref_name == 'feat/p64-8-correcao-final-homologacao' && '5111b8fcda3fa53399b1c47cf870026750f8f874' || github.ref_name == 'feat/p64-7-reconstrucao-completa-interface-consumer' && 'e02b17f6c5183e78700c23d0f97f099720a6e567' || (github.ref_name == 'feat/p64-6-finalizacao-interface-homologacao-operacional' || github.ref_name == 'feat/p64-5-interface-consumer-operacional') && '5c35f5e924c44abdeb656ec9587542ce1a53a860' || contains(fromJSON('["feat/p64-4-liberacao-final-apollo","feat/p64-4-finalizacao-liberacao-operacional"]'), github.ref_name) && 'fe85d9ce5fd52ca81cf1a6d020706b1fb50ad972' || github.ref_name == 'feat/p64-3-interface-impressao-final' && 'a116da3d21a397c3a2bbf84d596c77d0b236fb22' || '6795a35d4b7d7a6d539fb5fa6da3b66b25f84f11' }}
         run: |
           set -euo pipefail
           git merge-base --is-ancestor "$ROLLBACK_SHA" "$GITHUB_SHA"
