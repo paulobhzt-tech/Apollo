@@ -155,17 +155,17 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
 
   return (
     <>
-      <DialogHeader className="shrink-0 border-b border-border px-4 py-3 pr-12 sm:px-5 sm:pr-14">
-        <DialogTitle className="font-heading text-xl text-foreground">{title}</DialogTitle>
+      <DialogHeader className="shrink-0 border-b border-border px-3 py-2 pr-12">
+        <DialogTitle className="font-heading text-base text-foreground">{title}</DialogTitle>
       </DialogHeader>
-      <div className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_auto] @min-[66rem]:grid-cols-[minmax(0,1fr)_15rem] @min-[66rem]:grid-rows-[minmax(0,1fr)]">
+      <div className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_auto] @min-[50rem]:grid-cols-[minmax(0,1fr)_15rem] @min-[50rem]:grid-rows-[minmax(0,1fr)]">
       <div className="min-h-0 min-w-0 overflow-y-auto overscroll-contain p-2 sm:p-3">
-        <div role="group" aria-label="Seções do pagamento" className="mb-2 grid grid-cols-2 gap-1 @min-[52rem]:hidden">
+        <div role="group" aria-label="Seções do pagamento" className="mb-2 grid grid-cols-2 gap-1 @min-[66rem]:hidden">
           <Button size="sm" variant={panel === "pay" ? "default" : "outline"} aria-pressed={panel === "pay"} onClick={() => setPanel("pay")}>Pagamento</Button>
           <Button size="sm" variant={panel === "order" ? "default" : "outline"} aria-pressed={panel === "order"} onClick={() => setPanel("order")}>Consumo e ajustes</Button>
         </div>
-        <div className="grid min-w-0 gap-2 @min-[52rem]:grid-cols-[8rem_minmax(0,1.15fr)_minmax(0,1fr)]">
-          <nav aria-label="Formas de pagamento" className={cn("grid content-start grid-cols-2 gap-1 @min-[28rem]:grid-cols-3 @min-[52rem]:grid-cols-1", panel === "order" && "hidden @min-[52rem]:grid")}>
+        <div className="apollo-payment-editor grid min-w-0 gap-2" data-panel={panel}>
+          <nav aria-label="Formas de pagamento" className={cn("grid content-start grid-cols-2 gap-1 @min-[30rem]:grid-cols-1", panel === "order" && "hidden @min-[66rem]:grid")}>
             <p className="col-span-full text-xs font-semibold text-muted-foreground">Formas de pagamento</p>
             {METHODS.map(({ m, label, icon: Icon }) => (
               <button
@@ -185,7 +185,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
               </button>
             ))}
           </nav>
-          <section className={cn("min-w-0 space-y-2 rounded-lg border border-border bg-panel p-2 sm:p-3", panel === "order" && "hidden @min-[52rem]:block")} aria-label="Lançar pagamento">
+          <section className={cn("min-w-0 space-y-2 rounded border border-border bg-panel p-2", panel === "order" && "hidden @min-[66rem]:block")} aria-label="Lançar pagamento">
           <h3 className="text-base font-semibold">Lançar {payLabel(method)}</h3>
           {isCard && (
             <div className="space-y-1.5" data-testid="card-brand-picker">
@@ -303,7 +303,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
           <Button className="w-full" disabled={!canAdd} onClick={add} data-testid="payment-add-button">{method === "fiado" ? "Adicionar fiado para o cliente" : "Adicionar pagamento"}</Button>
           </section>
 
-          <section className={cn("min-w-0 space-y-2 rounded-lg border border-border bg-panel p-2 sm:p-3", panel === "pay" && "hidden @min-[52rem]:block")} aria-label="Resumo do pedido">
+          <section className={cn("min-w-0 space-y-2 rounded border border-border bg-panel p-2", panel === "pay" && "hidden @min-[66rem]:block")} aria-label="Resumo do pedido">
             <h3 className="text-base font-semibold">Consumo e ajustes</h3>
             {items.length > 0 && <details className="rounded-md border border-border p-2 text-sm">
               <summary className="cursor-pointer">Itens do pedido ({items.length})</summary>
@@ -382,7 +382,7 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
             </label>
           )}
           {!cashChangeOk && <p className="text-xs text-red-400">Troco só pode ser dado em dinheiro.</p>}
-          <div className="space-y-2 rounded-xl border border-white/5 p-3">
+          {(!partialMode || emit) && <div className="space-y-2 rounded border border-border p-2">
             {!partialMode && <label className="flex items-center gap-2 text-sm text-zinc-300">
               <Checkbox checked={emit} onCheckedChange={(v) => setEmit(!!v)} data-testid="payment-emit-invoice-checkbox" />
               Emitir nota fiscal (simulada)
@@ -397,20 +397,20 @@ function PaymentBody({ subtotal, items = [], title, defaultService = 0, partialM
                 <Input placeholder="CPF/CNPJ na nota" value={cpf} onChange={(e) => setCpf(e.target.value)} className="h-7 text-xs" data-testid="payment-cpf-input" />
               </div>
             )}
-          </div>
+          </div>}
           </section>
         </div>
       </div>
-      <footer data-testid="payment-footer" className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 border-t border-border bg-elevated px-2 py-2 sm:px-4 @min-[66rem]:content-start @min-[66rem]:items-start @min-[66rem]:border-t-0 @min-[66rem]:border-l">
+      <footer data-testid="payment-footer" className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 border-t border-border bg-elevated px-2 py-2 sm:px-4 @min-[50rem]:content-start @min-[50rem]:items-start @min-[50rem]:border-t-0 @min-[50rem]:border-l">
         <div className="grid min-w-0 basis-full gap-2">
-          <h3 className="hidden font-semibold @min-[66rem]:block">Resumo do recebimento</h3>
-          <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,5.25rem),1fr))] gap-1.5 rounded-md border border-border bg-panel p-1.5 text-xs @min-[66rem]:grid-cols-2">
+          <h3 className="hidden font-semibold @min-[50rem]:block">Resumo do recebimento</h3>
+          <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,5.25rem),1fr))] gap-1.5 rounded-md border border-border bg-panel p-1.5 text-xs @min-[50rem]:grid-cols-2">
             <Row k="Total a pagar" v={brl(total)} testid="payment-total" />
             <Row k="Falta pagar" v={brl(remaining)} testid="payment-remaining" accent={remaining > 0 ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300"} />
             <Row k="Total pago" v={brl(paid)} />
             <Row k="Troco" v={brl(change)} testid="payment-change" />
           </dl>
-          <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,5.25rem),1fr))] gap-x-2 gap-y-1 text-xs @min-[66rem]:grid-cols-2">
+          <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,5.25rem),1fr))] gap-x-2 gap-y-1 text-xs @min-[50rem]:grid-cols-2">
             <Row k="Subtotal" v={brl(subtotal)} />
             <Row k="Desconto" v={brl(disc)} />
             <Row k="Serviço" v={brl(serviceFee)} />

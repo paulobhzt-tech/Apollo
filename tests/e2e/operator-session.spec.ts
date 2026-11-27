@@ -68,7 +68,7 @@ async function signIn(page: Page, username: string) {
 async function lock(page: Page) {
   await page.getByRole("button", { name: "Bloquear ou trocar operador" }).click();
   await page.getByRole("dialog", { name: "Operador atual" }).getByRole("button", { name: "Bloquear ou trocar operador" }).click();
-  await expect(page.getByRole("dialog", { name: "Bem-vindo de volta" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Acesso do operador" })).toBeVisible();
 }
 
 test("login, recuperação, memorização e troca entre perfis", async ({ page }) => {
@@ -77,7 +77,7 @@ test("login, recuperação, memorização e troca entre perfis", async ({ page }
     value: { version: "3.0.1", kvGet: () => null, kvSet: () => true },
   }));
   await page.goto("/pdv");
-  const login = page.getByRole("dialog", { name: "Bem-vindo de volta" });
+  const login = page.getByRole("dialog", { name: "Acesso do operador" });
   await expect(login).toBeVisible();
   await expect(login.getByText("Versão 3.0.1")).toBeVisible();
   await expect(login.getByRole("button", { name: "Selecionar usuário" })).toHaveCount(0);
@@ -176,11 +176,11 @@ test("bloqueio continua exigindo autenticação sem rede e após recarregar", as
   await lock(page);
   await page.reload();
   await page.goto("/pdv");
-  await expect(page.getByRole("dialog", { name: "Bem-vindo de volta" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Acesso do operador" })).toBeVisible();
   await page.getByLabel("Usuário", { exact: true }).fill("admin-teste");
   await page.getByLabel("Senha", { exact: true }).fill("senha-ficticia");
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("Servidor indisponível");
+  await expect(page.getByRole("alert")).toContainText("Não foi possível concluir a conexão");
   await expect(page.getByTestId("apollo-ribbon")).toHaveCount(0);
   server.setOffline(false);
   await signIn(page, "admin-teste");
@@ -590,7 +590,7 @@ test("a aba ativa continua autenticada após recarregar e nova abertura exige lo
 
   await page.evaluate(() => sessionStorage.removeItem("apollo-session-tab"));
   await page.reload();
-  await expect(page.getByRole("dialog", { name: "Bem-vindo de volta" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Acesso do operador" })).toBeVisible();
   await expect(page.getByLabel("Usuário", { exact: true })).toHaveValue("admin-teste");
   await expect(page.getByLabel("Senha", { exact: true })).toHaveValue("");
   const savedValues = await page.evaluate(() => Object.values(localStorage).join("\\n"));

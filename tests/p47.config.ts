@@ -17,6 +17,6 @@ const launchOptions = {
 export default defineConfig({
  testDir:'./e2e', outputDir:'./test-results/p47', workers:1,retries:0,
  timeout:60000,reporter:[['list'],['junit',{outputFile:'../evidence/p47-browser.xml'}]],
- use:{...use,ignoreHTTPSErrors:true,launchOptions,trace:'on',baseURL:'https://127.0.0.1:8001'},
+ use:{...use,ignoreHTTPSErrors:true,launchOptions,trace:'on',baseURL:process.env.APOLLO_E2E_BASE_URL || 'https://127.0.0.1:8001'},
  projects:[{name:'desktop'}]
 });

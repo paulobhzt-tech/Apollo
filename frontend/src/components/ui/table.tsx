@@ -11,7 +11,7 @@ function Table({ className, stacked = false, ...props }: React.ComponentProps<"t
       <table
         role="table"
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm tabular-nums", className)}
+        className={cn("w-full caption-bottom text-[.8125rem] tabular-nums", className)}
         {...props}
       />
     </div>
@@ -74,7 +74,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
       role="columnheader"
       data-slot="table-head"
       className={cn(
-        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
+        "h-8 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}
@@ -89,7 +89,7 @@ function TableCell({ className, label, children, ...props }: React.ComponentProp
       data-slot="table-cell"
       data-labeled={label ? "" : undefined}
       className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        "px-2 py-1 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}

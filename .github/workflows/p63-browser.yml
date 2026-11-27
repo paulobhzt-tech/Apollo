@@ -1,7 +1,7 @@
 name: P63 - Auditoria visual
 on:
   push:
-    branches: [feat/p63-interface-completa-consumer, feat/p64-4-finalizacao-liberacao-operacional, feat/p64-5-interface-consumer-operacional, feat/p64-6-finalizacao-interface-homologacao-operacional, feat/p64-7-reconstrucao-completa-interface-consumer, feat/p64-8-correcao-final-homologacao]
+    branches: [feat/p63-interface-completa-consumer, feat/p64-4-finalizacao-liberacao-operacional, feat/p64-5-interface-consumer-operacional, feat/p64-6-finalizacao-interface-homologacao-operacional, feat/p64-7-reconstrucao-completa-interface-consumer, feat/p64-8-correcao-final-homologacao, feat/p64-9-reconstrucao-integral-interface-consumer]
   workflow_dispatch:
 
 permissions:

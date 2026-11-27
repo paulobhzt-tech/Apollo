@@ -12,7 +12,7 @@ import OptionsDialog, { type Picked } from "@/components/OptionsDialog";
 import PaymentDialog from "@/components/PaymentDialog";
 import InvoiceDialog from "@/components/InvoiceDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -232,7 +232,7 @@ export default function Mesas() {
         <div className="flex flex-wrap gap-2">{([["todas", "Todas"], ["minhas", "Minhas mesas"], ["ocupadas", "Em atendimento"], ["livres", "Livres"]] as const).map(([value, label]) => <Button key={value} size="sm" variant={mobileFilter === value ? "default" : "outline"} onClick={() => setMobileFilter(value)}>{label}</Button>)}</div>
       </div>}
       {!mobileMode && (
-        <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4" data-testid="tables-summary">
+        <div className="mb-2 flex flex-wrap gap-1" data-testid="tables-summary">
           {([
             { label: "Em andamento", status: "ocupada", color: "border-emerald-500/40 text-emerald-300" },
             { label: "Contas solicitadas", status: "conta", color: "border-amber-500/40 text-amber-300" },
@@ -240,19 +240,19 @@ export default function Mesas() {
             { label: "Reservadas", status: "reservada", color: "border-violet-500/40 text-violet-300" },
           ] as const).map(item => (
             <button key={item.status} type="button" onClick={() => setDesktopStatus(desktopStatus === item.status ? "todas" : item.status)}
-              aria-pressed={desktopStatus === item.status} className={cn("rounded-md border bg-white/5 px-3 py-3 text-left transition-colors hover:bg-white/10", item.color, desktopStatus === item.status && "ring-2 ring-primary")}>
+              aria-pressed={desktopStatus === item.status} className={cn("flex items-center gap-2 rounded border bg-panel px-2 py-1 text-left text-foreground transition-colors hover:bg-muted", item.color, desktopStatus === item.status && "ring-2 ring-primary")}>
               <span className="block text-xs">{item.label}</span>
-              <span className="mt-1 block text-2xl font-bold tabular-nums">{all.filter(t => t.kind === kind && t.status === item.status).length}</span>
+              <span className="font-semibold tabular-nums">{all.filter(t => t.kind === kind && t.status === item.status).length}</span>
             </button>
           ))}
         </div>
       )}
       {!mobileMode && (
-        <div className="mb-5 flex flex-wrap items-center gap-3 border-b border-white/10 pb-4" data-testid="desktop-tables-toolbar">
+        <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-border pb-2" data-testid="desktop-tables-toolbar">
           <Input aria-label="Pesquisar mesas e comandas" placeholder="Pesquisar mesa, comanda ou cliente..." value={desktopSearch}
-            onChange={(e) => setDesktopSearch(e.target.value)} className="w-full max-w-sm rounded-sm bg-zinc-900/60 sm:w-80" />
-          <label className="flex items-center gap-2 text-xs text-zinc-300">Ordenar por
-            <select aria-label="Ordenar mesas" value={desktopSort} onChange={(e) => setDesktopSort(e.target.value as typeof desktopSort)} className="rounded border border-white/15 bg-zinc-800 px-2 py-2 text-white">
+            onChange={(e) => setDesktopSearch(e.target.value)} className="w-full max-w-sm rounded-sm bg-panel sm:w-72" />
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">Ordenar por
+            <select aria-label="Ordenar mesas" value={desktopSort} onChange={(e) => setDesktopSort(e.target.value as typeof desktopSort)} className="rounded border border-border bg-panel px-2 py-1 text-foreground">
               <option value="numero">Número</option><option value="tempo">Maior tempo</option><option value="valor">Maior valor</option>
             </select>
           </label>
@@ -302,15 +302,15 @@ export default function Mesas() {
         { title: "Mesas reservadas", items: list.filter(t => t.status === "reservada"), color: "bg-[#62518d]" },
         { title: kind === "mesa" ? "Mesas livres" : "Comandas livres", items: list.filter(t => t.status === "livre"), color: "bg-[#656565]" },
       ]).filter(group => group.items.length > 0).map(group => (
-        <section key={group.title} className="mb-5" aria-label={group.title}>
-          <h2 className="mb-3 text-sm font-semibold text-foreground">{group.title} ({group.items.length})</h2>
+        <section key={group.title} className="mb-3" aria-label={group.title}>
+          <h2 className="mb-1.5 text-sm font-semibold text-foreground">{group.title} ({group.items.length})</h2>
           <div className={cn("grid gap-2", !mobileMode && compactTiles
             ? "grid-cols-[repeat(auto-fill,minmax(min(100%,5rem),1fr))]"
             : "grid-cols-[repeat(auto-fill,minmax(min(100%,6.5rem),1fr))]")} data-testid="tables-grid">
             {group.items.map(t => (
               <button key={t.id} type="button" onClick={() => setSelId(t.id)}
                 data-testid={`${t.kind === "comanda" ? "comanda" : "table"}-card-${t.number}`}
-                className={cn("relative flex min-w-0 flex-col items-center justify-between rounded-lg p-2 text-center text-white transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", !mobileMode && compactTiles ? "min-h-20" : "min-h-28", group.color)}>
+                className={cn("relative flex min-w-0 flex-col items-center justify-between rounded px-2 py-1 text-center text-white transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary", mobileMode ? "min-h-28" : compactTiles ? "min-h-14" : "min-h-18", group.color)}>
                 <span className="text-[10px] font-medium">{t.status === "livre" ? "ABRIR" : t.status === "reservada" ? "RESERVADA" :
                   [t.status === "conta" ? "CONTA" : "", (mobileMode || showTableTotals) && t.opened_at ? `${minutesSince(t.opened_at, clock)} min` : ""].filter(Boolean).join(" · ")}</span>
                 {t.call && <Bell className="absolute right-1 top-1 size-3 animate-pulse" aria-label="Chamada pendente" />}
@@ -732,7 +732,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
         }}>
         <header className="apollo-station-header">
           <div className="min-w-0">
-            <h1 ref={headingRef} tabIndex={-1} id="table-workspace-heading" className="font-heading text-2xl font-semibold leading-tight" data-testid="table-sheet-title">Atendimento — {kindLabel(table.kind)} {table.number}</h1>
+            <h1 ref={headingRef} tabIndex={-1} id="table-workspace-heading" className="font-heading text-lg font-semibold leading-tight" data-testid="table-sheet-title">Atendimento — {kindLabel(table.kind)} {table.number}</h1>
             <p className="text-sm text-muted-foreground">{table.name && `${table.name} · `}{STATUS[table.status].label}{o && ` · Pedido #${o.number}`}</p>
           </div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -741,21 +741,26 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                   <DropdownMenuTrigger className="inline-flex min-h-10 items-center gap-2 rounded-md border border-border px-3 text-xs font-medium hover:bg-muted">
                     <Ellipsis className="size-4" aria-hidden="true" /> Mais opções
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="grid w-[min(30rem,calc(100vw-1.5rem))] grid-cols-1 gap-1 rounded-md border border-border p-2 min-[30rem]:grid-cols-2" data-testid="table-more-options">
+                    <DropdownMenuGroup className="min-w-0">
+                    <DropdownMenuLabel>Atendimento</DropdownMenuLabel>
                     <DropdownMenuItem disabled={offline || !transferTargets.length || pendingConfirmation || !!pending.length} onClick={() => setOrganization("transfer")}>Transferir mesa</DropdownMenuItem>
                     {canDelete && <DropdownMenuItem disabled={offline || pendingConfirmation || !!pending.length || !tables.some((target) => target.id !== table.id && !!target.order_id)} onClick={() => setOrganization("merge")}>Juntar contas</DropdownMenuItem>}
                     {canDelete && <DropdownMenuItem disabled={offline || pendingConfirmation || !!pending.length || !hasItems} onClick={() => setPartialOpen(true)}>Dividir por cliente ou itens</DropdownMenuItem>}
                     <DropdownMenuItem disabled={offline || status.isPending} onClick={() => status.mutate(table.status === "conta" ? "ocupada" : "conta")}>{table.status === "conta" ? "Voltar para ocupada" : "Marcar conta"}</DropdownMenuItem>
                     <DropdownMenuItem disabled={offline || pendingConfirmation || !!pending.length || release.isPending || hasItems} onClick={() => release.mutate()}>Liberar mesa</DropdownMenuItem>
                     <DropdownMenuItem variant="destructive" disabled={offline || pendingConfirmation || !!pending.length || cancelTable.isPending} onClick={requestCancellation}>Cancelar atendimento</DropdownMenuItem>
+                    <DropdownMenuItem disabled={offline || !o || busy} onClick={() => setCustomerSearchOpen(true)}>
+                      {o?.registered_customer_id ? "Trocar cliente cadastrado" : "Vincular cliente cadastrado"}
+                    </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuGroup className="min-w-0">
+                    <DropdownMenuLabel>Pedido e conferência</DropdownMenuLabel>
                     <DropdownMenuItem disabled={!items.some((item) => !item.cancelled)} onClick={() => setPreBill("view")}>Consultar conta</DropdownMenuItem>
                     <DropdownMenuItem disabled={!items.some((item) => !item.cancelled)} onClick={() => setPreBill("print")}>Imprimir conferência</DropdownMenuItem>
                     {pending.length > 0 && <DropdownMenuItem disabled={busy || pendingConfirmation} onClick={() => setReviewOpen(true)}>Revisar lançamento</DropdownMenuItem>}
                     {me?.role === "admin" && o && <DropdownMenuItem disabled={busy || editingCustomers}
                       onClick={() => navigate(`/auditoria?registro=${encodeURIComponent(o.id)}`)}>Consultar auditoria do atendimento</DropdownMenuItem>}
-                    <DropdownMenuItem disabled={offline || !o || busy} onClick={() => setCustomerSearchOpen(true)}>
-                      {o?.registered_customer_id ? "Trocar cliente cadastrado" : "Vincular cliente cadastrado"}
-                    </DropdownMenuItem>
                     {(me?.role === "admin" || me?.role === "caixa") && (["transfer", "copy"] as const).map((operation) => (
                       <DropdownMenuItem key={operation} disabled={offline || busy || pendingConfirmation || !!pending.length ||
                         !items.some((item) => !item.cancelled) || !tables.some((target) => target.id !== table.id && !!target.order_id)}
@@ -770,6 +775,7 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                     <DropdownMenuItem onClick={() => setGrouped((value) => !value)}>
                       {grouped ? "Ver lançamentos individuais" : "Agrupar itens iguais"}
                     </DropdownMenuItem>
+                    </DropdownMenuGroup>
                   </DropdownMenuContent>
                 </DropdownMenu>}
             <details className="relative z-20">
@@ -791,10 +797,15 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
           </div>
         </header>
         <div className="apollo-station-body" data-testid="table-workspace-panels">
-          <aside className="apollo-station-panel space-y-3" aria-label="Dados da mesa">
-            <h2 className="text-sm font-semibold">Dados do atendimento</h2>
+          <details className="apollo-station-details" open={table.order_id ? undefined : true}>
+            <summary className="cursor-pointer font-semibold">Dados do atendimento
+              <span className="ml-2 font-normal text-muted-foreground">
+                {table.people ?? 0} pessoas · {table.customers?.length || (table.customer_name ? 1 : 0)} clientes vinculados
+              </span>
+            </summary>
+            <div className="mt-2 grid min-w-0 gap-2 @min-[42rem]:grid-cols-2">
                 <p className="flex items-start gap-2 text-sm"><Clock className="size-4 shrink-0" /> <span>{table.opened_at ? `${minutesSince(table.opened_at, clock)} min de ocupação · desde ${fmtTime(table.opened_at)}` : "Aguardando abertura"}</span></p>
-                <p className="flex items-start gap-2 text-sm"><Users className="size-4 shrink-0" /> <span>{table.people ?? 0} cliente(s){table.waiter_name ? ` · Garçom: ${table.waiter_name}` : " · Garçom não atribuído"}</span></p>
+                <p className="flex items-start gap-2 text-sm"><Users className="size-4 shrink-0" /> <span>{table.people ?? 0} pessoas presentes{table.waiter_name ? ` · Garçom: ${table.waiter_name}` : " · Garçom não atribuído"}</span></p>
                 {table.customer_name && <p className="text-sm text-muted-foreground">{table.customer_name}</p>}
                 <Button variant="outline" onClick={() => onQr(table)} data-testid="table-qr-button"><QrCode className="size-4" /> QR {table.kind === "mesa" ? "da mesa" : "da comanda"}</Button>
                 <RenameRow key={table.id + table.name} table={table} canDelete={canDelete} onDeleted={onClose} />
@@ -811,7 +822,8 @@ function TableWorkspace({ clock, table, onClose, onQr, qrOpen, tables, canDelete
                 </div>
               )}
 
-          </aside>
+            </div>
+          </details>
           {table.order_id ? <>
             <section className="apollo-station-panel apollo-station-catalog @container" aria-label="Catálogo de produtos">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

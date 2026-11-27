@@ -73,8 +73,10 @@ export default function Login() {
       setError(e instanceof ApiError
         ? e.status === 401
           ? credentials.username ? "Usuário ou senha incorretos." : "PIN inválido."
-          : errMsg(e)
-        : "Servidor indisponível. Reconecte-se para autenticar o operador.");
+          : e.status >= 500 ? "O servidor retornou um erro ao autenticar. Tente novamente." : errMsg(e)
+        : navigator.onLine
+          ? "Não foi possível concluir a conexão com o servidor. Tente novamente."
+          : "O dispositivo está offline. Conecte-se à rede para entrar.");
       setPin("");
       setPassword("");
     },
@@ -106,14 +108,14 @@ export default function Login() {
         <button type="button" className="rounded-lg bg-primary px-4 py-2 font-semibold text-white" onClick={() => setOpen(true)}>Abrir login</button>
       </div>}
       <Dialog open={open} onOpenChange={(value) => { if (!value) close(); }} disablePointerDismissal>
-        <DialogContent className="gap-2 rounded-2xl border border-border bg-panel p-5 shadow-xl sm:max-w-md sm:p-7"
+        <DialogContent className="gap-2 rounded-md border border-border bg-panel p-4 shadow-xl sm:max-w-sm"
           overlayClassName="bg-black/60" data-testid="pin-panel">
-          <header className="mb-4 flex flex-col items-center gap-2 text-center">
-            <span className="grid size-12 place-items-center rounded-2xl bg-primary text-white"><Flame className="size-6" aria-hidden="true" /></span>
-            <p className="font-semibold text-foreground" data-testid="login-brand">Apollo PDV</p>
-            <DialogTitle className="text-2xl font-semibold text-foreground">Bem-vindo de volta</DialogTitle>
-            <p className="text-sm text-muted-foreground">Acesse sua conta para continuar</p>
-            <Link to="/mesas-offline" className="text-sm underline">Mesas e comandas offline</Link>
+          <header className="-mx-4 -mt-4 mb-1 flex items-center gap-2 border-b border-border bg-elevated px-4 py-2 pr-12">
+            <span className="grid size-8 shrink-0 place-items-center rounded bg-primary text-white"><Flame className="size-4" aria-hidden="true" /></span>
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground" data-testid="login-brand">Apollo PDV</p>
+              <DialogTitle className="text-base font-semibold text-foreground">Acesso do operador</DialogTitle>
+            </div>
           </header>
           {mode === "pin" && operators.length > 0 && operators.every((p) => p.pin_enabled === false)
             ? <p role="status" className="mt-3 text-sm text-amber-700 dark:text-amber-300">Nenhum operador ativo tem PIN neste servidor. Use usuário e senha.</p>
@@ -142,7 +144,7 @@ export default function Login() {
             <div>
               <label htmlFor="login-username" className="block text-sm">Usuário</label>
               <div className="mt-1 flex rounded-xl border border-border bg-elevated focus-within:ring-2 focus-within:ring-primary">
-                <input id="login-username" className="min-w-0 flex-1 rounded-xl bg-transparent p-3 text-foreground outline-none"
+                <input id="login-username" className="min-w-0 flex-1 rounded bg-transparent px-3 py-2 text-foreground outline-none"
                   value={username} autoComplete="username" onChange={(event) => { setUsername(event.target.value); setError(""); }} />
                 {namedOperators.length > 0 && <button type="button" className="grid w-11 shrink-0 place-items-center rounded-r-xl hover:bg-muted"
                   aria-label="Selecionar usuário" aria-expanded={showOperators} aria-controls="login-operator-list"
@@ -161,7 +163,7 @@ export default function Login() {
             </div>
             <div>
               <label htmlFor="login-password" className="mb-1 block text-sm">Senha</label>
-              <input id="login-password" type="password" className="w-full rounded-xl border border-border bg-elevated p-3 text-foreground" value={password} autoComplete="current-password" onChange={(event) => { setPassword(event.target.value); setError(""); }} />
+              <input id="login-password" type="password" className="w-full rounded border border-border bg-elevated px-3 py-2 text-foreground" value={password} autoComplete="current-password" onChange={(event) => { setPassword(event.target.value); setError(""); }} />
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <label className="flex cursor-pointer items-center gap-2">
@@ -175,7 +177,7 @@ export default function Login() {
               </label>
               <button type="button" onClick={() => setHelp("forgot")} className="text-primary hover:underline" data-testid="forgot-password-link">Esqueci minha senha</button>
             </div>
-            <button type="submit" disabled={!username.trim() || !password || login.isPending} className="w-full rounded-xl bg-primary p-3 font-semibold text-white disabled:opacity-40">{login.isPending ? "Entrando…" : "Entrar"}</button>
+            <button type="submit" disabled={!username.trim() || !password || login.isPending} className="w-full rounded bg-primary px-3 py-2 font-semibold text-white disabled:opacity-40">{login.isPending ? "Entrando…" : "Entrar"}</button>
           </form> : <><p className="text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-500">
             {selected ? `Olá, ${selected.name}` : "Acesso por PIN"}
           </p>
@@ -217,7 +219,10 @@ export default function Login() {
           >
             <ShieldCheck className="size-5" /> {login.isPending ? "Entrando…" : "Entrar"}
           </button>}
-          {version && <p className="mt-2 text-center text-xs text-muted-foreground">Versão {version}</p>}
+          <footer className="mt-1 flex flex-wrap justify-between gap-2 border-t border-border pt-2 text-xs text-muted-foreground">
+            <Link to="/mesas-offline" className="underline">Mesas e comandas offline</Link>
+            {version && <span>Versão {version}</span>}
+          </footer>
           <Dialog open={confirmRemember} onOpenChange={setConfirmRemember} disablePointerDismissal>
             <DialogContent>
               <DialogTitle>Memorizar usuário</DialogTitle>

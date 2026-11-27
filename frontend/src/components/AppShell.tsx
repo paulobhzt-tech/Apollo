@@ -230,11 +230,11 @@ function NavList({ role, onNavigate, search = "" }: { role: Role; onNavigate?: (
 function Brand() {
   return (
     <Link to="/" className="flex items-center gap-2.5" data-testid="brand-link">
-      <span className="grid size-9 place-items-center rounded-xl bg-primary text-white shadow-lg shadow-primary/30">
-        <Flame className="size-5" />
+      <span className="grid size-7 place-items-center rounded bg-primary text-white">
+        <Flame className="size-4" />
       </span>
       <span className="leading-tight">
-        <span className="block font-heading text-base font-semibold text-white" data-testid="brand-name">Apollo PDV</span>
+        <span className="block font-heading text-sm font-semibold text-foreground" data-testid="brand-name">Apollo PDV</span>
       </span>
     </Link>
   );
@@ -385,18 +385,23 @@ export default function AppShell({ children, roles, workspace = false }: { child
 
       <div className="flex min-w-0 flex-1 flex-col">
         {me.role === "admin" && backupChoice.data && !backupChoice.data.destination && loc.pathname !== "/config" && (
-          <Link to="/config?tab=backup" className="bg-amber-500 px-4 py-2 text-center text-sm font-semibold text-black" data-testid="backup-setup-required">
+          <Link to="/config?tab=backup" className="border-b border-amber-600/40 bg-amber-500/15 px-3 py-1 text-center text-xs font-semibold text-foreground" data-testid="backup-setup-required">
             Configuração obrigatória: escolha backup no Google Drive ou no PC em Configurações → Backup.
           </Link>
         )}
         <header className="relative z-30 lg:sticky lg:top-0 @container border-b border-border bg-shell text-foreground" data-testid="apollo-ribbon" data-menu-accent={menu.accent}>
-          <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-border px-3 py-2 sm:px-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 border-b border-border px-3 py-0.5">
             <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={() => setOpen(true)} aria-label="Abrir todas as funções (Ctrl+K)" title="Buscar funções (Ctrl+K)" data-testid="mobile-menu-button"><Menu className="size-5" /></Button>
             <Brand />
             <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => { setMenuSearch(""); setOpen(true); }}><Search className="size-4" /> Pesquisar</Button>
               <OfflineBadge />
-              <DisplayControls />
+              <details className="relative z-10">
+                <summary data-testid="display-controls-trigger" className="cursor-pointer rounded px-2 py-1 text-xs font-medium hover:bg-muted">Visualização</summary>
+                <div className="absolute right-0 mt-2 w-[min(19rem,80vw)] rounded border border-border bg-popover p-2 shadow-lg">
+                  <DisplayControls />
+                </div>
+              </details>
               <MenuPreferences key={me.id} items={items} settings={menu} defaults={defaultOrder} theme={menuTheme}
                 onChange={saveMenu} onReset={() => {
                   try {
@@ -420,7 +425,7 @@ export default function AppShell({ children, roles, workspace = false }: { child
               </div>
             </div>
           </div>
-          {visibleGroup && <nav aria-label="Seções do sistema" data-testid="top-menu-groups" className="border-b border-border px-2 py-1 sm:px-4">
+          {visibleGroup && <nav aria-label="Seções do sistema" data-testid="top-menu-groups" className="px-2 sm:px-3">
             <label className="flex items-center gap-2 @min-[46rem]:hidden">
               <span className="text-xs text-muted-foreground">Seção</span>
               <select aria-label="Seção do menu" value={visibleGroup} onChange={(event) => setActiveRibbon(groups.find(({ label }) => label === event.target.value)?.label ?? null)}
@@ -431,24 +436,24 @@ export default function AppShell({ children, roles, workspace = false }: { child
             <div className="hidden items-stretch gap-1 @min-[46rem]:flex">
               {groups.map(({ label, icon: GroupIcon }) => (
                 <button key={label} type="button" onClick={() => setActiveRibbon(label)} aria-pressed={visibleGroup === label}
-                  className="flex min-h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border-b-2 border-transparent px-2 text-xs font-semibold text-muted-foreground uppercase hover:bg-muted aria-pressed:border-[var(--apollo-menu-accent,var(--primary))] aria-pressed:bg-muted aria-pressed:text-foreground @min-[65rem]:px-3">
+                  className="flex min-h-8 items-center justify-center gap-1.5 whitespace-nowrap border-b-2 border-transparent px-2 text-xs font-semibold text-muted-foreground uppercase hover:bg-muted aria-pressed:border-[var(--apollo-menu-accent,var(--primary))] aria-pressed:bg-muted aria-pressed:text-foreground @min-[65rem]:px-3">
                   <GroupIcon className="hidden size-4 shrink-0 text-primary @min-[65rem]:block" aria-hidden="true" />{label}
                 </button>
               ))}
             </div>
           </nav>}
-          <div className="flex justify-end px-3 pb-1">
+          <div className="flex min-w-0 items-center gap-1 border-t border-border bg-elevated px-2">
+            <div id="apollo-ribbon-shortcuts" className="min-w-0 flex-1" hidden={!shortcutsVisible}>
+              <RibbonShortcuts items={shortcuts} available={availableShortcuts} settings={menu} principal={visibleGroup === "Principal"} />
+            </div>
             <button type="button" aria-expanded={shortcutsVisible} aria-controls="apollo-ribbon-shortcuts"
-              className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
+              className="ml-auto rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
               onClick={() => setShortcutsVisible((visible) => !visible)}>
               {shortcutsVisible ? "Recolher atalhos" : "Mostrar atalhos"}
             </button>
           </div>
-          <div id="apollo-ribbon-shortcuts" hidden={!shortcutsVisible}>
-            <RibbonShortcuts items={shortcuts} available={availableShortcuts} settings={menu} principal={visibleGroup === "Principal"} />
-          </div>
         </header>
-        <main className="apollo-workspace min-w-0 flex-1 px-3 py-4 lg:px-5">
+        <main className="apollo-workspace min-w-0 flex-1 px-3 py-2">
           {allowed ? children : (
             <div className="mx-auto mt-20 max-w-md text-center" data-testid="no-permission">
               <h2 className="text-2xl font-semibold text-white">Acesso restrito</h2>
@@ -457,6 +462,10 @@ export default function AppShell({ children, roles, workspace = false }: { child
             </div>
           )}
         </main>
+        <footer className="flex min-w-0 flex-wrap justify-between gap-x-3 border-t border-border bg-panel px-3 py-1 text-xs text-muted-foreground">
+          <span>{currentItem?.label ?? visibleGroup}</span>
+          <span className="wrap-anywhere">{me.name} · {ROLE_LABEL[me.role]}</span>
+        </footer>
       </div>
       <OperatorDialog open={operatorOpen} onOpenChange={setOperatorOpen} name={me.name} role={me.role} />
       <Toaster richColors />
@@ -474,8 +483,8 @@ const SHORTCUT_COLORS: Record<string, string> = {
   "/clientes": "text-teal-700 dark:text-teal-400",
 };
 
-const ICON_SIZES = { small: "1rem", medium: "1.5rem", large: "2rem" };
-const BUTTON_SIZES = { small: "2.75rem", medium: "3.5rem", large: "4.25rem" };
+const ICON_SIZES = { small: ".875rem", medium: "1.125rem", large: "1.375rem" };
+const BUTTON_SIZES = { small: "1.875rem", medium: "2.125rem", large: "2.625rem" };
 
 function RibbonShortcuts({ items, available, principal, settings }: {
   items: NavItem[]; available: NavItem[]; principal: boolean; settings: MenuSettings;
@@ -483,7 +492,7 @@ function RibbonShortcuts({ items, available, principal, settings }: {
   const [open, setOpen] = useState(false);
   return <nav aria-label="Atalhos do sistema" data-testid="top-menu-shortcuts"
     style={{ "--menu-icon-size": ICON_SIZES[settings.iconSize], "--menu-button-size": BUTTON_SIZES[settings.buttonSize] } as CSSProperties}
-    className="flex min-w-0 items-stretch gap-1 bg-elevated px-2 py-1 sm:px-4">
+    className="flex min-w-0 items-stretch gap-1 py-0.5">
     <div className="apollo-shortcut-row flex min-w-0 flex-1 items-stretch gap-1">
       {items.map((item) => <RibbonShortcut key={item.to} item={item} label={principal ? PRINCIPAL_LABELS[item.to] : undefined} />)}
     </div>
@@ -504,8 +513,8 @@ function RibbonShortcuts({ items, available, principal, settings }: {
 function RibbonShortcut({ item, label = item.label, compact, onNavigate }: { item: NavItem; label?: string; compact?: boolean; onNavigate?: () => void }) {
   const Icon = label === "Fila de Atendimento" ? ListOrdered : ICONS[item.icon] ?? LayoutDashboard;
   return <NavLink to={label === "Fila de Atendimento" ? "/comanda-mobile?fila=1" : item.to} end={item.to === "/"} onClick={onNavigate}
-    className={({ isActive }) => cn("flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-1.5 py-1.5 text-xs leading-tight hover:bg-muted",
-      compact ? "justify-start text-left" : "min-h-(--menu-button-size) max-w-36 flex-col border border-transparent text-center",
+    className={({ isActive }) => cn("flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded px-1.5 py-1 text-xs leading-tight hover:bg-muted",
+      compact ? "min-h-9 justify-start text-left" : "min-h-(--menu-button-size) max-w-40 border border-transparent text-left",
       isActive ? "border-primary/30 bg-primary/10 text-foreground" : "text-muted-foreground")}>
     <Icon className={cn("shrink-0", compact ? "size-5" : "size-(--menu-icon-size)", SHORTCUT_COLORS[item.to] ?? "text-primary")} aria-hidden="true" />
     <span className="min-w-0 wrap-anywhere">{label}</span>
@@ -564,9 +573,9 @@ function UserCard({ name, role, onManage }: { name: string; role: Role; onManage
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
   return (
-    <div className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-panel px-3 py-3 sm:px-4">
+    <div className="mb-2 flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-border px-1 py-1.5">
       <div className="min-w-0 wrap-anywhere">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl" data-testid="page-title">{title}</h1>
+        <h1 className="text-lg font-semibold tracking-tight text-foreground" data-testid="page-title">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
       </div>
       {actions && <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">{actions}</div>}
@@ -576,9 +585,9 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
 
 export function Stat({ label, value, hint, testid, accent }: { label: string; value: string; hint?: string; testid: string; accent?: string }) {
   return (
-    <div className="rounded-2xl border border-white/5 bg-panel p-5 transition-transform duration-200 hover:-translate-y-0.5">
+    <div className="rounded border border-border bg-panel px-3 py-2">
       <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-zinc-500">{label}</p>
-      <p className={cn("mt-2 wrap-anywhere font-mono text-2xl font-medium tracking-tight text-white", accent)} data-testid={testid}>{value}</p>
+      <p className={cn("mt-1 wrap-anywhere font-mono text-lg font-medium tracking-tight text-foreground", accent)} data-testid={testid}>{value}</p>
       {hint && <p className="mt-1 text-xs text-zinc-500">{hint}</p>}
     </div>
   );

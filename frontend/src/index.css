@@ -244,8 +244,9 @@
     .apollo-shortcut-row > a:nth-child(n + 11) { display: none; }
 }
 
-/* Atendimento is an in-flow route workspace. Each desktop panel scrolls independently. */
+/* The order and catalog share the station. The order actions stay outside the scrolling area. */
 .apollo-station {
+  container-type: inline-size;
   height: 100dvh;
   min-width: 0;
   display: grid;
@@ -263,8 +264,8 @@
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: .5rem 1rem;
-  padding: .65rem .9rem;
+  gap: .35rem .75rem;
+  padding: .45rem .65rem;
   background: var(--panel);
 }
 .apollo-station-header { border-bottom: 1px solid var(--border); }
@@ -273,24 +274,50 @@
 .apollo-station-footer button { white-space: normal; height: auto; }
 .apollo-station-body {
   display: grid;
+  align-content: start;
   min-width: 0;
   min-height: 0;
+  gap: .4rem;
+  padding: .4rem;
   grid-template-columns: minmax(0, 1fr);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+.apollo-station-details {
+  grid-column: 1 / -1;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: .25rem;
+  padding: .35rem .55rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: .8125rem;
+}
 .apollo-station-panel {
   min-width: 0;
-  padding: .8rem;
+  padding: .55rem;
+  border: 1px solid var(--border);
+  border-radius: .25rem;
+  background: var(--panel);
   overflow-wrap: anywhere;
 }
-.apollo-station-catalog { background: var(--panel); }
-.apollo-station-order { border-top: 1px solid var(--border); }
-@media (min-width: 64rem) {
-  .apollo-station-body {
-    grid-template-columns: minmax(10rem, .9fr) minmax(0, 2fr) minmax(0, 1.55fr);
-    overflow-y: visible;
+@container (min-width: 43rem) {
+  .apollo-station-body:has(.apollo-station-order) {
+    align-content: stretch;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
+  .apollo-station-details[open] { max-height: 40dvh; overflow-y: auto; }
   .apollo-station-panel { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
-  .apollo-station-body > :not(:first-child) { border-left: 1px solid var(--border); border-top: 0; }
+}
+
+@container (min-width: 30rem) {
+  .apollo-payment-editor[data-panel="pay"] {
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+  }
+}
+@container (min-width: 66rem) {
+  .apollo-payment-editor[data-panel] {
+    grid-template-columns: 8rem minmax(0, 1.15fr) minmax(0, 1fr);
+  }
 }

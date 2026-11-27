@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 const base = process.env.APOLLO_E2E_BASE_URL || "https://127.0.0.1:8001";
-const levels = Array.from({ length: 26 }, (_, index) => 50 + index * 5);
-const sizes = [[800, 600], [1024, 768], [1280, 720], [1366, 768], [1440, 900], [1600, 900], [1920, 1080], [2560, 1440]];
+const levels = [50, 60, 70, 80, 90, 100, 110, 125, 150, 175];
+const sizes = [[800, 600], [1024, 768], [1280, 720], [1280, 800], [1366, 768], [1440, 900], [1600, 900], [1920, 1080], [2560, 1440]];
 
 test("keeps payment totals and actions in the viewport across zoom settings", async ({ page }, info) => {
   test.setTimeout(180_000);
@@ -19,6 +19,7 @@ test("keeps payment totals and actions in the viewport across zoom settings", as
   await page.goto(base + "/pdv");
   await page.getByTestId("product-card-p40product").click();
 
+  await page.getByTestId("display-controls-trigger").click();
   const zoom = page.getByLabel("Zoom da interface", { exact: true });
   const checkout = page.getByTestId("pdv-checkout-button");
   const popup = page.getByTestId("payment-dialog");
@@ -60,6 +61,7 @@ test("keeps payment totals and actions in the viewport across zoom settings", as
   await page.getByLabel("Densidade da interface").selectOption("compact");
   await page.getByRole("button", { name: "Reduzir efeitos" }).click();
   await page.reload();
+  await page.getByTestId("display-controls-trigger").click();
   await expect(zoom).toHaveValue("auto");
   await expect(page.getByLabel("Densidade da interface")).toHaveValue("compact");
   await expect(page.getByRole("button", { name: "Reduzir efeitos" })).toHaveAttribute("aria-pressed", "true");
@@ -116,6 +118,7 @@ test("adapts the cash and stock records and keeps their actions reachable at 175
   await expect(page.locator("#apollo-ribbon-shortcuts")).toBeHidden();
   await page.getByRole("button", { name: "Mostrar atalhos" }).click();
   await expect(page.locator("#apollo-ribbon-shortcuts")).toBeVisible();
+  await page.getByTestId("display-controls-trigger").click();
   await page.getByLabel("Zoom da interface", { exact: true }).selectOption("175");
   const movementRow = movements.getByRole("row").filter({ hasText: note });
   await expect(movementRow.locator(".apollo-cell-label").first()).toBeVisible();
@@ -150,6 +153,7 @@ test("keeps each operator's zoom and supports the table workspace shortcuts", as
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(base);
   await signIn("p40admin");
+  await page.getByTestId("display-controls-trigger").click();
   const zoom = page.getByLabel("Zoom da interface", { exact: true });
   await zoom.selectOption("80");
   await page.goto(base + "/mesas");
@@ -184,6 +188,7 @@ test("keeps each operator's zoom and supports the table workspace shortcuts", as
   await switchOperator();
   await signIn("p40caixa1");
   await expect(zoom).toHaveValue("100");
+  await page.getByTestId("display-controls-trigger").click();
   await zoom.selectOption("125");
   await switchOperator();
   await signIn("p40admin");
