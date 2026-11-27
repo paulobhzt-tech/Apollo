@@ -500,7 +500,7 @@ function RibbonShortcuts({ items, available, principal, settings }: {
       <Ellipsis className="size-4" aria-hidden="true" /> Mais atalhos
     </Button>
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
         <DialogTitle>Atalhos da seção</DialogTitle>
         <div className="grid gap-1 sm:grid-cols-2">
           {available.map((item) => <RibbonShortcut key={item.to} item={item} label={principal ? PRINCIPAL_LABELS[item.to] : undefined} compact onNavigate={() => setOpen(false)} />)}
@@ -513,8 +513,8 @@ function RibbonShortcuts({ items, available, principal, settings }: {
 function RibbonShortcut({ item, label = item.label, compact, onNavigate }: { item: NavItem; label?: string; compact?: boolean; onNavigate?: () => void }) {
   const Icon = label === "Fila de Atendimento" ? ListOrdered : ICONS[item.icon] ?? LayoutDashboard;
   return <NavLink to={label === "Fila de Atendimento" ? "/comanda-mobile?fila=1" : item.to} end={item.to === "/"} onClick={onNavigate}
-    className={({ isActive }) => cn("flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded px-1.5 py-1 text-xs leading-tight hover:bg-muted",
-      compact ? "min-h-9 justify-start text-left" : "min-h-(--menu-button-size) max-w-40 border border-transparent text-left",
+    className={({ isActive }) => cn("flex min-w-0 items-center justify-center gap-1.5 rounded px-1.5 py-1 text-xs leading-tight hover:bg-muted",
+      compact ? "min-h-9 justify-start text-left" : "min-h-(--menu-button-size) max-w-40 flex-[0_1_auto] border border-transparent text-left",
       isActive ? "border-primary/30 bg-primary/10 text-foreground" : "text-muted-foreground")}>
     <Icon className={cn("shrink-0", compact ? "size-5" : "size-(--menu-icon-size)", SHORTCUT_COLORS[item.to] ?? "text-primary")} aria-hidden="true" />
     <span className="min-w-0 wrap-anywhere">{label}</span>

@@ -1048,7 +1048,8 @@ async def receive_monetary_partial(id: str, body: MonetaryReceiptIn, user: dict 
             raise HTTPException(422, "A parcela deve ser positiva e menor que o saldo. Use o fechamento para quitar a conta.")
         if any(p.method == "fiado" for p in body.payments):
             raise HTTPException(422, "Fiado está disponível no fechamento da conta.")
-        if any(cents(p.amount) / 100 != p.amount for p in body.payments) or sum(cents(p.amount) for p in body.payments) != amount:
+        if (any(p.amount > amount / 100 or cents(p.amount) / 100 != p.amount for p in body.payments)
+                or sum(cents(p.amount) for p in body.payments) != amount):
             raise HTTPException(422, "A soma dos pagamentos deve ser igual à parcela em centavos.")
         if any(p.method in ("credito", "debito") and not p.brand for p in body.payments):
             raise HTTPException(422, "Informe a bandeira do cartão.")
