@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import os
@@ -6,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import DuplicateKeyError, PyMongoError
 
 from lib.demo_guard import delivery_simulation_enabled
 from lib.counter_sale_gate import counter_sale_gate
@@ -81,8 +82,17 @@ async def counter_sale_replay(existing: dict, body: QuickSaleIn, user: dict):
 async def with_order_transaction(operation):
     topology = await db.command("hello")
     if topology.get("setName") or topology.get("msg") == "isdbgrid":
-        async with await db.client.start_session() as session:
-            return await session.with_transaction(operation)
+        # Motor can surface a transient commit failure from the transaction
+        # context manager before its own commit retry handler runs.
+        for attempt in range(3):
+            try:
+                async with await db.client.start_session() as session:
+                    return await session.with_transaction(operation)
+            except PyMongoError as error:
+                if (attempt == 2 or error.has_error_label("UnknownTransactionCommitResult")
+                        or not error.has_error_label("TransientTransactionError")):
+                    raise
+                await asyncio.sleep(0.01 * (2 ** attempt))
     return await operation(None)
 
 
