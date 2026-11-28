@@ -2,18 +2,18 @@ import { expect, test } from "@playwright/test";
 
 const base = process.env.APOLLO_E2E_BASE_URL || "https://127.0.0.1:8001";
 const side = process.env.APOLLO_P647_SIDE;
-test.skip(!["p646", "p647", "p648", "p649"].includes(side ?? ""), "Executar somente na comparação com banco descartável.");
+test.skip(!["p646", "p647", "p648", "p649", "p6410"].includes(side ?? ""), "Executar somente na comparação com banco descartável.");
 
 test("captures the same populated screens in each version", async ({ page }, info) => {
   test.setTimeout(120_000);
   expect(new URL(base).hostname).toBe("127.0.0.1");
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto(base + "/login");
-  if (side === "p649") {
+  if (side === "p649" || side === "p6410") {
     const login = page.getByTestId("pin-panel");
     await expect(login).toBeVisible();
     expect(await login.evaluate((element) => element.scrollHeight <= element.clientHeight + 2)).toBe(true);
-    await page.screenshot({ path: info.outputPath("p649-login.png"), animations: "disabled" });
+    await page.screenshot({ path: info.outputPath(`${side}-login.png`), animations: "disabled" });
   }
   await page.getByLabel("Usuário", { exact: true }).fill("p40admin");
   await page.getByLabel("Senha", { exact: true }).fill("P40-Fictitious-Password!");
@@ -71,7 +71,7 @@ test("captures the same populated screens in each version", async ({ page }, inf
 
   if (side !== "p646") {
     await page.getByRole("button", { name: "Mais opções" }).click();
-    if (side === "p649") {
+    if (side === "p649" || side === "p6410") {
       const options = page.getByTestId("table-more-options");
       await expect(options).toBeInViewport({ ratio: 1 });
       expect(await options.evaluate((element) => element.scrollHeight <= element.clientHeight + 2)).toBe(true);
@@ -114,7 +114,7 @@ test("captures the same populated screens in each version", async ({ page }, inf
   await page.goto(base + "/config");
   await expect(page.getByTestId("config-tab-printers")).toBeVisible();
   await capture("configuracoes");
-  if (side === "p649") {
+  if (side === "p649" || side === "p6410") {
     const printer = await post("/printers", { name: "Impressora fictícia", device_name: "Fila de laboratório", active: false });
     await page.reload();
     const row = page.getByTestId(`printer-card-${printer.id}`);
